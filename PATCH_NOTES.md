@@ -1,4 +1,6 @@
-**r04 — pup diagnostics** · 2026-08-17 · phase 1, Puffco BLE panel
+**r05 — autodetect** · 2026-08-17 · phase 1, Puffco BLE panel
+
+In its own panel header: *r05 auto-detect*.
 
 ### Summary
 
@@ -6,7 +8,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB. The first archived revision; it builds on `snapshots/emberwatch_3.html`.
+- 0.74 MB (+9 bytes on r04).
+- No functions added or removed.
 
 ### Play it
 
