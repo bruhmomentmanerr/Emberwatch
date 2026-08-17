@@ -1,6 +1,4 @@
-**r06 — puffco app flow** · 2026-08-17 · phase 1, Puffco BLE panel
-
-In its own panel header: *r06 app flow*.
+**r07 — reconnect** · 2026-08-17 · phase 1, Puffco BLE panel
 
 ### Summary
 
@@ -8,8 +6,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+933 bytes on r05).
-- 2 functions added: `discoverServices`, `triggerPuffcoBonding`.
+- 0.74 MB (+567 bytes on r06).
+- 1 function added: `connectAttempt`.
 
 ### Play it
 
