@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r07 reconnect</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r08 controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4830,10 +4830,12 @@ const PUFF=(function(){
     const value=event.target.value, id=value.getUint16(0,true), request=pending.get(id);
     if(!request) return;
     pending.delete(id); clearTimeout(request.timer);
-    // Lorax replies are sequence (2 bytes), response kind (1 byte), then payload.
-    // The response-kind byte is protocol metadata, not a universal status code.
-    const payload=new Uint8Array(value.buffer.slice(value.byteOffset+3,value.byteOffset+value.byteLength));
-    request.resolve(payload);
+    // Lorax replies are sequence (2 bytes), status (1 byte), then payload.
+    // Puffco.app rejects non-zero status responses; treating them as successes
+    // made the previous panel claim a heat cycle had started when it had not.
+    const status=value.getUint8(2), payload=new Uint8Array(value.buffer.slice(value.byteOffset+3,value.byteOffset+value.byteLength));
+    if(status) request.reject(new Error('Peak Pro rejected this command (Lorax code '+status+').'));
+    else request.resolve(payload);
   }
   async function loraxCommand(opcode,body=new Uint8Array(),expected=null){
     const job=async()=>{
@@ -4959,10 +4961,10 @@ const PUFF=(function(){
       else if(/secure|localhost/i.test(e.message)) setNote('Run the game from <code>http://localhost</code> (I can hand you a one-click launcher).');
     }
   };
-  $('pSet').onclick=async()=>{ const c=+$('pTarget').value; if(c>=100&&c<=340){ try{ await PUFF.setTemp(c); setNote('set target '+c+'°C'); }catch(e){ setNote('⚠ '+e.message); } } };
-  $('pHeat').onclick=()=>PUFF.mode('heat').then(()=>{setNote('heat cycle started'); if(typeof cast==='function') cast();}).catch(e=>setNote('⚠ '+e.message));
-  $('pIdle').onclick=()=>PUFF.mode('idle').catch(()=>{});
-  $('pSleep').onclick=()=>PUFF.mode('sleep').catch(()=>{});
+  $('pSet').onclick=async()=>{ const c=+$('pTarget').value; if(c>=100&&c<=340){ try{ await PUFF.setTemp(c); setNote('target set to '+c+'°C'); refresh(); }catch(e){ setNote('⚠ '+e.message); } } };
+  $('pHeat').onclick=()=>PUFF.mode('heat').then(()=>{setNote('heat cycle started ✓'); if(typeof cast==='function') cast(); refresh();}).catch(e=>setNote('⚠ '+e.message));
+  $('pIdle').onclick=()=>PUFF.mode('idle').then(()=>{setNote('heat cycle stopped ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
+  $('pSleep').onclick=()=>PUFF.mode('sleep').then(()=>{setNote('sleep mode requested ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>PUFF.disconnect();
 })();
 

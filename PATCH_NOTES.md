@@ -1,4 +1,6 @@
-**r07 — reconnect** · 2026-08-17 · phase 1, Puffco BLE panel
+**r08 — control replies** · 2026-08-17 · phase 1, Puffco BLE panel
+
+In its own panel header: *r08 controls*.
 
 ### Summary
 
@@ -6,8 +8,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+567 bytes on r06).
-- 1 function added: `connectAttempt`.
+- 0.74 MB (+393 bytes on r07).
+- No functions added or removed.
 
 ### Play it
 
