@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r05 auto-detect</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r06 app flow</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4815,7 +4815,7 @@ document.getElementById('puffClose').addEventListener('click',()=>togglePuff(fal
 const PUFF=(function(){
   const LORAX={ service:'e276967f-ea8a-478a-a92e-d78f5dd15dd5', version:'05434bca-cc7f-4ef6-bbb3-b1c520b9800c', command:'60133d5c-5727-4f2c-9697-d842c5292a3c', reply:'8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c', key:'ZMZFYlbyb1scoSc3pd1x+w==' };
   const LEGACY={ services:['06caf9c0-74d3-454f-9be9-e30cd999c17a','f9a98c15-c651-4f34-b656-d100bf580000'], off:{seed:'e0',battery:'20',temp:'25',tempCmd:'26',mode:'40',state:'22'}, key:'FUrZc0WilhUBteT2JlCc+A==' };
-  const PUP={ service:'420b9b40-457d-4abe-a3bf-71609d79581b' }; // update/diagnostic service, not a heat-control protocol
+  const PUP={ service:'420b9b40-457d-4abe-a3bf-71609d79581b', appVersion:'58b0a7aa-d89f-4bf2-961d-0d892d7439d8' };
   let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve();
   const pending=new Map();
   const bytes=s=>new TextEncoder().encode(s);
@@ -4853,6 +4853,23 @@ const PUFF=(function(){
     const seed=await loraxCommand(0x00,new Uint8Array(),16), input=cat(base64(LORAX.key),seed);
     const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash,0);
   }
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  async function discoverServices(server){
+    const services=await server.getPrimaryServices(), found=new Map();
+    for(const service of services){ const characteristics=await service.getCharacteristics(); found.set(service.uuid.toLowerCase(),{service,characteristics}); }
+    return found;
+  }
+  async function triggerPuffcoBonding(found){
+    const pup=found.get(PUP.service); if(!pup) return;
+    const version=pup.characteristics.find(ch=>ch.uuid.toLowerCase()===PUP.appVersion); if(!version) return;
+    // This is the same PUP app-version read/retry Puffco.app uses to prompt
+    // pairing before it initializes the Lorax or legacy control layer.
+    const deadline=Date.now()+30000;
+    for(;;){ try { await version.readValue(); return; } catch(error){
+      if(Date.now()>=deadline || !device?.gatt?.connected) throw error;
+      await delay(500);
+    } }
+  }
   async function connect(){
     if(!navigator.bluetooth) throw new Error('Web Bluetooth unsupported — use desktop Chrome or Edge.');
     if(!window.isSecureContext) throw new Error('Not secure context — run the game from http://localhost, not by opening the file directly.');
@@ -4860,30 +4877,31 @@ const PUFF=(function(){
     // Puffco's advertised name varies by model and firmware. Do not filter by
     // name here: show nearby devices and verify the Lorax service after pairing.
     device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:requested});
-    const server=await device.gatt.connect();
+    let server=await device.gatt.connect(), services=await discoverServices(server);
+    await triggerPuffcoBonding(services);
+    server=device.gatt.connected ? device.gatt : await device.gatt.connect();
+    services=await discoverServices(server);
     try {
-      const service=await server.getPrimaryService(LORAX.service);
-      loraxChars={version:await service.getCharacteristic(LORAX.version),command:await service.getCharacteristic(LORAX.command),reply:await service.getCharacteristic(LORAX.reply)};
-      await loraxChars.version.readValue(); // triggers OS bonding where required
+      const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
+      const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
+      loraxChars={version:pick(LORAX.version),command:pick(LORAX.command),reply:pick(LORAX.reply)};
+      assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply');
+      await loraxChars.version.readValue();
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
       await authenticateLorax(); protocol='Lorax'; return true;
     } catch(loraxError) {
-      // Older Peak Pros use the original Puff.social (Pikachu) service. Some
-      // units drop GATT when queried for Lorax, so reconnect before trying it.
+      // Older Peak Pros use the original Puff.social (Pikachu) service.
       const candidates=LEGACY.services;
       let legacyError=loraxError;
       for(const uuid of candidates){ try {
-        const legacyServer=device.gatt.connected ? device.gatt : await device.gatt.connect();
-        const service=await legacyServer.getPrimaryService(uuid), list=await service.getCharacteristics(); chars={};
-        for(const ch of list){ const off=offsetOf(ch.uuid); if(off) chars[off]=ch; }
+        const legacy=services.get(uuid); if(!legacy) throw new Error('Legacy service was not advertised.'); chars={};
+        for(const ch of legacy.characteristics){ const off=offsetOf(ch.uuid); if(off) chars[off]=ch; }
         if(!chars[LEGACY.off.seed]) throw new Error('This service is not a compatible legacy Peak Pro service.');
         const seedValue=await chars[LEGACY.off.seed].readValue(), seed=new Uint8Array(seedValue.buffer.slice(seedValue.byteOffset,seedValue.byteOffset+16));
         const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',cat(base64(LEGACY.key),seed))); await write(chars[LEGACY.off.seed],hash.slice(0,16));
         protocol='legacy'; return true;
       }catch(e){ legacyError=e; } }
-      let discovered='';
-      try { const probe=device.gatt.connected ? device.gatt : await device.gatt.connect(); discovered=(await probe.getPrimaryServices()).map(s=>s.uuid).join(', '); } catch(_) {}
-      if(discovered.toLowerCase().includes(PUP.service)) throw new Error('Peak Pro exposed only its PUP update service, not a control service. Wake it, hold the button for 6 seconds until it flashes blue, then reconnect.');
+      if(services.has(PUP.service)) throw new Error('Puffco.app-style bonding completed, but the Peak did not advertise a control service afterward. Restart the Peak, hold its button 6 seconds until blue, then retry.');
       throw new Error('Could not find a Peak Pro control service. '+legacyError.message);
     }
   }

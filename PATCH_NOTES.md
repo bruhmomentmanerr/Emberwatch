@@ -1,6 +1,6 @@
-**r05 — autodetect** · 2026-08-17 · phase 1, Puffco BLE panel
+**r06 — puffco app flow** · 2026-08-17 · phase 1, Puffco BLE panel
 
-In its own panel header: *r05 auto-detect*.
+In its own panel header: *r06 app flow*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+9 bytes on r04).
-- No functions added or removed.
+- 0.74 MB (+933 bytes on r05).
+- 2 functions added: `discoverServices`, `triggerPuffcoBonding`.
 
 ### Play it
 
