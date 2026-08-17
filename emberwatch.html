@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r09 single connect</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r10 device match</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4893,7 +4893,7 @@ const PUFF=(function(){
       assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply');
       await loraxChars.version.readValue();
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
-      await authenticateLorax(); protocol='Lorax'; return true;
+      await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       // Older Peak Pros use the original Puff.social (Pikachu) service.
       const candidates=LEGACY.services;
@@ -4904,10 +4904,11 @@ const PUFF=(function(){
         if(!chars[LEGACY.off.seed]) throw new Error('This service is not a compatible legacy Peak Pro service.');
         const seedValue=await chars[LEGACY.off.seed].readValue(), seed=new Uint8Array(seedValue.buffer.slice(seedValue.byteOffset,seedValue.byteOffset+16));
         const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',cat(base64(LEGACY.key),seed))); await write(chars[LEGACY.off.seed],hash.slice(0,16));
-        protocol='legacy'; return true;
+        protocol='legacy'; return {name:device.name||'unnamed device',protocol};
       }catch(e){ legacyError=e; } }
-      if(services.has(PUP.service)) throw new Error('Puffco.app-style bonding completed, but the Peak did not advertise a control service afterward. Restart the Peak, hold its button 6 seconds until blue, then retry.');
-      throw new Error('Could not find a Peak Pro control service. '+legacyError.message);
+      const found=[...services.keys()].join(', ')||'none';
+      if(services.has(PUP.service)) throw new Error('Selected “'+(device.name||'unnamed device')+'” exposes only PUP, not a Peak control service. Services found: '+found);
+      throw new Error('Selected “'+(device.name||'unnamed device')+'” has no supported Peak control service. Services found: '+found+'. '+legacyError.message);
     }
   }
   async function legacyRead(off){ const d=await assertChar(chars[off],'legacy').readValue(); return d.byteLength>=4?d.getFloat32(0,true):d.getUint8(0); }
@@ -4942,8 +4943,8 @@ const PUFF=(function(){
   $('puffConnect').onclick=async()=>{
     setStat('requesting device…'); setNote('');
     try{
-      await PUFF.connect();
-      setStat('connected ✓ · '+PUFF.protocol); live.style.display='flex'; $('puffConnect').style.display='none';
+      const connected=await PUFF.connect();
+      setStat('connected ✓ · '+connected.protocol+' · '+connected.name); live.style.display='flex'; $('puffConnect').style.display='none';
       PUFF.device.addEventListener('gattserverdisconnected',onDisc);
       poll=setInterval(refresh,1500); refresh();
     }catch(e){

@@ -1,6 +1,4 @@
-**r09 — no repairing** · 2026-08-17 · phase 1, Puffco BLE panel
-
-In its own panel header: *r09 single connect*.
+**r10 — device match** · 2026-08-17 · phase 1, Puffco BLE panel
 
 ### Summary
 
@@ -8,7 +6,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (−456 bytes on r08).
+- 0.74 MB (+212 bytes on r09).
 - No functions added or removed.
 
 ### Play it
