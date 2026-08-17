@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r10 device match</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r11 Lorax controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4813,7 +4813,7 @@ document.getElementById('puffClose').addEventListener('click',()=>togglePuff(fal
 // Puff.social-compatible Puffco client. Current Peak Pros speak Lorax over BLE;
 // the old vendor-characteristic protocol remains as a fallback for older firmware.
 const PUFF=(function(){
-  const LORAX={ service:'e276967f-ea8a-478a-a92e-d78f5dd15dd5', version:'05434bca-cc7f-4ef6-bbb3-b1c520b9800c', command:'60133d5c-5727-4f2c-9697-d842c5292a3c', reply:'8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c', key:'ZMZFYlbyb1scoSc3pd1x+w==' };
+  const LORAX={ service:'e276967f-ea8a-478a-a92e-d78f5dd15dd5', version:'05434bca-cc7f-4ef6-bbb3-b1c520b9800c', command:'60133d5c-5727-4f2c-9697-d842c5292a3c', reply:'8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c', event:'43312cd1-7d34-46ce-a7d3-0a98fd9b4cb8', key:'ZMZFYlbyb1scoSc3pd1x+w==' };
   const LEGACY={ services:['06caf9c0-74d3-454f-9be9-e30cd999c17a','f9a98c15-c651-4f34-b656-d100bf580000'], off:{seed:'e0',battery:'20',temp:'25',tempCmd:'26',mode:'40',state:'22'}, key:'FUrZc0WilhUBteT2JlCc+A==' };
   const PUP={ service:'420b9b40-457d-4abe-a3bf-71609d79581b', appVersion:'58b0a7aa-d89f-4bf2-961d-0d892d7439d8' };
   let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve();
@@ -4889,12 +4889,18 @@ const PUFF=(function(){
     try {
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
-      loraxChars={version:pick(LORAX.version),command:pick(LORAX.command),reply:pick(LORAX.reply)};
-      assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply');
-      await loraxChars.version.readValue();
+      loraxChars={version:pick(LORAX.version),command:pick(LORAX.command),reply:pick(LORAX.reply),event:pick(LORAX.event)};
+      assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply'); assertChar(loraxChars.event,'Lorax event');
+      const versionValue=await loraxChars.version.readValue();
+      if(versionValue.byteLength!==2) throw new Error('Unexpected Lorax version response.');
+      const loraxVersion=versionValue.getUint16(0,true); if(loraxVersion>255) throw new Error('Unsupported Lorax version '+loraxVersion+'.');
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
+      await loraxChars.event.startNotifications();
+      // Puffco.app performs this setup for Lorax v1+ before it unlocks paths.
+      if(loraxVersion!==0) await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0);
       await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
+      if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);
       // Older Peak Pros use the original Puff.social (Pikachu) service.
       const candidates=LEGACY.services;
       let legacyError=loraxError;

@@ -1,4 +1,6 @@
-**r10 — device match** · 2026-08-17 · phase 1, Puffco BLE panel
+**r11 — lorax init** · 2026-08-17 · phase 1, Puffco BLE panel
+
+In its own panel header: *r11 Lorax controls*.
 
 ### Summary
 
@@ -6,7 +8,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+212 bytes on r09).
+- 0.74 MB (+688 bytes on r10).
 - No functions added or removed.
 
 ### Play it
