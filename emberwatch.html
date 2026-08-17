@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r08 controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r09 single connect</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4879,22 +4879,13 @@ const PUFF=(function(){
     // Puffco's advertised name varies by model and firmware. Do not filter by
     // name here: show nearby devices and verify the Lorax service after pairing.
     device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:requested});
-    let lastError;
-    // Some Peak Pros intentionally drop the first GATT session while the PUP
-    // version read opens the operating-system pairing flow. Retry that safe,
-    // read-only handshake before giving up.
-    for(let attempt=0;attempt<5;attempt++){ try { return await connectAttempt(); } catch(error){
-      lastError=error;
-      if(device?.gatt?.connected) device.gatt.disconnect();
-      await delay(700);
-    } }
-    throw new Error('Could not complete Puffco pairing after 5 attempts. '+lastError.message);
+    // Pairing is initiated only by the user and the device button. Do not read
+    // PUP or retry automatically: either action can make the device buzz and
+    // re-enter pairing mode repeatedly.
+    return connectAttempt();
   }
   async function connectAttempt(){
-    let server=await device.gatt.connect(), services=await discoverServices(server);
-    await triggerPuffcoBonding(services);
-    server=device.gatt.connected ? device.gatt : await device.gatt.connect();
-    services=await discoverServices(server);
+    const server=await device.gatt.connect(), services=await discoverServices(server);
     try {
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
