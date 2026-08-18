@@ -1,6 +1,6 @@
-**r24 — populated vaneth** · 2026-08-18 · phase 2, Vaneth city + strain archive
+**r25 — personal strain journal** · 2026-08-18 · phase 2, Vaneth city + strain archive
 
-In its own panel header: *r24 adaptive control deck*.
+In its own panel header: *r25 adaptive control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.78 MB (+4,535 bytes on r23).
-- 1 function added: `auditVanethGeometry`.
+- 0.79 MB (+10,665 bytes on r24).
+- 9 functions added: `cleanStrainText`, `currentStrain`, `loadStrainJournal`, `recordStrainSession`, `renderStrainJournal`, `saveStrainJournal`, `strainDate`, `strainTypeLabel`, `toggleStrains`.
 
 ### Play it
 

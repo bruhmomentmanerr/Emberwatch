@@ -36,6 +36,11 @@
   #drop{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(10,7,16,.7);border:3px dashed rgba(120,255,180,.5);font-size:18px;letter-spacing:2px;color:#bfffd8}
   #puffBtn{position:fixed;left:16px;bottom:16px;z-index:22;height:42px;padding:0 15px;border-radius:21px;cursor:pointer;border:1px solid rgba(120,200,255,.4);background:linear-gradient(135deg,rgba(18,26,45,.88),rgba(17,12,28,.86));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#d8eeff;font-size:12px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:7px;box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.06);transition:.18s}
   #puffBtn:hover{background:linear-gradient(135deg,rgba(35,58,85,.94),rgba(26,18,45,.94));transform:translateY(-1px)}
+  #strainBtn{position:fixed;left:126px;bottom:16px;z-index:22;height:42px;padding:0 14px;border-radius:21px;cursor:pointer;border:1px solid rgba(141,220,124,.4);background:linear-gradient(135deg,rgba(25,54,38,.9),rgba(20,31,29,.88));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#dcf5d1;font-size:12px;font-weight:700;letter-spacing:.7px;display:flex;align-items:center;gap:6px;box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.06);transition:.18s}
+  #strainBtn:hover{background:linear-gradient(135deg,rgba(46,83,51,.96),rgba(30,47,37,.96));transform:translateY(-1px)}#strainBtn kbd{font:9px 'Trebuchet MS';opacity:.64;border:1px solid rgba(210,255,196,.28);border-radius:5px;padding:2px 4px}
+  #strainPanel{position:fixed;left:16px;bottom:68px;z-index:24;width:340px;max-height:86vh;background:radial-gradient(circle at 100% 0,rgba(94,156,87,.16),transparent 42%),linear-gradient(155deg,rgba(14,26,21,.98),rgba(9,14,12,.99));border:1px solid rgba(143,218,129,.35);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.05);display:none;flex-direction:column;overflow-y:auto}
+  #strainPanel.open{display:flex}#strainHead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;padding:11px 12px;background:linear-gradient(90deg,rgba(36,77,57,.98),rgba(20,45,37,.98));border-bottom:1px solid rgba(145,220,133,.19);font-size:11px;font-weight:700;letter-spacing:1px;color:#e0f9d9}#strainHead .sp{flex:1}#strainClose{color:#e0f9d9;background:rgba(5,12,8,.28);border:1px solid rgba(158,226,145,.36);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer}
+  #strainBody{padding:14px;display:flex;flex-direction:column;gap:10px}.strain-current{padding:10px 11px;border-radius:10px;background:rgba(157,226,129,.09);border:1px solid rgba(157,226,129,.16);font-size:11px;line-height:1.45;color:#c8e6c1}.strain-current b{display:block;margin-top:2px;color:#f2ffec;font-size:14px}.strain-label{font-size:9px;letter-spacing:1.1px;text-transform:uppercase;color:#a7d3a1;opacity:.75;margin:2px 0 -4px 2px}.strain-form{display:grid;grid-template-columns:1fr 108px;gap:7px}.strain-form input,.strain-form select,.strain-form textarea{box-sizing:border-box;width:100%;border:1px solid rgba(151,221,137,.3);border-radius:9px;background:rgba(4,12,8,.7);color:#eaffdf;padding:9px;font:11px 'Trebuchet MS',sans-serif;outline:none}.strain-form input:focus,.strain-form select:focus,.strain-form textarea:focus{border-color:#b4ef9f;box-shadow:0 0 0 3px rgba(150,231,128,.1)}.strain-form textarea{grid-column:1/-1;min-height:52px;resize:vertical}.strain-form .wide{grid-column:1/-1}.strain-save{border:1px solid rgba(155,232,139,.46);border-radius:9px;background:rgba(87,157,76,.22);color:#eaffdf;padding:9px;font-size:11px;font-weight:700;cursor:pointer}.strain-save:hover{background:rgba(96,177,82,.32)}.strain-list{display:flex;flex-direction:column;gap:7px}.strain-card{display:grid;grid-template-columns:1fr auto;gap:6px 9px;padding:10px;border:1px solid rgba(183,236,168,.1);border-radius:10px;background:rgba(255,255,255,.035)}.strain-card.active{border-color:rgba(171,240,151,.48);background:rgba(130,202,105,.12)}.strain-card strong{font-size:12px;color:#efffe9}.strain-card small{display:block;margin-top:2px;color:#b8d1b3;font-size:10px;line-height:1.35}.strain-actions{display:flex;align-items:start;gap:5px}.strain-actions button{border:1px solid rgba(174,233,157,.25);border-radius:7px;background:rgba(159,220,140,.09);color:#dff7d7;padding:5px 7px;font-size:10px;cursor:pointer}.strain-actions button:hover{background:rgba(159,220,140,.2)}.strain-actions .remove{color:#f3c4bb;border-color:rgba(240,156,139,.22);background:rgba(188,72,54,.1)}.strain-empty{padding:12px 6px;color:#aec7aa;font-size:11px;text-align:center;line-height:1.5}
   #puffPanel{position:fixed;left:16px;bottom:68px;z-index:23;width:340px;max-height:86vh;background:radial-gradient(circle at 100% 0,rgba(59,119,168,.18),transparent 43%),linear-gradient(155deg,rgba(15,18,31,.97),rgba(9,7,15,.98));border:1px solid rgba(130,206,255,.34);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.05);display:none;flex-direction:column;overflow-y:auto}
   #puffPanel.open{display:flex}
   #puffHead{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:grab;background:linear-gradient(90deg,rgba(24,56,85,.98),rgba(18,30,58,.98));border-bottom:1px solid rgba(120,200,255,.19);font-size:11px;font-weight:700;letter-spacing:1px;color:#d6edff}
@@ -80,7 +85,7 @@
 <div id="app"></div>
 <div id="cross"></div>
 <div id="gameTitle"><span class="t">Emberwatch</span><span class="u">the black city of Vaneth</span></div>
-<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · E interact</div>
+<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact</div>
 <div id="interactHint"><kbd>E</kbd><span></span></div>
 <div id="gameToast" role="status" aria-live="polite"></div>
 <div id="stick"><div id="nub"></div></div>
@@ -102,8 +107,25 @@
   <div class="row"><button class="btn" id="fsBtn" style="flex:1">⛶ fullscreen</button></div>
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
+<button id="strainBtn" title="Personal strain journal (J)">🍃 strains <kbd>J</kbd></button>
+<div id="strainPanel" aria-label="Personal strain journal">
+  <div id="strainHead"><span>🍃 Personal strain journal</span><span class="sp"></span><button id="strainClose" aria-label="Close strain journal">✕</button></div>
+  <div id="strainBody">
+    <div class="strain-current"><span>Currently smoking</span><b id="strainCurrent">nothing selected</b><small id="strainCurrentMeta">Choose a saved strain when you begin a session.</small></div>
+    <div class="strain-label">Add a real strain</div>
+    <form id="strainForm" class="strain-form">
+      <input id="strainName" maxlength="64" autocomplete="off" placeholder="Strain name" required>
+      <select id="strainType" aria-label="Strain type"><option value="unspecified">Type</option><option value="indica">Indica</option><option value="sativa">Sativa</option><option value="hybrid">Hybrid</option><option value="other">Other</option></select>
+      <input id="strainTerpenes" class="wide" maxlength="120" autocomplete="off" placeholder="Terpenes or cultivar notes (optional)">
+      <textarea id="strainNotes" maxlength="360" placeholder="Your own notes (optional)"></textarea>
+      <button class="strain-save wide" type="submit">Save and set as current</button>
+    </form>
+    <div class="strain-label">Your saved strains</div>
+    <div id="strainList" class="strain-list"></div>
+  </div>
+</div>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r24 adaptive control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r25 adaptive control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4935,8 +4957,9 @@ const keys={}; function typing(){ const a=document.activeElement; return a&&(a.t
 addEventListener('keydown',e=>{ if(typing())return;
   if(e.code==='KeyM'||e.code==='Tab'){ e.preventDefault(); openSettings(); return; }
   if(e.code==='KeyP'){ e.preventDefault(); togglePuff(); return; }
+  if(e.code==='KeyJ'){ e.preventDefault(); toggleStrains(); return; }
   if(e.code==='KeyE'&&!e.repeat){ shareSmoke(); return; }
-  keys[e.code]=true; if(e.code==='Space')e.preventDefault(); if(e.code==='Escape'){ openSettings(false); togglePuff(false); }
+  keys[e.code]=true; if(e.code==='Space')e.preventDefault(); if(e.code==='Escape'){ openSettings(false); togglePuff(false); toggleStrains(false); }
 }); addEventListener('keyup',e=>{ keys[e.code]=false; });
 const canvas=renderer.domElement; const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0; if(isTouch) document.body.classList.add('touch');
 canvas.addEventListener('click',()=>{ if(!isTouch&&document.pointerLockElement!==canvas) canvas.requestPointerLock?.(); });
@@ -4976,16 +4999,34 @@ function updateVillagers(t){ let closest=null,best=16;
 }
 function shareSmoke(){ if(nearestDoor){ if(activeInterior===nearestDoor){ player.x=nearestDoor.x; player.z=nearestDoor.z+3.5; activeInterior=null; showGameToast('You step back out into Vaneth.'); } else { player.x=nearestDoor.insideX; player.z=nearestDoor.insideZ; activeInterior=nearestDoor; showGameToast('You enter '+nearestDoor.name+'.'); } return; }
   if(!nearestVillager){ showGameToast('No one nearby—follow the lanterns to the south market.'); return; }
-  const npc=nearestVillager, cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false})); cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0)); scene.add(cloud); socialSmoke.push({mesh:cloud,life:2.2}); showGameToast(npc.name+': “'+npc.line+'”');
+  const npc=nearestVillager, cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false})); cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0)); scene.add(cloud); socialSmoke.push({mesh:cloud,life:2.2}); const strain=currentStrain(); showGameToast(npc.name+': “'+npc.line+'”'+(strain?' · sharing '+strain.name:''));
 }
 
 const settingsEl=document.getElementById('settings');
 function openSettings(o){ settingsEl.classList.toggle('open', o===undefined? !settingsEl.classList.contains('open'):o); if(settingsEl.classList.contains('open')) document.exitPointerLock?.(); }
 document.getElementById('gear').addEventListener('click',()=>openSettings());
 
+// ---- personal, browser-local strain journal ----
+const STRAIN_STORAGE_KEY='emberwatch.personal-strains.v1';
+function cleanStrainText(value,max){ return String(value||'').trim().slice(0,max); }
+function loadStrainJournal(){ try{ const saved=JSON.parse(localStorage.getItem(STRAIN_STORAGE_KEY)||'{}'),records=Array.isArray(saved.records)?saved.records:[]; return {currentId:typeof saved.currentId==='string'?saved.currentId:null,records:records.map(record=>({id:cleanStrainText(record.id,96),name:cleanStrainText(record.name,64),type:['indica','sativa','hybrid','other','unspecified'].includes(record.type)?record.type:'unspecified',terpenes:cleanStrainText(record.terpenes,120),notes:cleanStrainText(record.notes,360),createdAt:cleanStrainText(record.createdAt,40),uses:Array.isArray(record.uses)?record.uses.filter(value=>typeof value==='string').slice(-100):[]})).filter(record=>record.id&&record.name)}; }catch{return {currentId:null,records:[]};} }
+let strainJournal=loadStrainJournal();
+function saveStrainJournal(){ try{localStorage.setItem(STRAIN_STORAGE_KEY,JSON.stringify(strainJournal));}catch{} }
+function currentStrain(){ const strain=strainJournal.records.find(record=>record.id===strainJournal.currentId); if(!strain&&strainJournal.currentId){strainJournal.currentId=null;saveStrainJournal();} return strain||null; }
+function strainTypeLabel(type){ return type==='unspecified'?'type not set':type; }
+function strainDate(value){ const date=new Date(value); return Number.isNaN(date.getTime())?'':date.toLocaleDateString(); }
+function renderStrainJournal(){ const current=currentStrain(),currentName=document.getElementById('strainCurrent'),currentMeta=document.getElementById('strainCurrentMeta'),list=document.getElementById('strainList'); currentName.textContent=current?current.name:'nothing selected'; currentMeta.textContent=current?strainTypeLabel(current.type)+(current.terpenes?' · '+current.terpenes:'')+' · '+current.uses.length+' heat cycles logged':'Choose a saved strain when you begin a session.'; list.replaceChildren(); if(!strainJournal.records.length){ const empty=document.createElement('div');empty.className='strain-empty';empty.textContent='Your private journal is empty. Add what you are using to keep it here.';list.append(empty);return; } for(const record of strainJournal.records){ const card=document.createElement('div'),detail=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),actions=document.createElement('div'),select=document.createElement('button'),remove=document.createElement('button'); card.className='strain-card'+(record.id===strainJournal.currentId?' active':''); name.textContent=record.name; const parts=[strainTypeLabel(record.type)];if(record.terpenes)parts.push(record.terpenes);parts.push(record.uses.length+' heat '+(record.uses.length===1?'cycle':'cycles'));if(record.notes)parts.push(record.notes);meta.textContent=parts.join(' · '); detail.append(name,meta);actions.className='strain-actions';select.textContent=record.id===strainJournal.currentId?'current':'use now';select.disabled=record.id===strainJournal.currentId;select.onclick=()=>{strainJournal.currentId=record.id;saveStrainJournal();renderStrainJournal();showGameToast(record.name+' is now your current strain.');};remove.className='remove';remove.textContent='remove';remove.onclick=()=>{if(!confirm('Remove '+record.name+' from your private strain journal?'))return;strainJournal.records=strainJournal.records.filter(item=>item.id!==record.id);if(strainJournal.currentId===record.id)strainJournal.currentId=null;saveStrainJournal();renderStrainJournal();};actions.append(select,remove);card.append(detail,actions);list.append(card); } }
+function recordStrainSession(){ const current=currentStrain();if(!current)return;current.uses.push(new Date().toISOString());current.uses=current.uses.slice(-100);saveStrainJournal();renderStrainJournal(); }
+const strainPanel=document.getElementById('strainPanel');
+function toggleStrains(o){ strainPanel.classList.toggle('open',o===undefined?!strainPanel.classList.contains('open'):o); if(strainPanel.classList.contains('open')){openSettings(false);document.exitPointerLock?.();renderStrainJournal();} }
+document.getElementById('strainBtn').addEventListener('click',()=>toggleStrains());
+document.getElementById('strainClose').addEventListener('click',()=>toggleStrains(false));
+document.getElementById('strainForm').addEventListener('submit',event=>{event.preventDefault();const name=cleanStrainText(document.getElementById('strainName').value,64);if(!name)return;const id=(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),record={id,name,type:document.getElementById('strainType').value,terpenes:cleanStrainText(document.getElementById('strainTerpenes').value,120),notes:cleanStrainText(document.getElementById('strainNotes').value,360),createdAt:new Date().toISOString(),uses:[]};strainJournal.records.unshift(record);strainJournal.currentId=id;saveStrainJournal();event.target.reset();renderStrainJournal();showGameToast(name+' saved as your current strain.');});
+renderStrainJournal();
+
 // ---- Puffco native Web Bluetooth panel ----
 const puffPanel=document.getElementById('puffPanel');
-function togglePuff(o){ puffPanel.classList.toggle('open', o===undefined?!puffPanel.classList.contains('open'):o); if(puffPanel.classList.contains('open')) document.exitPointerLock?.(); }
+function togglePuff(o){ puffPanel.classList.toggle('open', o===undefined?!puffPanel.classList.contains('open'):o); if(puffPanel.classList.contains('open')){toggleStrains(false);document.exitPointerLock?.();} }
 document.getElementById('puffBtn').addEventListener('click',()=>togglePuff());
 document.getElementById('puffClose').addEventListener('click',()=>togglePuff(false));
 (function(){ const head=document.getElementById('puffHead'); let dx=0,dy=0,drag=false;
@@ -5225,7 +5266,7 @@ const PUFF=(function(){
   };
   $('pSet').onclick=()=>setTargetFahrenheit(+$('pTarget').value).catch(e=>setNote('⚠ '+e.message));
   document.querySelectorAll('[data-profile-f]').forEach(button=>button.onclick=()=>applyQuickProfile(button).catch(e=>setNote('⚠ '+e.message)));
-  $('pHeat').onclick=async()=>{ try{ const [target,start]=await Promise.all([safely(()=>PUFF.temp()),safely(()=>PUFF.heaterTemp())]); await PUFF.mode('heat'); warmupAttempt=Number.isFinite(target)&&Number.isFinite(start)&&start<target-READY_MARGIN_C?{startedAt:Date.now(),target,start}:null; setNote(warmupAttempt?'heat cycle started · timing this warm-up ✓':'heat cycle started ✓'); if(typeof cast==='function')cast(); await refresh(); }catch(e){setNote('⚠ '+e.message);} };
+  $('pHeat').onclick=async()=>{ try{ const [target,start]=await Promise.all([safely(()=>PUFF.temp()),safely(()=>PUFF.heaterTemp())]); await PUFF.mode('heat'); recordStrainSession(); warmupAttempt=Number.isFinite(target)&&Number.isFinite(start)&&start<target-READY_MARGIN_C?{startedAt:Date.now(),target,start}:null; setNote(warmupAttempt?'heat cycle started · timing this warm-up ✓':'heat cycle started ✓'); if(typeof cast==='function')cast(); await refresh(); }catch(e){setNote('⚠ '+e.message);} };
   $('pIdle').onclick=()=>PUFF.mode('idle').then(()=>{warmupAttempt=null;cycleStartedAt=null;setNote('heat cycle stopped ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pSleep').onclick=()=>PUFF.mode('sleep').then(()=>{warmupAttempt=null;cycleStartedAt=null;setNote('sleep mode requested ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>PUFF.disconnect();
