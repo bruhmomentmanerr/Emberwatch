@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r11 Lorax controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r12 Lorax controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4896,8 +4896,12 @@ const PUFF=(function(){
       const loraxVersion=versionValue.getUint16(0,true); if(loraxVersion>255) throw new Error('Unsupported Lorax version '+loraxVersion+'.');
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
       await loraxChars.event.startNotifications();
-      // Puffco.app performs this setup for Lorax v1+ before it unlocks paths.
-      if(loraxVersion!==0) await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0);
+      // Puffco.app attempts this setup for Lorax v1+, but older firmware may
+      // reject it as an unsupported value. It is optional, so continue unless
+      // the device actually disconnected.
+      if(loraxVersion!==0) try { await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0); } catch(error) {
+        if(!device?.gatt?.connected) throw error;
+      }
       await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);
