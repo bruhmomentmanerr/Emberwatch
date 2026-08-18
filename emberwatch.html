@@ -103,7 +103,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r23 adaptive control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r24 adaptive control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4799,7 +4799,7 @@ function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
 }
 function blockDistrict(cx,cz,cols,rows,gapX,gapZ,kind,turn=0){
   const palette=kind==='merchant'?['wall','brick','wall2']:kind==='scholar'?['wall2','stone','wall']:['brick','wall','wall2'];
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){ const x=cx+(c-(cols-1)/2)*gapX,z=cz+(r-(rows-1)/2)*gapZ,seed=(c*7+r*11+Math.round(cx+cz))%5,w=6+(seed%3),d=5+((seed+1)%2),stories=1+(seed%3); cityHouse(x,z,w,d,stories,palette[(c+r)%palette.length],turn,seed===0?'arcane':'amber'); }
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){ const x=cx+(c-(cols-1)/2)*gapX,z=cz+(r-(rows-1)/2)*gapZ,rawSeed=c*7+r*11+Math.round(cx+cz),seed=((rawSeed%5)+5)%5,w=6+(seed%3),d=5+((seed+1)%2),stories=1+(seed%3); cityHouse(x,z,w,d,stories,palette[(c+r)%palette.length],turn,seed===0?'arcane':'amber'); }
 }
 function streetPlan(){
   roadBetween(0,-CITY_RADIUS,0,CITY_RADIUS,10); roadBetween(-CITY_RADIUS,0,CITY_RADIUS,0,10);
@@ -4853,6 +4853,7 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
 function outerCity(){ graveyard(-292,-178); ruins(292,-172); pond(-295,178); stones(294,174); for(let i=0;i<330;i++){const a=rand(0,6.28),r=rand(CITY_RADIUS+12,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(2,3.8);aCyl(.14,.24,h,5,x,h/2,z,'wood');for(let j=0;j<3;j++)aCone(1.1-j*.28,1-j*.15,6,x,h*.55+j*.7,z,'slate');} mountains(); }
+function auditVanethGeometry(){ const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0); const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ)); const northGateClear=colliders.every(c=>Math.hypot(c.x,c.z-(CITY_RADIUS+5))>c.r+1); const report={finiteCollider,finiteDoor,northGateClear,doors:interiorDoors.length,colliders:colliders.length}; if(!finiteCollider||!finiteDoor||!northGateClear||interiorDoors.length<4)console.warn('Vaneth geometry audit:',report); return report; }
 
 // ---------- ASSEMBLE ----------
 LMSG.textContent='planning the avenues…'; streetPlan();
@@ -4860,25 +4861,66 @@ LMSG.textContent='raising the citadel…'; citadel();
 LMSG.textContent='building the districts…'; plannedDistricts(); marketDistrict();
 LMSG.textContent='fortifying the city…'; citadelWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
+const vanethGeometry=auditVanethGeometry();
 mergeAll();
 
 // ---------- villagers ----------
-// A handful of simple, animated residents make the market feel inhabited and
-// establish the interaction system for future quests and conversations.
+// Residents use short, road-safe patrols so every district feels inhabited
+// without letting people clip through the city blocks.
 const villagers=[];
-function villager(name,x,z,robe,line){
+function villager(name,x,z,robe,line,route=[]){
   const g=new THREE.Group(), cloth=new THREE.MeshStandardMaterial({color:robe,flatShading:true,roughness:1}), skin=new THREE.MeshStandardMaterial({color:0xe0ae8a,flatShading:true,roughness:1});
   const body=new THREE.Mesh(new THREE.ConeGeometry(.48,1.7,5),cloth); body.position.y=.85;
   const hood=new THREE.Mesh(new THREE.ConeGeometry(.47,.72,5),cloth); hood.position.y=1.78;
   const face=new THREE.Mesh(new THREE.SphereGeometry(.28,6,5),skin); face.position.y=1.62;
   const staff=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.65,5),new THREE.MeshStandardMaterial({color:0x49301f,flatShading:true})); staff.position.set(.4,.82,.08); staff.rotation.z=-.13;
-  g.add(body,hood,face,staff); g.position.set(x,0,z); g.rotation.y=rand(0,6.28); g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}}); scene.add(g);
-  villagers.push({name,g,homeX:x,homeZ:z,line,phase:rand(0,6.28)});
+  const belt=new THREE.Mesh(new THREE.BoxGeometry(.72,.12,.12),new THREE.MeshStandardMaterial({color:0x2e1c18,roughness:1})); belt.position.set(0,.78,.45);
+  g.add(body,hood,face,staff,belt); g.position.set(x,0,z); g.rotation.y=rand(0,6.28); g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}}); scene.add(g);
+  villagers.push({name,g,homeX:x,homeZ:z,line,route,phase:rand(0,route.length||6.28),walkSpeed:rand(.052,.082),lastX:x,lastZ:z});
 }
-villager('Mira of the Cinders',-4,MARKET_Z+3,0x6a3d7d,'The brazier listens better after midnight.');
-villager('Old Vey',5,MARKET_Z-4,0x435c86,'Every road through Vaneth leads back to a story.');
-villager('Sable the Lanternwright',-11,MARKET_Z-7,0x754b32,'A good light should make the shadows interesting.');
-villager('Nox',12,MARKET_Z+8,0x315f59,'Take a breath. The city is less lonely that way.');
+const vanethRoutes={
+  market:[[-31,85],[31,85],[33,132],[-31,132]],
+  citadel:[[-64,-58],[0,-70],[64,-58],[72,0],[63,62],[0,70],[-62,61],[-72,0]],
+  north:[[-61,146],[-64,195],[0,212],[64,195],[61,146],[0,175]],
+  west:[[-78,-60],[-78,-7],[-76,48],[-54,72],[-51,0],[-55,-57]],
+  east:[[78,-24],[76,26],[72,65],[54,68],[52,0],[57,-58]],
+  south:[[-10,-218],[-59,-190],[-62,-142],[-51,-86],[0,-75],[51,-86],[61,-142],[58,-190],[10,-218]]
+};
+const vanethResidents=[
+  ['Mira of the Cinders',-31,85,0x6a3d7d,'The brazier listens better after midnight.',vanethRoutes.market],
+  ['Old Vey',31,85,0x435c86,'Every road through Vaneth leads back to a story.',vanethRoutes.market],
+  ['Sable the Lanternwright',33,132,0x754b32,'A good light should make the shadows interesting.',vanethRoutes.market],
+  ['Nox',-31,132,0x315f59,'Take a breath. The city is less lonely that way.',vanethRoutes.market],
+  ['Pera the Spicewife',-31,108,0x8b4a35,'Cinnamon for courage. Juniper for remembering.',vanethRoutes.market],
+  ['Hobb of the Tally',31,108,0x6e5b2f,'The books balance eventually. People rarely do.',vanethRoutes.market],
+  ['Tarin Glasshand',-17,82,0x355b83,'I can mend a cup, not an oath.',vanethRoutes.market],
+  ['Mistress Rook',17,134,0x674058,'The inn keeps its secrets in the rafters.',vanethRoutes.market],
+  ['Captain Orra',-64,-58,0x6e3035,'A quiet gate is a good gate.',vanethRoutes.citadel],
+  ['Renn the Courier',0,-70,0x405f88,'Letters travel faster when no one reads them.',vanethRoutes.citadel],
+  ['Sister Fen',64,-58,0x8b7651,'The crown is heavy because everyone stares at it.',vanethRoutes.citadel],
+  ['Darric of the Watch',72,0,0x3e5563,'The wall has seen worse nights than this.',vanethRoutes.citadel],
+  ['Alden Northwind',-61,146,0x526e74,'The north ward wakes before the bells.',vanethRoutes.north],
+  ['Mara Quill',-64,195,0x865645,'Ink is cheaper than regret.',vanethRoutes.north],
+  ['Pell the Baker',0,212,0x92724b,'Warm bread makes honest neighbors.',vanethRoutes.north],
+  ['Eira Moss',64,195,0x416f55,'Listen: even the stones have a pulse.',vanethRoutes.north],
+  ['Jori Caskmaker',-78,-60,0x784632,'Every barrel remembers its first fire.',vanethRoutes.west],
+  ['Wex the Tinker',-78,-7,0x496382,'Nothing is broken. It is only unfinished.',vanethRoutes.west],
+  ['Kara Emberpin',-76,48,0x9a5639,'A bright lantern is a promise to return.',vanethRoutes.west],
+  ['Mott',-54,72,0x5b4d78,'The market carries news before the ravens do.',vanethRoutes.west],
+  ['Iria Starling',78,-24,0x4d4a82,'The archive only lends answers, never gives them.',vanethRoutes.east],
+  ['Brother Cael',76,26,0x746d9c,'There is no spell without a cost.',vanethRoutes.east],
+  ['Vale the Surveyor',72,65,0x687052,'Every street points somewhere, if you let it.',vanethRoutes.east],
+  ['Senn Wisp',54,68,0x6a496f,'Smoke knows the way out of any room.',vanethRoutes.east],
+  ['Garron Vale',-10,-218,0x3c6972,'South road is clear until the fog decides otherwise.',vanethRoutes.south],
+  ['Tess of the Road',-59,-190,0x87513c,'A good boot earns its own story.',vanethRoutes.south],
+  ['Ollo',-62,-142,0x66764a,'The fields begin where the cobbles end.',vanethRoutes.south],
+  ['Nera Ashfall',0,-75,0x74415e,'The citadel shines brightest from a distance.',vanethRoutes.south],
+  ['Barkeep Varn',38,111,0x74412e,'The Cinder and Keg pours truth after the second cup.'],
+  ['Archivist Lysa',-86,-43,0x4e628d,'The Moon Archive remembers names the city has lost.'],
+  ['Pilgrim Sorell',96,55,0x8f8061,'Leave a little quiet for the shrine.'],
+  ['Chamberlain Ash',-5,-18,0x513d78,'The Great Hall has room for every kind of ambition.']
+];
+vanethResidents.forEach(resident=>villager(...resident));
 
 // starlight
 const stN=850,stG=new THREE.BufferGeometry(),stP=new Float32Array(stN*3);
@@ -4926,7 +4968,9 @@ let nearestVillager=null,nearestDoor=null,activeInterior=null,toastTimer=null;
 const interactHint=document.getElementById('interactHint'),gameToast=document.getElementById('gameToast');
 function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
 function updateVillagers(t){ let closest=null,best=16;
-  for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; npc.g.position.set(npc.homeX+Math.cos(t*.24+npc.phase)*.5,sway*0.05,npc.homeZ+Math.sin(t*.24+npc.phase)*.5); npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002; const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
+  for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.homeX,z=npc.homeZ;
+    if(npc.route.length>1){ const progress=(t*npc.walkSpeed+npc.phase)%npc.route.length,index=Math.floor(progress),next=(index+1)%npc.route.length,blend=progress-index,ease=blend*blend*(3-2*blend),from=npc.route[index],to=npc.route[next]; x=from[0]+(to[0]-from[0])*ease; z=from[1]+(to[1]-from[1])*ease; const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz); } else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
+    npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
   nearestVillager=closest; let door=null,doorDistance=25; for(const entry of interiorDoors){ const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} } nearestDoor=door;
   const close=door||(closest&&best<18); interactHint.style.display=close?'block':'none'; if(close) interactHint.querySelector('span').textContent=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'share a smoke with '+closest.name;
 }
