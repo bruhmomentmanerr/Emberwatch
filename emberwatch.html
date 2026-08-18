@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r14 single bond</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r15 app order</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4887,10 +4887,7 @@ const PUFF=(function(){
     return connectAttempt();
   }
   async function connectAttempt(){
-    const server=await device.gatt.connect(); let services=await discoverServices(server);
-    await triggerPuffcoBonding(services);
-    if(!device.gatt.connected) throw new Error('The Peak ended the one-time bonding read. Put it in blue pairing mode again, then press Connect once more.');
-    services=await discoverServices(server);
+    const server=await device.gatt.connect(); const services=await discoverServices(server);
     try {
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
@@ -4907,6 +4904,10 @@ const PUFF=(function(){
       if(loraxVersion!==0) try { await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0); } catch(error) {
         if(!device?.gatt?.connected) throw error;
       }
+      // Puffco.app checks the PUP app version only after Lorax is initialized,
+      // immediately before it sends the access-unlock command.
+      await triggerPuffcoBonding(services);
+      if(!device.gatt.connected) throw new Error('The Peak ended the one-time bonding read. Put it in blue pairing mode again, then press Connect once more.');
       await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);

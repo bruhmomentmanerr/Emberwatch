@@ -1,4 +1,4 @@
-**r14 — single bond** · 2026-08-18 · phase 1, Puffco BLE panel
+**r15 — app order** · 2026-08-18 · phase 1, Puffco BLE panel
 
 ### Summary
 
@@ -6,7 +6,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+76 bytes on r13).
+- 0.74 MB (+103 bytes on r14).
 - No functions added or removed.
 
 ### Play it
