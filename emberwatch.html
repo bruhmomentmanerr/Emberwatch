@@ -23,7 +23,7 @@
   #settings h4{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#9d7bff;opacity:.8;margin:2px 0 -2px 2px}
   .row{display:flex;align-items:center;gap:7px}
   .btn{cursor:pointer;border:1px solid rgba(157,123,255,.35);background:rgba(157,123,255,.12);color:#efe8ff;border-radius:10px;padding:8px 9px;font-size:12px;letter-spacing:.4px;text-align:center;transition:.15s}
-  .btn:hover{background:rgba(157,123,255,.28)}.btn:active{transform:scale(.96)}
+  .btn:hover{background:rgba(157,123,255,.28)}.btn:active{transform:scale(.96)}.btn.active{border-color:rgba(255,194,120,.72);background:rgba(255,138,61,.22);color:#ffe2bc;box-shadow:0 0 0 1px rgba(255,138,61,.12) inset}
   .btn.ember{border-color:rgba(255,138,61,.5);background:rgba(255,138,61,.14)}
   .btn.glb{border-color:rgba(120,255,180,.4);background:rgba(120,255,180,.12)}
   #track{font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
@@ -58,6 +58,9 @@
   .prow input[type=number],#pSvc{background:rgba(5,8,16,.72);color:#e1f2ff;border:1px solid rgba(128,206,255,.43);border-radius:10px;padding:10px;font-size:13px;font-weight:700;width:100%;outline:none;box-shadow:inset 0 1px 7px rgba(0,0,0,.3)}
   .prow input[type=number]:focus{border-color:#9de5ff;box-shadow:0 0 0 3px rgba(104,195,255,.12),inset 0 1px 7px rgba(0,0,0,.3)}
   .prow input[type=number]{flex:1}.pu{font-size:12px;font-weight:700;color:#a6bfd4}.pcontrols{margin-top:1px}
+  .ppreset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .ppreset{cursor:pointer;min-height:48px;border:1px solid rgba(125,199,255,.29);border-radius:10px;background:rgba(88,136,179,.1);color:#c4dced;display:flex;flex-direction:column;justify-content:center;gap:2px;font-size:10px;letter-spacing:.35px;transition:.16s}
+  .ppreset b{font-size:12px;color:#eef8ff}.ppreset:hover{background:rgba(96,173,225,.22);transform:translateY(-1px)}.ppreset.active{border-color:rgba(255,175,99,.75);background:rgba(225,102,55,.21);box-shadow:0 0 12px rgba(255,114,61,.12)}.ppreset.active b{color:#ffe3c9}
   #puffAdv{font-size:10px;color:#a8c2d7;border-top:1px solid rgba(147,204,245,.12);padding-top:8px}#puffAdv summary{cursor:pointer;opacity:.78;padding:2px;letter-spacing:.2px}
   .pnote{font-size:10px;color:#adc5d8;opacity:.82;line-height:1.48;padding:1px 2px}
   #puffFrame{flex:1;border:0;width:100%;background:#000}
@@ -87,13 +90,15 @@
   <div class="row" id="volrow" style="display:none"><span style="font-size:11px;opacity:.6">vol</span><input id="vol" type="range" min="0" max="1" step="0.01" value="0.6"></div>
   <div class="sep"></div><h4>World</h4>
   <div class="row"><label class="btn glb" style="flex:1">⛰ load .glb world<input id="glb" type="file" accept=".glb,.gltf" hidden></label></div>
+  <div class="sep"></div><h4>Lighting</h4>
+  <div class="row"><button class="btn active" data-light="night" style="flex:1">☾ night</button><button class="btn" data-light="dusk" style="flex:1">◐ dusk</button><button class="btn ember" data-light="ember" style="flex:1">✦ ember</button></div>
   <div class="sep"></div><h4>Display</h4>
-  <div class="row"><button class="btn" id="camBtn" style="flex:1">◐ dusk</button><button class="btn" id="pxBtn" style="flex:1" title="pixel size">▦ pixels</button></div>
+  <div class="row"><button class="btn" id="pxBtn" style="flex:1" title="pixel size">▦ pixels</button></div>
   <div class="row"><button class="btn" id="fsBtn" style="flex:1">⛶ fullscreen</button></div>
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r17 control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r18 control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -104,7 +109,13 @@
         <div class="pstat"><span>State</span><b id="pState">—</b></div>
       </div>
       <div class="puff-section">Heat profile</div>
-      <div class="prow"><input id="pTarget" type="number" min="150" max="315" step="1" value="230"><span class="pu">°C</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
+      <div class="prow"><input id="pTarget" type="number" min="302" max="599" step="1" value="450"><span class="pu">°F</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
+      <div class="puff-section">Quick profiles</div>
+      <div class="ppreset-grid" aria-label="Quick heat profiles">
+        <button class="ppreset" data-profile-f="450"><span>Warm</span><b>450°F</b></button>
+        <button class="ppreset" data-profile-f="500"><span>Balanced</span><b>500°F</b></button>
+        <button class="ppreset" data-profile-f="550"><span>Hot</span><b>550°F</b></button>
+      </div>
       <div class="prow pcontrols"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
       <button class="pbtn" id="pDisc">Disconnect</button>
     </div>
@@ -4606,7 +4617,7 @@ const CONFIG = {
   colors: { nightFog:0x140b22, nightGround:0x161320, nightHemi:0x5a4bd6, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
 };
 const C=CONFIG.colors;
-const scene=new THREE.Scene(); let night=true;
+const scene=new THREE.Scene(); let lighting='night';
 scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new THREE.Color(C.nightFog);
 const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,600); camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
@@ -4963,9 +4974,16 @@ const PUFF=(function(){
   if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs <code>http://localhost</code> — ask me for the one-click launcher.');
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
   let lastReadError='';
+  const FAHRENHEIT_MIN=302, FAHRENHEIT_MAX=599;
+  const toFahrenheit=c=>c*9/5+32, toCelsius=f=>(f-32)*5/9;
+  function syncQuickProfiles(fahrenheit){ document.querySelectorAll('[data-profile-f]').forEach(button=>button.classList.toggle('active',Number(button.dataset.profileF)===fahrenheit)); }
+  async function setTargetFahrenheit(fahrenheit){
+    if(!Number.isFinite(fahrenheit)||fahrenheit<FAHRENHEIT_MIN||fahrenheit>FAHRENHEIT_MAX) throw new Error('Choose a target from 302°F to 599°F.');
+    await PUFF.setTemp(toCelsius(fahrenheit)); $('pTarget').value=Math.round(fahrenheit); syncQuickProfiles(Math.round(fahrenheit)); setNote('target set to '+Math.round(fahrenheit)+'°F'); await refresh();
+  }
   async function refresh(){ try{
     const b=await PUFF.battery(); if(b!=null) $('pBatt').textContent=Math.max(0,Math.min(100,Math.round(b)))+'%';
-    const t=await PUFF.temp(); if(t!=null){ const target=Math.round(t); $('pTemp').textContent=target+'°C · '+Math.round(target*9/5+32)+'°F'; if(document.activeElement!==$('pTarget')) $('pTarget').value=target; }
+    const t=await PUFF.temp(); if(t!=null){ const celsius=Math.round(t),fahrenheit=Math.round(toFahrenheit(t)); $('pTemp').textContent=fahrenheit+'°F · '+celsius+'°C'; if(document.activeElement!==$('pTarget')) $('pTarget').value=fahrenheit; syncQuickProfiles(fahrenheit); }
     const s=await PUFF.state(); if(s!=null) $('pState').textContent=(STATES[Math.round(s)]||('#'+Math.round(s)));
     lastReadError='';
   }catch(e){ if(PUFF.connected&&e.message!==lastReadError){ lastReadError=e.message; setNote('⚠ Live reading failed: '+e.message); } } }
@@ -4983,7 +5001,8 @@ const PUFF=(function(){
       else if(/secure|localhost/i.test(e.message)) setNote('Run the game from <code>http://localhost</code> (I can hand you a one-click launcher).');
     }
   };
-  $('pSet').onclick=async()=>{ const c=+$('pTarget').value; if(c>=150&&c<=315){ try{ await PUFF.setTemp(c); setNote('target set to '+c+'°C'); refresh(); }catch(e){ setNote('⚠ '+e.message); } } else setNote('⚠ Choose a target from 150°C to 315°C.'); };
+  $('pSet').onclick=()=>setTargetFahrenheit(+$('pTarget').value).catch(e=>setNote('⚠ '+e.message));
+  document.querySelectorAll('[data-profile-f]').forEach(button=>button.onclick=()=>setTargetFahrenheit(Number(button.dataset.profileF)).catch(e=>setNote('⚠ '+e.message)));
   $('pHeat').onclick=()=>PUFF.mode('heat').then(()=>{setNote('heat cycle started ✓'); if(typeof cast==='function') cast(); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pIdle').onclick=()=>PUFF.mode('idle').then(()=>{setNote('heat cycle stopped ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pSleep').onclick=()=>PUFF.mode('sleep').then(()=>{setNote('sleep mode requested ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
@@ -5015,7 +5034,13 @@ document.getElementById('play').onclick=()=>{ audio.paused?audio.play():audio.pa
 document.getElementById('next').onclick=()=>{ if(playlist.length){ idx=(idx+1)%playlist.length; loadTrack(); } };
 document.getElementById('prev').onclick=()=>{ if(playlist.length){ idx=(idx-1+playlist.length)%playlist.length; loadTrack(); } };
 document.getElementById('vol').oninput=e=>audio.volume=+e.target.value;
-document.getElementById('camBtn').onclick=()=>{ night=!night; scene.fog.color.setHex(night?C.nightFog:C.duskFog); scene.background.setHex(night?C.nightFog:C.duskFog); hemi.color.setHex(night?C.nightHemi:C.duskHemi); hemi.groundColor.setHex(night?C.nightGround:C.duskGround); document.getElementById('camBtn').textContent=night?'◐ dusk':'◐ night'; };
+const LIGHTING={
+  night:{fog:C.nightFog,ground:0x8f87b2,hemi:C.nightHemi,moon:0xbfa8ff,moonPower:.55},
+  dusk:{fog:C.duskFog,ground:0xd69a72,hemi:C.duskHemi,moon:0xffc49b,moonPower:.62},
+  ember:{fog:0x2b1015,ground:0xc75d42,hemi:0xff704d,moon:0xff8b5c,moonPower:.72}
+};
+function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=name in LIGHTING?name:'night'; scene.fog.color.setHex(next.fog); scene.background.setHex(next.fog); hemi.color.setHex(next.hemi); hemi.groundColor.setHex(next.ground); moon.color.setHex(next.moon); moon.intensity=next.moonPower; ground.material.color.setHex(next.ground); document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
+document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting('night');
 const pxSteps=[0.65,0.45,0.3]; let pxi=1; document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); };
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);

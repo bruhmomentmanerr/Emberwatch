@@ -1,6 +1,6 @@
-**r17 — polished controls** · 2026-08-18 · phase 1, Puffco BLE panel
+**r18 — fahrenheit profiles** · 2026-08-18 · phase 1, Puffco BLE panel
 
-In its own panel header: *r17 control deck*.
+In its own panel header: *r18 control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+2,340 bytes on r16).
-- No functions added or removed.
+- 0.74 MB (+2,718 bytes on r17).
+- 3 functions added: `setLighting`, `setTargetFahrenheit`, `syncQuickProfiles`.
 
 ### Play it
 
