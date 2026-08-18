@@ -1,6 +1,6 @@
-**r22 — honest session lighting** · 2026-08-18 · phase 2, Vaneth city + strain archive
+**r23 — adaptive warmup** · 2026-08-18 · phase 2, Vaneth city + strain archive
 
-In its own panel header: *r22 live control deck*.
+In its own panel header: *r23 adaptive control deck*.
 
 ### Summary
 
@@ -8,9 +8,8 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.77 MB (+489 bytes on r21).
-- 2 functions added: `colorWord`, `heatStatus`.
-- 1 function removed: `heatEstimate`.
+- 0.77 MB (+3,234 bytes on r22).
+- 5 functions added: `loadWarmups`, `recordWarmup`, `saveWarmups`, `updateWarmupDisplay`, `warmupEstimate`.
 
 ### Play it
 
