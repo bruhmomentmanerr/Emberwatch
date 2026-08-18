@@ -1,6 +1,6 @@
-**r20 — citadel city** · 2026-08-18 · phase 2, Vaneth city + strain archive
+**r21 — live telemetry** · 2026-08-18 · phase 2, Vaneth city + strain archive
 
-In its own panel header: *r20 control deck*.
+In its own panel header: *r21 live control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.76 MB (+8,852 bytes on r19).
-- 10 functions added: `blockDistrict`, `citadel`, `citadelWall`, `cityHouse`, `interiorHouse`, `marketDistrict`, `outerCity`, `plannedDistricts`, `roadBetween`, `streetPlan`.
+- 0.77 MB (+7,383 bytes on r20).
+- 7 functions added: `clearPeakSpellPalette`, `decodeCbor`, `heatEstimate`, `loraxReadAll`, `profilePalette`, `renderRgb`, `setSpellPaletteFromPeak`.
 
 ### Play it
 
