@@ -34,27 +34,32 @@
   #castBtn{position:fixed;z-index:9;right:22px;bottom:34px;width:76px;height:76px;border-radius:50%;border:1px solid rgba(255,138,61,.5);background:rgba(255,138,61,.16);display:none;align-items:center;justify-content:center;font-size:26px;color:#ffd9b8;touch-action:none}
   .touch #stick,.touch #castBtn{display:flex}.touch #castBtn{bottom:126px}.touch #hint,.touch #cross{display:none}
   #drop{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(10,7,16,.7);border:3px dashed rgba(120,255,180,.5);font-size:18px;letter-spacing:2px;color:#bfffd8}
-  #puffBtn{position:fixed;left:16px;bottom:16px;z-index:22;height:40px;padding:0 14px;border-radius:20px;cursor:pointer;border:1px solid rgba(120,200,255,.4);background:rgba(18,12,30,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#cfe6ff;font-size:12px;letter-spacing:1px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 18px rgba(0,0,0,.4)}
-  #puffBtn:hover{background:rgba(30,40,60,.85)}
-  #puffPanel{position:fixed;left:16px;bottom:66px;z-index:23;width:300px;height:540px;max-height:78vh;background:rgba(10,8,16,.94);border:1px solid rgba(120,200,255,.35);border-radius:14px;box-shadow:0 10px 34px rgba(0,0,0,.55);display:none;flex-direction:column;overflow:hidden}
+  #puffBtn{position:fixed;left:16px;bottom:16px;z-index:22;height:42px;padding:0 15px;border-radius:21px;cursor:pointer;border:1px solid rgba(120,200,255,.4);background:linear-gradient(135deg,rgba(18,26,45,.88),rgba(17,12,28,.86));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#d8eeff;font-size:12px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:7px;box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.06);transition:.18s}
+  #puffBtn:hover{background:linear-gradient(135deg,rgba(35,58,85,.94),rgba(26,18,45,.94));transform:translateY(-1px)}
+  #puffPanel{position:fixed;left:16px;bottom:68px;z-index:23;width:328px;max-height:82vh;background:radial-gradient(circle at 100% 0,rgba(59,119,168,.18),transparent 43%),linear-gradient(155deg,rgba(15,18,31,.97),rgba(9,7,15,.98));border:1px solid rgba(130,206,255,.34);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.05);display:none;flex-direction:column;overflow:hidden}
   #puffPanel.open{display:flex}
-  #puffHead{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:grab;background:rgba(120,200,255,.1);border-bottom:1px solid rgba(120,200,255,.2);font-size:11px;letter-spacing:1px;color:#bfe0ff}
+  #puffHead{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:grab;background:linear-gradient(90deg,rgba(106,181,255,.16),rgba(78,126,210,.07));border-bottom:1px solid rgba(120,200,255,.19);font-size:11px;font-weight:700;letter-spacing:1px;color:#d6edff}
   #puffHead .sp{flex:1}
-  #puffHead a,#puffHead button{color:#bfe0ff;text-decoration:none;background:none;border:1px solid rgba(120,200,255,.3);border-radius:7px;padding:3px 7px;font-size:11px;cursor:pointer}
-  #puffPanel{height:auto;max-height:82vh}
-  #puffBody{padding:12px;display:flex;flex-direction:column;gap:9px}
-  .pst{font-size:12px;letter-spacing:.5px;color:#bfe0ff;opacity:.85;text-align:center}
-  .pbtn{cursor:pointer;border:1px solid rgba(120,200,255,.4);background:rgba(120,200,255,.14);color:#dff;border-radius:10px;padding:9px 10px;font-size:12px;letter-spacing:.5px;flex:1;transition:.15s}
-  .pbtn:hover{background:rgba(120,200,255,.26)}.pbtn:active{transform:scale(.96)}
-  .pbtn.primary{background:rgba(120,255,180,.16);border-color:rgba(120,255,180,.45)}
-  .pbtn.heat{background:rgba(255,120,60,.18);border-color:rgba(255,120,60,.5);color:#ffd8c0}
-  .pstat{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:9px}
-  .pstat span{opacity:.6}.pstat b{color:#eaf4ff;font-size:14px}
-  .prow{display:flex;gap:7px;align-items:center}
-  .prow input[type=number],#pSvc{background:#0c0912;color:#cfe6ff;border:1px solid rgba(120,200,255,.3);border-radius:8px;padding:8px;font-size:13px;width:100%}
-  .prow input[type=number]{flex:1}.pu{font-size:12px;opacity:.6}
-  #puffAdv{font-size:11px;color:#9ab}#puffAdv summary{cursor:pointer;opacity:.7;padding:2px}
-  .pnote{font-size:10px;color:#9ab;opacity:.8;line-height:1.45;padding:2px 2px}
+  #puffHead a,#puffHead button{color:#d8eeff;text-decoration:none;background:rgba(5,12,21,.28);border:1px solid rgba(145,212,255,.36);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer}
+  #puffBody{padding:14px;display:flex;flex-direction:column;gap:11px}
+  .pst{display:flex;align-items:center;justify-content:center;gap:7px;min-height:19px;font-size:11px;font-weight:700;letter-spacing:.55px;color:#bedfff;text-align:center;text-transform:none}
+  .pst:before{content:'';width:7px;height:7px;border-radius:50%;background:#7c8898;box-shadow:0 0 0 3px rgba(124,136,152,.11)}
+  #puffPanel.online .pst:before{background:#7ff7bf;box-shadow:0 0 0 3px rgba(127,247,191,.12),0 0 11px rgba(127,247,191,.82);animation:puffOnline 1.8s ease-in-out infinite}
+  @keyframes puffOnline{50%{box-shadow:0 0 0 5px rgba(127,247,191,.04),0 0 15px rgba(127,247,191,.9)}}
+  .pbtn{cursor:pointer;border:1px solid rgba(125,199,255,.37);background:linear-gradient(180deg,rgba(95,167,222,.16),rgba(45,88,129,.13));color:#e7f6ff;border-radius:10px;padding:10px 11px;font-size:12px;font-weight:700;letter-spacing:.3px;flex:1;transition:.16s;box-shadow:inset 0 1px rgba(255,255,255,.06)}
+  .pbtn:hover{background:linear-gradient(180deg,rgba(110,190,250,.29),rgba(51,105,155,.24));transform:translateY(-1px)}.pbtn:active{transform:scale(.97)}
+  .pbtn.primary{background:linear-gradient(135deg,rgba(68,185,136,.32),rgba(49,113,106,.25));border-color:rgba(122,255,190,.55);color:#e1ffef}
+  .pbtn.heat{background:linear-gradient(135deg,rgba(238,91,43,.35),rgba(153,48,29,.26));border-color:rgba(255,143,91,.57);color:#ffe1cf}
+  .puff-metrics{display:grid;grid-template-columns:1fr;gap:7px}
+  .pstat{display:flex;justify-content:space-between;align-items:center;min-height:34px;font-size:10px;letter-spacing:.35px;padding:8px 10px;background:linear-gradient(90deg,rgba(255,255,255,.058),rgba(255,255,255,.022));border:1px solid rgba(196,225,255,.055);border-radius:10px}
+  .pstat span{opacity:.62;text-transform:uppercase}.pstat b{color:#f0f8ff;font-size:14px;letter-spacing:.15px}
+  .puff-section{font-size:9px;letter-spacing:1.25px;color:#94bcd9;opacity:.72;margin:2px 0 -4px 2px}
+  .prow{display:flex;gap:8px;align-items:center}
+  .prow input[type=number],#pSvc{background:rgba(5,8,16,.72);color:#e1f2ff;border:1px solid rgba(128,206,255,.43);border-radius:10px;padding:10px;font-size:13px;font-weight:700;width:100%;outline:none;box-shadow:inset 0 1px 7px rgba(0,0,0,.3)}
+  .prow input[type=number]:focus{border-color:#9de5ff;box-shadow:0 0 0 3px rgba(104,195,255,.12),inset 0 1px 7px rgba(0,0,0,.3)}
+  .prow input[type=number]{flex:1}.pu{font-size:12px;font-weight:700;color:#a6bfd4}.pcontrols{margin-top:1px}
+  #puffAdv{font-size:10px;color:#a8c2d7;border-top:1px solid rgba(147,204,245,.12);padding-top:8px}#puffAdv summary{cursor:pointer;opacity:.78;padding:2px;letter-spacing:.2px}
+  .pnote{font-size:10px;color:#adc5d8;opacity:.82;line-height:1.48;padding:1px 2px}
   #puffFrame{flex:1;border:0;width:100%;background:#000}
   #puffNote{font-size:10px;color:#9ab;opacity:.75;padding:6px 9px;line-height:1.4}
   #loader{position:fixed;inset:0;z-index:50;background:#0a0710;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .8s;padding:24px;text-align:center}
@@ -88,16 +93,19 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r16 direct control</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r17 control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
-    <div id="puffLive" style="display:none;flex-direction:column;gap:9px">
-      <div class="pstat"><span>Battery</span><b id="pBatt">—</b></div>
-      <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
-      <div class="pstat"><span>State</span><b id="pState">—</b></div>
+    <div id="puffLive" style="display:none;flex-direction:column;gap:11px">
+      <div class="puff-metrics">
+        <div class="pstat"><span>Battery</span><b id="pBatt">—</b></div>
+        <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
+        <div class="pstat"><span>State</span><b id="pState">—</b></div>
+      </div>
+      <div class="puff-section">Heat profile</div>
       <div class="prow"><input id="pTarget" type="number" min="150" max="315" step="1" value="230"><span class="pu">°C</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
-      <div class="prow"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
+      <div class="prow pcontrols"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
       <button class="pbtn" id="pDisc">Disconnect</button>
     </div>
     <details id="puffAdv"><summary>connection details</summary>
@@ -4935,7 +4943,9 @@ const PUFF=(function(){
   return {
     connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;},
     disconnect(){ if(device&&device.gatt&&device.gatt.connected) device.gatt.disconnect(); },
-    battery:()=>protocol==='Lorax'?readFloat('/p/bat/cap'):legacyRead(LEGACY.off.battery),
+    // Peak Pro exposes battery capacity in hundredths of a percent (e.g.
+    // 5909 means 59.09%), while legacy models already return a percentage.
+    battery:()=>protocol==='Lorax'?readFloat('/p/bat/cap').then(value=>value/100):legacyRead(LEGACY.off.battery),
     temp:()=>protocol==='Lorax'?readFloat('/p/app/thc/temp'):legacyRead(LEGACY.off.temp),
     state:async()=>{ if(protocol!=='Lorax') return legacyRead(LEGACY.off.state); const d=await loraxRead('/p/app/stat/id',1); return d[0]; },
     async setTemp(c){ if(protocol==='Lorax'){ const profile=await currentProfile(); await loraxWrite('/u/app/hc/'+profile+'/temp',f32(c)); } else await write(assertChar(chars[LEGACY.off.tempCmd],'temperature'),f32(c)); },
@@ -4954,17 +4964,17 @@ const PUFF=(function(){
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
   let lastReadError='';
   async function refresh(){ try{
-    const b=await PUFF.battery(); if(b!=null) $('pBatt').textContent=Math.round(b)+'%';
-    const t=await PUFF.temp(); if(t!=null) $('pTemp').textContent=Math.round(t)+'°C · '+Math.round(t*9/5+32)+'°F';
+    const b=await PUFF.battery(); if(b!=null) $('pBatt').textContent=Math.max(0,Math.min(100,Math.round(b)))+'%';
+    const t=await PUFF.temp(); if(t!=null){ const target=Math.round(t); $('pTemp').textContent=target+'°C · '+Math.round(target*9/5+32)+'°F'; if(document.activeElement!==$('pTarget')) $('pTarget').value=target; }
     const s=await PUFF.state(); if(s!=null) $('pState').textContent=(STATES[Math.round(s)]||('#'+Math.round(s)));
     lastReadError='';
   }catch(e){ if(PUFF.connected&&e.message!==lastReadError){ lastReadError=e.message; setNote('⚠ Live reading failed: '+e.message); } } }
-  function onDisc(){ lastReadError=''; setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
+  function onDisc(){ lastReadError=''; puffPanel.classList.remove('online'); setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
   $('puffConnect').onclick=async()=>{
     setStat('requesting device…'); setNote('');
     try{
       const connected=await PUFF.connect();
-      setStat('connected ✓ · '+connected.protocol+' · '+connected.name); live.style.display='flex'; $('puffConnect').style.display='none';
+      puffPanel.classList.add('online'); setStat('connected ✓ · '+connected.protocol+' · '+connected.name); live.style.display='flex'; $('puffConnect').style.display='none';
       PUFF.device.addEventListener('gattserverdisconnected',onDisc,{once:true});
       poll=setInterval(refresh,1500); refresh();
     }catch(e){
