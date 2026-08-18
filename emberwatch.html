@@ -88,13 +88,13 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r15 app order</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r16 direct control</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
     <div id="puffLive" style="display:none;flex-direction:column;gap:9px">
       <div class="pstat"><span>Battery</span><b id="pBatt">—</b></div>
-      <div class="pstat"><span>Temp</span><b id="pTemp">—</b></div>
+      <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
       <div class="pstat"><span>State</span><b id="pState">—</b></div>
       <div class="prow"><input id="pTarget" type="number" min="150" max="315" step="1" value="230"><span class="pu">°C</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
       <div class="prow"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
@@ -4774,7 +4774,7 @@ stG.setAttribute('position',new THREE.BufferAttribute(stP,3)); scene.add(new THR
 // ============================================================
 const player={x:0,z:99,y:0,vy:0,onGround:true}; let yaw=0,pitch=-0.02;
 const keys={}; function typing(){ const a=document.activeElement; return a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'); }
-addEventListener('keydown',e=>{ if(typing())return; keys[e.code]=true; if(e.code==='Space')e.preventDefault(); if(e.code==='Escape') openSettings(false); }); addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('keydown',e=>{ if(typing())return; keys[e.code]=true; if(e.code==='Space')e.preventDefault(); if(e.code==='Escape'){ openSettings(false); togglePuff(false); } }); addEventListener('keyup',e=>{ keys[e.code]=false; });
 const canvas=renderer.domElement; const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0; if(isTouch) document.body.classList.add('touch');
 canvas.addEventListener('click',()=>{ if(!isTouch&&document.pointerLockElement!==canvas) canvas.requestPointerLock?.(); });
 addEventListener('mousemove',e=>{ if(document.pointerLockElement===canvas){ yaw-=e.movementX*CONFIG.mouseSens; pitch=Math.max(-1.3,Math.min(1.3,pitch-e.movementY*CONFIG.mouseSens)); } });
@@ -4857,7 +4857,9 @@ const PUFF=(function(){
     // its Bluetooth state transition just after connection.
     for(let attempt=0;attempt<10;attempt++){ try {
       const seed=await loraxCommand(0x00,new Uint8Array(),16,'access-seed request'), input=cat(base64(LORAX.key),seed);
-      const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash,0,'access unlock'); return;
+      // Lorax unlock is the first 16 bytes of SHA-256(key || seed), not the
+      // complete 32-byte digest. Sending all 32 bytes is rejected as code 22.
+      const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash.slice(0,16),0,'access unlock'); return;
     } catch(error){ lastError=error; if(!device?.gatt?.connected) throw error; await delay(120); } }
     throw lastError;
   }
@@ -4950,18 +4952,20 @@ const PUFF=(function(){
   function setNote(t){ note.innerHTML=t||''; }
   if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs <code>http://localhost</code> — ask me for the one-click launcher.');
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
+  let lastReadError='';
   async function refresh(){ try{
     const b=await PUFF.battery(); if(b!=null) $('pBatt').textContent=Math.round(b)+'%';
     const t=await PUFF.temp(); if(t!=null) $('pTemp').textContent=Math.round(t)+'°C · '+Math.round(t*9/5+32)+'°F';
     const s=await PUFF.state(); if(s!=null) $('pState').textContent=(STATES[Math.round(s)]||('#'+Math.round(s)));
-  }catch(e){} }
-  function onDisc(){ setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
+    lastReadError='';
+  }catch(e){ if(PUFF.connected&&e.message!==lastReadError){ lastReadError=e.message; setNote('⚠ Live reading failed: '+e.message); } } }
+  function onDisc(){ lastReadError=''; setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
   $('puffConnect').onclick=async()=>{
     setStat('requesting device…'); setNote('');
     try{
       const connected=await PUFF.connect();
       setStat('connected ✓ · '+connected.protocol+' · '+connected.name); live.style.display='flex'; $('puffConnect').style.display='none';
-      PUFF.device.addEventListener('gattserverdisconnected',onDisc);
+      PUFF.device.addEventListener('gattserverdisconnected',onDisc,{once:true});
       poll=setInterval(refresh,1500); refresh();
     }catch(e){
       setStat('⚠ '+e.message);
@@ -4969,20 +4973,22 @@ const PUFF=(function(){
       else if(/secure|localhost/i.test(e.message)) setNote('Run the game from <code>http://localhost</code> (I can hand you a one-click launcher).');
     }
   };
-  $('pSet').onclick=async()=>{ const c=+$('pTarget').value; if(c>=100&&c<=340){ try{ await PUFF.setTemp(c); setNote('target set to '+c+'°C'); refresh(); }catch(e){ setNote('⚠ '+e.message); } } };
+  $('pSet').onclick=async()=>{ const c=+$('pTarget').value; if(c>=150&&c<=315){ try{ await PUFF.setTemp(c); setNote('target set to '+c+'°C'); refresh(); }catch(e){ setNote('⚠ '+e.message); } } else setNote('⚠ Choose a target from 150°C to 315°C.'); };
   $('pHeat').onclick=()=>PUFF.mode('heat').then(()=>{setNote('heat cycle started ✓'); if(typeof cast==='function') cast(); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pIdle').onclick=()=>PUFF.mode('idle').then(()=>{setNote('heat cycle stopped ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pSleep').onclick=()=>PUFF.mode('sleep').then(()=>{setNote('sleep mode requested ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>PUFF.disconnect();
 })();
 
-let loadedModel=null;
+let loadedModel=null,loadedModelURL=null;
+function disposeModel(model){ model?.traverse(o=>{ if(!o.isMesh)return; o.geometry?.dispose?.(); const materials=Array.isArray(o.material)?o.material:[o.material]; materials.forEach(m=>{ if(!m)return; Object.values(m).forEach(v=>{ if(v&&v.isTexture)v.dispose?.(); }); m.dispose?.(); }); }); }
+function releaseBlobURL(url){ if(url&&url.startsWith('blob:')) URL.revokeObjectURL(url); }
 function loadGLB(url,name){ LMSG.textContent='loading '+(name||'model')+'…'; const loader=new THREE.GLTFLoader();
-  loader.load(url,gltf=>{ if(loadedModel) scene.remove(loadedModel); loadedModel=gltf.scene; loadedModel.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  loader.load(url,gltf=>{ if(loadedModel){ scene.remove(loadedModel); disposeModel(loadedModel); } releaseBlobURL(loadedModelURL); loadedModelURL=url; loadedModel=gltf.scene; loadedModel.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
     const box=new THREE.Box3().setFromObject(loadedModel),cc=box.getCenter(new THREE.Vector3()),sz=box.getSize(new THREE.Vector3());
     loadedModel.position.x-=cc.x; loadedModel.position.z-=cc.z; loadedModel.position.y-=box.min.y; scene.add(loadedModel);
     player.x=0; player.z=Math.max(6,sz.z*0.55); document.getElementById('track').textContent='⛰ '+(name||'model'); },
-    undefined, err=>{ document.getElementById('track').textContent='model failed — export .glb'; }); }
+    undefined, err=>{ releaseBlobURL(url); document.getElementById('track').textContent='model failed — export .glb'; }); }
 function handleGLBFile(f){ if(f) loadGLB(URL.createObjectURL(f), f.name.replace(/\.[^.]+$/,'')); }
 document.getElementById('glb').addEventListener('change',e=>handleGLBFile(e.target.files[0]));
 const drop=document.getElementById('drop');
@@ -4990,15 +4996,16 @@ addEventListener('dragover',e=>{ e.preventDefault(); drop.style.display='flex'; 
 addEventListener('drop',e=>{ e.preventDefault(); drop.style.display='none'; const f=[...e.dataTransfer.files].find(f=>/\.(glb|gltf)$/i.test(f.name)); if(f) handleGLBFile(f); });
 
 const audio=new Audio(); audio.volume=0.6; let playlist=[],idx=0; const trackEl=document.getElementById('track');
-document.getElementById('file').addEventListener('change',e=>{ playlist=[...e.target.files].map(f=>({name:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(f)})); if(playlist.length){ idx=0; loadTrack(); document.getElementById('musicctl').style.display='flex'; document.getElementById('volrow').style.display='flex'; } });
-function loadTrack(){ audio.src=playlist[idx].url; trackEl.textContent='♪ '+playlist[idx].name; audio.play().catch(()=>{}); updPlay(); }
+function clearPlaylist(){ audio.pause(); audio.removeAttribute('src'); audio.load(); playlist.forEach(t=>releaseBlobURL(t.url)); playlist=[]; }
+document.getElementById('file').addEventListener('change',e=>{ clearPlaylist(); playlist=[...e.target.files].map(f=>({name:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(f)})); if(playlist.length){ idx=0; loadTrack(); document.getElementById('musicctl').style.display='flex'; document.getElementById('volrow').style.display='flex'; } });
+function loadTrack(){ audio.src=playlist[idx].url; trackEl.textContent='♪ '+playlist[idx].name; audio.play().then(updPlay).catch(updPlay); }
 function updPlay(){ document.getElementById('play').textContent=audio.paused?'▶':'⏸'; }
-audio.addEventListener('ended',()=>{ idx=(idx+1)%playlist.length; loadTrack(); });
+audio.addEventListener('play',updPlay); audio.addEventListener('pause',updPlay); audio.addEventListener('ended',()=>{ idx=(idx+1)%playlist.length; loadTrack(); });
 document.getElementById('play').onclick=()=>{ audio.paused?audio.play():audio.pause(); updPlay(); };
 document.getElementById('next').onclick=()=>{ if(playlist.length){ idx=(idx+1)%playlist.length; loadTrack(); } };
 document.getElementById('prev').onclick=()=>{ if(playlist.length){ idx=(idx-1+playlist.length)%playlist.length; loadTrack(); } };
 document.getElementById('vol').oninput=e=>audio.volume=+e.target.value;
-document.getElementById('camBtn').onclick=()=>{ night=!night; scene.fog.color.setHex(night?C.nightFog:C.duskFog); scene.background.setHex(night?C.nightFog:C.duskFog); hemi.color.setHex(night?C.nightHemi:C.duskHemi); document.getElementById('camBtn').textContent=night?'◐ dusk':'◐ night'; };
+document.getElementById('camBtn').onclick=()=>{ night=!night; scene.fog.color.setHex(night?C.nightFog:C.duskFog); scene.background.setHex(night?C.nightFog:C.duskFog); hemi.color.setHex(night?C.nightHemi:C.duskHemi); hemi.groundColor.setHex(night?C.nightGround:C.duskGround); document.getElementById('camBtn').textContent=night?'◐ dusk':'◐ night'; };
 const pxSteps=[0.65,0.45,0.3]; let pxi=1; document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); };
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
