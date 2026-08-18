@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r13 auth retry</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r14 single bond</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4870,13 +4870,9 @@ const PUFF=(function(){
   async function triggerPuffcoBonding(found){
     const pup=found.get(PUP.service); if(!pup) return;
     const version=pup.characteristics.find(ch=>ch.uuid.toLowerCase()===PUP.appVersion); if(!version) return;
-    // This is the same PUP app-version read/retry Puffco.app uses to prompt
-    // pairing before it initializes the Lorax or legacy control layer.
-    const deadline=Date.now()+30000;
-    for(;;){ try { await version.readValue(); return; } catch(error){
-      if(Date.now()>=deadline || !device?.gatt?.connected) throw error;
-      await delay(500);
-    } }
+    // Puffco.app reads this once before unlocking control. Never retry here:
+    // the device itself, not the game, must own any further pairing action.
+    await version.readValue();
   }
   async function connect(){
     if(!navigator.bluetooth) throw new Error('Web Bluetooth unsupported — use desktop Chrome or Edge.');
@@ -4891,7 +4887,10 @@ const PUFF=(function(){
     return connectAttempt();
   }
   async function connectAttempt(){
-    const server=await device.gatt.connect(), services=await discoverServices(server);
+    const server=await device.gatt.connect(); let services=await discoverServices(server);
+    await triggerPuffcoBonding(services);
+    if(!device.gatt.connected) throw new Error('The Peak ended the one-time bonding read. Put it in blue pairing mode again, then press Connect once more.');
+    services=await discoverServices(server);
     try {
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);

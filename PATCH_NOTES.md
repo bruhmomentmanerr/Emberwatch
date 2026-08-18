@@ -1,4 +1,4 @@
-**r13 — auth retry** · 2026-08-18 · phase 1, Puffco BLE panel
+**r14 — single bond** · 2026-08-18 · phase 1, Puffco BLE panel
 
 ### Summary
 
@@ -6,7 +6,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+427 bytes on r12).
+- 0.74 MB (+76 bytes on r13).
 - No functions added or removed.
 
 ### Play it
