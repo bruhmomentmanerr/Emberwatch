@@ -1,6 +1,6 @@
-**r21 — live telemetry** · 2026-08-18 · phase 2, Vaneth city + strain archive
+**r22 — honest session lighting** · 2026-08-18 · phase 2, Vaneth city + strain archive
 
-In its own panel header: *r21 live control deck*.
+In its own panel header: *r22 live control deck*.
 
 ### Summary
 
@@ -8,8 +8,9 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.77 MB (+7,383 bytes on r20).
-- 7 functions added: `clearPeakSpellPalette`, `decodeCbor`, `heatEstimate`, `loraxReadAll`, `profilePalette`, `renderRgb`, `setSpellPaletteFromPeak`.
+- 0.77 MB (+489 bytes on r21).
+- 2 functions added: `colorWord`, `heatStatus`.
+- 1 function removed: `heatEstimate`.
 
 ### Play it
 

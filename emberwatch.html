@@ -103,7 +103,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r21 live control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r22 live control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -113,7 +113,7 @@
         <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
         <div class="pstat"><span>Chamber now</span><b id="pLiveTemp">—</b></div>
         <div class="pstat"><span>Session time</span><b id="pSession">—</b></div>
-        <div class="pstat"><span>Profile RGB</span><b id="pRgb">—</b></div>
+        <div class="pstat"><span>Lighting</span><b id="pRgb">—</b></div>
         <div class="pstat"><span>State</span><b id="pState">—</b></div>
       </div>
       <div class="puff-section">Heat profile</div>
@@ -5126,13 +5126,14 @@ const PUFF=(function(){
   function setNote(t){ note.innerHTML=t||''; }
   if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs <code>http://localhost</code> — ask me for the one-click launcher.');
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
-  let lastReadError='',lastBatteryAt=0,lastRgbAt=0,profileRgbDirty=true,lastState=null,cycleStartedAt=null,thermalSamples=[];
+  let lastReadError='',lastBatteryAt=0,lastRgbAt=0,profileRgbDirty=true,cycleStartedAt=null;
   const FAHRENHEIT_MIN=302, FAHRENHEIT_MAX=599;
   const toFahrenheit=c=>c*9/5+32, toCelsius=f=>(f-32)*5/9;
   const formatSeconds=value=>{ const total=Math.max(0,Math.round(value||0)),minutes=Math.floor(total/60),seconds=String(total%60).padStart(2,'0'); return minutes+':'+seconds; };
   const safely=async work=>{ try{return await work();}catch{return null;} };
-  function renderRgb(info){ const holder=$('pRgb'); holder.replaceChildren(); if(!info){ holder.textContent='unavailable'; return; } const dots=document.createElement('span'); dots.className='rgb-palette'; info.palette.forEach(rgb=>{ const dot=document.createElement('i'),hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join(''); dot.className='rgb-dot'; dot.style.background=hex; dot.style.color=hex; dots.append(dot); }); holder.append(dots,document.createTextNode((info.mode?info.mode+' · ':'')+info.palette.map(rgb=>'#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join('')).join(' '))); }
-  function heatEstimate(target,current,state){ if(state!==7&&state!==8)return ''; if(current>=target-1.5)return ' · ready'; const now=Date.now(); thermalSamples.push({at:now,temp:current}); thermalSamples=thermalSamples.filter(sample=>now-sample.at<7000); if(thermalSamples.length<2)return ' · warming'; const first=thermalSamples[0],slope=(current-first.temp)/((now-first.at)/1000),seconds=(target-current)/slope; return slope>.08&&seconds>0&&seconds<180?' · ~'+formatSeconds(seconds)+' to target':' · warming'; }
+  function colorWord(rgb){ const [r,g,b]=rgb.map(value=>Math.max(0,Math.min(255,value))/255),max=Math.max(r,g,b),min=Math.min(r,g,b),spread=max-min,light=(max+min)/2; if(max<.12)return 'black'; if(spread<.12)return light>.82?'white':light>.55?'silver':light>.3?'gray':'charcoal'; let hue; if(max===r)hue=60*((g-b)/spread%6); else if(max===g)hue=60*((b-r)/spread+2); else hue=60*((r-g)/spread+4); if(hue<0)hue+=360; if(hue<15||hue>=345)return light<.38?'deep red':'red'; if(hue<42)return light<.42?'ember orange':'orange'; if(hue<62)return 'gold'; if(hue<92)return 'lime'; if(hue<158)return light<.34?'forest green':'green'; if(hue<190)return 'aqua'; if(hue<215)return 'sky blue'; if(hue<252)return 'blue'; if(hue<285)return 'violet'; if(hue<325)return 'magenta'; return 'rose'; }
+  function renderRgb(info){ const holder=$('pRgb'); holder.replaceChildren(); if(!info){ holder.textContent='unavailable'; return; } const dots=document.createElement('span'); dots.className='rgb-palette'; info.palette.forEach(rgb=>{ const dot=document.createElement('i'),hex='#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join(''); dot.className='rgb-dot'; dot.style.background=hex; dots.append(dot); }); const colors=[...new Set(info.palette.map(colorWord))]; holder.append(dots,document.createTextNode((info.mode?info.mode+' · ':'')+colors.join(' · '))); }
+  function heatStatus(target,current,state){ if(!Number.isFinite(target)||!Number.isFinite(current))return ''; if(current>=target-1.5)return ' · ready'; return state===7||state===8?' · warming':''; }
   function syncQuickProfiles(fahrenheit){ document.querySelectorAll('[data-profile-f]').forEach(button=>{ const matchesSlot=selectedProfile!==null&&Number(button.dataset.profileSlot)===selectedProfile; const matchesTemp=selectedProfile===null&&Number(button.dataset.profileF)===fahrenheit; button.classList.toggle('active',matchesSlot||matchesTemp); }); }
   async function setTargetFahrenheit(fahrenheit){
     if(!Number.isFinite(fahrenheit)||fahrenheit<FAHRENHEIT_MIN||fahrenheit>FAHRENHEIT_MAX) throw new Error('Choose a target from 302°F to 599°F.');
@@ -5144,15 +5145,17 @@ const PUFF=(function(){
   }
   async function refresh(){
     const now=Date.now(),state=await safely(()=>PUFF.state()),target=await safely(()=>PUFF.temp()),session=await safely(()=>PUFF.sessionTime()),heater=await safely(()=>PUFF.heaterTemp());
-    if(state!=null){ const stateName=STATES[Math.round(state)]||('#'+Math.round(state)); $('pState').textContent=stateName; if((state===7||state===8)&&lastState!==7&&lastState!==8){cycleStartedAt=now;thermalSamples=[];} if(state!==7&&state!==8)cycleStartedAt=null; lastState=state; }
+    if(state!=null){ const stateName=STATES[Math.round(state)]||('#'+Math.round(state)); $('pState').textContent=stateName; if(state!==7&&state!==8)cycleStartedAt=null; }
     if(target!=null){ const celsius=Math.round(target),fahrenheit=Math.round(toFahrenheit(target)); $('pTemp').textContent=fahrenheit+'°F · '+celsius+'°C'; if(document.activeElement!==$('pTarget')) $('pTarget').value=fahrenheit; setSpellToneFromFahrenheit(fahrenheit); syncQuickProfiles(fahrenheit); }
-    if(session!=null&&session>0){ let label=formatSeconds(session); if(cycleStartedAt&&(state===7||state===8)){ const left=Math.max(0,session-(now-cycleStartedAt)/1000); label+=' · ~'+formatSeconds(left)+' left'; } $('pSession').textContent=label; }
-    if(heater!=null&&Number.isFinite(heater)){ const fahrenheit=Math.round(toFahrenheit(heater)),celsius=Math.round(heater),estimate=target!=null?heatEstimate(target,heater,state):''; $('pLiveTemp').textContent=fahrenheit+'°F · '+celsius+'°C'+estimate; }
+    const fullyHeated=target!=null&&heater!=null&&Number.isFinite(heater)&&heater>=target-1.5;
+    if(fullyHeated&&(state===7||state===8)&&!cycleStartedAt)cycleStartedAt=now;
+    if(session!=null&&session>0){ let label=formatSeconds(session); if(cycleStartedAt&&(state===7||state===8)){ const left=Math.max(0,session-(now-cycleStartedAt)/1000); label+=' · ~'+formatSeconds(left)+' left'; } else if(state===7||state===8)label+=' · starts when hot'; $('pSession').textContent=label; }
+    if(heater!=null&&Number.isFinite(heater)){ const fahrenheit=Math.round(toFahrenheit(heater)),celsius=Math.round(heater),status=target!=null?heatStatus(target,heater,state):''; $('pLiveTemp').textContent=fahrenheit+'°F · '+celsius+'°C'+status; }
     if(now-lastBatteryAt>10000){ const battery=await safely(()=>PUFF.battery()); if(battery!=null){ $('pBatt').textContent=Math.max(0,Math.min(100,Math.round(battery)))+'%'; lastBatteryAt=now; } }
     if(profileRgbDirty||now-lastRgbAt>12000){ const rgb=await safely(()=>PUFF.profileRgb()); if(rgb){ renderRgb(rgb); setSpellPaletteFromPeak(rgb.palette); } else { renderRgb(null); clearPeakSpellPalette(); if(target!=null)setSpellToneFromFahrenheit(Math.round(toFahrenheit(target))); } profileRgbDirty=false; lastRgbAt=now; }
     lastReadError='';
   }
-  function onDisc(){ lastReadError=''; selectedProfile=null; cycleStartedAt=null; thermalSamples=[]; clearPeakSpellPalette(); puffPanel.classList.remove('online'); setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
+  function onDisc(){ lastReadError=''; selectedProfile=null; cycleStartedAt=null; clearPeakSpellPalette(); puffPanel.classList.remove('online'); setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearInterval(poll);poll=null;} }
   $('puffConnect').onclick=async()=>{
     setStat('requesting device…'); setNote('');
     try{
