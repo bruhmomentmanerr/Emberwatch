@@ -1,6 +1,6 @@
-**r18 — fahrenheit profiles** · 2026-08-18 · phase 1, Puffco BLE panel
+**r19 — village profiles** · 2026-08-18 · phase 1, Puffco BLE panel
 
-In its own panel header: *r18 control deck*.
+In its own panel header: *r19 control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+2,718 bytes on r17).
-- 3 functions added: `setLighting`, `setTargetFahrenheit`, `syncQuickProfiles`.
+- 0.75 MB (+7,479 bytes on r18).
+- 7 functions added: `applyQuickProfile`, `setSpellToneFromFahrenheit`, `shareSmoke`, `showGameToast`, `updateVillagers`, `villager`, `writeProfileTemp`.
 
 ### Play it
 
