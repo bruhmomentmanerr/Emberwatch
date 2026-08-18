@@ -1,6 +1,4 @@
-**r12 — prune compatible** · 2026-08-18 · phase 1, Puffco BLE panel
-
-In its own panel header: *r12 Lorax controls*.
+**r13 — auth retry** · 2026-08-18 · phase 1, Puffco BLE panel
 
 ### Summary
 
@@ -8,7 +6,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 ### In the code
 
-- 0.74 MB (+202 bytes on r11).
+- 0.74 MB (+427 bytes on r12).
 - No functions added or removed.
 
 ### Play it

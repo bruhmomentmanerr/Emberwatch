@@ -88,7 +88,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r12 Lorax controls</span><span class="sp"></span><button id="puffClose">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r13 auth retry</span><span class="sp"></span><button id="puffClose">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4834,15 +4834,15 @@ const PUFF=(function(){
     // Puffco.app rejects non-zero status responses; treating them as successes
     // made the previous panel claim a heat cycle had started when it had not.
     const status=value.getUint8(2), payload=new Uint8Array(value.buffer.slice(value.byteOffset+3,value.byteOffset+value.byteLength));
-    if(status) request.reject(new Error('Peak Pro rejected this command (Lorax code '+status+').'));
+    if(status) request.reject(new Error('Peak Pro rejected '+request.label+' (Lorax code '+status+').'));
     else request.resolve(payload);
   }
-  async function loraxCommand(opcode,body=new Uint8Array(),expected=null){
+  async function loraxCommand(opcode,body=new Uint8Array(),expected=null,label='command 0x'+opcode.toString(16)){
     const job=async()=>{
       const id=seq++&0xffff, packet=cat(u16(id),Uint8Array.of(opcode),body);
       const reply=new Promise((resolve,reject)=>{
         const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Peak Pro did not respond. Keep it awake and nearby, then reconnect.'));},5000);
-        pending.set(id,{resolve,reject,timer});
+        pending.set(id,{resolve,reject,timer,label});
       });
       try { await write(loraxChars.command,packet); const payload=await reply; if(expected!==null&&payload.length!==expected) throw new Error('Unexpected Peak Pro response.'); return payload; }
       catch(e){ const p=pending.get(id); if(p){clearTimeout(p.timer);pending.delete(id);} throw e; }
@@ -4852,8 +4852,14 @@ const PUFF=(function(){
   async function loraxRead(path,size,offset=0){ return loraxCommand(0x10,cat(u16(offset),u16(size),bytes(path))); }
   async function loraxWrite(path,value,offset=0){ await loraxCommand(0x11,cat(u16(offset),Uint8Array.of(0),bytes(path),Uint8Array.of(0),value),0); }
   async function authenticateLorax(){
-    const seed=await loraxCommand(0x00,new Uint8Array(),16), input=cat(base64(LORAX.key),seed);
-    const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash,0);
+    let lastError;
+    // Puffco.app retries Lorax unlocks because a Peak may still be finishing
+    // its Bluetooth state transition just after connection.
+    for(let attempt=0;attempt<10;attempt++){ try {
+      const seed=await loraxCommand(0x00,new Uint8Array(),16,'access-seed request'), input=cat(base64(LORAX.key),seed);
+      const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash,0,'access unlock'); return;
+    } catch(error){ lastError=error; if(!device?.gatt?.connected) throw error; await delay(120); } }
+    throw lastError;
   }
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   async function discoverServices(server){
