@@ -102,7 +102,7 @@
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r19 control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r20 control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4616,15 +4616,15 @@ if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.<br>Open this fi
 try {
 
 const CONFIG = {
-  mapSize: 520, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
+  mapSize: 680, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
   eyeHeight: 1.7, playerRadius: 0.5, mouseSens: 0.0022, fov: 75,
-  fogDensity: 0.009, renderScale: 0.45,
+  fogDensity: 0.007, renderScale: 0.45,
   colors: { nightFog:0x140b22, nightGround:0x161320, nightHemi:0x5a4bd6, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
 };
 const C=CONFIG.colors;
 const scene=new THREE.Scene(); let lighting='night';
 scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new THREE.Color(C.nightFog);
-const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,900); camera.rotation.order='YXZ';
+const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,1100); camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 document.getElementById('app').appendChild(renderer.domElement);
@@ -4673,7 +4673,7 @@ const colliders=[]; function addCollider(x,z,r){ colliders.push({x,z,r}); }
 function wallColl(x1,z1,x2,z2,r){ const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/(r*1.4))); for(let i=0;i<=n;i++) addCollider(x1+(x2-x1)*i/n, z1+(z2-z1)*i/n, r); }
 
 // ---------- ground ----------
-const M=CONFIG.mapSize, CITY_RADIUS=170, MARKET_Z=92;
+const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(M,M).rotateX(-Math.PI/2), sm(TX.ground)); ground.receiveShadow=true; scene.add(ground);
 function groundH(){ return 0; }
 
@@ -4780,12 +4780,81 @@ function forestRing(){ for(let i=0;i<240;i++){ const a=rand(0,6.28),r=rand(CITY_
   aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(Math.random()<0.4) addCollider(x,z,0.5); } }
 function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(40,78); const mtn=new THREE.Mesh(new THREE.ConeGeometry(rand(30,50),h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn); } }
 
+// ============================================================
+//  VANETH CITADEL CITY — planned districts, not scatter generation
+// ============================================================
+const interiorDoors=[];
+function roadBetween(x1,z1,x2,z2,width=8){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz); aBox(width,.12,len,(x1+x2)/2,.06,(z1+z2)/2,'cobble',ry); }
+function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
+  const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),frontX=x+si*d*.5,frontZ=z+co*d*.5;
+  aBox(w,h,d,x,h/2,z,key,ry); aBox(w*1.08,.32,d*1.08,x,h+.16,z,'slate',ry); aCone(Math.max(w,d)*.76,2.6,4,x,h+1.55,z,'roof',ry+Math.PI/4);
+  facadeWindows(x,z,w,d,h,ry); aBox(1.15,2.05,.16,frontX,1.02,frontZ,'wood',ry); aBox(1.9,.18,.7,frontX,2.27,frontZ,accent,ry); aBox(1.6,.14,.72,frontX,2.45,frontZ,'dark',ry);
+  if(stories>1){ const bx=frontX-si*.42,bz=frontZ-co*.42; aBox(w*.46,.14,.68,bx,h*.57,bz,'wood',ry); aBox(.1,.75,.1,bx-si*w*.21,h*.57+.38,bz,'wood',ry); aBox(.1,.75,.1,bx+si*w*.21,h*.57+.38,bz,'wood',ry); }
+  addCollider(x,z,Math.max(w,d)*.56);
+}
+function blockDistrict(cx,cz,cols,rows,gapX,gapZ,kind,turn=0){
+  const palette=kind==='merchant'?['wall','brick','wall2']:kind==='scholar'?['wall2','stone','wall']:['brick','wall','wall2'];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){ const x=cx+(c-(cols-1)/2)*gapX,z=cz+(r-(rows-1)/2)*gapZ,seed=(c*7+r*11+Math.round(cx+cz))%5,w=6+(seed%3),d=5+((seed+1)%2),stories=1+(seed%3); cityHouse(x,z,w,d,stories,palette[(c+r)%palette.length],turn,seed===0?'arcane':'amber'); }
+}
+function streetPlan(){
+  roadBetween(0,-CITY_RADIUS,0,CITY_RADIUS,10); roadBetween(-CITY_RADIUS,0,CITY_RADIUS,0,10);
+  [[-CITY_RADIUS,-CITY_RADIUS],[CITY_RADIUS,-CITY_RADIUS],[-CITY_RADIUS,CITY_RADIUS],[CITY_RADIUS,CITY_RADIUS],[-CITY_RADIUS,0],[CITY_RADIUS,0],[0,-CITY_RADIUS],[0,CITY_RADIUS]].forEach((p,i)=>roadBetween(p[0]*.72,p[1]*.72,p[0],p[1],i<4?6:8));
+  [64,126,190].forEach(r=>{ const ring=new THREE.Mesh(new THREE.RingGeometry(r-3.4,r+3.4,96).rotateX(-Math.PI/2),MATS.cobble); ring.position.y=.055; ring.receiveShadow=true; scene.add(ring); });
+  const plaza=new THREE.Mesh(new THREE.CircleGeometry(27,48).rotateX(-Math.PI/2),MATS.cobble); plaza.position.set(0,.06,MARKET_Z); plaza.receiveShadow=true; scene.add(plaza);
+}
+function citadel(){ const R=49,H=11;
+  aBox(R*2,H,2,0,H/2,-R,'stone'); aBox(2,H,R*2,-R,H/2,0,'stone'); aBox(2,H,R*2,R,H/2,0,'stone'); aBox(R-5,H,2,-(R+5)/2,H/2,R,'stone'); aBox(R-5,H,2,(R+5)/2,H/2,R,'stone');
+  wallColl(-R,-R,R,-R,1.3); wallColl(-R,-R,-R,R,1.3); wallColl(R,-R,R,R,1.3); wallColl(-R,R,-6,R,1.3); wallColl(6,R,R,R,1.3);
+  [[-R,-R],[R,-R],[R,R],[-R,R],[-6,R],[6,R]].forEach((t,i)=>{ const h=H+(i<4?7:4); aCyl(3.4,3.8,h,8,t[0],h/2,t[1],'stone'); aCone(4.8,4,8,t[0],h+2,t[1],'slate'); aBox(.65,1.1,.15,t[0],h*.58,t[1]+3.82,'arcane'); addCollider(t[0],t[1],3.5); });
+  aCyl(8.5,10,39,10,0,19,2,'stone'); aCone(12,10,10,0,44,2,'slate'); for(let y=5;y<35;y+=4){ aBox(1,1.2,.14,0,y,12.1,'arcane'); aBox(.14,1.2,1,12.1,y,2,'arcane'); }
+  const crown=new THREE.PointLight(0x9d7bff,2.8,52); crown.position.set(0,40,2); scene.add(crown); lights.push({light:crown,base:2.8,phase:1});
+  interiorHouse('The Great Hall',0,-20,26,18,'royal'); cityHouse(-27,-16,11,8,2,'stone',.2,'arcane'); cityHouse(27,-16,11,8,2,'stone',-.2,'arcane');
+  torch(-7,R+.8,0xffa64d,1.6,17); torch(7,R+.8,0xffa64d,1.6,17);
+}
+function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
+  // Four separate wall pieces give a real walk-in interior with a front doorway.
+  aBox(w,h,.42,x,h/2,z-d/2,'wall'); aBox(.42,h,d,x-w/2,h/2,z); aBox(.42,h,d,x+w/2,h/2,z);
+  aBox((w-doorW)/2,h,.42,x-(w+doorW)/4,h/2,front,'wall'); aBox((w-doorW)/2,h,.42,x+(w+doorW)/4,h/2,front,'wall');
+  aBox(w-.6,.08,d-.6,x,.045,z,'cobble'); aCone(Math.max(w,d)*.74,3.2,4,x,h+1.5,z,'slate',Math.PI/4);
+  wallColl(x-w/2,z-d/2,x+w/2,z-d/2,.7); wallColl(x-w/2,z-d/2,x-w/2,z+d/2,.7); wallColl(x+w/2,z-d/2,x+w/2,z+d/2,.7); wallColl(x-w/2,front,x-doorW/2,front,.7); wallColl(x+doorW/2,front,x+w/2,front,.7);
+  const signColor=kind==='royal'?'arcane':'amber'; aBox(2.5,.22,.7,x,2.55,front+.08,signColor); aBox(2.2,.14,.72,x,2.72,front+.1,'dark');
+  for(let ix=-1;ix<=1;ix+=2){ const lamp=new THREE.PointLight(kind==='royal'?0xa78cff:0xffb060,1.2,12); lamp.position.set(x+ix*(w*.31),3,z); scene.add(lamp); lights.push({light:lamp,base:1.2,phase:rand(0,6)}); }
+  if(kind==='tavern'){ aBox(w*.54,.55,1.2,x,.5,z-1.5,'wood'); for(let i=-1;i<=1;i+=2){ aBox(1.1,.85,.8,x+i*3,.42,z+1.5,'wood'); addCollider(x+i*3,z+1.5,.65); } aCyl(.65,.75,1.3,8,x, .65,z+2.4,'stone'); }
+  else if(kind==='archive'){ for(let i=-1;i<=1;i+=2){ aBox(.8,4,d*.58,x+i*(w*.36),2,z,'wood'); } aBox(3,.85,1.5,x,.43,z+1.2,'wood'); addCollider(x,z+1.2,1.1); }
+  else { aBox(w*.58,.7,2.2,x,.36,z+1.6,'stone'); aCyl(.7,.8,1.2,8,x,.6,z-2,'stone'); }
+  interiorDoors.push({name,x,z:front+1.5,insideX:x,insideZ:front-2,kind});
+}
+function marketDistrict(){
+  fireLight=new THREE.PointLight(0xff7a2d,2.8,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
+  const fg=new THREE.BufferGeometry(),fp=new Float32Array(fpN*3); for(let i=0;i<fpN;i++){ fp[i*3]=rand(-.3,.3); fp[i*3+1]=rand(1,3); fp[i*3+2]=MARKET_Z+rand(-.3,.3); fpV.push(rand(.02,.05)); } fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fireParticles=new THREE.Points(fg,new THREE.PointsMaterial({color:0xff9a3d,size:.28,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(fireParticles);
+  for(let i=0;i<12;i++){ const a=i/12*Math.PI*2,sx=Math.cos(a)*20,sz=MARKET_Z+Math.sin(a)*20; aBox(4,.28,2.8,sx,2.35,sz,'wood',a); aCone(2.65,1.15,4,sx,3.1,sz,i%3?'roof':'slate',a+Math.PI/4); aCyl(.1,.1,2.3,4,sx-1.35,1.15,sz-1,'wood'); aCyl(.1,.1,2.3,4,sx+1.35,1.15,sz+1,'wood'); addCollider(sx,sz,1.55); }
+  interiorHouse('The Cinder and Keg',38,MARKET_Z+6,22,17,'tavern'); cityHouse(-39,MARKET_Z+4,15,11,2,'brick',0,'amber');
+}
+function plannedDistricts(){
+  // Districts intentionally grow outward from the citadel: merchants south,
+  // temple and scholars east, compact homes north, workshops west.
+  blockDistrict(-104,-122,6,4,15,18,'residential'); blockDistrict(104,-122,6,4,15,18,'residential');
+  blockDistrict(-126,12,5,6,17,15,'merchant',Math.PI/2); blockDistrict(128,12,5,6,17,15,'scholar',-Math.PI/2);
+  blockDistrict(-118,136,5,4,18,17,'merchant'); blockDistrict(116,142,5,4,18,17,'merchant');
+  blockDistrict(-184,-88,3,5,18,18,'residential',Math.PI/2); blockDistrict(184,-88,3,5,18,18,'scholar',-Math.PI/2);
+  blockDistrict(-182,96,3,5,18,18,'merchant',Math.PI/2); blockDistrict(182,94,3,5,18,18,'merchant',-Math.PI/2);
+  cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
+  spire(-158,-12,20); spire(156,18,18);
+}
+function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
+  const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<3.3);
+  for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;if(gateAt(deg))continue;
+    const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
+  [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
+}
+function outerCity(){ graveyard(-292,-178); ruins(292,-172); pond(-295,178); stones(294,174); for(let i=0;i<330;i++){const a=rand(0,6.28),r=rand(CITY_RADIUS+12,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(2,3.8);aCyl(.14,.24,h,5,x,h/2,z,'wood');for(let j=0;j<3;j++)aCone(1.1-j*.28,1-j*.15,6,x,h*.55+j*.7,z,'slate');} mountains(); }
+
 // ---------- ASSEMBLE ----------
-LMSG.textContent='raising the keep…';   keep();
-LMSG.textContent='laying the streets…'; streets(); cathedral(-56,16,0.4); market();
-LMSG.textContent='building the town…';  town();
-LMSG.textContent='raising the walls…';  cityWall();
-LMSG.textContent='sowing the wilds…';   graveyard(-218,-136); ruins(218,-128); pond(-222,136); stones(220,132); forestRing(); mountains();
+LMSG.textContent='planning the avenues…'; streetPlan();
+LMSG.textContent='raising the citadel…'; citadel();
+LMSG.textContent='building the districts…'; plannedDistricts(); marketDistrict();
+LMSG.textContent='fortifying the city…'; citadelWall();
+LMSG.textContent='sowing the outer wards…'; outerCity();
 mergeAll();
 
 // ---------- villagers ----------
@@ -4845,14 +4914,16 @@ function cast(){ const from=camera.position.clone(),dir=new THREE.Vector3(); cam
   g.position.copy(from).add(dir.clone().multiplyScalar(1)); scene.add(g); spells.push({g,v:dir.multiplyScalar(0.7),core,life:1.8}); }
 function blocked(x,z){ const pr=CONFIG.playerRadius; for(let i=0;i<colliders.length;i++){ const c=colliders[i],dx=x-c.x,dz=z-c.z; if(dx*dx+dz*dz<(c.r+pr)*(c.r+pr)) return true; } return false; }
 const lim=M*0.47;
-let nearestVillager=null,toastTimer=null;
+let nearestVillager=null,nearestDoor=null,activeInterior=null,toastTimer=null;
 const interactHint=document.getElementById('interactHint'),gameToast=document.getElementById('gameToast');
 function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
 function updateVillagers(t){ let closest=null,best=16;
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; npc.g.position.set(npc.homeX+Math.cos(t*.24+npc.phase)*.5,sway*0.05,npc.homeZ+Math.sin(t*.24+npc.phase)*.5); npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002; const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
-  nearestVillager=closest; const close=closest&&best<18; interactHint.style.display=close?'block':'none'; if(close) interactHint.querySelector('span').textContent='share a smoke with '+closest.name;
+  nearestVillager=closest; let door=null,doorDistance=25; for(const entry of interiorDoors){ const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} } nearestDoor=door;
+  const close=door||(closest&&best<18); interactHint.style.display=close?'block':'none'; if(close) interactHint.querySelector('span').textContent=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'share a smoke with '+closest.name;
 }
-function shareSmoke(){ if(!nearestVillager){ showGameToast('No one nearby—follow the lanterns to the south market.'); return; }
+function shareSmoke(){ if(nearestDoor){ if(activeInterior===nearestDoor){ player.x=nearestDoor.x; player.z=nearestDoor.z+3.5; activeInterior=null; showGameToast('You step back out into Vaneth.'); } else { player.x=nearestDoor.insideX; player.z=nearestDoor.insideZ; activeInterior=nearestDoor; showGameToast('You enter '+nearestDoor.name+'.'); } return; }
+  if(!nearestVillager){ showGameToast('No one nearby—follow the lanterns to the south market.'); return; }
   const npc=nearestVillager, cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false})); cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0)); scene.add(cloud); socialSmoke.push({mesh:cloud,life:2.2}); showGameToast(npc.name+': “'+npc.line+'”');
 }
 

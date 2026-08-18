@@ -1,15 +1,15 @@
-**r19 — village profiles** · 2026-08-18 · phase 1, Puffco BLE panel
+**r20 — citadel city** · 2026-08-18 · phase 2, Vaneth city + strain archive
 
-In its own panel header: *r19 control deck*.
+In its own panel header: *r20 control deck*.
 
 ### Summary
 
-Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth retry, single-bond, Fahrenheit profiles
+Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note archive with autocomplete
 
 ### In the code
 
-- 0.75 MB (+7,479 bytes on r18).
-- 7 functions added: `applyQuickProfile`, `setSpellToneFromFahrenheit`, `shareSmoke`, `showGameToast`, `updateVillagers`, `villager`, `writeProfileTemp`.
+- 0.76 MB (+8,852 bytes on r19).
+- 10 functions added: `blockDistrict`, `citadel`, `citadelWall`, `cityHouse`, `interiorHouse`, `marketDistrict`, `outerCity`, `plannedDistricts`, `roadBetween`, `streetPlan`.
 
 ### Play it
 
