@@ -1,6 +1,6 @@
-**r41 — daggerfall wards** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r42 — npc anchors** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r41 steady control deck*.
+In its own panel header: *r42 steady control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.85 MB (+2,260 bytes on r40).
-- 2 functions added: `gateApproaches`, `routePoint`.
+- 0.85 MB (−69 bytes on r41).
+- 1 function added: `anchorNpcRoute`.
 
 ### Play it
 
