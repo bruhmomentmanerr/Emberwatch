@@ -1,4 +1,4 @@
-**r31 — curated smoke notes** · 2026-08-19 · phase 2, Vaneth city + strain archive
+**r32 — living strain archive** · 2026-08-19 · phase 2, Vaneth city + strain archive
 
 In its own panel header: *r27 adaptive control deck*.
 
@@ -8,8 +8,8 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.79 MB (+272 bytes on r30).
-- 1 function added: `canonicalStrainName`.
+- 0.80 MB (+7,008 bytes on r31).
+- 11 functions added: `archiveList`, `archiveReferenceFrom`, `archiveValue`, `chooseArchiveMatch`, `hideStrainSuggestions`, `localArchiveMatches`, `mergeArchiveMatches`, `queueStrainArchiveSearch`, `searchStrainArchive`, `showStrainSuggestions`, `storedArchiveReference`.
 
 ### Play it
 
