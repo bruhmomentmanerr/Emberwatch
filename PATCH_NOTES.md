@@ -1,4 +1,4 @@
-**r29 — plain strain guide** · 2026-08-19 · phase 2, Vaneth city + strain archive
+**r30 — inworld smoke notes** · 2026-08-19 · phase 2, Vaneth city + strain archive
 
 In its own panel header: *r27 adaptive control deck*.
 
@@ -8,7 +8,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.79 MB (−468 bytes on r28).
+- 0.79 MB (−1,298 bytes on r29).
 - No functions added or removed.
 
 ### Play it
