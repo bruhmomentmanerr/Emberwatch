@@ -1,6 +1,6 @@
-**r38 — denser vaneth** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r39 — stable city controls** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r27 adaptive control deck*.
+In its own panel header: *r39 steady control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.83 MB (+3,087 bytes on r37).
-- 2 functions added: `denseForest`, `infillDistricts`.
+- 0.84 MB (+8,660 bytes on r38).
+- 9 functions added: `cborHead`, `encodeCbor`, `setProfileColor`, `setSessionSeconds`, `spellMaterial`, `syncColorInputs`, `wardCourt`, `writeProfileColor`, `writeProfileTime`.
 
 ### Play it
 
