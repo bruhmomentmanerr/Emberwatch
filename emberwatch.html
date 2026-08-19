@@ -130,7 +130,7 @@
   </div>
 </div>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r40 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r41 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4850,11 +4850,14 @@ function wardCourt(x,z,w,d){
 }
 function cityBlock(cx,cz,w,d,kind='residential'){
   const palette=kind==='merchant'?['brick','wall','wall2']:kind==='scholar'?['wall2','stone','wall']:['wall','brick','wall2'];
-  const house=(x,z,turn,index)=>{const key=palette[index%palette.length],stories=1+(index%3===0?1:0),wide=8+(index%2),deep=7+(index%3===0?1:0);cityHouse(x,z,wide,deep,stories,key,turn,index%5===0?'arcane':'amber');};
-  // Buildings face the streets and frame a usable court instead of a field.
+  const house=(x,z,turn,index,inner=false)=>{const key=palette[index%palette.length],stories=1+(index%3===0?1:0),wide=(inner?6.8:8)+(index%2),deep=(inner?5.8:7)+(index%3===0?1:0);cityHouse(x,z,wide,deep,stories,key,turn,index%5===0?'arcane':'amber');};
+  // Outer façades read as streets. A cross of narrow alleys and a second row
+  // of smaller buildings gives each ward a walkable Daggerfall-style interior.
+  roadBetween(cx,-d*.5+7,cx,d*.5-7,2.35); roadBetween(cx-w*.5+7,cz,cx+w*.5-7,cz,2.35);
   [-w*.22,w*.22].forEach((offset,index)=>{house(cx+offset,cz-d*.5+5,Math.PI,index);house(cx+offset,cz+d*.5-5,0,index+2);});
   [-d*.18,d*.18].forEach((offset,index)=>{house(cx-w*.5+5,cz+offset,-Math.PI/2,index+4);house(cx+w*.5-5,cz+offset,Math.PI/2,index+6);});
-  wardCourt(cx,cz,Math.max(15,w-22),Math.max(14,d-22));
+  [[-w*.19,-d*.17,Math.PI], [w*.19,-d*.17,Math.PI], [-w*.19,d*.17,0], [w*.19,d*.17,0]].forEach((lot,index)=>house(cx+lot[0],cz+lot[1],lot[2],index+8,true));
+  wardCourt(cx,cz,11,11);
 }
 function denseCityWards(){
   const cells=[-165,-83,0,83,165];
@@ -4870,6 +4873,10 @@ function denseCityWards(){
   // Narrow homes resolve the small landmark gaps without sealing off routes.
   [[-61,-78,'wall',0],[61,-78,'brick',0],[-62,72,'wall2',0],[55,72,'wall',0],[-86,-123,'brick',0],[87,-123,'wall2',0]].forEach((lot,index)=>cityHouse(lot[0],lot[1],9,8,1+(index%3===0?1:0),lot[2],lot[3],index%2?'amber':'arcane'));
 }
+function gateApproaches(){
+  // Lit landmarks make each gate and the edge boulevard visible from a ward.
+  [[0,-216,1],[0,216,1],[-216,0,0],[216,0,0]].forEach(([x,z,vertical],index)=>{const side=vertical?6:0,other=vertical?0:6;cityLantern(x+side,z+other,true);cityLantern(x-side,z-other,true);aBox(vertical?4:.22,.24,vertical?.22:4,x,.32,z,'amber');if(index%2===0)aBox(vertical?3:.18,3.2,vertical?.18:3,x,1.8,z,'wood');});
+}
 function streetPlan(){
   cityFloor();
   // Dense ward lanes replace the open field with a navigable city grid.
@@ -4877,6 +4884,8 @@ function streetPlan(){
   [-124,-42,42,124].forEach(x=>roadBetween(x,-216,x,216,4.6));
   [-124,-42,42,124].forEach(z=>roadBetween(-216,z,216,z,4.6));
   [[-218,-140,-28,-140],[28,-140,218,-140],[-218,140,-28,140],[28,140,218,140],[-142,-218,-142,-30],[142,-218,142,-30],[-142,30,-142,218],[142,30,142,218]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
+  // Inner boulevard: a readable boundary route joining the four city gates.
+  [[-170,-210,170,-210],[-170,210,170,210],[-210,-170,-210,170],[210,-170,210,170]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
   const citadelLane=new THREE.Mesh(new THREE.RingGeometry(53,60,96).rotateX(-Math.PI/2),MATS.cobble); citadelLane.position.y=.055; citadelLane.receiveShadow=true; scene.add(citadelLane);
   const marketLane=new THREE.Mesh(new THREE.CircleGeometry(31,48).rotateX(-Math.PI/2),MATS.cobble); marketLane.position.set(0,.06,MARKET_Z); marketLane.receiveShadow=true; scene.add(marketLane);
 }
@@ -4922,6 +4931,7 @@ function infillDistricts(){
 }
 function plannedDistricts(){
   denseCityWards();
+  gateApproaches();
   cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild'); interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');
   spire(-158,-12,20); spire(156,18,18);
@@ -4967,6 +4977,7 @@ mergeAll();
 // without letting people clip through the city blocks.
 const villagers=[];
 function villager(name,x,z,robe,line,route=[]){
+  const district=villagerDistrict(route),patrol=route.length&& !route.some(point=>Math.abs(point[0]-x)<.01&&Math.abs(point[1]-z)<.01)?[[x,z],...route]:route;
   const signature=[...name].reduce((value,char)=>((value*31)+char.charCodeAt(0))>>>0,7),variant=signature%5;
   const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:robe,flatShading:true,roughness:1}),trim=new THREE.MeshStandardMaterial({color:[0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>3)%5],flatShading:true,roughness:1}),skin=new THREE.MeshStandardMaterial({color:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30][(signature>>5)%5],flatShading:true,roughness:1}),hair=new THREE.MeshStandardMaterial({color:[0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>8)%4],flatShading:true,roughness:1}),leather=new THREE.MeshStandardMaterial({color:0x382519,flatShading:true,roughness:1});
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
@@ -4986,15 +4997,15 @@ function villager(name,x,z,robe,line,route=[]){
     const body=new THREE.Mesh(new THREE.ConeGeometry(.55,1.85,5),cloth);body.position.y=.92;const wrap=new THREE.Mesh(new THREE.CylinderGeometry(.34,.4,.26,6),trim);wrap.position.y=.37;headPivot.add(wrap);const lantern=new THREE.Mesh(new THREE.BoxGeometry(.2,.27,.2),MATS.amber);lantern.position.set(.5,.73,.1);prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.78,5),leather);prop.position.set(-.52,.9,.05);prop.rotation.z=.12;g.add(body,lantern,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
   }
   if(prop)g.add(prop);g.add(headPivot);g.position.set(x,0,z);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(g);
-  villagers.push({name,g,homeX:x,homeZ:z,line,route,district:villagerDistrict(route),phase:rand(0,route.length||6.28),walkSpeed:rand(.052,.082),lastX:x,lastZ:z,parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
+  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28); villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082),routeProgress,pauseLeft:rand(.2,2.5),returning:false,lastX:x,lastZ:z,parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
 }
 const vanethRoutes={
   market:[[-31,85],[31,85],[33,132],[-31,132]],
-  citadel:[[-64,-58],[0,-70],[64,-58],[72,0],[63,62],[0,70],[-62,61],[-72,0]],
-  north:[[-61,146],[-64,195],[0,212],[64,195],[61,146],[0,175]],
-  west:[[-78,-60],[-78,-7],[-76,48],[-54,72],[-51,0],[-55,-57]],
-  east:[[78,-24],[76,26],[72,65],[54,68],[52,0],[57,-58]],
-  south:[[-10,-218],[-59,-190],[-62,-142],[-51,-86],[0,-75],[51,-86],[61,-142],[58,-190],[10,-218]]
+  citadel:[[-57,-32],[0,-57],[57,-32],[57,0],[57,32],[0,57],[-57,32],[-57,0]],
+  north:[[-124,140],[-124,210],[0,210],[124,210],[124,140],[42,140],[-42,140]],
+  west:[[-210,-124],[-142,-124],[-142,-42],[-142,42],[-142,124],[-210,124]],
+  east:[[210,-124],[142,-124],[142,-42],[142,42],[142,124],[210,124]],
+  south:[[-124,-210],[-42,-210],[42,-210],[124,-210],[124,-140],[-124,-140]]
 };
 function villagerDistrict(route){if(route===vanethRoutes.market)return'Market Ward';if(route===vanethRoutes.citadel)return'Citadel Ward';if(route===vanethRoutes.north)return'North Ward';if(route===vanethRoutes.west)return'West Ward';if(route===vanethRoutes.east)return'East Ward';if(route===vanethRoutes.south)return'South Ward';return'Old Vaneth';}
 const vanethResidents=[
@@ -5131,8 +5142,8 @@ function conversationFor(npc){return VANETH_CONVERSATION[npc?.district]||VANETH_
 function nameIndex(name,count){return [...String(name||'')].reduce((total,char)=>total+char.charCodeAt(0),0)%count;}
 function dialogueChoice(label,action,leave=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(leave)button.className='leave';button.addEventListener('click',action);dialogueChoices.append(button);}
 function writeDialogue(npc,topic,words,choices){if(!npc)return;dialogueName.textContent=npc.name;dialoguePlace.textContent=(npc.district||'Vaneth')+' · resident';dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));}
-function closeDialogue(){if(!dialogueOpen)return; if(activeDialogueNpc)activeDialogueNpc.talking=false; dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();}
-function openDialogue(npc){if(!npc)return;const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=Math.hypot(dx,dz)||1; npc.talking=true;npc.talkX=player.x-dx/d*2.15;npc.talkZ=player.z-dz/d*2.15;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
+function closeDialogue(){if(!dialogueOpen)return; if(activeDialogueNpc){activeDialogueNpc.talking=false;activeDialogueNpc.returning=true;} dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();}
+function openDialogue(npc){if(!npc)return;const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=Math.hypot(dx,dz)||1; npc.talking=true;npc.returning=false;npc.talkX=player.x-dx/d*2.15;npc.talkZ=player.z-dz/d*2.15;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
 function showDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Offer '+strain.name+' from your jar',action:()=>shareDialogueSmoke(npc,strain)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};writeDialogue(npc,'A conversation in '+conversationFor(npc).place,npc.name+' looks you over for a moment.\n\n“'+npc.line+'”',[{label:'Ask about this part of Vaneth',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askAboutVaneth(npc){const lore=conversationFor(npc);writeDialogue(npc,'Talking of Vaneth','You: “What should I know about this place?”\n\n'+npc.name+': “'+lore.city+'”',[{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askWhyTheyStay(npc){const lore=conversationFor(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'];const answer=personal[nameIndex(npc.name,personal.length)]+' '+lore.roots;writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+answer+'”',[{label:'Ask about the ward again',action:()=>askAboutVaneth(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
@@ -5144,11 +5155,12 @@ function askSharedFeeling(npc,strain){const impression=strainImpression(strain),
 function askSmokeMemory(npc,strain){const memory=['a kitchen window left open against rain','someone laughing under a market awning','the first quiet minute after a difficult watch','a road fire after the rest of the camp has gone to sleep'][nameIndex(npc.name+strain.name,4)];writeDialogue(npc,'A small memory','You: “What does it remind you of?”\n\n'+npc.name+' watches the smoke climb. “Not a specific thing. More like '+memory+'. The kind of memory you do not know you miss until it comes back.”',[{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function sitWithNpc(npc,strain){const place=conversationFor(npc).place,ending=['For a while neither of you says anything. Somewhere beyond the roofs, a cart creaks and a lantern bell taps in the wind.','The city keeps moving around you. '+npc.name+' gives a small nod, as if that silence answered a question.','You pass the jar back and watch the last of the smoke thin above '+place+'. It is enough to be there for a minute.'][nameIndex(npc.name+strain.name+'quiet',3)];writeDialogue(npc,'A little quiet',ending,[{label:'Keep talking',action:showDialogueGreeting},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 dialogueClose.addEventListener('click',closeDialogue);
-function updateVillagers(t){ let closest=null,best=16;
-  for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.homeX,z=npc.homeZ;
-    if(npc.talking){ x=npc.lastX+(npc.talkX-npc.lastX)*.18; z=npc.lastZ+(npc.talkZ-npc.lastZ)*.18; npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
-    else if(npc.route.length>1){ const progress=(t*npc.walkSpeed+npc.phase)%npc.route.length,index=Math.floor(progress),next=(index+1)%npc.route.length,blend=progress-index,ease=blend*blend*(3-2*blend),from=npc.route[index],to=npc.route[next]; x=from[0]+(to[0]-from[0])*ease; z=from[1]+(to[1]-from[1])*ease; const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz); } else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
-    const movingNpc=!npc.talking&&npc.route.length>1,gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
+function routePoint(npc){const route=npc.route,length=route.length,progress=(npc.routeProgress%length+length)%length,index=Math.floor(progress),next=(index+1)%length,blend=progress-index,ease=blend*blend*(3-2*blend),from=route[index],to=route[next];return {x:from[0]+(to[0]-from[0])*ease,z:from[1]+(to[1]-from[1])*ease};}
+function updateVillagers(t,dt){ let closest=null,best=16;
+  for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
+    if(npc.talking){ x=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8); z=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8); npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
+    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.returning){const dx=target.x-npc.lastX,dz=target.z-npc.lastZ,distance=Math.hypot(dx,dz);if(distance<.12){x=target.x;z=target.z;npc.returning=false;npc.pauseLeft=1.2+((npc.phase*7)%2);}else{x=npc.lastX+dx/distance*Math.min(distance,dt*3.1);z=npc.lastZ+dz/distance*Math.min(distance,dt*3.1);npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;}}else if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
+    const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
     npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
   nearestVillager=closest; let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} } nearestDoor=door;
   const close=door||(closest&&best<18); interactHint.style.display=!dialogueOpen&&close?'block':'none'; if(close) interactHint.querySelector('span').textContent=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'talk with '+closest.name;
@@ -5601,7 +5613,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   if(keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t,dt);
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextZ=fromZ+s.v.z*dt,hit=spellBarrier(fromX,fromZ,nextX,nextZ); if(hit){spellImpact(hit.x,s.g.position.y,hit.z,s.color);scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
   for(let i=spellHits.length-1;i>=0;i--){const hit=spellHits[i];hit.life-=dt;hit.mesh.rotation.y+=dt*9;hit.mesh.scale.multiplyScalar(1+dt*3.2);if(hit.life<=0){scene.remove(hit.mesh);spellHits.splice(i,1);}}

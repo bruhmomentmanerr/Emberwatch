@@ -1,6 +1,6 @@
-**r40 — city collision life** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r41 — daggerfall wards** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r40 steady control deck*.
+In its own panel header: *r41 steady control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.84 MB (+7,227 bytes on r39).
-- 5 functions added: `cityBlock`, `cityFloor`, `denseCityWards`, `spellBarrier`, `spellImpact`.
+- 0.85 MB (+2,260 bytes on r40).
+- 2 functions added: `gateApproaches`, `routePoint`.
 
 ### Play it
 
