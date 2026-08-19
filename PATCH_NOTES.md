@@ -1,6 +1,6 @@
-**r42 — npc anchors** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r43 — session faces** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r42 steady control deck*.
+In its own panel header: *r43 steady control deck*.
 
 ### Summary
 
@@ -8,8 +8,9 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.85 MB (−69 bytes on r41).
-- 1 function added: `anchorNpcRoute`.
+- 0.85 MB (+1,348 bytes on r42).
+- 1 function added: `writeSessionTime`.
+- 1 function removed: `writeProfileTime`.
 
 ### Play it
 

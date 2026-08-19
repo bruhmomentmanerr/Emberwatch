@@ -130,7 +130,7 @@
   </div>
 </div>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r42 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r43 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -148,7 +148,7 @@
       <div class="prow"><input id="pTarget" type="number" min="302" max="599" step="1" value="450"><span class="pu">°F</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
       <div class="puff-section">Session duration</div>
       <div class="prow"><input id="pSessionTarget" type="number" min="15" max="120" step="1" value="40"><span class="pu">sec</span><button class="pbtn" id="pSessionSet" style="flex:none">Save</button></div>
-      <div class="pnote">15–120 seconds · saved to the active Peak profile before you heat.</div>
+      <div class="pnote">15–120 seconds · applied to the next heat cycle and confirmed from the Peak.</div>
       <div class="puff-section">Profile light</div>
       <div class="pcolor-row"><input id="pColor" type="color" value="#9d7bff" aria-label="Solid profile light color"><input id="pColorHex" type="text" value="#9D7BFF" maxlength="7" spellcheck="false" aria-label="Profile light hex color"><button class="pbtn" id="pColorSet" style="flex:none">Save</button></div>
       <div class="pnote">Solid RGB · the saved light color also becomes your spell color.</div>
@@ -4975,6 +4975,9 @@ mergeAll();
 // ---------- villagers ----------
 // Residents use short, road-safe patrols so every district feels inhabited
 // without letting people clip through the city blocks.
+const npcEyeMaterial=new THREE.MeshBasicMaterial({color:0x17121b});
+const npcMouthMaterial=new THREE.MeshBasicMaterial({color:0x8f4c5d});
+const npcCheekMaterial=new THREE.MeshBasicMaterial({color:0xd87878,transparent:true,opacity:.55,depthWrite:false});
 const villagers=[];
 function villager(name,x,z,robe,line,route=[]){
   const district=villagerDistrict(route),patrol=route.length&& !route.some(point=>Math.abs(point[0]-x)<.01&&Math.abs(point[1]-z)<.01)?[[x,z],...route]:route;
@@ -4982,6 +4985,15 @@ function villager(name,x,z,robe,line,route=[]){
   const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:robe,flatShading:true,roughness:1}),trim=new THREE.MeshStandardMaterial({color:[0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>3)%5],flatShading:true,roughness:1}),skin=new THREE.MeshStandardMaterial({color:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30][(signature>>5)%5],flatShading:true,roughness:1}),hair=new THREE.MeshStandardMaterial({color:[0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>8)%4],flatShading:true,roughness:1}),leather=new THREE.MeshStandardMaterial({color:0x382519,flatShading:true,roughness:1});
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group();
   const face=new THREE.Mesh(new THREE.SphereGeometry(.29,7,6),skin); face.position.y=.2; headPivot.position.y=1.7; headPivot.add(face);
+  const leftEye=new THREE.Mesh(new THREE.SphereGeometry(.052,5,4),npcEyeMaterial),rightEye=leftEye.clone();
+  leftEye.position.set(-.105,.255,.266); rightEye.position.set(.105,.255,.266);
+  const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.105,.018,.014),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.105,.018,.014),hair);
+  leftBrow.position.set(-.105,.345,.273); rightBrow.position.set(.105,.345,.273); leftBrow.rotation.z=-.08; rightBrow.rotation.z=.08;
+  const smileLeft=new THREE.Mesh(new THREE.BoxGeometry(.062,.016,.014),npcMouthMaterial),smileRight=new THREE.Mesh(new THREE.BoxGeometry(.062,.016,.014),npcMouthMaterial);
+  smileLeft.position.set(-.03,.105,.277); smileRight.position.set(.03,.105,.277); smileLeft.rotation.z=-.42; smileRight.rotation.z=.42;
+  const leftCheek=new THREE.Mesh(new THREE.SphereGeometry(.055,5,4),npcCheekMaterial),rightCheek=leftCheek.clone();
+  leftCheek.position.set(-.19,.16,.258); rightCheek.position.set(.19,.16,.258); leftCheek.scale.set(1,.58,.36); rightCheek.scale.set(1,.58,.36);
+  headPivot.add(leftEye,rightEye,leftBrow,rightBrow,smileLeft,smileRight,leftCheek,rightCheek);
   const arm=(side,material)=>{const pivot=side<0?leftArm:rightArm,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.105,.13,.78,5),material);pivot.position.set(side*.42,1.23,0);mesh.position.y=-.38;mesh.rotation.z=side*.08;pivot.add(mesh);return pivot;};
   const leg=(side,material)=>{const pivot=side<0?leftLeg:rightLeg,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.12,.14,.76,5),material);pivot.position.set(side*.17,.72,0);mesh.position.y=-.36;pivot.add(mesh);return pivot;};
   let prop=null;
@@ -5432,10 +5444,10 @@ const PUFF=(function(){
     if(!Number.isFinite(saved)||Math.abs(saved-celsius)>.75) throw new Error('Peak Pro did not save the requested profile temperature.');
     return saved;
   }
-  async function writeProfileTime(profile,seconds){
-    await loraxWrite('/u/app/hc/'+profile+'/time',f32(seconds)); await delay(90);
-    const saved=await readFloat('/u/app/hc/'+profile+'/time');
-    if(!Number.isFinite(saved)||Math.abs(saved-seconds)>.75)throw new Error('Peak Pro did not save the requested session duration.');
+  async function writeSessionTime(seconds){
+    await loraxWrite('/p/app/thc/time',f32(seconds)); await delay(120);
+    const saved=await readFloat('/p/app/thc/time');
+    if(!Number.isFinite(saved)||Math.abs(saved-seconds)>.75)throw new Error('Peak Pro did not apply the requested session duration.');
     return saved;
   }
   async function writeProfileColor(profile,rgb){
@@ -5466,7 +5478,7 @@ const PUFF=(function(){
       if(await currentProfile()!==profile) throw new Error('Peak Pro did not switch to that heat profile.');
       const effective=await readFloat('/p/app/thc/temp'); if(!Number.isFinite(effective)||Math.abs(effective-celsius)>.75) throw new Error('Peak Pro switched profiles but did not apply that profile temperature.'); return effective;
     },
-    async setSessionTime(seconds){ if(protocol!=='Lorax')throw new Error('Session duration control requires a Lorax Peak Pro.'); if(!Number.isFinite(seconds)||seconds<15||seconds>120)throw new Error('Choose a session duration from 15 to 120 seconds.'); return writeProfileTime(await currentProfile(),seconds); },
+    async setSessionTime(seconds){ if(protocol!=='Lorax')throw new Error('Session duration control requires a Lorax Peak Pro.'); if(!Number.isFinite(seconds)||seconds<15||seconds>120)throw new Error('Choose a session duration from 15 to 120 seconds.'); return writeSessionTime(seconds); },
     async setProfileRgb(rgb){ if(protocol!=='Lorax')throw new Error('Profile light control requires a Lorax Peak Pro.'); if(!Array.isArray(rgb)||rgb.length!==3||rgb.some(value=>!Number.isFinite(value)))throw new Error('Choose a valid RGB color.'); return writeProfileColor(await currentProfile(),rgb); },
     async mode(name){ if(protocol==='Lorax'){ const command={heat:7,boost:9,idle:8,sleep:1}[name]; if(command===undefined)throw new Error('Unknown Peak Pro mode.'); await loraxWrite('/p/app/mc',Uint8Array.of(command)); } else { const command={heat:7,idle:2,sleep:1}[name]; if(command===undefined)throw new Error('That action requires a Lorax Peak Pro.'); await write(assertChar(chars[LEGACY.off.mode],'mode'),f32(command)); } }
   };
@@ -5511,7 +5523,7 @@ const PUFF=(function(){
   }
   async function setSessionSeconds(seconds){
     if(!Number.isFinite(seconds)||seconds<15||seconds>120)throw new Error('Choose a session duration from 15 to 120 seconds.');
-    const saved=await PUFF.setSessionTime(seconds); $('pSessionTarget').value=Math.round(saved); setNote('session duration saved at '+Math.round(saved)+' seconds ✓'); await refresh();
+    const saved=await PUFF.setSessionTime(seconds); $('pSessionTarget').value=Math.round(saved); setNote('session duration applied at '+Math.round(saved)+' seconds ✓'); await refresh();
   }
   async function setProfileColor(){
     const rgb=rgbForHex($('pColorHex').value)||rgbForHex($('pColor').value); if(!rgb)throw new Error('Choose a six-digit RGB color.');
