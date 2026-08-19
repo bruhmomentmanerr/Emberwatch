@@ -1,15 +1,15 @@
-**r35 — visible archive notes** · 2026-08-19 · phase 2, Vaneth city + strain archive
+**r36 — npc conversations** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
 In its own panel header: *r27 adaptive control deck*.
 
 ### Summary
 
-Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note archive with autocomplete
+Part of r36–r52: NPC conversations, city collision, seeded city compiler, test plans
 
 ### In the code
 
-- 0.80 MB (+2,186 bytes on r34).
-- 4 functions added: `archiveNoteSummary`, `clearLookupPreview`, `makeReferenceNotes`, `setLookupPreview`.
+- 0.81 MB (+10,854 bytes on r35).
+- 16 functions added: `askAboutVaneth`, `askSmokeMemory`, `askWhyTheyStay`, `clearPressedKeys`, `closeDialogue`, `conversationFor`, `dialogueChoice`, `nameIndex`, `offerFromJar`, `openDialogue`, `releaseSocialSmoke`, `shareDialogueSmoke`, `showDialogueGreeting`, `smokeWords`, `villagerDistrict`, `writeDialogue`.
 
 ### Play it
 
