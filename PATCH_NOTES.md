@@ -1,4 +1,4 @@
-**r36 — npc conversations** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r37 — living vaneth** · 2026-08-19 · phase 3, NPCs, collision, city compiler
 
 In its own panel header: *r27 adaptive control deck*.
 
@@ -8,8 +8,9 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.81 MB (+10,854 bytes on r35).
-- 16 functions added: `askAboutVaneth`, `askSmokeMemory`, `askWhyTheyStay`, `clearPressedKeys`, `closeDialogue`, `conversationFor`, `dialogueChoice`, `nameIndex`, `offerFromJar`, `openDialogue`, `releaseSocialSmoke`, `shareDialogueSmoke`, `showDialogueGreeting`, `smokeWords`, `villagerDistrict`, `writeDialogue`.
+- 0.83 MB (+11,641 bytes on r36).
+- 11 functions added: `addRavens`, `askSharedFeeling`, `cityClutter`, `cityLantern`, `makeVanethLively`, `marketCart`, `openGroundForGrass`, `plantLife`, `planter`, `sitWithNpc`, `strainImpression`.
+- 1 function removed: `smokeWords`.
 
 ### Play it
 

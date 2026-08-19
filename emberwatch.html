@@ -4659,6 +4659,7 @@ scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new 
 const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,1100); camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+if('outputEncoding' in renderer)renderer.outputEncoding=THREE.sRGBEncoding;if(THREE.ACESFilmicToneMapping!==undefined)renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 document.getElementById('app').appendChild(renderer.domElement);
 let RS=CONFIG.renderScale;
 function resize(){ const w=innerWidth,h=innerHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(Math.max(1,Math.floor(w*RS)),Math.max(1,Math.floor(h*RS)),false); }
@@ -4674,23 +4675,25 @@ const moon2=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMat
 // helpers
 const rand=(a,b)=>a+Math.random()*(b-a), pick=a=>a[(Math.random()*a.length)|0];
 function shade(hex,d){ const c=v=>Math.max(0,Math.min(255,v|0)); return 'rgb('+c((hex>>16&255)+d)+','+c((hex>>8&255)+d)+','+c((hex&255)+d)+')'; }
-function makeTex(base,opt={}){ const S=opt.size||24,cvs=document.createElement('canvas'); cvs.width=cvs.height=S; const x=cvs.getContext('2d');
-  x.fillStyle=shade(base,0); x.fillRect(0,0,S,S);
-  for(let i=0;i<S*S*(opt.density||0.5);i++){ x.fillStyle=shade(base,(Math.random()*2-1)*(opt.jitter||26)); const s=Math.random()<0.15?2:1; x.fillRect((Math.random()*S)|0,(Math.random()*S)|0,s,s); }
-  if(opt.hlines) for(let y=0;y<S;y+=opt.hlines){ x.fillStyle=shade(base,-30); x.fillRect(0,y,S,1); }
-  if(opt.vlines) for(let vx=0;vx<S;vx+=opt.vlines){ x.fillStyle=shade(base,-24); x.fillRect(vx,0,1,S); }
-  const t=new THREE.CanvasTexture(cvs); t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter; t.wrapS=t.wrapT=THREE.RepeatWrapping;
-  if(opt.repeat) t.repeat.set(opt.repeat[0],opt.repeat[1]); return t; }
+function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('canvas');cvs.width=cvs.height=S;const x=cvs.getContext('2d'),pattern=opt.pattern||'';x.fillStyle=shade(base,0);x.fillRect(0,0,S,S);
+  if(pattern==='brick'){const bh=10,bw=21;for(let y=0,row=0;y<S;y+=bh,row++){for(let px=-(row%2?bw/2:0);px<S;px+=bw){x.fillStyle=shade(base,rand(-6,14));x.fillRect(px+1,y+1,bw-2,bh-2);x.strokeStyle=shade(base,-28);x.strokeRect(px+.5,y+.5,bw-1,bh-1);}}}
+  else if(pattern==='stone'||pattern==='cobble'){const cells=pattern==='cobble'?58:34;for(let i=0;i<cells;i++){const w=rand(7,16),h=rand(5,12),px=rand(-2,S-2),py=rand(-2,S-2);x.fillStyle=shade(base,rand(-13,13));x.fillRect(px,py,w,h);x.strokeStyle=shade(base,-28);x.strokeRect(px+.5,py+.5,w-1,h-1);}}
+  else if(pattern==='slate'||pattern==='roof'){for(let y=0;y<S;y+=8){x.fillStyle=shade(base,rand(-4,9));x.fillRect(0,y+1,S,6);x.fillStyle=shade(base,-26);x.fillRect(0,y,S,1);for(let px=(Math.floor(y/8)%2)*9;px<S;px+=18)x.fillRect(px,y+1,1,6);}}
+  else if(pattern==='wood'){for(let px=0;px<S;px+=5){x.fillStyle=shade(base,rand(-18,14));x.fillRect(px,0,rand(1,3),S);if(Math.random()<.55){x.fillStyle=shade(base,22);x.fillRect(px+3,rand(0,S-14),1,rand(5,14));}}}
+  else if(pattern==='ground'){for(let i=0;i<240;i++){const px=rand(0,S),py=rand(0,S);x.fillStyle=shade(base,rand(-12,18));x.fillRect(px,py,rand(1,4),rand(1,2));}for(let i=0;i<22;i++){x.fillStyle=shade(base,rand(16,34));x.fillRect(rand(0,S),rand(0,S),rand(2,5),1);}}
+  else if(pattern==='cloth'){for(let i=0;i<S;i+=4){x.fillStyle=shade(base,i%8?8:-12);x.fillRect(0,i,S,1);}}
+  for(let i=0;i<S*S*(opt.density||.08);i++){x.fillStyle=shade(base,(Math.random()*2-1)*(opt.jitter||13));const s=Math.random()<.12?2:1;x.fillRect((Math.random()*S)|0,(Math.random()*S)|0,s,s);}
+  const t=new THREE.CanvasTexture(cvs);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;if('colorSpace' in t&&THREE.SRGBColorSpace)t.colorSpace=THREE.SRGBColorSpace;else t.encoding=THREE.sRGBEncoding;if(opt.repeat)t.repeat.set(opt.repeat[0],opt.repeat[1]);return t;}
 function sm(tex){ return new THREE.MeshStandardMaterial({map:tex,flatShading:true,roughness:1,metalness:0}); }
 function em(color,intensity){ return new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:intensity,flatShading:true}); }
 
-const TX={ ground:makeTex(0x171a15,{density:0.7,jitter:16,repeat:[CONFIG.mapSize/2.6,CONFIG.mapSize/2.6]}),
-  wall:makeTex(0x6a5f52,{density:0.55,jitter:22,hlines:6}), wall2:makeTex(0x565060,{density:0.6,jitter:24,hlines:5}),
-  brick:makeTex(0x5a3a34,{density:0.5,jitter:20,hlines:5}), roof:makeTex(0x5a2a2e,{density:0.4,jitter:18,hlines:4}),
-  slate:makeTex(0x33304a,{density:0.4,jitter:16,hlines:4}), stone:makeTex(0x494452,{density:0.55,jitter:24}),
-  cobble:makeTex(0x2b2732,{density:0.7,jitter:24}), wood:makeTex(0x2f2318,{density:0.6,jitter:20,vlines:4}), dark:makeTex(0x15131c,{density:0.4,jitter:12}) };
+const TX={ground:makeTex(0x27301d,{pattern:'ground',density:.06,jitter:10,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15]}),
+  wall:makeTex(0x706556,{pattern:'stone',density:.04,jitter:12}),wall2:makeTex(0x5d596b,{pattern:'stone',density:.04,jitter:12}),
+  brick:makeTex(0x6a4239,{pattern:'brick',density:.03,jitter:10}),roof:makeTex(0x67343b,{pattern:'roof',density:.03,jitter:10}),
+  slate:makeTex(0x3d4057,{pattern:'slate',density:.03,jitter:10}),stone:makeTex(0x5c5865,{pattern:'stone',density:.03,jitter:11}),
+  cobble:makeTex(0x3d3947,{pattern:'cobble',density:.03,jitter:10,repeat:[CONFIG.mapSize/17,CONFIG.mapSize/17]}),wood:makeTex(0x4d3824,{pattern:'wood',density:.03,jitter:10}),cloth:makeTex(0x633e55,{pattern:'cloth',density:.03,jitter:8}),dark:makeTex(0x1b1922,{density:.03,jitter:7})};
 const MATS={ wall:sm(TX.wall), wall2:sm(TX.wall2), brick:sm(TX.brick), roof:sm(TX.roof), slate:sm(TX.slate), stone:sm(TX.stone),
-  cobble:sm(TX.cobble), wood:sm(TX.wood), dark:sm(TX.dark), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
+  cobble:sm(TX.cobble), wood:sm(TX.wood), cloth:sm(TX.cloth), dark:sm(TX.dark), foliage:new THREE.MeshStandardMaterial({color:0x3f7140,roughness:1,flatShading:true}), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
 
 // ---------- batching ----------
 const bins={}; function collect(k,g){ (bins[k]||(bins[k]=[])).push(g); }
@@ -4880,6 +4883,22 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
 function outerCity(){ graveyard(-292,-178); ruins(292,-172); pond(-295,178); stones(294,174); for(let i=0;i<330;i++){const a=rand(0,6.28),r=rand(CITY_RADIUS+12,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(2,3.8);aCyl(.14,.24,h,5,x,h/2,z,'wood');for(let j=0;j<3;j++)aCone(1.1-j*.28,1-j*.15,6,x,h*.55+j*.7,z,'slate');} mountains(); }
+const ravens=[];
+function cityLantern(x,z,lit=true){aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
+function marketCart(x,z,ry=0){aBox(2.7,.44,1.45,x,.9,z,'wood',ry);aBox(3.05,.16,1.75,x,2.3,z,'cloth',ry);for(const side of[-1,1])aCyl(.33,.33,.15,8,x+Math.cos(ry)*side*1.05,.36,z-Math.sin(ry)*side*1.05,'stone',ry+Math.PI/2);aCyl(.08,.08,2.1,5,x-Math.sin(ry)*1.55,1.55,z-Math.cos(ry)*1.55,'wood',ry+Math.PI/2);}
+function planter(x,z){aBox(1.45,.42,1.45,x,.21,z,'stone');aCone(.8,1.5,5,x,1.08,z,'foliage');aCone(.54,1.15,5,x,1.78,z,'foliage');}
+function cityClutter(){
+  [[-18,94],[19,95],[-16,124],[17,124],[-43,111],[47,114],[-105,15],[105,15],[-85,-40],[88,-39],[-58,161],[59,161],[-18,-149],[18,-149]].forEach((spot,index)=>cityLantern(spot[0],spot[1],index%2===0));
+  [[-12,91,0],[12,91,0],[-23,116,.5],[23,116,-.5],[-117,-18,Math.PI/2],[117,-18,-Math.PI/2],[-113,158,0],[113,158,0]].forEach(cart=>marketCart(cart[0],cart[1],cart[2]));
+  [[-29,83],[29,83],[-31,136],[31,136],[-74,-7],[75,27],[-64,193],[65,194],[-11,-88],[12,-88]].forEach(spot=>planter(spot[0],spot[1]));
+  for(let i=0;i<34;i++){const a=i/34*Math.PI*2,x=Math.cos(a)*23,z=MARKET_Z+Math.sin(a)*23;aBox(rand(.35,.65),rand(.45,1),rand(.35,.65),x,rand(.25,.5),z,'wood',rand(0,.8));if(i%3===0)aCyl(.28,.32,.7,8,x+rand(-.5,.5),.35,z+rand(-.5,.5),'stone');}
+  [[-52,105],[52,105],[-150,6],[151,5],[-15,174],[17,174]].forEach((spot,index)=>{aBox(3,.16,.55,spot[0],.78,spot[1],'wood',index%2?Math.PI/2:0);aBox(.16,.75,.16,spot[0]-1.05,.39,spot[1],'wood');aBox(.16,.75,.16,spot[0]+1.05,.39,spot[1],'wood');});
+}
+function openGroundForGrass(x,z){if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||Math.hypot(x,z)<58)return false;for(const ring of[64,126,190])if(Math.abs(Math.hypot(x,z)-ring)<5)return false;for(const collider of colliders){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
+function plantLife(){const positions=[];let tries=0;while(positions.length<3600&&tries++<30000){const a=rand(0,Math.PI*2),r=rand(58,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,h*.5,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
+  const bloom=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.075,0),new THREE.MeshBasicMaterial({color:0xd5a1e8,vertexColors:true}),Math.min(260,positions.length)),bloomMatrix=new THREE.Matrix4();for(let i=0;i<Math.min(260,positions.length);i++){const[x,z,h]=positions[(i*13)%positions.length];bloomMatrix.makeTranslation(x,h*.92,z);bloom.setMatrixAt(i,bloomMatrix);bloom.setColorAt(i,new THREE.Color(i%3?0xd5a1e8:0xf1c56c));}bloom.instanceMatrix.needsUpdate=true;if(bloom.instanceColor)bloom.instanceColor.needsUpdate=true;scene.add(bloom);}
+function addRavens(){const feather=new THREE.MeshBasicMaterial({color:0x16131f,side:THREE.DoubleSide});for(let i=0;i<14;i++){const g=new THREE.Group(),body=new THREE.Mesh(new THREE.ConeGeometry(.16,.7,4),feather),left=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather),right=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather);body.rotation.z=Math.PI*.5;left.position.x=-.38;right.position.x=.38;g.add(body,left,right);g.position.set(rand(-185,185),rand(17,41),rand(-185,185));scene.add(g);ravens.push({g,left,right,radius:rand(85,220),height:g.position.y,phase:rand(0,6.28),speed:rand(.08,.18)});}}
+function makeVanethLively(){cityClutter();plantLife();addRavens();}
 function auditVanethGeometry(){ const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0); const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ)); const northGateClear=colliders.every(c=>Math.hypot(c.x,c.z-(CITY_RADIUS+5))>c.r+1); const report={finiteCollider,finiteDoor,northGateClear,doors:interiorDoors.length,colliders:colliders.length}; if(!finiteCollider||!finiteDoor||!northGateClear||interiorDoors.length<4)console.warn('Vaneth geometry audit:',report); return report; }
 
 // ---------- ASSEMBLE ----------
@@ -4888,6 +4907,7 @@ LMSG.textContent='raising the citadel…'; citadel();
 LMSG.textContent='building the districts…'; plannedDistricts(); marketDistrict();
 LMSG.textContent='fortifying the city…'; citadelWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
+LMSG.textContent='lighting the streets…'; makeVanethLively();
 const vanethGeometry=auditVanethGeometry();
 mergeAll();
 
@@ -4949,6 +4969,35 @@ const vanethResidents=[
   ['Chamberlain Ash',-5,-18,0x513d78,'The Great Hall has room for every kind of ambition.']
 ];
 vanethResidents.forEach(resident=>villager(...resident));
+const vanethPassers=[
+  ['Rill the Fishmonger',-22,91,0x3b6170,'Fresh stock is a matter of tide, timing, and patience.',vanethRoutes.market],
+  ['Ona Bellkeeper',20,94,0x786341,'I hear the market wake before I see it.',vanethRoutes.market],
+  ['Kest the Florist',-22,122,0x6c3e67,'A flower is a small excuse to stop hurrying.',vanethRoutes.market],
+  ['Bram Tallowhand',24,120,0x725044,'A clean wick makes a better night of it.',vanethRoutes.market],
+  ['Lio the Porter',-45,108,0x5a6572,'Mind the corners. Every crate thinks it owns the road.',vanethRoutes.market],
+  ['Merrin Vale',47,111,0x4f7754,'The square has a different face every evening.',vanethRoutes.market],
+  ['Sergeant Iven',-32,-64,0x465165,'The watch changes, the wall does not.',vanethRoutes.citadel],
+  ['Nella Farsight',35,-63,0x655070,'From the ramparts, all secrets look very small.',vanethRoutes.citadel],
+  ['Tomas Reed',-70,3,0x6a5540,'There is more to a gate than the lock on it.',vanethRoutes.citadel],
+  ['Yara Flint',69,6,0x774438,'A sharp eye is lighter to carry than armor.',vanethRoutes.citadel],
+  ['Linn Fenway',-44,165,0x546575,'The north rooflines catch the dawn first.',vanethRoutes.north],
+  ['Pip Rowan',-6,202,0x8a6042,'The lane is quiet if you know how to listen.',vanethRoutes.north],
+  ['Hessa Lark',46,169,0x744a68,'I keep a little song for every doorstep.',vanethRoutes.north],
+  ['Dune Marrow',-62,210,0x5e7d56,'The gardens are sleeping. That is not the same as empty.',vanethRoutes.north],
+  ['Fenn Copper',-66,-39,0x865a35,'Tools behave better after a good insult.',vanethRoutes.west],
+  ['Mara Vell',-66,31,0x674965,'The workshops never really close.',vanethRoutes.west],
+  ['Cale Brindle',-55,58,0x5b613d,'A wheel only complains when it needs you.',vanethRoutes.west],
+  ['Tilda Ash',-78,12,0x6c3f49,'Sparks are just ideas in a hurry.',vanethRoutes.west],
+  ['Faro Ink',69,-10,0x4c6380,'A margin is where the best questions live.',vanethRoutes.east],
+  ['Nyx Rowan',69,42,0x5e4b79,'The shelves move when no one is looking. Probably.',vanethRoutes.east],
+  ['Darrow Pike',61,62,0x766446,'Maps are apologies to places too large to hold in your head.',vanethRoutes.east],
+  ['Suri Hal',85,-45,0x595e8f,'The eastern lamps are older than they look.',vanethRoutes.east],
+  ['Kip Roadward',-24,-205,0x597566,'The road is friendlier when you wave first.',vanethRoutes.south],
+  ['Mina Gorse',37,-175,0x774e3d,'Fog makes every journey a little personal.',vanethRoutes.south],
+  ['Tor Bell',-45,-154,0x606a4e,'The fields have their own calendar.',vanethRoutes.south],
+  ['Ari Wells',42,-112,0x526e86,'A traveler tells you where the wind has been.',vanethRoutes.south]
+];
+vanethPassers.forEach(resident=>villager(...resident));
 
 // starlight
 const stN=850,stG=new THREE.BufferGeometry(),stP=new Float32Array(stN*3);
@@ -5019,9 +5068,11 @@ function askAboutVaneth(npc){const lore=conversationFor(npc);writeDialogue(npc,'
 function askWhyTheyStay(npc){const lore=conversationFor(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'];const answer=personal[nameIndex(npc.name,personal.length)]+' '+lore.roots;writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+answer+'”',[{label:'Ask about the ward again',action:()=>askAboutVaneth(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function offerFromJar(npc){const strain=currentStrain();if(strain){shareDialogueSmoke(npc,strain);return;}writeDialogue(npc,'An empty offer','You reach for your jar, then remember it is empty.\n\n'+npc.name+' gives a small, understanding nod. “No shame in that. Come back when you have something you want to talk over.”',[{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function releaseSocialSmoke(npc){const cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false}));cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0));scene.add(cloud);socialSmoke.push({mesh:cloud,life:2.2});}
-function smokeWords(strain){const reference=strain.reference||{},aroma=(reference.aromas||[]).slice(0,3),effects=(reference.effects||[]).slice(0,3),taste=aroma.length?aroma.join(', '):'the character you wrote into the ledger',feeling=effects.length?effects.join(', '):'the way the evening settles around it';return {taste,feeling};}
-function shareDialogueSmoke(npc,strain){releaseSocialSmoke(npc);const notes=smokeWords(strain),reply=['That first breath carries '+notes.taste+'. It leaves the mind feeling '+notes.feeling+'.','There it is — '+notes.taste+'. I can see why people speak of its '+notes.feeling+' side.','The room changes around '+notes.taste+'. Keep an eye on the '+notes.feeling+' turn of it.'][nameIndex(npc.name+strain.name,3)];writeDialogue(npc,'A shared ember','You offer '+strain.name+'. '+npc.name+' accepts, waits for the small cloud to thin, and considers it.\n\n“'+reply+'”',[{label:'Ask what it reminds them of',action:()=>askSmokeMemory(npc,strain)},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function askSmokeMemory(npc,strain){const notes=smokeWords(strain),memory=['a kitchen window open against the rain','a lantern going up at the end of a long market day','the first quiet minute after a difficult watch'][nameIndex(npc.name,3)];writeDialogue(npc,'A small memory','You: “What does it remind you of?”\n\n'+npc.name+': “'+strain.name+' brings me back to '+memory+'. The '+notes.taste+' stays with it, but the '+notes.feeling+' feeling is the part I would remember.”',[{label:'Share another thought about '+strain.name,action:()=>shareDialogueSmoke(npc,strain)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function strainImpression(strain){const reference=strain.reference||{},aromas=reference.aromas||[],effects=reference.effects||[],scent=aromas[nameIndex(strain.name,Math.max(1,aromas.length))]||'',effect=effects[nameIndex(strain.name+'mood',Math.max(1,effects.length))]||'';let mood='unhurried';if(/energetic|uplifted|creative|focused|cerebral/i.test(effect))mood='bright and awake';else if(/sleepy|relaxed|calm/i.test(effect))mood='soft around the edges';else if(/giggly|talkative|sociable|happy/i.test(effect))mood='easier to share';else if(/euphoric|tingly/i.test(effect))mood='a little lighter than before';return{scent,mood};}
+function shareDialogueSmoke(npc,strain){releaseSocialSmoke(npc);const impression=strainImpression(strain),gesture=['takes the jar with both hands and gives it a thoughtful turn','rests an elbow against the nearest rail and accepts it without hurry','watches the ember for a beat before taking the jar','gives you a small, surprised smile and accepts'][nameIndex(npc.name+strain.name,4)],reply=['“Thank you. I needed a minute that did not belong to anyone else.”','“That is kind of you. The city has been loud all evening.”','“You can tell a lot about a person by whether they offer the jar first.”','“Ah. I was hoping someone would make the night less sharp.”'][nameIndex(strain.name+npc.name,4)];writeDialogue(npc,'A shared ember','You offer '+strain.name+'. '+npc.name+' '+gesture+'. The two of you stand together while a thin thread of smoke unravels into the night.\n\n'+npc.name+': “'+reply+'”',[{label:'Ask how it sits with them',action:()=>askSharedFeeling(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Talk about Vaneth instead',action:()=>askAboutVaneth(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function askSharedFeeling(npc,strain){const impression=strainImpression(strain),scent=impression.scent?' I catch a little '+impression.scent+' in it.':'',reply=['It lands '+impression.mood+' for me. Not every evening needs a lesson attached to it.','It makes the world feel '+impression.mood+'. That is enough tonight.','I like that it arrives '+impression.mood+', then leaves room for a person to think.'][nameIndex(npc.name,3)];writeDialogue(npc,'An honest answer','You: “How does it sit with you?”\n\n'+npc.name+': “'+reply+scent+'”',[{label:'Ask what it reminds them of',action:()=>askSmokeMemory(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function askSmokeMemory(npc,strain){const memory=['a kitchen window left open against rain','someone laughing under a market awning','the first quiet minute after a difficult watch','a road fire after the rest of the camp has gone to sleep'][nameIndex(npc.name+strain.name,4)];writeDialogue(npc,'A small memory','You: “What does it remind you of?”\n\n'+npc.name+' watches the smoke climb. “Not a specific thing. More like '+memory+'. The kind of memory you do not know you miss until it comes back.”',[{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function sitWithNpc(npc,strain){const place=conversationFor(npc).place,ending=['For a while neither of you says anything. Somewhere beyond the roofs, a cart creaks and a lantern bell taps in the wind.','The city keeps moving around you. '+npc.name+' gives a small nod, as if that silence answered a question.','You pass the jar back and watch the last of the smoke thin above '+place+'. It is enough to be there for a minute.'][nameIndex(npc.name+strain.name+'quiet',3)];writeDialogue(npc,'A little quiet',ending,[{label:'Keep talking',action:showDialogueGreeting},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 dialogueClose.addEventListener('click',closeDialogue);
 function updateVillagers(t){ let closest=null,best=16;
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.homeX,z=npc.homeZ;
@@ -5424,6 +5475,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t);
+  ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i]; s.g.position.add(s.v); s.life-=dt; s.core.rotation.x+=0.3; s.g.scale.multiplyScalar(1+dt*0.4); if(s.life<=0){ scene.remove(s.g); spells.splice(i,1); } }
   for(let i=socialSmoke.length-1;i>=0;i--){ const puff=socialSmoke[i]; puff.life-=dt; puff.mesh.position.y+=dt*.55; puff.mesh.scale.multiplyScalar(1+dt*.6); puff.mesh.material.opacity=Math.max(0,puff.life*.22); if(puff.life<=0){ scene.remove(puff.mesh); puff.mesh.geometry.dispose(); puff.mesh.material.dispose(); socialSmoke.splice(i,1); } }
   if(fireParticles){ const fp=fireParticles.geometry.attributes.position; for(let i=0;i<fpN;i++){ let y=fp.getY(i)+fpV[i]*60*dt; if(y>3.2)y=1; fp.setY(i,y); } fp.needsUpdate=true; if(fireLight) fireLight.intensity=2.4+Math.sin(t*12)*0.4; }
