@@ -1,4 +1,4 @@
-**r27 — strain stats** · 2026-08-18 · phase 2, Vaneth city + strain archive
+**r28 — reference terp codex** · 2026-08-19 · phase 2, Vaneth city + strain archive
 
 In its own panel header: *r27 adaptive control deck*.
 
@@ -8,8 +8,8 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 ### In the code
 
-- 0.79 MB (+634 bytes on r26).
-- 1 function added: `strainKey`.
+- 0.79 MB (+5,766 bytes on r27).
+- 5 functions added: `addReferenceLine`, `makeReferenceCard`, `makeStrainRecord`, `referenceForStrain`, `strainNpcCue`.
 
 ### Play it
 
