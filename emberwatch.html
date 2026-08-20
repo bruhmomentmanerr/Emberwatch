@@ -177,7 +177,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r50 seeded Vaneth</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r51 city compiler</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4740,7 +4740,7 @@ const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
 const WORLD_SEED_VERSION=1;
 // Bump this deliberately when geometry, street plans, or collision placement
 // changes enough that an old coordinate could be unsafe in the new layout.
-const WORLD_LAYOUT_VERSION=1;
+const WORLD_LAYOUT_VERSION=2;
 function normalWorldSeed(value){
   if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
   const text=String(value??'').trim();
@@ -5131,16 +5131,105 @@ function perimeterWards(){
   interiorHouse('The Eastwall Scriptorium',220,42,20,16,'archive');
   interiorHouse('The Westwall Refuge',-220,-42,20,16,'guild');
 }
-function plannedDistricts(){
-  useWorldStream('districts-core');denseCityWards();
-  useWorldStream('districts-infill');infillDistricts();
-  useWorldStream('districts-north-gate');northGateWard();
-  useWorldStream('districts-perimeter');perimeterWards();
-  useWorldStream('districts-gates');gateApproaches();
-  useWorldStream('districts-landmarks');cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
-  interiorHouse('The Northwatch Guild',-126,88,20,16,'guild'); interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');
-  spire(-158,-12,20); spire(156,18,18);
+// ------------------------------------------------------------
+//  VANETH CITY COMPILER
+//  Roads and landmarks are authored; ordinary lots are compiled
+//  from a seed.  That makes a stable, navigable city rather than a
+//  pile of independent houses, while leaving room for future NPC
+//  homes, work anchors, and real interiors.
+// ------------------------------------------------------------
+const CITY_PLAN={version:2,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,districts:[],roads:[],parcels:[],buildings:[],anchors:[]};
+const COMPILER_EXCLUSIONS=[
+  {x:0,z:0,r:67},{x:0,z:MARKET_Z,r:39},{x:38,z:MARKET_Z+6,r:20},
+  {x:-86,z:-44,r:18},{x:96,z:52,r:17},{x:-126,z:88,r:18},{x:138,z:-18,r:18},
+  {x:0,z:-220,r:20},{x:220,z:42,r:19},{x:-220,z:-42,r:19},{x:89,z:-46,r:22},
+  {x:-158,z:-12,r:16},{x:156,z:18,r:16}
+];
+const DISTRICT_SPECS=Object.freeze([
+  {id:'north-gate',name:'North Gate Ward',theme:'gate',accent:'amber',court:[-64,211,16,13],roads:[[-114,193,-18,193,5.2],[18,193,114,193,5.2],[-114,210,-18,210,4.7],[18,210,114,210,4.7]],frontages:[
+    {axis:'x',start:-111,end:-25,at:184,ry:Math.PI,archetypes:['rowhouse','rowhouse','shop']},{axis:'x',start:25,end:111,at:184,ry:Math.PI,archetypes:['rowhouse','shop','rowhouse']},
+    {axis:'x',start:-111,end:-25,at:202,ry:0,archetypes:['shop','rowhouse','rowhouse']},{axis:'x',start:25,end:111,at:202,ry:0,archetypes:['rowhouse','rowhouse','shop']}
+  ]},
+  {id:'cinder-market',name:'Cinder Market',theme:'market',accent:'amber',court:[-76,111,15,13],roads:[[-118,82,-48,82,4.3],[48,82,118,82,4.3],[-118,137,-48,137,4.3],[48,137,118,137,4.3]],frontages:[
+    {axis:'x',start:-112,end:-52,at:92,ry:Math.PI,archetypes:['shop','shop','tavern']},{axis:'x',start:52,end:112,at:92,ry:Math.PI,archetypes:['shop','tavern','shop']},
+    {axis:'x',start:-112,end:-52,at:126,ry:0,archetypes:['shop','rowhouse','shop']},{axis:'x',start:56,end:112,at:126,ry:0,archetypes:['shop','rowhouse','shop']},
+    {axis:'x',start:-73,end:-24,at:151,ry:Math.PI,archetypes:['rowhouse','shop']},{axis:'x',start:24,end:73,at:151,ry:Math.PI,archetypes:['shop','rowhouse']}
+  ]},
+  {id:'west-works',name:'West Works',theme:'works',accent:'ember',court:[-168,-103,14,14],roads:[[-188,-151,-188,-54,4.5],[-152,-151,-152,-54,4.5],[-198,-104,-145,-104,4.2]],frontages:[
+    {axis:'z',start:-150,end:-58,at:-181,ry:-Math.PI/2,archetypes:['workshop','workshop','rowhouse']},{axis:'z',start:-150,end:-58,at:-159,ry:Math.PI/2,archetypes:['workshop','rowhouse','workshop']},
+    {axis:'x',start:-194,end:-164,at:-139,ry:Math.PI,archetypes:['workshop','barracks']},{axis:'x',start:-194,end:-164,at:-70,ry:0,archetypes:['rowhouse','workshop']}
+  ]},
+  {id:'east-archive',name:'East Archive Lane',theme:'archive',accent:'arcane',court:[165,-105,14,14],roads:[[148,-151,148,-54,4.5],[184,-151,184,-54,4.5],[141,-104,197,-104,4.2]],frontages:[
+    {axis:'z',start:-150,end:-58,at:155,ry:-Math.PI/2,archetypes:['archive','archive','rowhouse']},{axis:'z',start:-150,end:-58,at:177,ry:Math.PI/2,archetypes:['archive','rowhouse','archive']},
+    {axis:'x',start:143,end:192,at:-139,ry:Math.PI,archetypes:['archive','rowhouse','archive']},{axis:'x',start:143,end:192,at:-70,ry:0,archetypes:['rowhouse','archive','rowhouse']}
+  ]},
+  {id:'citadel-close',name:'Citadel Close',theme:'citadel',accent:'arcane',court:[-85,74,13,12],roads:[[-116,-76,-62,-76,4], [62,-76,116,-76,4],[-116,76,-62,76,4],[62,76,116,76,4]],frontages:[
+    {axis:'x',start:-116,end:-65,at:-88,ry:Math.PI,archetypes:['barracks','archive','barracks']},{axis:'x',start:65,end:116,at:-88,ry:Math.PI,archetypes:['barracks','archive','barracks']},
+    {axis:'x',start:-116,end:-65,at:88,ry:0,archetypes:['rowhouse','barracks','rowhouse']},{axis:'x',start:65,end:116,at:88,ry:0,archetypes:['rowhouse','barracks','rowhouse']},
+    {axis:'z',start:88,end:136,at:-86,ry:-Math.PI/2,archetypes:['barracks','rowhouse']},{axis:'z',start:88,end:136,at:86,ry:Math.PI/2,archetypes:['barracks','rowhouse']}
+  ]},
+  {id:'south-road',name:'South Road',theme:'south',accent:'amber',court:[-62,-190,15,13],roads:[[-116,-168,-22,-168,5],[22,-168,116,-168,5],[-116,-192,-22,-192,4.6],[22,-192,116,-192,4.6]],frontages:[
+    {axis:'x',start:-112,end:-25,at:-157,ry:0,archetypes:['tavern','rowhouse','rowhouse']},{axis:'x',start:25,end:112,at:-157,ry:0,archetypes:['rowhouse','tavern','rowhouse']},
+    {axis:'x',start:-112,end:-25,at:-183,ry:Math.PI,archetypes:['workshop','rowhouse','tavern']},{axis:'x',start:25,end:112,at:-183,ry:Math.PI,archetypes:['rowhouse','workshop','tavern']}
+  ]}
+]);
+function compilerLotClear(x,z,r){
+  if(COMPILER_EXCLUSIONS.some(zone=>Math.hypot(x-zone.x,z-zone.z)<zone.r+r))return false;
+  // World construction is a one-off and only has a few hundred colliders at
+  // this point.  A full scan is safer than the runtime cell lookup here: a
+  // candidate's wide footprint can reach into a neighboring cell that does
+  // not contain its centre, which otherwise makes seed-specific pinched lots.
+  return !colliders.some(collider=>{const reach=r+collider.r+1.4,dx=x-collider.x,dz=z-collider.z;return dx*dx+dz*dz<reach*reach;});
 }
+function compilerFront(x,z,d,ry){const co=Math.cos(ry),si=Math.sin(ry);return{x:x+si*d*.5,z:z+co*d*.5,sideX:co,sideZ:-si};}
+function compilerArchetype(archetype,lot){
+  const {x,z,w,d,stories,key,ry,accent}=lot,h=stories*2.7,front=compilerFront(x,z,d,ry);
+  cityHouse(x,z,w,d,stories,key,ry,accent);
+  if(archetype==='rowhouse'){
+    aBox(w*1.11,.42,d*1.08,x,h*.64,z,key,ry);aBox(w*.54,.12,.78,front.x, h*.62,front.z,'wood',ry);
+  }else if(archetype==='shop'){
+    aBox(w*.9,.16,1.2,front.x+Math.sin(ry)*.52,2.45,front.z+Math.cos(ry)*.52,'cloth',ry);aBox(w*.7,.1,.16,front.x+Math.sin(ry)*.67,2.64,front.z+Math.cos(ry)*.67,accent,ry);
+  }else if(archetype==='workshop'){
+    const chimneyX=x+front.sideX*w*.32,chimneyZ=z+front.sideZ*w*.32;aCyl(.32,.45,h+1.55,6,chimneyX,(h+1.55)/2,chimneyZ,'stone');aBox(w*.36,.48,.82,x-front.sideX*w*.28,.35,z-front.sideZ*d*.24,'wood',ry);
+  }else if(archetype==='archive'){
+    for(const side of[-1,1])aBox(.42,h*.78,.56,x+front.sideX*side*w*.41,h*.39,z+front.sideZ*side*w*.41,'stone',ry);aBox(w*.42,.16,.18,front.x,h*.66,front.z,'arcane',ry);
+  }else if(archetype==='tavern'){
+    aBox(w*.92,.2,1.35,front.x+Math.sin(ry)*.5,2.32,front.z+Math.cos(ry)*.5,'cloth',ry);aBox(1.15,.72,.12,front.x+Math.sin(ry)*1.15,3.25,front.z+Math.cos(ry)*1.15,'wood',ry);aBox(.84,.4,.08,front.x+Math.sin(ry)*1.22,3.25,front.z+Math.cos(ry)*1.22,'amber',ry);
+  }else if(archetype==='barracks'){
+    aBox(w*1.1,.38,d*1.1,x,h+.3,z,'stone',ry);for(let step=-.34;step<=.34;step+=.34)aBox(.55,.38,.55,x+front.sideX*step*w,h+.62,z+front.sideZ*step*w,'stone');
+  }
+}
+function compilerCourt(spec){
+  if(!spec.court)return;const[x,z,w,d]=spec.court;const square=new THREE.Mesh(new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2),MATS.cobble);square.position.set(x,.061,z);square.receiveShadow=true;scene.add(square);
+  aBox(w*.48,.13,.5,x,.68,z-d*.25,'wood');aBox(.14,.7,.14,x-w*.22,.38,z-d*.25,'wood');aBox(.14,.7,.14,x+w*.22,.38,z-d*.25,'wood');aBox(.48,.38,.48,x,.24,z+d*.22,'stone');
+}
+function compilerLot(district,row,index,count){
+  const span=row.end-row.start,t=(index+.5)/count,along=row.start+span*t;
+  const x=row.axis==='x'?along:row.at,z=row.axis==='x'?row.at:along;
+  const archetypes=row.archetypes||['rowhouse'],archetype=archetypes[index%archetypes.length];
+  const width=archetype==='barracks'?10.2:archetype==='archive'?8.3:7.4+(worldRandom()>.58?1.1:0),depth=archetype==='workshop'?8.6:7.1+(worldRandom()>.66?.9:0),stories=archetype==='archive'?3:archetype==='barracks'?2:(archetype==='rowhouse'&&worldRandom()>.36?2:1),palette=district.theme==='archive'?['wall2','stone','wall']:district.theme==='works'?['brick','wall','stone']:district.theme==='market'?['brick','wall','wall2']:district.theme==='citadel'?['stone','wall2','wall']:['wall','brick','wall2'],key=palette[(index+Math.floor(worldRandom()*palette.length))%palette.length],radius=Math.max(width,depth)*.56;
+  if(!compilerLotClear(x,z,radius))return null;
+  const id=district.id+':lot-'+row.id+'-'+index,lot={id,districtId:district.id,row:row.id,index,x,z,w:width,d:depth,ry:row.ry,archetype,stories,key,accent:district.accent};
+  compilerArchetype(archetype,lot);
+  const building={id:id+':building',districtId:district.id,parcelId:id,archetype,stories,footprint:{x,z,w:width,d:depth,ry:row.ry},access:'facade',tags:[district.theme,archetype]},streetDistance=Math.max(width,depth)*.56+.75;
+  const anchor={id:id+':doorstep',districtId:district.id,buildingId:building.id,kind:'doorstep',x:x+Math.sin(row.ry)*streetDistance,z:z+Math.cos(row.ry)*streetDistance,facing:row.ry};
+  CITY_PLAN.parcels.push(lot);CITY_PLAN.buildings.push(building);CITY_PLAN.anchors.push(anchor);district.parcelIds.push(id);district.buildingIds.push(building.id);district.anchorIds.push(anchor.id);return lot;
+}
+function compileDistrict(spec){
+  useWorldStream('compiler:'+spec.id);const district={id:spec.id,name:spec.name,theme:spec.theme,parcelIds:[],buildingIds:[],anchorIds:[],roadIds:[]};CITY_PLAN.districts.push(district);
+  (spec.roads||[]).forEach((road,index)=>{roadBetween(...road);const id=spec.id+':road-'+index;CITY_PLAN.roads.push({id,districtId:spec.id,x1:road[0],z1:road[1],x2:road[2],z2:road[3],width:road[4]});district.roadIds.push(id);});compilerCourt(spec);
+  (spec.frontages||[]).forEach((row,rowIndex)=>{const length=Math.abs(row.end-row.start),count=Math.max(2,Math.floor(length/13));const compiled={...row,id:rowIndex};for(let index=0;index<count;index++)compilerLot(district,compiled,index,count);});
+}
+function auditCityPlan(){
+  const ids=[...CITY_PLAN.districts,...CITY_PLAN.roads,...CITY_PLAN.parcels,...CITY_PLAN.buildings,...CITY_PLAN.anchors].map(entry=>entry.id),seen=new Set();
+  const duplicates=ids.filter(id=>seen.has(id)?true:(seen.add(id),false)),blockedAnchors=CITY_PLAN.anchors.filter(anchor=>colliderBlocked(anchor.x,anchor.z,.35));if(duplicates.length)console.warn('Vaneth compiler duplicate IDs',duplicates);if(blockedAnchors.length)console.warn('Vaneth compiler blocked anchors',blockedAnchors.map(anchor=>anchor.id));return{districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,buildings:CITY_PLAN.buildings.length,anchors:CITY_PLAN.anchors.length,duplicates:duplicates.length,blockedAnchors:blockedAnchors.length};
+}
+function compileVanethCity(){
+  DISTRICT_SPECS.forEach(compileDistrict);useWorldStream('compiler:gates');gateApproaches();
+  useWorldStream('compiler:landmarks');cathedral(89,-46,-.18);interiorHouse('The Moon Archive',-86,-44,20,16,'archive');interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
+  interiorHouse('The Northwatch Guild',-126,88,20,16,'guild');interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');spire(-158,-12,20);spire(156,18,18);return auditCityPlan();
+}
+function plannedDistricts(){return compileVanethCity();}
 function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
   const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<3.3);
   for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;if(gateAt(deg))continue;
@@ -5193,6 +5282,7 @@ LMSG.textContent='building the districts…'; useWorldStream('districts');planne
 LMSG.textContent='fortifying the city…'; useWorldStream('city-wall');citadelWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
+CITY_PLAN.audit=auditCityPlan();
 const vanethGeometry=auditVanethGeometry();
 mergeAll();
 
