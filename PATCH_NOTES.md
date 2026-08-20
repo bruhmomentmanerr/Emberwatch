@@ -1,6 +1,6 @@
-**r46 — vaneth directors cut** · 2026-08-20 · phase 3, NPCs, collision, city compiler
+**r47 — living conversations** · 2026-08-20 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r46 steady control deck*.
+In its own panel header: *r47 steady control deck*.
 
 ### Summary
 
@@ -8,9 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.88 MB (+26,030 bytes on r45).
-- 21 functions added: `anyOverlayOpen`, `cityLifeDetails`, `deviceAction`, `failedConnectCleanup`, `loadWayfinder`, `maybeDiscoverLandmarks`, `nextLandmark`, `npcPathClear`, `renderChronicle`, `renderLink`, `resetTouchInput`, `returnToNorthGate`, `saveWayfinder`, `setDeviceBusy`, `spellVillagerBarrier`, `talkSpotFor`, `toggleChronicle`, `updateGraphicsButton`, `updateWayfinder`, `wardAt`, `worldRandom`.
-- 1 function removed: `triggerPuffcoBonding`.
+- 0.92 MB (+36,659 bytes on r46).
+- 39 functions added: `askAboutWork`, `askForDirection`, `askLandmarkStory`, `askSmokeFeeling`, `askSmokeFirstImpression`, `askSmokeInvitation`, `askSmokePairing`, `legacyAskAboutVaneth`, `legacyAskSmokeMemory`, `legacyAskWhyTheyStay`, `legacyCloseDialogue`, `legacyOfferFromJar`, `legacyOpenDialogue`, `legacyReleaseSocialSmoke`, `legacyShareDialogueSmoke`, `legacyShowDialogueGreeting`, `legacySitWithNpc`, `legacyWriteDialogue`, `livingClassifyJarWords`, `livingGreeting`, `livingJarWords`, `livingLandmark`, `livingLeadFor`, `livingList`, `livingMemoryFor`, `livingMood`, `livingNotePlayerImpression`, `livingNoteShare`, `livingNoteVisit`, `livingNpcKey`, `livingProfile`, `livingProfileLine`, `livingStrainContext`, `loadLivingNpcMemory`, `pointWayfinderAt`, `receivePlayerImpression`, `saveLivingNpcMemory`, `showSharedMoment`, `tellSmokeFeeling`.
 
 ### Play it
 
