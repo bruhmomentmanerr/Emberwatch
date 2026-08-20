@@ -1,6 +1,6 @@
-**r43 — session faces** · 2026-08-19 · phase 3, NPCs, collision, city compiler
+**r44 — spawn ward** · 2026-08-20 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r43 steady control deck*.
+In its own panel header: *r44 steady control deck*.
 
 ### Summary
 
@@ -8,9 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.85 MB (+1,348 bytes on r42).
-- 1 function added: `writeSessionTime`.
-- 1 function removed: `writeProfileTime`.
+- 0.85 MB (+1,152 bytes on r43).
+- 1 function added: `northGateWard`.
 
 ### Play it
 

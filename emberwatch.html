@@ -130,7 +130,7 @@
   </div>
 </div>
 <div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r43 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r44 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4853,7 +4853,7 @@ function cityBlock(cx,cz,w,d,kind='residential'){
   const house=(x,z,turn,index,inner=false)=>{const key=palette[index%palette.length],stories=1+(index%3===0?1:0),wide=(inner?6.8:8)+(index%2),deep=(inner?5.8:7)+(index%3===0?1:0);cityHouse(x,z,wide,deep,stories,key,turn,index%5===0?'arcane':'amber');};
   // Outer façades read as streets. A cross of narrow alleys and a second row
   // of smaller buildings gives each ward a walkable Daggerfall-style interior.
-  roadBetween(cx,-d*.5+7,cx,d*.5-7,2.35); roadBetween(cx-w*.5+7,cz,cx+w*.5-7,cz,2.35);
+  roadBetween(cx,cz-d*.5+7,cx,cz+d*.5-7,2.35); roadBetween(cx-w*.5+7,cz,cx+w*.5-7,cz,2.35);
   [-w*.22,w*.22].forEach((offset,index)=>{house(cx+offset,cz-d*.5+5,Math.PI,index);house(cx+offset,cz+d*.5-5,0,index+2);});
   [-d*.18,d*.18].forEach((offset,index)=>{house(cx-w*.5+5,cz+offset,-Math.PI/2,index+4);house(cx+w*.5-5,cz+offset,Math.PI/2,index+6);});
   [[-w*.19,-d*.17,Math.PI], [w*.19,-d*.17,Math.PI], [-w*.19,d*.17,0], [w*.19,d*.17,0]].forEach((lot,index)=>house(cx+lot[0],cz+lot[1],lot[2],index+8,true));
@@ -4872,6 +4872,24 @@ function denseCityWards(){
   [[-83,0,'merchant'],[83,0,'scholar'],[0,-83,'residential']].forEach(block=>cityBlock(block[0],block[1],50,50,block[2]));
   // Narrow homes resolve the small landmark gaps without sealing off routes.
   [[-61,-78,'wall',0],[61,-78,'brick',0],[-62,72,'wall2',0],[55,72,'wall',0],[-86,-123,'brick',0],[87,-123,'wall2',0]].forEach((lot,index)=>cityHouse(lot[0],lot[1],9,8,1+(index%3===0?1:0),lot[2],lot[3],index%2?'amber':'arcane'));
+}
+function northGateWard(){
+  // The player arrives through the north gate. This is a real entrance ward:
+  // tightly spaced facades frame the approach instead of leaving a bare plaza.
+  const palette=['wall2','brick','wall','stone'];
+  const approachRows=[187,199];
+  const fronts=[-43,-32,-21,21,32,43];
+  approachRows.forEach((z,row)=>fronts.forEach((x,index)=>{
+    const towardAvenue=x<0?Math.PI/2:-Math.PI/2;
+    cityHouse(x,z,7.8,7,1+((row+index)%3===0?1:0),palette[(row+index)%palette.length],towardAvenue,(row+index)%5===0?'arcane':'amber');
+  }));
+  // A northern wall-street closes the last open strip while keeping the gate
+  // road obvious and open. The gaps are deliberate narrow side alleys.
+  [-108,-96,-84,-72,-60,-48,-36,-24,24,36,48,60,72,84,96,108].forEach((x,index)=>{
+    cityHouse(x,220,8.6,8,1+(index%4===0?2:1),palette[index%palette.length],Math.PI,index%5===0?'arcane':'amber');
+  });
+  roadBetween(-118,210,-18,210,5.4); roadBetween(18,210,118,210,5.4);
+  [-64,64].forEach((x,index)=>{ wardCourt(x,209,16,13); cityLantern(x-6,212,index===0); cityLantern(x+6,212,index!==0); });
 }
 function gateApproaches(){
   // Lit landmarks make each gate and the edge boulevard visible from a ward.
@@ -4931,6 +4949,8 @@ function infillDistricts(){
 }
 function plannedDistricts(){
   denseCityWards();
+  infillDistricts();
+  northGateWard();
   gateApproaches();
   cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild'); interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');
