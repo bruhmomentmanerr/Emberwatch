@@ -1,6 +1,4 @@
-**r47 — living conversations** · 2026-08-20 · phase 3, NPCs, collision, city compiler
-
-In its own panel header: *r47 steady control deck*.
+**r48 — smoke sessions** · 2026-08-20 · phase 3, NPCs, collision, city compiler
 
 ### Summary
 
@@ -8,8 +6,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.92 MB (+36,659 bytes on r46).
-- 39 functions added: `askAboutWork`, `askForDirection`, `askLandmarkStory`, `askSmokeFeeling`, `askSmokeFirstImpression`, `askSmokeInvitation`, `askSmokePairing`, `legacyAskAboutVaneth`, `legacyAskSmokeMemory`, `legacyAskWhyTheyStay`, `legacyCloseDialogue`, `legacyOfferFromJar`, `legacyOpenDialogue`, `legacyReleaseSocialSmoke`, `legacyShareDialogueSmoke`, `legacyShowDialogueGreeting`, `legacySitWithNpc`, `legacyWriteDialogue`, `livingClassifyJarWords`, `livingGreeting`, `livingJarWords`, `livingLandmark`, `livingLeadFor`, `livingList`, `livingMemoryFor`, `livingMood`, `livingNotePlayerImpression`, `livingNoteShare`, `livingNoteVisit`, `livingNpcKey`, `livingProfile`, `livingProfileLine`, `livingStrainContext`, `loadLivingNpcMemory`, `pointWayfinderAt`, `receivePlayerImpression`, `saveLivingNpcMemory`, `showSharedMoment`, `tellSmokeFeeling`.
+- 0.94 MB (+19,289 bytes on r47).
+- 11 functions added: `batterySample`, `beginDialogueSmokeSession`, `clearCycleTracking`, `readByte`, `refreshBattery`, `renderBattery`, `renderStrainSession`, `saveCurrentSmokeRecipe`, `smokeSessionSeconds`, `smokeSessionTemp`, `startHeatCycle`.
 
 ### Play it
 
