@@ -1,6 +1,6 @@
-**r57 — pathfinding aurora** · 2026-08-20 · phase 4, streets, crowds, inner city
+**r58 — peak ready strains** · 2026-08-20 · phase 4, streets, crowds, inner city
 
-In its own panel header: *r57 pathfinding & aurora*.
+In its own panel header: *r58 ready-state & strains*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.02 MB (+11,251 bytes on r56).
-- 8 functions added: `buildNavGrid`, `navFindPath`, `navHeapPop`, `navHeapPush`, `navNearestOpen`, `navPlace`, `navRequest`, `navServiceQueue`.
+- 1.02 MB (+5,614 bytes on r57).
+- 2 functions added: `labelNavRegions`, `navRegionAt`.
 
 ### Play it
 
