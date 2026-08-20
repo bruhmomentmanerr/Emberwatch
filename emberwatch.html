@@ -155,7 +155,7 @@
     <section id="strainSession" class="strain-session" aria-label="Smoke session" hidden>
       <div class="strain-label">Shared smoke session</div>
       <div class="strain-session-grid">
-        <label>Target <input id="strainSessionF" type="number" min="302" max="599" step="1" value="402"><span>°F</span></label>
+        <label>Target <input id="strainSessionF" type="number" min="302" max="599" step="1" value="475"><span>°F</span></label>
         <label>Time <input id="strainSessionSeconds" type="number" min="15" max="120" step="1" value="40"><span>sec</span></label>
       </div>
       <button id="strainSmoke" class="strain-smoke" type="button">Smoke: selected strain</button>
@@ -175,13 +175,13 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r48 smoke sessions</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r49 city life</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
     <div id="puffLive" style="display:none;flex-direction:column;gap:11px">
       <div class="puff-metrics">
-        <div class="pstat"><span>Battery</span><b id="pBatt">—</b></div>
+        <div class="pstat"><span>Battery charge</span><b id="pBatt">—</b></div>
         <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
         <div class="pstat"><span>Chamber now</span><b id="pLiveTemp">—</b></div>
         <div class="pstat"><span>Session time</span><b id="pSession">—</b></div>
@@ -191,7 +191,7 @@
         <div class="pstat"><span>Last response</span><b id="pLink">—</b></div>
       </div>
       <div class="puff-section">Heat profile</div>
-      <div class="prow"><input id="pTarget" type="number" min="302" max="599" step="1" value="450"><span class="pu">°F</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
+      <div class="prow"><input id="pTarget" type="number" min="302" max="599" step="1" value="475"><span class="pu">°F</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
       <div class="puff-section">Session duration</div>
       <div class="prow"><input id="pSessionTarget" type="number" min="15" max="120" step="1" value="40"><span class="pu">sec</span><button class="pbtn" id="pSessionSet" style="flex:none">Save</button></div>
       <div class="pnote">15–120 seconds · applied to the next heat cycle and confirmed from the Peak.</div>
@@ -4893,6 +4893,71 @@ function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Ma
 //  VANETH CITADEL CITY — planned districts, not scatter generation
 // ============================================================
 const interiorDoors=[];
+// A room should feel like a destination before it becomes a system.  These
+// short cues are also used when crossing a doorway, so the player has a
+// reason to remember where each named building is.
+const INTERIOR_PURPOSES=Object.freeze({
+  'The Great Hall':'a lit dais, waiting banners, and the weight of public business',
+  'The Cinder and Keg':'a warm hearth, a small stage, and tables meant for lingering',
+  'The Southgate Rest':'a travel-worn hearth and a quiet place to set down a pack',
+  'The Eastwall Scriptorium':'ink-stained desks, tall ledgers, and the eastern wall’s records',
+  'The Westwall Refuge':'a workbench, ward maps, and a watchful repair corner',
+  'The Moon Archive':'lamplight, reading tables, and shelves of old questions',
+  'Pilgrim Shrine':'an offering table and a little violet quiet',
+  'The Northwatch Guild':'a planning table, spare gear, and a room for the watch',
+  'The Gilded Finch':'soft booths, a musician’s nook, and a late-night room'
+});
+function interiorRug(x,z,w,d,key='cloth'){aBox(w,.035,d,x,.075,z,key);}
+function interiorTable(x,z,w=2.2,d=1.1,key='wood'){aBox(w,.18,d,x,.82,z,key);for(const sx of[-1,1])for(const sz of[-1,1])aBox(.14,.72,.14,x+sx*(w*.39),.42,z+sz*(d*.32),key);}
+function interiorShelf(x,z,w=3.2,axis='x'){
+  const horizontal=axis==='x',wide=horizontal?w:.42,deep=horizontal?.42:w;
+  [0.72,1.4,2.08,2.76,3.44].forEach(y=>aBox(wide,.11,deep,x,y,z,'wood'));
+  if(horizontal){aBox(.14,3.55,deep,x-w*.5+.07,1.78,z,'wood');aBox(.14,3.55,deep,x+w*.5-.07,1.78,z,'wood');}
+  else{aBox(wide,3.55,.14,x,1.78,z-w*.5+.07,'wood');aBox(wide,3.55,.14,x,1.78,z+w*.5-.07,'wood');}
+}
+function interiorBanner(x,z,key='cloth'){aBox(.11,4.15,.11,x,2.08,z,'wood');aBox(1.05,1.48,.055,x,3.05,z,key);}
+function interiorHearth(x,z,w=3.5){aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'stone');aBox(w*.5,.18,.12,x,.76,z+.2,'amber');aBox(.72,.34,.15,x,.98,z+.19,'amber');}
+function interiorGlow(x,z,key='amber',color=0xffb060){aCyl(.055,.075,1.8,5,x,.9,z,'wood');aBox(.29,.29,.29,x,1.92,z,key);const light=new THREE.PointLight(color,.52,8);light.position.set(x,2.02,z);scene.add(light);lights.push({light,base:.52,phase:rand(0,6)});}
+function interiorBeams(x,z,w,d){[-d*.24,d*.24].forEach(offset=>aBox(w-.75,.16,.18,x,6.1,z+offset,'wood'));[-w*.28,w*.28].forEach(offset=>aBox(.18,.16,d-.75,x+offset,6.1,z,'wood'));}
+function furnishInterior(name,x,z,w,d,kind){
+  interiorBeams(x,z,w,d);
+  if(name==='The Cinder and Keg'){
+    interiorRug(x,z+2.6,w*.43,d*.28,'cloth');interiorHearth(x,z-d*.5+.46,4.25);interiorShelf(x-w*.34,z-d*.27,3.2,'y');
+    interiorTable(x-4.6,z+3.2,2.4,1.25);interiorTable(x+4.6,z+3.2,2.4,1.25);aBox(4.6,.18,1.7,x,1.18,z+d*.29,'wood');aBox(3.55,.12,.12,x,2.45,z+d*.29,'amber');
+    interiorGlow(x-6.1,z-1.8,'amber',0xffa15a);interiorGlow(x+6.1,z-1.8,'amber',0xffa15a);
+  }else if(name==='The Moon Archive'){
+    interiorRug(x,z+1.1,w*.42,d*.58,'dark');interiorShelf(x,z-d*.39,w*.68,'x');interiorShelf(x-w*.39,z,4.7,'y');interiorTable(x,z+1.8,3.35,1.55);
+    aBox(.72,1.2,.72,x,1.48,z+1.8,'stone');aBox(.48,.14,.48,x,2.18,z+1.8,'arcane');interiorGlow(x+6.6,z-1.8,'arcane',0x9d7bff);
+  }else if(name==='The Eastwall Scriptorium'){
+    interiorRug(x-1,z+1.4,w*.45,d*.54,'dark');interiorShelf(x,z-d*.39,w*.69,'x');interiorShelf(x+w*.39,z,4.5,'y');interiorTable(x-2.2,z+1.5,3.2,1.35);
+    aBox(1.35,.12,.92,x-2.2,1.03,z+1.5,'cloth');aBox(.42,.34,.42,x+2.8,.34,z+1.55,'wood');interiorGlow(x+6.7,z-1.5,'arcane',0x7ab7ff);
+  }else if(name==='The Great Hall'){
+    interiorRug(x,z+2.15,w*.49,d*.48,'cloth');aBox(w*.58,.55,2.5,x,.32,z-d*.34,'stone');aBox(1.25,2.15,1.05,x,1.57,z-d*.28,'wood');aBox(1.55,.18,1.28,x,2.62,z-d*.28,'arcane');
+    interiorBanner(x-w*.35,z-d*.43,'cloth');interiorBanner(x+w*.35,z-d*.43,'cloth');interiorTable(x-w*.28,z+2.5,3.2,1.18);interiorTable(x+w*.28,z+2.5,3.2,1.18);
+    interiorGlow(x-w*.35,z-1.4,'arcane',0xa78cff);interiorGlow(x+w*.35,z-1.4,'arcane',0xa78cff);
+  }else if(name==='Pilgrim Shrine'){
+    interiorRug(x,z,w*.39,d*.42,'dark');aBox(2.6,.54,2.25,x,.32,z-d*.24,'stone');aCone(.72,1.9,5,x,1.48,z-d*.24,'arcane');aBox(.34,.2,.34,x,2.52,z-d*.24,'amber');
+    interiorBanner(x-w*.31,z-d*.23,'cloth');interiorBanner(x+w*.31,z-d*.23,'cloth');interiorGlow(x,z+2.6,'arcane',0x9d7bff);
+  }else if(name==='The Northwatch Guild'){
+    interiorRug(x,z+1,w*.43,d*.49,'dark');interiorTable(x,z+1.1,4.3,2.2,'wood');aBox(3.4,.08,1.65,x,1.04,z+1.1,'cloth');interiorShelf(x-w*.38,z-d*.26,4.2,'y');
+    interiorBanner(x+w*.31,z-d*.35,'cloth');interiorGlow(x+5.7,z-1.7,'amber',0xffb060);
+  }else if(name==='The Westwall Refuge'){
+    interiorRug(x,z+1.4,w*.41,d*.45,'dark');aBox(4.25,.25,1.22,x-w*.17,1.12,z-d*.21,'wood');aBox(3.5,.18,.72,x-w*.17,2.1,z-d*.21,'wood');aBox(1.12,1.45,1.12,x+w*.26,.75,z+1.55,'stone');
+    interiorShelf(x-w*.39,z+1.3,4.1,'y');interiorGlow(x+5.7,z-1.6,'amber',0xffb060);
+  }else if(name==='The Southgate Rest'){
+    interiorRug(x,z+2.2,w*.42,d*.27,'cloth');interiorHearth(x,z-d*.5+.46,3.8);aBox(4.5,.48,1.35,x-w*.2,.42,z+1.8,'wood');aBox(3.45,.16,1.15,x+w*.22,1.1,z+2.5,'cloth');
+    interiorShelf(x+w*.39,z-d*.26,3.9,'y');interiorGlow(x-5.6,z-1.65,'amber',0xffa15a);
+  }else if(name==='The Gilded Finch'){
+    interiorRug(x,z+1.9,w*.44,d*.34,'cloth');interiorHearth(x,z-d*.5+.46,3.55);aBox(3.8,.2,1.65,x,1.18,z+d*.28,'wood');aBox(.52,1.1,.52,x,1.65,z+d*.28,'arcane');
+    interiorTable(x-w*.25,z+1.25,2.2,1.15);interiorTable(x+w*.25,z+1.25,2.2,1.15);interiorGlow(x+5.7,z-1.6,'amber',0xffb060);
+  }else if(kind==='archive'){
+    interiorRug(x,z+1,w*.38,d*.5,'dark');interiorShelf(x,z-d*.39,w*.6,'x');interiorGlow(x+5.5,z-1.6,'arcane',0x9d7bff);
+  }else if(kind==='tavern'){
+    interiorRug(x,z+2,w*.4,d*.28,'cloth');interiorHearth(x,z-d*.5+.46,3.6);interiorGlow(x-5.3,z-1.6,'amber',0xffa15a);
+  }else{
+    interiorRug(x,z+1,w*.36,d*.42,'dark');interiorTable(x,z+1.2,3.2,1.35);interiorGlow(x,z-1.9,kind==='royal'?'arcane':'amber',kind==='royal'?0xa78cff:0xffb060);
+  }
+}
 function roadBetween(x1,z1,x2,z2,width=8){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz); aBox(width,.12,len,(x1+x2)/2,.06,(z1+z2)/2,'cobble',ry); }
 function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),frontX=x+si*d*.5,frontZ=z+co*d*.5;
@@ -4992,7 +5057,8 @@ function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
   if(kind==='tavern'){ aBox(w*.54,.55,1.2,x,.5,z-1.5,'wood'); for(let i=-1;i<=1;i+=2){ aBox(1.1,.85,.8,x+i*3,.42,z+1.5,'wood'); addCollider(x+i*3,z+1.5,.65); } aCyl(.65,.75,1.3,8,x, .65,z+2.4,'stone'); }
   else if(kind==='archive'){ for(let i=-1;i<=1;i+=2){ aBox(.8,4,d*.58,x+i*(w*.36),2,z,'wood'); } aBox(3,.85,1.5,x,.43,z+1.2,'wood'); addCollider(x,z+1.2,1.1); }
   else { aBox(w*.58,.7,2.2,x,.36,z+1.6,'stone'); aCyl(.7,.8,1.2,8,x,.6,z-2,'stone'); }
-  interiorDoors.push({id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,kind});
+  furnishInterior(name,x,z,w,d,kind);
+  interiorDoors.push({id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,kind,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'});
 }
 function marketDistrict(){
   fireLight=new THREE.PointLight(0xff7a2d,2.8,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
@@ -5097,6 +5163,16 @@ const npcEyeMaterials=[0x17121b,0x3b241d,0x224650,0x35213d].map(color=>new THREE
 const npcMouthMaterials=[0x8f4c5d,0x9d604f,0x724050,0xb07067].map(color=>new THREE.MeshBasicMaterial({color}));
 const npcCheekMaterial=new THREE.MeshBasicMaterial({color:0xd87878,transparent:true,opacity:.55,depthWrite:false});
 const villagers=[];
+// The four existing named indoor residents now keep a small piece of room
+// business when they are not talking.  It is intentionally an idle-facing
+// cue rather than pathfinding into furniture, so it cannot introduce the old
+// teleporting or collision problems.
+const INTERIOR_HOST_ACTIVITY=Object.freeze({
+  'Barkeep Varn':{x:38,z:112.5,doing:'keeping the bar'},
+  'Archivist Lysa':{x:-86,z:-46.5,doing:'reading the old shelves'},
+  'Pilgrim Sorell':{x:96,z:48.5,doing:'watching the offering table'},
+  'Chamberlain Ash':{x:0,z:-26,doing:'keeping an eye on the dais'}
+});
 function villager(name,x,z,robe,line,route=[]){
   const district=villagerDistrict(route),patrol=route.length&& !route.some(point=>Math.abs(point[0]-x)<.01&&Math.abs(point[1]-z)<.01)?[[x,z],...route]:route;
   const signature=[...name].reduce((value,char)=>((value*31)+char.charCodeAt(0))>>>0,7),variant=signature%5;
@@ -5129,7 +5205,7 @@ function villager(name,x,z,robe,line,route=[]){
     const body=new THREE.Mesh(new THREE.ConeGeometry(.55,1.85,5),cloth);body.position.y=.92;const wrap=new THREE.Mesh(new THREE.CylinderGeometry(.34,.4,.26,6),trim);wrap.position.y=.37;headPivot.add(wrap);const lantern=new THREE.Mesh(new THREE.BoxGeometry(.2,.27,.2),MATS.amber);lantern.position.set(.5,.73,.1);prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.78,5),leather);prop.position.set(-.52,.9,.05);prop.rotation.z=.12;g.add(body,lantern,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
   }
   if(prop)g.add(prop);g.add(headPivot);g.position.set(x,0,z);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});scene.add(g);
-  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]); villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082),routeLoop,routeProgress,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
+  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082),routeLoop,routeProgress,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
 }
 const vanethRoutes={
   market:[[-31,85],[31,85],[33,132],[-31,132]],
@@ -5420,13 +5496,16 @@ function updateVillagers(t,dt){ let closest=null,best=16;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
     else if(npc.route.length<=1&&npc.routeLoop?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
-    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;if(!npcPathClear(npc.lastX,npc.lastZ,x,z)){anchorNpcRoute(npc);x=npc.lastX;z=npc.lastZ;}else{const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
+    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;if(!npcPathClear(npc.lastX,npc.lastZ,x,z)){anchorNpcRoute(npc);x=npc.lastX;z=npc.lastZ;}else{const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}}else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
     const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
     npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
-  nearestVillager=closest; let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} } nearestDoor=door;
-  const close=door||(closest&&best<18); interactHint.style.display=!dialogueOpen&&close?'block':'none';if(close){const label=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'talk with '+closest.name;interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=door?(activeInterior===door?'LEAVE':'ENTER'):'TALK';}else mobileInteractBtn.textContent='TALK';
+  let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
+  // Interior hosts stand near their doors.  Prefer a resident who is genuinely
+  // closer, otherwise E would always leave/enter the room instead of talk.
+  const npcNearby=!!(closest&&best<18),preferNpc=npcNearby&&(!door||best<doorDistance); nearestVillager=npcNearby?closest:null; nearestDoor=preferNpc?null:door;
+  const close=nearestDoor||nearestVillager; interactHint.style.display=!dialogueOpen&&close?'block':'none';if(close){const label=nearestDoor?(activeInterior===nearestDoor?'leave '+nearestDoor.name:'enter '+nearestDoor.name):'talk with '+nearestVillager.name;interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=nearestDoor?(activeInterior===nearestDoor?'LEAVE':'ENTER'):'TALK';}else mobileInteractBtn.textContent='TALK';
 }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;activeInterior=null;showGameToast('You step back out into Vaneth.');}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;activeInterior=nearestDoor;showGameToast('You enter '+nearestDoor.name+'.');}saveGameState();return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;activeInterior=null;showGameToast('You step back out into Vaneth.');}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;activeInterior=nearestDoor;showGameToast('You enter '+nearestDoor.name+' — '+(nearestDoor.purpose||'a room with its own small routine')+'.');}saveGameState();return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
 function anyOverlayOpen(){return chronicleOpen||dialogueOpen||settingsEl.classList.contains('open')||strainPanel.classList.contains('open')||puffPanel.classList.contains('open');}
@@ -5460,7 +5539,7 @@ const INITIAL_WAX_STOCK=[
   {name:'Orange Push Pop',form:'hash rosin'},
   {name:'Moroccan Peaches',form:'hash rosin'}
 ];
-const SMOKE_TEMP_DEFAULT=402,SMOKE_SECONDS_DEFAULT=40;
+const SMOKE_TEMP_DEFAULT=475,SMOKE_SECONDS_DEFAULT=40;
 function smokeSessionTemp(value){if(value==null||String(value).trim()==='')return SMOKE_TEMP_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(302,Math.min(599,numeric)):SMOKE_TEMP_DEFAULT;}
 function smokeSessionSeconds(value){if(value==null||String(value).trim()==='')return SMOKE_SECONDS_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(15,Math.min(120,numeric)):SMOKE_SECONDS_DEFAULT;}
 function makeStrainRecord(raw){raw=raw||{};const name=canonicalStrainName(raw.name);return {id:cleanStrainText(raw.id,96),name,form:cleanStrainText(raw.form,64)||'unspecified',terpenes:cleanStrainText(raw.terpenes,120),notes:cleanStrainText(raw.notes,360),createdAt:cleanStrainText(raw.createdAt,40),uses:Array.isArray(raw.uses)?raw.uses.filter(value=>typeof value==='string').slice(-100):[],sessionF:smokeSessionTemp(raw.sessionF),sessionSeconds:smokeSessionSeconds(raw.sessionSeconds),reference:referenceForStrain(name)||storedArchiveReference(raw.reference)};}
@@ -5678,8 +5757,7 @@ const PUFF=(function(){
   }
   async function legacyRead(off){ const d=await assertChar(chars[off],'legacy').readValue(); return d.byteLength>=4?d.getFloat32(0,true):d.getUint8(0); }
   async function readFloat(path,isFresh=null){ const d=await loraxRead(path,4,0,isFresh); if(!(d instanceof Uint8Array)||d.byteLength!==4)throw new Error('Peak Pro returned an incomplete '+path+' value.');const value=new DataView(d.buffer,d.byteOffset,d.byteLength).getFloat32(0,true);if(!Number.isFinite(value))throw new Error('Peak Pro returned an invalid '+path+' value.');return value; }
-  async function readByte(path,isFresh=null){const d=await loraxRead(path,1,0,isFresh);if(!(d instanceof Uint8Array)||d.byteLength!==1)throw new Error('Peak Pro returned an incomplete '+path+' value.');return d[0];}
-  function batterySample(raw){const value=Number(raw);if(!Number.isFinite(value)||value<0)throw new Error('Peak Pro returned an invalid battery value.');if(value<=100)return{raw:value,percent:value,scale:'percent'};if(value<=10000)return{raw:value,percent:value/100,scale:'hundredths'};throw new Error('Peak Pro returned an unsupported battery scale.');}
+  function batteryPercentSample(raw,scale='percent'){const value=Number(raw);if(!Number.isFinite(value)||value<0||value>100.5)throw new Error('Peak Pro returned an unsupported battery state of charge.');return{raw:value,percent:Math.max(0,Math.min(100,value)),scale};}
   async function loraxReadAll(path,max=640){ const chunks=[]; let offset=0; while(offset<max){ const want=Math.min(125,max-offset),part=await loraxRead(path,want,offset); if(!part.length)break; chunks.push(part); offset+=part.length; if(part.length<want)break; } return cat(...chunks); }
   // The active-light profile is CBOR. This focused decoder handles the simple
   // maps, arrays, text, byte strings, and float values that Puffco profiles use.
@@ -5747,10 +5825,9 @@ const PUFF=(function(){
   return {
     connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;},
     disconnect(){ const selected=device; protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.'); try{if(selected?.gatt?.connected)selected.gatt.disconnect();}catch{} if(device===selected)device=null; },
-    // Firmware has been seen returning both 59.09 and 5909 from this path.
-    // Keep the raw sample alongside a safe normalized percentage for display.
-    async battery(isFresh=null){if(typeof isFresh==='function'&&!isFresh())throw new Error('Background Peak read was superseded.');return batterySample(protocol==='Lorax'?await readFloat('/p/bat/cap',isFresh):await legacyRead(LEGACY.off.battery));},
-    async chargeState(isFresh=null){if(protocol!=='Lorax')return null;if(typeof isFresh==='function'&&!isFresh())throw new Error('Background Peak read was superseded.');const code=await readByte('/p/bat/chg/stat',isFresh),labels={0:'charging',1:'topping off',2:'full',3:'charging paused',4:'not charging'};return{code,label:labels[code]||'charge state '+code};},
+    // Puff Social distinguishes battery state-of-charge (/p/bat/soc) from
+    // capacity (/p/bat/cap). Only SOC is a player-facing percentage.
+    async battery(isFresh=null){if(typeof isFresh==='function'&&!isFresh())throw new Error('Background Peak read was superseded.');const raw=protocol==='Lorax'?await readFloat('/p/bat/soc',isFresh):await legacyRead(LEGACY.off.battery);return batteryPercentSample(raw,protocol==='Lorax'?'soc':'legacy percent');},
     temp:()=>protocol==='Lorax'?readFloat('/p/app/thc/temp'):legacyRead(LEGACY.off.temp),
     heaterTemp:()=>protocol==='Lorax'?readFloat('/p/htr/temp'):Promise.resolve(null),
     sessionTime:()=>protocol==='Lorax'?readFloat('/p/app/thc/time'):Promise.resolve(null),
@@ -5787,16 +5864,16 @@ const PUFF=(function(){
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
   const WARMUP_KEY_PREFIX='emberwatch.peak-pro.warmups.v2.',READY_MARGIN_C=.5;
   const warmupKey=()=>WARMUP_KEY_PREFIX+(PUFF.device?.id||'unbound');
-  let lastReadError='',lastBatteryAt=0,lastBatteryAttemptAt=0,lastChargeAt=0,lastBatterySample=null,batteryError='',chargeStateLabel='',lastRgbAt=0,profileRgbDirty=true,cycleStartedAt=null,warmupAttempt=null,lastWarmupSeconds=null,warmupSamples=loadWarmups();
+  let lastReadError='',lastBatteryAt=0,lastBatteryAttemptAt=0,lastBatterySample=null,batteryError='',lastRgbAt=0,profileRgbDirty=true,cycleStartedAt=null,warmupAttempt=null,lastWarmupSeconds=null,warmupSamples=loadWarmups();
   const FAHRENHEIT_MIN=302, FAHRENHEIT_MAX=599;
   const toFahrenheit=c=>c*9/5+32, toCelsius=f=>(f-32)*5/9;
   const formatSeconds=value=>{ const total=Math.max(0,Math.round(value||0)),minutes=Math.floor(total/60),seconds=String(total%60).padStart(2,'0'); return minutes+':'+seconds; };
   const safely=async work=>{ try{return await work();}catch(error){lastReadError=error;return null;} };
   const activeHeat=state=>state===7||state===8;
-  function renderBattery(now=Date.now()){const holder=$('pBatt');if(!PUFF.connected){holder.textContent='—';return;}if(!lastBatterySample){holder.textContent=batteryError?'unavailable':'checking…';return;}const age=Math.max(0,Math.round((now-lastBatteryAt)/1000)),parts=[Math.round(lastBatterySample.percent)+'%'];if(chargeStateLabel)parts.push(chargeStateLabel);if(age>=8)parts.push(age+'s ago');holder.textContent=parts.join(' · ');}
+  function renderBattery(now=Date.now()){const holder=$('pBatt');if(!PUFF.connected){holder.textContent='—';return;}if(!lastBatterySample){holder.textContent=batteryError?'unavailable':'checking…';return;}const age=Math.max(0,Math.round((now-lastBatteryAt)/1000)),parts=[Math.round(lastBatterySample.percent)+'%'];if(age>=8)parts.push(age+'s ago');holder.textContent=parts.join(' · ');}
   async function refreshBattery(now=Date.now()){
     if(!PUFF.connected||deviceBusy)return;const sampledDevice=PUFF.device,generation=backgroundTelemetryGeneration,interval=(!puffPanel.classList.contains('open')||document.visibilityState!=='visible')?30000:12000,isFresh=()=>PUFF.connected&&PUFF.device===sampledDevice&&!deviceBusy&&generation===backgroundTelemetryGeneration;if(!sampledDevice||now-lastBatteryAttemptAt<interval)return;lastBatteryAttemptAt=now;
-    try{const sample=await PUFF.battery(isFresh);if(!isFresh())return;if(!sample||!Number.isFinite(sample.percent))throw new Error('Peak Pro did not report a usable battery percentage.');lastBatterySample=sample;lastBatteryAt=Date.now();batteryError='';if(PUFF.protocol==='Lorax'&&(now-lastChargeAt>45000||!chargeStateLabel)){try{const charge=await PUFF.chargeState(isFresh);if(isFresh()&&charge?.label){chargeStateLabel=charge.label;lastChargeAt=Date.now();}}catch{if(isFresh())chargeStateLabel='';}}
+    try{const sample=await PUFF.battery(isFresh);if(!isFresh())return;if(!sample||!Number.isFinite(sample.percent))throw new Error('Peak Pro did not report a usable battery percentage.');lastBatterySample=sample;lastBatteryAt=Date.now();batteryError='';
     }catch(error){if(isFresh())batteryError=String(error?.message||error||'battery read failed');}
     if(PUFF.device===sampledDevice&&generation===backgroundTelemetryGeneration)renderBattery(Date.now());
   }
@@ -5903,7 +5980,7 @@ const PUFF=(function(){
       if(profileRgbDirty||now-lastRgbAt>12000){const rgb=await safely(()=>PUFF.profileRgb());if(rgb){renderRgb(rgb);setSpellPaletteFromPeak(rgb.palette);}else{renderRgb(null);clearPeakSpellPalette();if(target!=null)setSpellToneFromFahrenheit(Math.round(toFahrenheit(target)));}profileRgbDirty=false;lastRgbAt=now;}
     }finally{refreshInFlight=false;renderLink();void refreshBattery(Date.now());}
   }
-  function onDisc(){deviceActionEpoch++;backgroundTelemetryGeneration++;lastReadError='';selectedProfile=null;cycleStartedAt=null;warmupAttempt=null;refreshInFlight=false;missedPolls=0;lastState=null;lastTelemetryAt=0;inactiveReads=0;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();lastBatteryAt=0;lastBatteryAttemptAt=0;lastChargeAt=0;lastBatterySample=null;batteryError='';chargeStateLabel='';$('pBatt').textContent='—';setDeviceBusy(false);clearPeakSpellPalette();puffPanel.classList.remove('online');setStat('disconnected');live.style.display='none';$('puffConnect').style.display='block';if(poll){clearTimeout(poll);poll=null;}renderLink();}
+  function onDisc(){deviceActionEpoch++;backgroundTelemetryGeneration++;lastReadError='';selectedProfile=null;cycleStartedAt=null;warmupAttempt=null;refreshInFlight=false;missedPolls=0;lastState=null;lastTelemetryAt=0;inactiveReads=0;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();lastBatteryAt=0;lastBatteryAttemptAt=0;lastBatterySample=null;batteryError='';$('pBatt').textContent='—';setDeviceBusy(false);clearPeakSpellPalette();puffPanel.classList.remove('online');setStat('disconnected');live.style.display='none';$('puffConnect').style.display='block';if(poll){clearTimeout(poll);poll=null;}renderLink();}
   $('puffConnect').onclick=()=>deviceAction('requesting device…',async isCurrent=>{
     setNote('');try{const connected=await PUFF.connect();if(!isCurrent()){PUFF.disconnect();return;}const profile=await PUFF.activeProfile();if(!isCurrent()){PUFF.disconnect();return;}selectedProfile=profile;warmupSamples=loadWarmups();lastWarmupSeconds=null;warmupAttempt=null;puffPanel.classList.add('online');setStat('connected ✓ · '+connected.protocol+' · '+connected.name);live.style.display='flex';$('puffConnect').style.display='none';const connectedDevice=PUFF.device;connectedDevice?.addEventListener('gattserverdisconnected',()=>{if(PUFF.device===connectedDevice)onDisc();},{once:true});}catch(e){if(!isCurrent())return;onDisc();setStat('⚠ '+e.message);if(/service|GATT|not found|No Services|control service/i.test(e.message))setNote('Put the Peak into Bluetooth pairing mode: wake it, then hold the button about 6 seconds until it flashes blue. Close the Puffco app or any other Bluetooth connection before retrying.');else if(/secure|localhost/i.test(e.message))setNote('Run the game from http://localhost (I can hand you a one-click launcher).');}
   });
@@ -5920,7 +5997,7 @@ const PUFF=(function(){
   $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
   $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
-  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'chamber: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'charge: '+(chargeStateLabel||'unknown'),'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'chamber: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
   globalThis.emberwatchPeakSession={
     status:()=>({connected:PUFF.connected,lorax:PUFF.protocol==='Lorax',busy:deviceBusy,active:activeHeat(lastState)||heatStartedInGame}),
     async beginStrainSession(detail){if(deviceBusy)throw new Error('Peak controls are already applying another action.');try{const result=await deviceAction('preparing '+String(detail?.strainName||'strain')+'…',()=>startHeatCycle({smoke:detail||{}}));if(result===ACTION_CANCELLED)throw new Error('Peak control action was cancelled.');return result;}catch(error){setNote('⚠ '+String(error?.message||error));throw error;}}
