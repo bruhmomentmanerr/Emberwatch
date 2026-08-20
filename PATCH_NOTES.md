@@ -1,6 +1,4 @@
-**r55 — doors castle warmup** · 2026-08-20 · phase 4, streets, crowds, inner city
-
-In its own panel header: *r55 doors, castle & warm-up*.
+**r56 — greater vaneth** · 2026-08-20 · phase 4, streets, crowds, inner city
 
 ### Summary
 
@@ -8,8 +6,9 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.00 MB (+27,279 bytes on r53).
-- 10 functions added: `buildInteriorDoorLeaves`, `castleGatehouse`, `castleRange`, `crenelRun`, `curtainDetail`, `doorMaterial`, `migrateLegacyWarmups`, `npcBlocked`, `npcObstructed`, `updateInteriorDoors`.
+- 1.01 MB (+5,533 bytes on r55).
+- 6 functions added: `outerDistrictFor`, `outerRingRoute`, `outerWall`, `outerWards`, `ringRoad`, `wardHouse`.
+- 7 functions removed: `loadWayfinder`, `maybeDiscoverLandmarks`, `nextLandmark`, `pointWayfinderAt`, `renderChronicle`, `saveWayfinder`, `toggleChronicle`.
 
 ### Play it
 
