@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r58 ready-state &amp; strains</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r60 city rebuild</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -210,9 +210,11 @@
       <div class="pnote">Saves a +15-second duration or +15°F target for the selected profile. These change the next cycle, not the running one.</div>
       <button class="pbtn" id="pDisc">Disconnect</button>
     </div>
+    <div class="prow" style="margin-top:2px"><button class="pbtn" id="pCopyDiag">📋 Copy status</button></div>
+    <textarea id="pDiagText" readonly spellcheck="false" aria-label="Connection status report" style="display:none;width:100%;min-height:150px;margin-top:8px;box-sizing:border-box;border:1px solid rgba(145,212,255,.36);border-radius:8px;background:rgba(5,12,21,.8);color:#d8eeff;font:11px ui-monospace,Consolas,monospace;padding:8px;resize:vertical"></textarea>
     <details id="puffAdv"><summary>connection details</summary>
       <div class="pnote">No UUID is needed. Emberwatch checks the known Peak Pro control services automatically after you select your device.</div>
-      <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button><button class="pbtn" id="pCopyDiag">Copy status</button></div>
+      <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button></div>
     </details>
     <div id="puffNote2" class="pnote"></div>
   </div>
@@ -4812,7 +4814,23 @@ function collidersAlong(x1,z1,x2,z2){ const minX=colliderCell(Math.min(x1,x2)),m
   for(let gx=minX;gx<=maxX;gx++)for(let gz=minZ;gz<=maxZ;gz++)for(const collider of colliderGrid.get(colliderKey(gx,gz))||[]){if(!seen.has(collider)){seen.add(collider);nearby.push(collider);}} return nearby; }
 // `open` lets a collider be stood down at runtime — currently only the
 // interior door leaves, which stop being an obstacle once they swing wide.
-function colliderBlocked(x,z,extra=CONFIG.playerRadius){ for(const collider of collidersNearPoint(x,z)){if(collider.open)continue;const dx=x-collider.x,dz=z-collider.z;if(dx*dx+dz*dz<(collider.r+extra)*(collider.r+extra))return true;} return false; }
+// Rectangular footprint collider. Every building used to be a circle, which
+// cannot describe a rectangle: sized to cover the long axis it bulges far into
+// the street on the short one, and sized to feel right in the street it leaves
+// the corners exposed — which is exactly the "I can clip through them" bug.
+// Local axes follow the aBox convention: geometry rotateY(ry) sends local +X
+// to (cos ry, -sin ry) and local +Z to (sin ry, cos ry).
+function addBoxCollider(x,z,w,d,ry=0){
+  const collider={x,z,r:Math.hypot(w,d)*.5,hw:w*.5,hd:d*.5,co:Math.cos(ry),si:Math.sin(ry),box:true};
+  colliders.push(collider);
+  const pad=collider.r+COLLIDER_PAD,minX=colliderCell(x-pad),maxX=colliderCell(x+pad),minZ=colliderCell(z-pad),maxZ=colliderCell(z+pad);
+  for(let gx=minX;gx<=maxX;gx++)for(let gz=minZ;gz<=maxZ;gz++){const key=colliderKey(gx,gz),bucket=colliderGrid.get(key)||[];bucket.push(collider);colliderGrid.set(key,bucket);}
+  return collider;
+}
+function colliderBlocked(x,z,extra=CONFIG.playerRadius){ for(const collider of collidersNearPoint(x,z)){if(collider.open)continue;const dx=x-collider.x,dz=z-collider.z;
+    if(collider.box){ const lx=dx*collider.co-dz*collider.si,lz=dx*collider.si+dz*collider.co;
+      if(Math.abs(lx)<collider.hw+extra&&Math.abs(lz)<collider.hd+extra)return true; continue; }
+    if(dx*dx+dz*dz<(collider.r+extra)*(collider.r+extra))return true;} return false; }
 function wallColl(x1,z1,x2,z2,r){ const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/(r*1.4))); for(let i=0;i<=n;i++) addCollider(x1+(x2-x1)*i/n, z1+(z2-z1)*i/n, r); }
 
 // ---------- ground ----------
@@ -5028,7 +5046,7 @@ function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   aBox(w,h,d,x,h/2,z,key,ry); aBox(w*1.08,.32,d*1.08,x,h+.16,z,'slate',ry); aCone(Math.max(w,d)*.76,2.6,4,x,h+1.55,z,'roof',ry+Math.PI/4);
   facadeWindows(x,z,w,d,h,ry); aBox(1.15,2.05,.16,frontX,1.02,frontZ,'wood',ry); aBox(1.9,.18,.7,frontX,2.27,frontZ,accent,ry); aBox(1.6,.14,.72,frontX,2.45,frontZ,'dark',ry);
   if(stories>1){ const bx=frontX-si*.42,bz=frontZ-co*.42; aBox(w*.46,.14,.68,bx,h*.57,bz,'wood',ry); aBox(.1,.75,.1,bx-si*w*.21,h*.57+.38,bz,'wood',ry); aBox(.1,.75,.1,bx+si*w*.21,h*.57+.38,bz,'wood',ry); }
-  addCollider(x,z,Math.max(w,d)*.56);
+  addBoxCollider(x,z,w,d,ry);
 }
 function blockDistrict(cx,cz,cols,rows,gapX,gapZ,kind,turn=0){
   const palette=kind==='merchant'?['wall','brick','wall2']:kind==='scholar'?['wall2','stone','wall']:['brick','wall','wall2'];
@@ -5147,7 +5165,7 @@ function castleRange(x,z,w,d,ry,kind){
       const wx=x+ox*co-side*(d*.5+.06)*si,wz=z+ox*si+side*(d*.5+.06)*co;
       aBox(.5,2.3,.12,wx,h*.56,wz,'arcane',ry); } }
   if(kind==='chapel'){ aCyl(.9,1.1,5.5,6,x,h+5.2,z,'stone'); aCone(1.5,3.4,6,x,h+9.6,z,'slate'); }
-  addCollider(x,z,Math.max(w,d)*.55);
+  addBoxCollider(x,z,w,d,ry);
 }
 function citadel(){ const R=49,H=11;
   aBox(R*2,H,2,0,H/2,-R,'stone'); aBox(2,H,R*2,-R,H/2,0,'stone'); aBox(2,H,R*2,R,H/2,0,'stone'); aBox(R-5,H,2,-(R+5)/2,H/2,R,'stone'); aBox(R-5,H,2,(R+5)/2,H/2,R,'stone');
@@ -5463,16 +5481,38 @@ function auditVanethGeometry(){
 // A deliberately lean house. At this building count the full cityHouse façade
 // treatment would emit tens of thousands of extra boxes to merge, so bulk
 // filler gets a simpler shell and only a fraction get the detailed treatment.
+// Silhouette variety matters more than surface detail at this density: every
+// house having one shape and one roof is what made the wards read as copies.
+// Roof form, height, upper-floor jetty, chimneys and dormers are all seeded.
+function wardRoof(kind,x,z,w,d,h,ry,key){
+  if(kind===0){ aCone(Math.max(w,d)*.72,2.2,4,x,h+1.3,z,'roof',ry+Math.PI/4); return; }         // pyramid
+  if(kind===1){ // gable: two pitched slabs meeting at a ridge
+    for(const side of[-1,1])aBox(w*.56,.22,d*1.04,x+Math.cos(ry)*side*w*.26,h+.78,z-Math.sin(ry)*side*w*.26,'roof',ry);
+    aBox(w*.2,1.5,d*1.02,x,h+.75,z,'roof',ry); return; }
+  if(kind===2){ // flat with parapet — reads as a townhouse block
+    aBox(w*1.04,.5,d*1.04,x,h+.25,z,'slate',ry);
+    for(const side of[-1,1]){ aBox(w*1.06,.72,.26,x+Math.sin(ry)*side*d*.52,h+.6,z+Math.cos(ry)*side*d*.52,'stone',ry);
+      aBox(.26,.72,d*1.04,x+Math.cos(ry)*side*w*.52,h+.6,z-Math.sin(ry)*side*w*.52,'stone',ry); } return; }
+  aCone(Math.max(w,d)*.62,3.4,4,x,h+1.9,z,'roof',ry+Math.PI/4);                                  // steep spire-ish
+}
 function wardHouse(x,z,w,d,stories,key,ry,accent){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),front=d*.5+.05;
+  const seed=Math.abs(Math.round(x*7.3+z*3.1))%100, roofKind=seed%4;
   aBox(w,h,d,x,h/2,z,key,ry);
-  aBox(w*1.07,.3,d*1.07,x,h+.15,z,'slate',ry);
-  aCone(Math.max(w,d)*.72,2.2,4,x,h+1.3,z,'roof',ry+Math.PI/4);
+  // Upper floor overhanging the street, the classic crooked medieval look.
+  const jetty=stories>1&&seed%5<2;
+  if(jetty)aBox(w*1.06,2.5,d+.7,x,h-1.25,z,key,ry);
+  aBox(w*1.05,.26,d*1.05,x,h+.13,z,'slate',ry);
+  wardRoof(roofKind,x,z,w,d,h,ry,key);
   aBox(1.0,1.9,.14,x+si*front,.95,z+co*front,'wood',ry);
   aBox(1.5,.16,.5,x+si*front,2.12,z+co*front,accent,ry);
+  if(seed%3===0){ const cx=x+co*w*.34-si*d*.2,cz=z-si*w*.34-co*d*.2; aBox(.7,2.3,.7,cx,h+1.1,cz,'brick',ry); }
+  if(roofKind===1&&seed%4===0)aBox(.9,1.0,.8,x+si*(d*.34),h+1.2,z+co*(d*.34),key,ry);            // dormer
   for(let s=0;s<stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
-    for(const ox of[-w*.28,w*.28])aBox(.5,.66,.06,x+ox*co+si*front,wy,z-ox*si+co*front,'window',ry); }
-  addCollider(x,z,Math.max(w,d)*.56);
+    const cols=seed%7<3?3:2,spread=w*.31;
+    for(let c=0;c<cols;c++){ const ox=cols===1?0:-spread+(2*spread)*(c/(cols-1));
+      aBox(.5,.66,.06,x+ox*co+si*front,wy,z-ox*si+co*front,'window',ry); } }
+  addBoxCollider(x,z,w,d,ry);
 }
 function ringRoad(radius,width){ const road=new THREE.Mesh(new THREE.RingGeometry(radius-width/2,radius+width/2,120).rotateX(-Math.PI/2),MATS.cobble); road.position.y=.05; road.receiveShadow=true; scene.add(road); }
 function outerWall(){
@@ -6010,9 +6050,28 @@ function clearPeakSpellPalette(){ usingPeakRgb=false; spellIndex=0; spellPalette
 function setSpellToneFromFahrenheit(fahrenheit){
   if(usingPeakRgb)return; spellColor=fahrenheit<500?0x5bdcff:fahrenheit<525?0x79efac:fahrenheit<545?0xffa45a:0xff5f74; spellPalette=[spellColor];
 }
+// Segment against an expanded rectangle, in the box's own local space (slab
+// clipping). Using the box's bounding circle instead would stop spells short
+// in mid-air beside long buildings, which is the very artefact the rectangular
+// colliders were introduced to remove.
+function spellBoxHit(collider,x1,z1,x2,z2,radius){
+  const l1x=(x1-collider.x)*collider.co-(z1-collider.z)*collider.si,l1z=(x1-collider.x)*collider.si+(z1-collider.z)*collider.co;
+  const l2x=(x2-collider.x)*collider.co-(z2-collider.z)*collider.si,l2z=(x2-collider.x)*collider.si+(z2-collider.z)*collider.co;
+  const dx=l2x-l1x,dz=l2z-l1z,hw=collider.hw+radius,hd=collider.hd+radius;
+  let t0=0,t1=1;
+  for(const [origin,delta,half] of [[l1x,dx,hw],[l1z,dz,hd]]){
+    if(Math.abs(delta)<1e-9){ if(origin<-half||origin>half)return null; continue; }
+    let ta=(-half-origin)/delta,tb=(half-origin)/delta; if(ta>tb){const s=ta;ta=tb;tb=s;}
+    if(ta>t0)t0=ta; if(tb<t1)t1=tb; if(t0>t1)return null;
+  }
+  return t0;
+}
 function spellBarrier(x1,z1,x2,z2,radius=.18){
   const vx=x2-x1,vz=z2-z1,denominator=vx*vx+vz*vz; let hit=null;
-  for(const collider of collidersAlong(x1,z1,x2,z2)){if(collider.open)continue;const reach=collider.r+radius;let ratio=denominator?((collider.x-x1)*vx+(collider.z-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,pz=z1+vz*ratio,dx=px-collider.x,dz=pz-collider.z;if(dx*dx+dz*dz<=reach*reach&&(!hit||ratio<hit.ratio))hit={x:px,z:pz,ratio};}
+  for(const collider of collidersAlong(x1,z1,x2,z2)){if(collider.open)continue;
+    if(collider.box){ const ratio=spellBoxHit(collider,x1,z1,x2,z2,radius);
+      if(ratio!==null&&(!hit||ratio<hit.ratio))hit={x:x1+vx*ratio,z:z1+vz*ratio,ratio}; continue; }
+    const reach=collider.r+radius;let ratio=denominator?((collider.x-x1)*vx+(collider.z-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,pz=z1+vz*ratio,dx=px-collider.x,dz=pz-collider.z;if(dx*dx+dz*dz<=reach*reach&&(!hit||ratio<hit.ratio))hit={x:px,z:pz,ratio};}
   return hit;
 }
 function spellVillagerBarrier(x1,y1,z1,x2,y2,z2,radius=.22){const vx=x2-x1,vz=z2-z1,denominator=vx*vx+vz*vz;let hit=null;for(const npc of villagers){const nx=npc.g.position.x,nz=npc.g.position.z;let ratio=denominator?((nx-x1)*vx+(nz-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,py=y1+(y2-y1)*ratio,pz=z1+vz*ratio,dx=px-nx,dz=pz-nz;if(py<.42||py>2.35)continue;if(dx*dx+dz*dz<(.48+radius)**2&&(!hit||ratio<hit.ratio))hit={x:px,y:py,z:pz,ratio,npc};}return hit;}
@@ -6302,9 +6361,9 @@ const STRAIN_REFERENCE_LIBRARY={
   // the wash came off fresh-frozen material it is also live rosin — the two
   // labels describe different things (starting material vs screen and cure),
   // which is why the form list now separates them instead of forcing a choice.
-  'free mac':{match:'Solventless bench notes',lineage:'MAC (Miracle Alien Cookies) line — Alien Cookies × Colombian × Starfighter',terpenes:['limonene','caryophyllene','linalool'],aromas:['creamy citrus','floral','sour diesel','pepper'],effects:['euphoric','creative','balanced','relaxed'],note:'MAC’s signature creamy citrus over a floral, faintly diesel base. Even-handed rather than heavy at either end.'},
-  'cherry zoap':{match:'Solventless bench notes',lineage:'Cherry line × Zoap (Rainbow Sherbet × Pink Guava)',terpenes:['limonene','caryophyllene','farnesene'],aromas:['cherry candy','sweet soap-floral','gas','tropical'],effects:['euphoric','giggly','relaxed','talkative'],note:'Zoap’s soapy-sweet floral candy with a cherry front and a gassy tail. Sociable rather than sedating.'},
-  'fizz':{match:'Limited bench notes',lineage:'Modern candy/soda-terp hybrid; parentage varies by breeder',terpenes:['limonene','caryophyllene'],aromas:['citrus soda','sweet candy','light gas'],effects:['uplifted','happy','relaxed'],note:'Bright carbonated citrus and candy sweetness. Documentation on this one is thin, so treat the profile as a starting point and trust your own jar.'},
+  'free mac':{match:'Breeder and lab records',lineage:'MAC1 (Miracle Alien Cookies, bred by Capulator) × FreeWorld Chem — FreeWorld Genetics',terpenes:['limonene','caryophyllene','linalool','myrcene','pinene'],aromas:['sweet citrus','pepper','cream','floral'],effects:['energetic','euphoric','happy','relaxed'],note:'MAC’s creamy citrus carried over a peppery base. Reported as energising and mood-lifting rather than sedating, and it usually tests high — commonly 19–25%.'},
+  'cherry zoap':{match:'Breeder records',lineage:'Zoap (Pink Guava #16 × Rainbow Sherbet) × Cherry Garcia — LIT Farms / Growers Choice',terpenes:['myrcene','limonene','caryophyllene'],aromas:['fresh cherry','creamy soap-funk','sweet citrus','earthy herb'],effects:['euphoric','uplifted','creative','relaxed'],note:'An even 50/50 hybrid. Bright cherry over Zoap’s unmistakable creamy, soapy funk; starts as a euphoric head lift and settles into calm without knocking you out.'},
+  'fizz':{match:'Partial records — several unrelated Fizz cuts exist',lineage:'Most often Bloom Seed Co: Sherb Cake × Strawberry Guava (Permanent Marker in the line). Other breeders sell unrelated “Fizz” crosses.',terpenes:['limonene','terpinolene','caryophyllene','pinene'],aromas:['citrus sparkle','sweet berry-guava','cake','light gas'],effects:['energetic','uplifted','happy'],note:'Limonene-led and noticeably energising, higher-THC than average. Well regarded as a washer, so it turns up often as rosin. Note the name is reused by several breeders — if your jar does not match, it is probably a different Fizz.'},
   // Vaneth house jars
   'strawberry cheesecake':{match:'Baker’s garden notes',lineage:'Chronic × White Widow × Cheese',terpenes:[],aromas:['strawberry','cheese','sweet earth'],effects:['relaxed','happy','euphoric'],note:'Berry sweetness and tangy cheese settle into a soft, earthy finish.'},
   'island time':{match:'Wandering trader’s notes',lineage:'Banana OG × (Cherry Pie × Tangie) × Guava Cooler 3',terpenes:['earthy','citrus','woody'],aromas:['tropical citrus','mango','pine'],effects:['uplifted','relaxed','creative'],note:'Tropical fruit drifts in first, then a piney, easygoing finish.'},
@@ -6467,6 +6526,8 @@ const PUFF=(function(){
   const LORAX={ service:'e276967f-ea8a-478a-a92e-d78f5dd15dd5', version:'05434bca-cc7f-4ef6-bbb3-b1c520b9800c', command:'60133d5c-5727-4f2c-9697-d842c5292a3c', reply:'8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c', event:'43312cd1-7d34-46ce-a7d3-0a98fd9b4cb8', key:'ZMZFYlbyb1scoSc3pd1x+w==' };
   const LEGACY={ services:['06caf9c0-74d3-454f-9be9-e30cd999c17a','f9a98c15-c651-4f34-b656-d100bf580000'], off:{seed:'e0',battery:'20',temp:'25',tempCmd:'26',mode:'40',state:'22'}, key:'FUrZc0WilhUBteT2JlCc+A==' };
   let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve(),connectionEpoch=0;
+  // Kept so a bad slot read can be reported instead of just thrown away.
+  let lastProfileSlotRaw='never read';
   const pending=new Map();
   function flushPending(reason='Peak Pro connection closed.'){
     connectionEpoch++;
@@ -6643,7 +6704,7 @@ const PUFF=(function(){
   // before treating it as a real fault.
   async function currentProfile(){ let profile=null;
     for(let attempt=0;attempt<3;attempt++){
-      const d=await loraxRead('/p/app/hcs',1); profile=new DataView(d.buffer,d.byteOffset,d.byteLength).getInt8(0);
+      const d=await loraxRead('/p/app/hcs',1); profile=new DataView(d.buffer,d.byteOffset,d.byteLength).getInt8(0); lastProfileSlotRaw=profile+' (len '+d.byteLength+', attempt '+(attempt+1)+')';
       if(profile>=0&&profile<=24)return profile;
       await delay(160); }
     throw new Error('Peak Pro returned an invalid heat-profile slot.');
@@ -6679,7 +6740,7 @@ const PUFF=(function(){
     return saved;
   }
   return {
-    connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;},
+    connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;}, get lastProfileSlotRaw(){return lastProfileSlotRaw;},
     disconnect(){ const selected=device; protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.'); try{if(selected?.gatt?.connected)selected.gatt.disconnect();}catch{} if(device===selected)device=null; },
     // Puff Social distinguishes battery state-of-charge (/p/bat/soc) from
     // capacity (/p/bat/cap). Only SOC is a player-facing percentage.
@@ -6945,7 +7006,14 @@ const PUFF=(function(){
   $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
   $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
-  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length,'profile slot raw: '+PUFF.lastProfileSlotRaw,'ready source: state8='+(lastState===8)+' tempReady=n/a','layout: r59'].join('\n');    // Always put the report on screen as selectable text. It used to only try
+    // the clipboard and then cram the whole thing into a one-line note, so if
+    // the copy silently failed there was nothing to hand over — exactly when
+    // you most need it, right after a connection drops.
+    const box=$('pDiagText'); box.style.display='block'; box.value=report; box.scrollTop=0;
+    try{ if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(report); setNote('Status copied to clipboard — also shown below.');
+    }catch{ box.focus(); box.select(); setNote('Clipboard blocked. The status is selected below — press Ctrl+C.'); }};
   globalThis.emberwatchPeakSession={
     status:()=>({connected:PUFF.connected,lorax:PUFF.protocol==='Lorax',busy:deviceBusy,active:activeHeat(lastState)||heatStartedInGame}),
     async beginStrainSession(detail){if(deviceBusy)throw new Error('Peak controls are already applying another action.');try{const result=await deviceAction('preparing '+String(detail?.strainName||'strain')+'…',()=>startHeatCycle({smoke:detail||{}}));if(result===ACTION_CANCELLED)throw new Error('Peak control action was cancelled.');return result;}catch(error){setNote('⚠ '+String(error?.message||error));throw error;}}
