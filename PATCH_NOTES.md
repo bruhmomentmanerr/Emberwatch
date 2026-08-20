@@ -1,15 +1,15 @@
-**r52 — test ready** · 2026-08-20 · phase 3, NPCs, collision, city compiler
+**r53 — interior and strain fixes** · 2026-08-20 · phase 4, streets, crowds, inner city
 
-In its own panel header: *r52 test-ready*.
+In its own panel header: *r53 bugfix pass*.
 
 ### Summary
 
-Part of r36–r52: NPC conversations, city collision, seeded city compiler, test plans
+Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street layout, inner city
 
 ### In the code
 
-- 0.97 MB (+19,638 bytes on r51).
-- 7 functions added: `assertNextCycleSettingsAvailable`, `compilerLotTouchesRoad`, `interiorRoomAt`, `referencePreview`, `stageCompilerRoads`, `syncActiveInterior`, `syncCycleControls`.
+- 0.97 MB (+1 bytes on r52).
+- No functions added or removed.
 
 ### Play it
 
