@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Emberwatch</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -80,6 +80,23 @@
   .orb{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#cdb6ff,#6b4bd6 55%,#23124a);box-shadow:0 0 30px rgba(157,123,255,.8);animation:pulse 1.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{transform:scale(.85);opacity:.7}50%{transform:scale(1.05);opacity:1}}
   #startBtn{margin-top:6px;padding:10px 20px;border-radius:12px;border:1px solid rgba(157,123,255,.5);background:rgba(157,123,255,.18);color:#efe8ff;font-size:14px;letter-spacing:2px;cursor:pointer;display:none}
+
+  /* Director's-cut interface: real controls dressed as Vaneth stonework. */
+  :root{--vaneth-ink:#0b0a0c;--vaneth-stone:#1c1b1c;--vaneth-edge:#675b4c;--vaneth-pale:#e5d8ba;--vaneth-dim:#aaa08d;--vaneth-blue:#75b7cf;--vaneth-ember:#c86a35;--vaneth-blood:#7a3733}
+  #gameTitle .t,#loader .g{font-family:Georgia,'Times New Roman',serif;letter-spacing:7px;color:var(--vaneth-pale);text-shadow:0 2px 0 #070607,0 0 18px rgba(116,159,192,.22)}
+  #gameTitle .u{color:#b5a78b}.btn,#gear,#puffBtn,#strainBtn{border-color:rgba(157,139,107,.52);background:linear-gradient(145deg,rgba(40,37,34,.94),rgba(14,13,14,.93));color:#e4dac6;box-shadow:inset 0 1px rgba(255,255,255,.07),0 5px 20px rgba(0,0,0,.46)}
+  #gear:hover,#puffBtn:hover,#strainBtn:hover,.btn:hover{background:linear-gradient(145deg,rgba(68,58,48,.96),rgba(24,21,20,.97));border-color:rgba(206,174,119,.68)}
+  #settings,#puffPanel,#strainPanel,#dialoguePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
+  #settings,#puffPanel,#strainPanel{width:min(340px,calc(100vw - 24px))}#settings{width:min(306px,calc(100vw - 24px));padding-top:36px}.panel-close{position:absolute;right:10px;top:9px;width:25px;height:25px;border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;cursor:pointer;font-size:15px;line-height:1}.pbtn:disabled,.ppreset:disabled{opacity:.48;cursor:wait;transform:none;filter:saturate(.5)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(213,181,115,.92);outline-offset:2px}
+  #settings h4,.puff-section,.strain-label,#dialogueTopic{font-family:Georgia,'Times New Roman',serif;color:#cdb58a;letter-spacing:1.45px}
+  #puffHead,#strainHead,#dialogueHead{background:linear-gradient(90deg,rgba(30,29,28,.98),rgba(55,45,37,.98),rgba(23,22,21,.98));border-bottom-color:rgba(172,143,96,.37);color:var(--vaneth-pale);font-family:Georgia,'Times New Roman',serif}
+  .pbtn{border-color:rgba(136,165,174,.44);background:linear-gradient(180deg,rgba(60,77,82,.4),rgba(19,27,30,.55));color:#e1e7e2}.pbtn:hover{background:linear-gradient(180deg,rgba(83,113,120,.53),rgba(28,41,44,.68))}.pbtn.heat{border-color:rgba(214,112,64,.69);background:linear-gradient(180deg,rgba(132,60,34,.6),rgba(57,22,17,.72));color:#ffe0c5}.pbtn.primary{border-color:rgba(150,190,160,.56);background:linear-gradient(180deg,rgba(48,87,63,.58),rgba(17,42,31,.68))}
+  .pstat{border-color:rgba(194,174,139,.12);background:linear-gradient(90deg,rgba(255,255,255,.055),rgba(112,91,62,.07))}.pstat b{color:#f0e6d0}.ppreset{border-color:rgba(153,134,103,.35);background:rgba(82,68,52,.22);color:#d9cfbd}.ppreset b{color:#f2e5c9}.ppreset.active{border-color:rgba(209,132,76,.74);background:rgba(132,59,35,.28)}
+  #dialogueLines{border-left-color:rgba(190,151,96,.72);background:rgba(100,79,52,.13);color:#eee4d1}#dialogueChoices button{border-color:rgba(173,143,94,.38);background:rgba(92,72,48,.17);color:#eee4d1}#dialogueChoices button:hover,#dialogueChoices button:focus{border-color:rgba(219,179,112,.84);background:rgba(123,90,51,.34)}
+  #wayfinder{position:fixed;top:18px;left:18px;z-index:14;width:min(250px,calc(100vw - 36px));padding:11px 12px 10px;border:1px solid rgba(147,127,94,.65);border-radius:7px;background:linear-gradient(135deg,rgba(25,24,23,.9),rgba(9,9,10,.86));box-shadow:0 11px 32px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.07);color:var(--vaneth-pale);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:auto}
+  .wayfinder-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:1.35px;color:#cbb488}.wayfinder-top span:last-child{color:#8eb7c6;font-family:'Trebuchet MS',sans-serif;letter-spacing:.8px}.wayfinder-ward{display:block;margin-top:4px;font:700 15px Georgia,'Times New Roman',serif;color:#f0e5ca}.wayfinder-goal{display:block;margin-top:3px;color:#c6baa3;font-size:10px;line-height:1.35}.wayfinder-row{display:flex;align-items:center;gap:7px;margin-top:8px;border-top:1px solid rgba(189,161,114,.18);padding-top:7px;color:#a7c8d0;font-size:10px}.wayfinder-arrow{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(117,183,207,.42);border-radius:50%;color:#9bd5e8;font-size:11px;transition:transform .18s linear}.wayfinder-open{margin-left:auto;border:0;background:transparent;color:#d7bc8a;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:.8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  #chroniclePanel{position:fixed;left:50%;top:50%;z-index:32;display:none;width:min(500px,calc(100vw - 28px));max-height:min(620px,calc(100vh - 34px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(154,127,87,.76);border-radius:7px;background:linear-gradient(110deg,rgba(33,29,25,.99),rgba(15,14,14,.995));box-shadow:0 28px 80px rgba(0,0,0,.78),inset 0 0 0 2px rgba(0,0,0,.38);color:#eadfc9}.chronicle-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;padding:13px 15px;background:linear-gradient(90deg,rgba(43,36,29,.99),rgba(20,19,18,.99));border-bottom:1px solid rgba(184,148,93,.34)}.chronicle-head strong{flex:1;font:700 17px Georgia,'Times New Roman',serif;letter-spacing:1px}.chronicle-head button{border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;padding:4px 8px;cursor:pointer}.chronicle-body{padding:16px}.chronicle-intro{color:#c5b79d;font-size:11px;line-height:1.5}.chronicle-list{display:grid;grid-template-columns:1fr;gap:7px;margin-top:13px}.chronicle-entry{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid rgba(180,149,102,.2);border-radius:6px;background:rgba(255,255,255,.035)}.chronicle-entry i{display:inline-flex;width:17px;height:17px;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(140,130,109,.45);font-size:9px;font-style:normal;color:#89806f}.chronicle-entry.found{border-color:rgba(122,182,173,.48);background:rgba(61,105,91,.16)}.chronicle-entry.found i{border-color:rgba(126,213,184,.7);color:#c6f0d9}.chronicle-entry b{display:block;font:700 13px Georgia,'Times New Roman',serif;color:#eee1c8}.chronicle-entry small{display:block;margin-top:2px;color:#bcb097;font-size:10px;line-height:1.35}.chronicle-foot{margin-top:14px;padding-top:11px;border-top:1px solid rgba(184,148,93,.2);color:#8faebb;font-size:10px;line-height:1.45}
+  @media(max-width:620px){#wayfinder{top:10px;left:10px;width:205px;padding:8px 10px}.wayfinder-goal{display:none}.wayfinder-row{margin-top:5px;padding-top:5px}#gameTitle{top:12px;left:auto;right:11px;width:auto;text-align:right}#gameTitle .t{font-size:17px;letter-spacing:3px}#gameTitle .u{font-size:8px;letter-spacing:2px}.touch #wayfinder{top:10px;left:10px}.touch #puffBtn{left:12px;bottom:218px}.touch #strainBtn{left:12px;bottom:170px}.touch #gear{right:12px;bottom:12px}.touch #settings{right:12px;bottom:62px}.touch #puffPanel,.touch #strainPanel{left:12px;bottom:268px;max-height:calc(100vh - 286px)}}
 </style>
 </head>
 <body>
@@ -89,32 +106,44 @@
 <div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact</div>
 <div id="interactHint"><kbd>E</kbd><span></span></div>
 <div id="gameToast" role="status" aria-live="polite"></div>
+<aside id="wayfinder" aria-live="off" aria-label="Vaneth wayfinder">
+  <div class="wayfinder-top"><span>VANETH WAYFINDER</span><span id="wayfinderCount">0 / 6 seen</span></div>
+  <b id="wayfinderWard" class="wayfinder-ward">North Gate</b>
+  <span id="wayfinderGoal" class="wayfinder-goal">Follow the lantern road into the city.</span>
+  <div class="wayfinder-row"><i id="wayfinderArrow" class="wayfinder-arrow">▲</i><span id="wayfinderDistance">—</span><button id="chronicleBtn" class="wayfinder-open" type="button">OPEN LEDGER · L</button></div>
+</aside>
+<section id="chroniclePanel" role="dialog" aria-modal="true" aria-label="Vaneth wayfinder ledger" aria-hidden="true">
+  <div class="chronicle-head"><span>✦</span><strong>Vaneth Wayfinder</strong><button id="chronicleClose" type="button" aria-label="Close wayfinder ledger">×</button></div>
+  <div class="chronicle-body"><p class="chronicle-intro">The city opens more easily when you have a place to go. Discover each landmark at your own pace; your ledger stays on this browser.</p><div id="chronicleList" class="chronicle-list"></div><p id="chronicleFoot" class="chronicle-foot"></p></div>
+</section>
 <section id="dialoguePanel" role="dialog" aria-modal="true" aria-labelledby="dialogueName" aria-hidden="true">
   <div id="dialogueHead"><span class="rune">✦</span><div class="who"><strong id="dialogueName">A resident of Vaneth</strong><small id="dialoguePlace">Vaneth</small></div><button id="dialogueClose" type="button" aria-label="End conversation">×</button></div>
   <div id="dialogueBody"><div id="dialogueTopic">A quiet conversation</div><div id="dialogueLines"></div><div id="dialogueChoices"></div></div>
 </section>
 <div id="stick"><div id="nub"></div></div>
-<div id="castBtn">✦</div>
+<button id="castBtn" type="button" aria-label="Cast spell">✦</button>
 <button id="interactBtn" type="button">TALK<br>ENTER</button>
-<div id="drop">drop a .glb to load it into the world</div>
+<div id="drop">drop a .glb to add it as scenery</div>
 <button id="gear" title="Open menu (M)">☰ menu <kbd>M</kbd></button>
-<div id="settings">
+<div id="settings" role="dialog" aria-modal="true" aria-label="Game settings" aria-hidden="true">
+  <button id="settingsClose" class="panel-close" type="button" aria-label="Close settings">×</button>
   <h4>Music</h4>
   <div class="row"><label class="btn ember" style="flex:none">🎵 load mp3s<input id="file" type="file" accept="audio/*" multiple hidden></label></div>
   <div class="row"><div id="track">no track loaded</div></div>
   <div class="row" id="musicctl" style="display:none"><button class="btn" id="prev" style="flex:1">⏮</button><button class="btn" id="play" style="flex:1">⏸</button><button class="btn" id="next" style="flex:1">⏭</button></div>
   <div class="row" id="volrow" style="display:none"><span style="font-size:11px;opacity:.6">vol</span><input id="vol" type="range" min="0" max="1" step="0.01" value="0.6"></div>
   <div class="sep"></div><h4>World</h4>
-  <div class="row"><label class="btn glb" style="flex:1">⛰ load .glb world<input id="glb" type="file" accept=".glb" hidden></label></div>
+  <div class="row"><label class="btn glb" style="flex:1">⛰ add .glb scenery<input id="glb" type="file" accept=".glb" hidden></label></div>
+  <div class="row"><button class="btn" id="unstuckBtn" style="flex:1">↟ return to North Gate</button></div>
   <div class="sep"></div><h4>Lighting</h4>
   <div class="row"><button class="btn active" data-light="night" style="flex:1">☾ night</button><button class="btn" data-light="dusk" style="flex:1">◐ dusk</button><button class="btn ember" data-light="ember" style="flex:1">✦ ember</button></div>
   <div class="sep"></div><h4>Display</h4>
-  <div class="row"><button class="btn" id="pxBtn" style="flex:1" title="pixel size">▦ pixels</button></div>
+  <div class="row"><button class="btn" id="pxBtn" style="flex:1" title="Choose graphics quality">▦ graphics</button></div>
   <div class="row"><button class="btn" id="fsBtn" style="flex:1">⛶ fullscreen</button></div>
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <button id="strainBtn" title="Personal strain journal (J)">🍃 strains <kbd>J</kbd></button>
-<div id="strainPanel" aria-label="Personal strain journal">
+<div id="strainPanel" role="dialog" aria-modal="true" aria-label="Personal strain journal" aria-hidden="true">
   <div id="strainHead"><span>🍃 Personal strain journal</span><span class="sp"></span><button id="strainClose" aria-label="Close strain journal">✕</button></div>
   <div id="strainBody">
     <div class="strain-current"><span>Currently smoking</span><b id="strainCurrent">nothing selected</b><small id="strainCurrentMeta">Choose a saved strain when you begin a session.</small></div>
@@ -131,8 +160,8 @@
     <div id="strainList" class="strain-list"></div>
   </div>
 </div>
-<div id="puffPanel">
-  <div id="puffHead"><span>◈ Puffco — r45 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
+  <div id="puffHead"><span>◈ Puffco — r46 steady control deck</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -145,6 +174,7 @@
         <div class="pstat"><span>Warm-up</span><b id="pWarmup">learning</b></div>
         <div class="pstat"><span>Lighting</span><b id="pRgb">—</b></div>
         <div class="pstat"><span>State</span><b id="pState">—</b></div>
+        <div class="pstat"><span>Last response</span><b id="pLink">—</b></div>
       </div>
       <div class="puff-section">Heat profile</div>
       <div class="prow"><input id="pTarget" type="number" min="302" max="599" step="1" value="450"><span class="pu">°F</span><button class="pbtn" id="pSet" style="flex:none">Set</button></div>
@@ -162,13 +192,14 @@
         <button class="ppreset" data-profile-f="545" data-profile-slot="3"><span>Peak</span><b>545°F</b></button>
       </div>
       <div class="prow pcontrols"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
-      <div class="puff-section">Boost</div>
+      <div class="puff-section">Next-cycle adjustments</div>
       <div class="prow"><button class="pbtn" id="pBoostTime">+15 sec</button><button class="pbtn" id="pBoostTemp">+15°F</button></div>
-      <div class="pnote">Extends the chosen session time or raises the target by 15°F; the Peak confirms each change.</div>
+      <div class="pnote">Saves a +15-second duration or +15°F target for the selected profile. This does not claim to be the Peak’s live Boost command.</div>
       <button class="pbtn" id="pDisc">Disconnect</button>
     </div>
     <details id="puffAdv"><summary>connection details</summary>
       <div class="pnote">No UUID is needed. Emberwatch checks the known Peak Pro control services automatically after you select your device.</div>
+      <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button><button class="pbtn" id="pCopyDiag">Copy status</button></div>
     </details>
     <div id="puffNote2" class="pnote"></div>
   </div>
@@ -4683,17 +4714,22 @@ moon.shadow.mapSize.set(2048,2048); const scam=moon.shadow.camera; scam.left=-12
 const moonDisc=new THREE.Mesh(new THREE.CircleGeometry(9,28),new THREE.MeshBasicMaterial({color:0xd9ccff,fog:false})); moonDisc.position.set(-110,80,-150); scene.add(moonDisc);
 const moon2=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xd98a6a,fog:false})); moon2.position.set(90,64,-160); scene.add(moon2);
 
-// helpers
-const rand=(a,b)=>a+Math.random()*(b-a), pick=a=>a[(Math.random()*a.length)|0];
+// helpers — the city gets one browser-local seed, so a saved position never
+// reloads into a differently generated street or tree line.
+const WORLD_SEED_KEY='emberwatch.vaneth.world-seed.v1';
+const WORLD_SEED=(()=>{try{const saved=Number(localStorage.getItem(WORLD_SEED_KEY));if(Number.isFinite(saved)&&saved>0)return saved>>>0;const created=((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0)||0x5eeda11;localStorage.setItem(WORLD_SEED_KEY,String(created));return created;}catch{return 0x5eeda11;}})();
+let worldRngState=WORLD_SEED;
+function worldRandom(){let value=worldRngState+=0x6D2B79F5;value=Math.imul(value^value>>>15,value|1);value^=value+Math.imul(value^value>>>7,value|61);return((value^value>>>14)>>>0)/4294967296;}
+const rand=(a,b)=>a+worldRandom()*(b-a), pick=a=>a[(worldRandom()*a.length)|0];
 function shade(hex,d){ const c=v=>Math.max(0,Math.min(255,v|0)); return 'rgb('+c((hex>>16&255)+d)+','+c((hex>>8&255)+d)+','+c((hex&255)+d)+')'; }
 function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('canvas');cvs.width=cvs.height=S;const x=cvs.getContext('2d'),pattern=opt.pattern||'';x.fillStyle=shade(base,0);x.fillRect(0,0,S,S);
   if(pattern==='brick'){const bh=10,bw=21;for(let y=0,row=0;y<S;y+=bh,row++){for(let px=-(row%2?bw/2:0);px<S;px+=bw){x.fillStyle=shade(base,rand(-6,14));x.fillRect(px+1,y+1,bw-2,bh-2);x.strokeStyle=shade(base,-28);x.strokeRect(px+.5,y+.5,bw-1,bh-1);}}}
   else if(pattern==='stone'||pattern==='cobble'){const cells=pattern==='cobble'?58:34;for(let i=0;i<cells;i++){const w=rand(7,16),h=rand(5,12),px=rand(-2,S-2),py=rand(-2,S-2);x.fillStyle=shade(base,rand(-13,13));x.fillRect(px,py,w,h);x.strokeStyle=shade(base,-28);x.strokeRect(px+.5,py+.5,w-1,h-1);}}
   else if(pattern==='slate'||pattern==='roof'){for(let y=0;y<S;y+=8){x.fillStyle=shade(base,rand(-4,9));x.fillRect(0,y+1,S,6);x.fillStyle=shade(base,-26);x.fillRect(0,y,S,1);for(let px=(Math.floor(y/8)%2)*9;px<S;px+=18)x.fillRect(px,y+1,1,6);}}
-  else if(pattern==='wood'){for(let px=0;px<S;px+=5){x.fillStyle=shade(base,rand(-18,14));x.fillRect(px,0,rand(1,3),S);if(Math.random()<.55){x.fillStyle=shade(base,22);x.fillRect(px+3,rand(0,S-14),1,rand(5,14));}}}
+  else if(pattern==='wood'){for(let px=0;px<S;px+=5){x.fillStyle=shade(base,rand(-18,14));x.fillRect(px,0,rand(1,3),S);if(worldRandom()<.55){x.fillStyle=shade(base,22);x.fillRect(px+3,rand(0,S-14),1,rand(5,14));}}}
   else if(pattern==='ground'){for(let i=0;i<240;i++){const px=rand(0,S),py=rand(0,S);x.fillStyle=shade(base,rand(-12,18));x.fillRect(px,py,rand(1,4),rand(1,2));}for(let i=0;i<22;i++){x.fillStyle=shade(base,rand(16,34));x.fillRect(rand(0,S),rand(0,S),rand(2,5),1);}}
   else if(pattern==='cloth'){for(let i=0;i<S;i+=4){x.fillStyle=shade(base,i%8?8:-12);x.fillRect(0,i,S,1);}}
-  for(let i=0;i<S*S*(opt.density||.08);i++){x.fillStyle=shade(base,(Math.random()*2-1)*(opt.jitter||13));const s=Math.random()<.12?2:1;x.fillRect((Math.random()*S)|0,(Math.random()*S)|0,s,s);}
+  for(let i=0;i<S*S*(opt.density||.08);i++){x.fillStyle=shade(base,(worldRandom()*2-1)*(opt.jitter||13));const s=worldRandom()<.12?2:1;x.fillRect((worldRandom()*S)|0,(worldRandom()*S)|0,s,s);}
   const t=new THREE.CanvasTexture(cvs);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;if('colorSpace' in t&&THREE.SRGBColorSpace)t.colorSpace=THREE.SRGBColorSpace;else t.encoding=THREE.sRGBEncoding;if(opt.repeat)t.repeat.set(opt.repeat[0],opt.repeat[1]);return t;}
 function sm(tex){ return new THREE.MeshStandardMaterial({map:tex,flatShading:true,roughness:1,metalness:0}); }
 function em(color,intensity){ return new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:intensity,flatShading:true}); }
@@ -4749,11 +4785,11 @@ function shrineCrystal(x,z){ const c=new THREE.Mesh(new THREE.OctahedronGeometry
 function facadeWindows(x,z,w,d,h,ry){ const stories=Math.max(1,Math.round(h/2.6)), cols=Math.max(1,Math.floor(w/1.8));
   const co=Math.cos(ry),si=Math.sin(ry);
   for(let s=0;s<stories;s++){ const wy=1.4+s*2.6; if(wy>h-0.7)break;
-    for(let c=0;c<cols;c++){ if(Math.random()<0.18) continue; const ox=-w/2+w/(cols+1)*(c+1);
-      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co-oz*si, wz=z+ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, Math.random()<0.08?'arcane':'window', ry); }); } } }
+    for(let c=0;c<cols;c++){ if(worldRandom()<0.18) continue; const ox=-w/2+w/(cols+1)*(c+1);
+      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co-oz*si, wz=z+ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } } }
 function building(x,z,w,d,stories,key,ry){ const h=stories*2.6;
   aBox(w,h,d,x,h/2,z,key,ry);
-  if(Math.random()<0.5) aBox(w*1.06,0.5,d*1.06,x,h+0.25,z,'slate',ry); else aCone(Math.max(w,d)*0.72,2.2,4,x,h+1.1,z,'roof',ry+Math.PI/4);
+  if(worldRandom()<0.5) aBox(w*1.06,0.5,d*1.06,x,h+0.25,z,'slate',ry); else aCone(Math.max(w,d)*0.72,2.2,4,x,h+1.1,z,'roof',ry+Math.PI/4);
   facadeWindows(x,z,w,d,h,ry); addCollider(x,z,Math.max(w,d)*0.58); }
 function spire(x,z,h){ aCyl(1.1,1.5,h,6,x,h/2,z,'stone'); aCone(1.95,4,6,x,h+2,z,'slate'); for(let s=1;s<h/3;s++){ aBox(0.5,0.9,0.12,x,s*3,z+1.15,'arcane'); aBox(0.12,0.9,0.5,x+1.15,s*3,z,'arcane'); } addCollider(x,z,1.4); }
 
@@ -4805,8 +4841,8 @@ function town(){
       if(Math.max(Math.abs(x),Math.abs(z))<27) continue;             // outside keep
       if(Math.hypot(x,z-MARKET_Z)<18) continue;                      // clear market
       const ry=Math.atan2(x,z);
-      if(Math.random()<0.07) spire(x,z,rand(11,17));
-      else building(x,z,rand(4.5,7),rand(4,6),1+(Math.random()*3|0),pick(mats),ry); } }
+       if(worldRandom()<0.07) spire(x,z,rand(11,17));
+       else building(x,z,rand(4.5,7),rand(4,6),1+(worldRandom()*3|0),pick(mats),ry); } }
 }
 
 function cityWall(){ const R=CITY_RADIUS,H=10,seg=112;
@@ -4836,7 +4872,7 @@ function pond(cx,cz){ const w=new THREE.Mesh(new THREE.CircleGeometry(13,36).rot
   for(let i=0;i<24;i++){ const a=rand(0,6.28),r=rand(13,15),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r; aCyl(0.05,0.08,rand(1,2),4,x,0.8,z,'wood'); } }
 function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
 function forestRing(){ for(let i=0;i<240;i++){ const a=rand(0,6.28),r=rand(CITY_RADIUS+9,M*0.47),x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(2,3.4);
-  aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(Math.random()<0.4) addCollider(x,z,0.5); } }
+  aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(worldRandom()<0.4) addCollider(x,z,0.5); } }
 function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(40,78); const mtn=new THREE.Mesh(new THREE.ConeGeometry(rand(30,50),h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn); } }
 
 // ============================================================
@@ -5004,11 +5040,20 @@ function cityClutter(){
   for(let i=0;i<34;i++){const a=i/34*Math.PI*2,x=Math.cos(a)*23,z=MARKET_Z+Math.sin(a)*23;aBox(rand(.35,.65),rand(.45,1),rand(.35,.65),x,rand(.25,.5),z,'wood',rand(0,.8));addCollider(x,z,.42);if(i%3===0)aCyl(.28,.32,.7,8,x+rand(-.5,.5),.35,z+rand(-.5,.5),'stone');}
   [[-52,105],[52,105],[-150,6],[151,5],[-15,174],[17,174]].forEach((spot,index)=>{aBox(3,.16,.55,spot[0],.78,spot[1],'wood',index%2?Math.PI/2:0);aBox(.16,.75,.16,spot[0]-1.05,.39,spot[1],'wood');aBox(.16,.75,.16,spot[0]+1.05,.39,spot[1],'wood');addCollider(spot[0],spot[1],1.55);});
 }
-function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<CITY_RADIUS)return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of colliders){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
-function plantLife(){const positions=[];let tries=0;while(positions.length<3600&&tries++<30000){const a=rand(0,Math.PI*2),r=rand(58,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,h*.5,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
+function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<CITY_RADIUS)return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
+function plantLife(){const positions=[];let tries=0;while(positions.length<3200&&tries++<24000){const a=rand(0,Math.PI*2),r=rand(58,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,h*.5,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
   const bloom=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.075,0),new THREE.MeshBasicMaterial({color:0xd5a1e8,vertexColors:true}),Math.min(260,positions.length)),bloomMatrix=new THREE.Matrix4();for(let i=0;i<Math.min(260,positions.length);i++){const[x,z,h]=positions[(i*13)%positions.length];bloomMatrix.makeTranslation(x,h*.92,z);bloom.setMatrixAt(i,bloomMatrix);bloom.setColorAt(i,new THREE.Color(i%3?0xd5a1e8:0xf1c56c));}bloom.instanceMatrix.needsUpdate=true;if(bloom.instanceColor)bloom.instanceColor.needsUpdate=true;scene.add(bloom);}
+function cityLifeDetails(){
+  const banner=(x,z,ry=0,material='cloth')=>{const sx=Math.sin(ry),cz=Math.cos(ry);aBox(.1,4.1,.1,x,2.05,z,'wood');aBox(1.25,1.5,.05,x+sx*.62,3.02,z+cz*.62,material,ry);};
+  const awning=(x,z,ry=0,material='cloth')=>{const sx=Math.sin(ry),cz=Math.cos(ry);aBox(3.25,.13,1.45,x,3.02,z,material,ry);for(const side of[-1,1])aCyl(.07,.09,2.45,5,x+sx*side*1.38-cz*.5,1.23,z+cz*side*1.38+sx*.5,'wood');};
+  const sign=(x,z,ry=0)=>{aCyl(.08,.1,2.55,5,x,1.28,z,'wood');aBox(1.42,.62,.08,x+Math.sin(ry)*.12,2.12,z+Math.cos(ry)*.12,'wood',ry);};
+  [[-45,154,0],[-15,154,0],[16,154,0],[45,154,0],[-124,111,Math.PI/2],[124,111,-Math.PI/2],[-138,-12,Math.PI/2],[138,-12,-Math.PI/2]].forEach((spot,index)=>banner(spot[0],spot[1],spot[2],index%3===0?'ember':'cloth'));
+  [[-17,101,0], [18,101,0],[-22,125,0],[22,125,0],[-111,14,Math.PI/2],[111,14,-Math.PI/2]].forEach((spot,index)=>awning(spot[0],spot[1],spot[2],index%2?'cloth':'ember'));
+  [[0,187,0],[-96,-8,Math.PI/2],[96,-8,-Math.PI/2],[-16,70,0],[17,70,0],[0,-117,0]].forEach(spot=>sign(spot[0],spot[1],spot[2]));
+  [[-8,202],[8,202],[-18,183],[18,183],[-111,145],[111,145],[-176,83],[176,83]].forEach(spot=>cityLantern(spot[0],spot[1],false));
+}
 function addRavens(){const feather=new THREE.MeshBasicMaterial({color:0x16131f,side:THREE.DoubleSide});for(let i=0;i<14;i++){const g=new THREE.Group(),body=new THREE.Mesh(new THREE.ConeGeometry(.16,.7,4),feather),left=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather),right=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather);body.rotation.z=Math.PI*.5;left.position.x=-.38;right.position.x=.38;g.add(body,left,right);g.position.set(rand(-185,185),rand(17,41),rand(-185,185));scene.add(g);ravens.push({g,left,right,radius:rand(85,220),height:g.position.y,phase:rand(0,6.28),speed:rand(.08,.18)});}}
-function makeVanethLively(){cityClutter();plantLife();addRavens();}
+function makeVanethLively(){cityClutter();cityLifeDetails();plantLife();addRavens();}
 function auditVanethGeometry(){
   const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0);
   const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ));
@@ -5155,37 +5200,44 @@ stG.setAttribute('position',new THREE.BufferAttribute(stP,3)); scene.add(new THR
 //  CONTROLLER + UI  (unchanged core)
 // ============================================================
 const player={x:0,z:CITY_RADIUS+5,y:0,vy:0,onGround:true}; let yaw=0,pitch=-0.02;
-const GAME_SAVE_KEY='emberwatch.game-state.v1';
-function loadGameState(){try{const saved=JSON.parse(localStorage.getItem(GAME_SAVE_KEY)||'null');return saved&&saved.version===1?saved:null;}catch{return null;}}
+const GAME_SAVE_KEY='emberwatch.game-state.v2';
+function loadGameState(){try{const saved=JSON.parse(localStorage.getItem(GAME_SAVE_KEY)||localStorage.getItem('emberwatch.game-state.v1')||'null');return saved&&(saved.version===1||saved.version===2)?saved:null;}catch{return null;}}
 const savedGameState=loadGameState();
-if(savedGameState&&Number.isFinite(savedGameState.x)&&Number.isFinite(savedGameState.z)&&Math.abs(savedGameState.x)<M*.47&&Math.abs(savedGameState.z)<M*.47&&!blocked(savedGameState.x,savedGameState.z)){
+if(savedGameState&&savedGameState.worldSeed===WORLD_SEED&&Number.isFinite(savedGameState.x)&&Number.isFinite(savedGameState.z)&&Math.abs(savedGameState.x)<M*.47&&Math.abs(savedGameState.z)<M*.47&&!blocked(savedGameState.x,savedGameState.z)){
   player.x=savedGameState.x; player.z=savedGameState.z; yaw=Number.isFinite(savedGameState.yaw)?savedGameState.yaw:yaw; pitch=Number.isFinite(savedGameState.pitch)?Math.max(-1.3,Math.min(1.3,savedGameState.pitch)):pitch;
 }
-function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:1,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS}));}catch{}}
+function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:2,worldSeed:WORLD_SEED,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,interior:activeInterior?.name||null}));}catch{}}
 let nextGameSaveAt=0;
-addEventListener('beforeunload',saveGameState);
-const keys={}; function typing(){ const a=document.activeElement; return a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'); }
+addEventListener('beforeunload',saveGameState);addEventListener('pagehide',saveGameState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveGameState();});
+const keys={}; function typing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.isContentEditable)); }
 addEventListener('keydown',e=>{ if(typing())return;
-  if(e.code==='Escape'){closeDialogue();openSettings(false);togglePuff(false);toggleStrains(false);return;}
+  if(e.code==='Escape'){if(chronicleOpen)toggleChronicle(false);else if(dialogueOpen)closeDialogue();else if(strainPanel.classList.contains('open'))toggleStrains(false);else if(puffPanel.classList.contains('open'))togglePuff(false);else if(settingsEl.classList.contains('open'))openSettings(false);return;}
+  if(anyOverlayOpen())return;
   if(dialogueOpen)return;
-  if(e.code==='KeyM'||e.code==='Tab'){ e.preventDefault(); openSettings(); return; }
+  if(e.code==='KeyM'){ e.preventDefault(); openSettings(); return; }
   if(e.code==='KeyP'){ e.preventDefault(); togglePuff(); return; }
   if(e.code==='KeyJ'){ e.preventDefault(); toggleStrains(); return; }
+  if(e.code==='KeyL'){ e.preventDefault(); toggleChronicle(); return; }
   if(e.code==='KeyE'&&!e.repeat){ shareSmoke(); return; }
   keys[e.code]=true; if(e.code==='Space')e.preventDefault();
 }); addEventListener('keyup',e=>{ keys[e.code]=false; });
 const canvas=renderer.domElement; const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0; if(isTouch) document.body.classList.add('touch');
-canvas.addEventListener('click',()=>{ if(!isTouch&&document.pointerLockElement!==canvas) canvas.requestPointerLock?.(); });
-addEventListener('mousemove',e=>{ if(document.pointerLockElement===canvas){ yaw-=e.movementX*CONFIG.mouseSens; pitch=Math.max(-1.3,Math.min(1.3,pitch-e.movementY*CONFIG.mouseSens)); } });
-canvas.addEventListener('mousedown',()=>{ if(document.pointerLockElement===canvas) cast(); });
+canvas.addEventListener('click',()=>{ if(!isTouch&&!anyOverlayOpen()&&document.pointerLockElement!==canvas) canvas.requestPointerLock?.(); });
+addEventListener('mousemove',e=>{ if(!anyOverlayOpen()&&document.pointerLockElement===canvas){ yaw-=e.movementX*CONFIG.mouseSens; pitch=Math.max(-1.3,Math.min(1.3,pitch-e.movementY*CONFIG.mouseSens)); } });
+canvas.addEventListener('mousedown',()=>{ if(!anyOverlayOpen()&&document.pointerLockElement===canvas) cast(); });
 let lookId=null,lx=0,ly=0;
-canvas.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; lookId=t.identifier; lx=t.clientX; ly=t.clientY; },{passive:true});
-canvas.addEventListener('touchmove',e=>{ for(const t of e.changedTouches){ if(t.identifier!==lookId)continue; yaw-=(t.clientX-lx)*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch-(t.clientY-ly)*0.004)); lx=t.clientX; ly=t.clientY; } },{passive:true});
+canvas.addEventListener('touchstart',e=>{ if(anyOverlayOpen())return;const t=e.changedTouches[0]; lookId=t.identifier; lx=t.clientX; ly=t.clientY; },{passive:true});
+canvas.addEventListener('touchmove',e=>{ if(anyOverlayOpen())return;for(const t of e.changedTouches){ if(t.identifier!==lookId)continue; yaw-=(t.clientX-lx)*0.005; pitch=Math.max(-1.3,Math.min(1.3,pitch-(t.clientY-ly)*0.004)); lx=t.clientX; ly=t.clientY; } },{passive:true});
 canvas.addEventListener('touchend',e=>{ for(const t of e.changedTouches){ if(t.identifier===lookId) lookId=null; } },{passive:true});
 let stickVec={x:0,y:0},stickId=null; const stickEl=document.getElementById('stick'),nub=document.getElementById('nub');
+function resetTouchInput(){stickVec={x:0,y:0};stickId=null;lookId=null;nub.style.transform='';}
 stickEl.addEventListener('touchstart',e=>{ stickId=e.changedTouches[0].identifier; e.preventDefault(); },{passive:false});
 stickEl.addEventListener('touchmove',e=>{ for(const t of e.changedTouches){ if(t.identifier!==stickId)continue; const r=stickEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2; let dx=t.clientX-cx,dy=t.clientY-cy; const max=44,d=Math.hypot(dx,dy); if(d>max){dx=dx/d*max;dy=dy/d*max;} nub.style.transform=`translate(${dx}px,${dy}px)`; stickVec={x:dx/max,y:dy/max}; } e.preventDefault(); },{passive:false});
 stickEl.addEventListener('touchend',e=>{ for(const t of e.changedTouches){ if(t.identifier===stickId){stickId=null;stickVec={x:0,y:0};nub.style.transform='';} } },{passive:false});
+canvas.addEventListener('touchcancel',()=>{lookId=null;},{passive:true});
+stickEl.addEventListener('touchcancel',()=>{stickId=null;stickVec={x:0,y:0};nub.style.transform='';},{passive:true});
+document.addEventListener('touchend',e=>{for(const touch of e.changedTouches){if(touch.identifier===stickId||touch.identifier===lookId){resetTouchInput();break;}}},{passive:true});
+document.addEventListener('touchcancel',e=>{for(const touch of e.changedTouches){if(touch.identifier===stickId||touch.identifier===lookId){resetTouchInput();break;}}},{passive:true});
 document.getElementById('castBtn').addEventListener('touchstart',e=>{ cast(); e.preventDefault(); },{passive:false});
 document.getElementById('interactBtn').addEventListener('touchstart',e=>{ shareSmoke(); e.preventDefault(); },{passive:false});
 
@@ -5202,15 +5254,39 @@ function spellBarrier(x1,z1,x2,z2,radius=.18){
   for(const collider of collidersAlong(x1,z1,x2,z2)){const reach=collider.r+radius;let ratio=denominator?((collider.x-x1)*vx+(collider.z-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,pz=z1+vz*ratio,dx=px-collider.x,dz=pz-collider.z;if(dx*dx+dz*dz<=reach*reach&&(!hit||ratio<hit.ratio))hit={x:px,z:pz,ratio};}
   return hit;
 }
+function spellVillagerBarrier(x1,y1,z1,x2,y2,z2,radius=.22){const vx=x2-x1,vz=z2-z1,denominator=vx*vx+vz*vz;let hit=null;for(const npc of villagers){const nx=npc.g.position.x,nz=npc.g.position.z;let ratio=denominator?((nx-x1)*vx+(nz-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,py=y1+(y2-y1)*ratio,pz=z1+vz*ratio,dx=px-nx,dz=pz-nz;if(py<.42||py>2.35)continue;if(dx*dx+dz*dz<(.48+radius)**2&&(!hit||ratio<hit.ratio))hit={x:px,y:py,z:pz,ratio,npc};}return hit;}
 function spellImpact(x,y,z,color){while(spellHits.length>=SPELL_HIT_CAP)scene.remove(spellHits.shift().mesh);const mesh=new THREE.Mesh(spellImpactGeometry,spellMaterial(color));mesh.position.set(x,y,z);scene.add(mesh);spellHits.push({mesh,life:.32});}
-function cast(){ const now=performance.now(); if(now-lastCastAt<105)return; lastCastAt=now; while(spells.length>=SPELL_CAP)scene.remove(spells.shift().g);
+function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-lastCastAt<105)return; lastCastAt=now; while(spells.length>=SPELL_CAP)scene.remove(spells.shift().g);
   const from=camera.position.clone(),dir=new THREE.Vector3(); camera.getWorldDirection(dir); const castColor=spellPalette[spellIndex++%spellPalette.length]||spellColor; spellColor=castColor;
   const g=new THREE.Group(),core=new THREE.Mesh(spellCoreGeometry,spellMaterial(castColor)); g.add(core); g.position.copy(from).addScaledVector(dir,1); scene.add(g); spells.push({g,v:dir.multiplyScalar(38),core,color:castColor,life:1.5}); }
 function blocked(x,z){ return colliderBlocked(x,z); }
 const lim=M*0.47;
-let nearestVillager=null,nearestDoor=null,activeInterior=null,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
-const interactHint=document.getElementById('interactHint'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
+let nearestVillager=null,nearestDoor=null,activeInterior=savedGameState?.interior?interiorDoors.find(door=>door.name===savedGameState.interior)||null:null,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
+const interactHint=document.getElementById('interactHint'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
 function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
+
+// ---------- Wayfinder: a lightweight reason to inhabit the city ----------
+const WAYFINDER_KEY='emberwatch.vaneth-wayfinder.v1';
+const VANETH_LANDMARKS=[
+  {id:'north-gate',name:'North Gate',x:0,z:218,radius:18,detail:'The lantern road from the wilds.'},
+  {id:'cinder-market',name:'Cinder Market',x:0,z:108,radius:25,detail:'The city’s warmest and loudest square.'},
+  {id:'great-hall',name:'The Great Hall',x:0,z:-20,radius:22,detail:'The citadel’s guarded heart.'},
+  {id:'moon-archive',name:'Moon Archive',x:-86,z:-44,radius:16,detail:'A quiet house of old questions.'},
+  {id:'eastwall',name:'Eastwall Scriptorium',x:220,z:42,radius:16,detail:'The ledger house by the eastern wall.'},
+  {id:'foxglove-pond',name:'Foxglove Pond',x:-295,z:178,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
+];
+function loadWayfinder(){try{const raw=JSON.parse(localStorage.getItem(WAYFINDER_KEY)||'{}');return{discovered:Array.isArray(raw.discovered)?raw.discovered.filter(id=>VANETH_LANDMARKS.some(place=>place.id===id)):[]};}catch{return{discovered:[]};}}
+let wayfinderState=loadWayfinder(),chronicleOpen=false,lastWayfinderAt=0,lastWardName='';
+const wayfinderWard=document.getElementById('wayfinderWard'),wayfinderGoal=document.getElementById('wayfinderGoal'),wayfinderDistance=document.getElementById('wayfinderDistance'),wayfinderArrow=document.getElementById('wayfinderArrow'),wayfinderCount=document.getElementById('wayfinderCount'),chroniclePanel=document.getElementById('chroniclePanel'),chronicleList=document.getElementById('chronicleList'),chronicleFoot=document.getElementById('chronicleFoot');
+function saveWayfinder(){try{localStorage.setItem(WAYFINDER_KEY,JSON.stringify(wayfinderState));}catch{}}
+function wardAt(x,z){if(Math.hypot(x,z)<62)return'Citadel Ward';if(Math.hypot(x,z-MARKET_Z)<42)return'Cinder Market';if(z>154)return'North Ward';if(z<-154)return'South Road';if(x<-158)return'West Wall';if(x>158)return'East Wall';if(z<-54)return'Lower Vaneth';return'Old Vaneth';}
+function nextLandmark(){return VANETH_LANDMARKS.find(place=>!wayfinderState.discovered.includes(place.id))||null;}
+function renderChronicle(){chronicleList.replaceChildren();for(const place of VANETH_LANDMARKS){const found=wayfinderState.discovered.includes(place.id),entry=document.createElement('div'),glyph=document.createElement('i'),copy=document.createElement('div'),title=document.createElement('b'),detail=document.createElement('small');entry.className='chronicle-entry'+(found?' found':'');glyph.textContent=found?'✓':'·';title.textContent=place.name;detail.textContent=found?place.detail:'Not yet marked on your ledger.';copy.append(title,detail);entry.append(glyph,copy);chronicleList.append(entry);}chronicleFoot.textContent=wayfinderState.discovered.length===VANETH_LANDMARKS.length?'Every listed place is known. The road is yours now.':'Landmarks found: '+wayfinderState.discovered.length+' of '+VANETH_LANDMARKS.length+'.';}
+function toggleChronicle(open){chronicleOpen=open===undefined?!chronicleOpen:!!open;chroniclePanel.style.display=chronicleOpen?'block':'none';chroniclePanel.setAttribute('aria-hidden',String(!chronicleOpen));if(chronicleOpen){if(dialogueOpen)closeDialogue();openSettings(false);togglePuff(false);toggleStrains(false);document.exitPointerLock?.();clearPressedKeys();renderChronicle();requestAnimationFrame(()=>document.getElementById('chronicleClose').focus());}}
+function maybeDiscoverLandmarks(){for(const place of VANETH_LANDMARKS){if(wayfinderState.discovered.includes(place.id)||Math.hypot(player.x-place.x,player.z-place.z)>place.radius)continue;wayfinderState.discovered.push(place.id);saveWayfinder();showGameToast('Wayfinder marked: '+place.name+'.');if(chronicleOpen)renderChronicle();}}
+function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;maybeDiscoverLandmarks();const ward=wardAt(player.x,player.z),target=nextLandmark();wayfinderWard.textContent=ward;wayfinderCount.textContent=wayfinderState.discovered.length+' / '+VANETH_LANDMARKS.length+' seen';if(target){const dx=target.x-player.x,dz=target.z-player.z,distance=Math.max(0,Math.round(Math.hypot(dx,dz))),bearing=Math.atan2(dx,dz),relative=bearing-Math.PI-yaw;wayfinderGoal.textContent='Seek '+target.name+'.';wayfinderDistance.textContent=distance+'m · '+target.name;wayfinderArrow.style.transform='rotate('+relative+'rad)';}else{wayfinderGoal.textContent='Every landmark in the ledger is known.';wayfinderDistance.textContent='Vaneth remembers you.';wayfinderArrow.style.transform='rotate(0rad)';}if(ward!==lastWardName){lastWardName=ward;}}
+document.getElementById('chronicleBtn').addEventListener('click',()=>toggleChronicle());
+document.getElementById('chronicleClose').addEventListener('click',()=>toggleChronicle(false));
 const VANETH_CONVERSATION={
   'Market Ward':{place:'the Market Ward',city:'The market tells the truth before the council does. Watch which stallholders stop talking when a bell rings.',roots:'I stay because every road comes through here eventually. A person learns a city by listening to what it needs.'},
   'Citadel Ward':{place:'the Citadel Ward',city:'Up here, every promise echoes twice: once in the hall and once in the barracks. Keep the second echo in mind.',roots:'Someone has to remember that a wall is for sheltering people, not merely keeping people out.'},
@@ -5220,14 +5296,16 @@ const VANETH_CONVERSATION={
   'South Ward':{place:'the South Road',city:'The south road is ordinary right up until it is not. Keep a light, keep water, and never trust a friendly fog.',roots:'A road teaches patience. It also teaches you which stories are worth carrying home.'},
   'Old Vaneth':{place:'old Vaneth',city:'The older streets are patient. They have watched grand plans come and go, and they still know where the rain collects.',roots:'Someone should stay long enough to notice what changes.'}
 };
-function clearPressedKeys(){for(const key of Object.keys(keys))delete keys[key];}
+function clearPressedKeys(){for(const key of Object.keys(keys))delete keys[key];resetTouchInput();}
 function conversationFor(npc){return VANETH_CONVERSATION[npc?.district]||VANETH_CONVERSATION['Old Vaneth'];}
 function nameIndex(name,count){return [...String(name||'')].reduce((total,char)=>total+char.charCodeAt(0),0)%count;}
 function dialogueChoice(label,action,leave=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(leave)button.className='leave';button.addEventListener('click',action);dialogueChoices.append(button);}
 function writeDialogue(npc,topic,words,choices){if(!npc)return;dialogueName.textContent=npc.name;dialoguePlace.textContent=(npc.district||'Vaneth')+' · resident';dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));}
-function anchorNpcRoute(npc){const x=npc.g.position.x,z=npc.g.position.z,tail=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;npc.route=tail.length?[[x,z],...tail]:[[x,z]];npc.routeProgress=0;npc.pauseLeft=1.5+((npc.phase*9)%2.2);}
+function npcPathClear(x1,z1,x2,z2,extra=.22){const distance=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.ceil(distance/1.1));for(let step=1;step<=steps;step++){const blend=step/steps;if(colliderBlocked(x1+(x2-x1)*blend,z1+(z2-z1)*blend,extra))return false;}return true;}
+function talkSpotFor(npc){const fromX=npc.g.position.x,fromZ=npc.g.position.z,base=Math.atan2(player.z-fromZ,player.x-fromX);for(let index=0;index<10;index++){const angle=base+Math.PI+(index?((index%2?-1:1)*Math.ceil(index/2)*.44):0),x=player.x+Math.cos(angle)*2.15,z=player.z+Math.sin(angle)*2.15;if(!colliderBlocked(x,z,.26)&&npcPathClear(fromX,fromZ,x,z))return{x,z};}return{x:fromX,z:fromZ};}
+function anchorNpcRoute(npc){const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});if(best<0){npc.route=[[x,z]];npc.routeProgress=0;npc.pauseLeft=2.4;return;}const ordered=loop.slice(best).concat(loop.slice(0,best));npc.route=[[x,z],...ordered];npc.routeProgress=0;npc.pauseLeft=1.5+((npc.phase*9)%2.2);}
 function closeDialogue(){if(!dialogueOpen)return; if(activeDialogueNpc){activeDialogueNpc.talking=false;anchorNpcRoute(activeDialogueNpc);} dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();}
-function openDialogue(npc){if(!npc)return;const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=Math.hypot(dx,dz)||1; npc.talking=true;npc.talkX=player.x-dx/d*2.15;npc.talkZ=player.z-dz/d*2.15;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
+function openDialogue(npc){if(!npc)return;const spot=talkSpotFor(npc);npc.talking=true;npc.talkX=spot.x;npc.talkZ=spot.z;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();requestAnimationFrame(()=>dialogueClose.focus());}
 function showDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Offer '+strain.name+' from your jar',action:()=>shareDialogueSmoke(npc,strain)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};writeDialogue(npc,'A conversation in '+conversationFor(npc).place,npc.name+' looks you over for a moment.\n\n“'+npc.line+'”',[{label:'Ask about this part of Vaneth',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askAboutVaneth(npc){const lore=conversationFor(npc);writeDialogue(npc,'Talking of Vaneth','You: “What should I know about this place?”\n\n'+npc.name+': “'+lore.city+'”',[{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askWhyTheyStay(npc){const lore=conversationFor(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'];const answer=personal[nameIndex(npc.name,personal.length)]+' '+lore.roots;writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+answer+'”',[{label:'Ask about the ward again',action:()=>askAboutVaneth(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
@@ -5242,18 +5320,22 @@ dialogueClose.addEventListener('click',closeDialogue);
 function routePoint(npc){const route=npc.route,length=route.length,progress=(npc.routeProgress%length+length)%length,index=Math.floor(progress),next=(index+1)%length,blend=progress-index,ease=blend*blend*(3-2*blend),from=route[index],to=route[next];return {x:from[0]+(to[0]-from[0])*ease,z:from[1]+(to[1]-from[1])*ease};}
 function updateVillagers(t,dt){ let closest=null,best=16;
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
-    if(npc.talking){ x=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8); z=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8); npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
-    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
+    if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
+    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;if(!npcPathClear(npc.lastX,npc.lastZ,x,z)){anchorNpcRoute(npc);x=npc.lastX;z=npc.lastZ;}else{const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
     const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
     npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
   nearestVillager=closest; let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} } nearestDoor=door;
-  const close=door||(closest&&best<18); interactHint.style.display=!dialogueOpen&&close?'block':'none'; if(close) interactHint.querySelector('span').textContent=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'talk with '+closest.name;
+  const close=door||(closest&&best<18); interactHint.style.display=!dialogueOpen&&close?'block':'none';if(close){const label=door?(activeInterior===door?'leave '+door.name:'enter '+door.name):'talk with '+closest.name;interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=door?(activeInterior===door?'LEAVE':'ENTER'):'TALK';}else mobileInteractBtn.textContent='TALK';
 }
-function shareSmoke(){if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;activeInterior=null;showGameToast('You step back out into Vaneth.');}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;activeInterior=nearestDoor;showGameToast('You enter '+nearestDoor.name+'.');}return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;activeInterior=null;showGameToast('You step back out into Vaneth.');}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;activeInterior=nearestDoor;showGameToast('You enter '+nearestDoor.name+'.');}saveGameState();return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
-function openSettings(o){ settingsEl.classList.toggle('open', o===undefined? !settingsEl.classList.contains('open'):o); if(settingsEl.classList.contains('open')) document.exitPointerLock?.(); }
+function anyOverlayOpen(){return chronicleOpen||dialogueOpen||settingsEl.classList.contains('open')||strainPanel.classList.contains('open')||puffPanel.classList.contains('open');}
+function openSettings(o){ const open=o===undefined?!settingsEl.classList.contains('open'):!!o;settingsEl.classList.toggle('open',open);settingsEl.setAttribute('aria-hidden',String(!open));if(open){togglePuff(false);toggleStrains(false);toggleChronicle(false);document.exitPointerLock?.();clearPressedKeys();requestAnimationFrame(()=>document.getElementById('settingsClose').focus());} }
 document.getElementById('gear').addEventListener('click',()=>openSettings());
+document.getElementById('settingsClose').addEventListener('click',()=>openSettings(false));
+function returnToNorthGate(){closeDialogue();activeInterior=null;player.x=0;player.z=CITY_RADIUS+5;player.y=0;player.vy=0;player.onGround=true;yaw=0;pitch=-.02;clearPressedKeys();saveGameState();showGameToast('You return to the North Gate.');}
+document.getElementById('unstuckBtn').addEventListener('click',returnToNorthGate);
 
 // ---- personal, browser-local strain journal ----
 const STRAIN_STORAGE_KEY='emberwatch.personal-strains.v1';
@@ -5333,7 +5415,7 @@ function makeReferenceCard(record){return makeReferenceNotes(record.reference,re
 function renderStrainJournal(){ const current=currentStrain(),currentName=document.getElementById('strainCurrent'),currentMeta=document.getElementById('strainCurrentMeta'),list=document.getElementById('strainList'); currentName.textContent=current?current.name:'nothing selected'; currentMeta.textContent=current?productLabel(current)+' · '+current.uses.length+' heat cycles logged':strainJournal.records.length+' saved products · choose one when you begin a session.'; list.replaceChildren(); if(!strainJournal.records.length){ const empty=document.createElement('div');empty.className='strain-empty';empty.textContent='Your private journal is empty. Add what you are using to keep it here.';list.append(empty);return; } for(const record of strainJournal.records){ const card=document.createElement('div'),detail=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),actions=document.createElement('div'),select=document.createElement('button'),remove=document.createElement('button'); card.className='strain-card'+(record.id===strainJournal.currentId?' active':''); name.textContent=record.name; const parts=[productLabel(record),record.uses.length+' heat '+(record.uses.length===1?'cycle':'cycles')];if(record.uses.length)parts.push('last '+strainDate(record.uses[record.uses.length-1]));if(record.notes)parts.push(record.notes);meta.textContent=parts.filter(Boolean).join(' · '); detail.append(name,meta);actions.className='strain-actions';select.textContent=record.id===strainJournal.currentId?'current':'use now';select.disabled=record.id===strainJournal.currentId;select.onclick=()=>{strainJournal.currentId=record.id;saveStrainJournal();renderStrainJournal();showGameToast(record.name+' is now your current strain.');};remove.className='remove';remove.textContent='remove';remove.onclick=()=>{if(!confirm('Remove '+record.name+' from your private strain journal?'))return;strainJournal.records=strainJournal.records.filter(item=>item.id!==record.id);if(strainJournal.currentId===record.id)strainJournal.currentId=null;saveStrainJournal();renderStrainJournal();};actions.append(select,remove);card.append(detail,actions);const reference=makeReferenceCard(record);if(reference)card.append(reference);list.append(card); } }
 function recordStrainSession(){ const current=currentStrain();if(!current)return;current.uses.push(new Date().toISOString());current.uses=current.uses.slice(-100);saveStrainJournal();renderStrainJournal(); }
 const strainPanel=document.getElementById('strainPanel');
-function toggleStrains(o){ strainPanel.classList.toggle('open',o===undefined?!strainPanel.classList.contains('open'):o); if(strainPanel.classList.contains('open')){openSettings(false);document.exitPointerLock?.();renderStrainJournal();} }
+function toggleStrains(o){ const open=o===undefined?!strainPanel.classList.contains('open'):!!o;strainPanel.classList.toggle('open',open);strainPanel.setAttribute('aria-hidden',String(!open));if(open){openSettings(false);togglePuff(false);toggleChronicle(false);document.exitPointerLock?.();clearPressedKeys();renderStrainJournal();requestAnimationFrame(()=>document.getElementById('strainClose').focus());} }
 document.getElementById('strainBtn').addEventListener('click',()=>toggleStrains());
 document.getElementById('strainClose').addEventListener('click',()=>toggleStrains(false));
 document.getElementById('strainForm').addEventListener('submit',event=>{event.preventDefault();const name=canonicalStrainName(strainNameInput.value);if(!name)return;const form=document.getElementById('strainFormType').value,terpenes=cleanStrainText(document.getElementById('strainTerpenes').value,120),notes=cleanStrainText(document.getElementById('strainNotes').value,360),selectedReference=pendingArchiveMatch&&strainKey(pendingArchiveMatch.name)===strainKey(name)?pendingArchiveMatch.reference:null,existing=strainJournal.records.find(record=>strainKey(record.name)===strainKey(name));if(existing){existing.form=form==='unspecified'?existing.form:form;existing.terpenes=terpenes||existing.terpenes;existing.notes=notes||existing.notes;existing.reference=referenceForStrain(existing.name)||selectedReference||existing.reference;strainJournal.currentId=existing.id;showGameToast(existing.name+' selected—its existing strain stats stay together.');}else{const id=(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),record=makeStrainRecord({id,name,form,terpenes,notes,reference:selectedReference,createdAt:new Date().toISOString(),uses:[]});strainJournal.records.unshift(record);strainJournal.currentId=id;showGameToast(name+' saved as your current strain.');}pendingArchiveMatch=null;hideStrainSuggestions();saveStrainJournal();event.target.reset();clearLookupPreview();renderStrainJournal();});
@@ -5343,12 +5425,12 @@ renderStrainJournal();
 
 // ---- Puffco native Web Bluetooth panel ----
 const puffPanel=document.getElementById('puffPanel');
-function togglePuff(o){ puffPanel.classList.toggle('open', o===undefined?!puffPanel.classList.contains('open'):o); if(puffPanel.classList.contains('open')){toggleStrains(false);document.exitPointerLock?.();} }
+function togglePuff(o){ const open=o===undefined?!puffPanel.classList.contains('open'):!!o;puffPanel.classList.toggle('open',open);puffPanel.setAttribute('aria-hidden',String(!open));if(open){toggleStrains(false);openSettings(false);toggleChronicle(false);document.exitPointerLock?.();clearPressedKeys();document.dispatchEvent(new Event('emberwatch:puff-panel-open'));requestAnimationFrame(()=>document.getElementById('puffClose').focus());} }
 document.getElementById('puffBtn').addEventListener('click',()=>togglePuff());
 document.getElementById('puffClose').addEventListener('click',()=>togglePuff(false));
 (function(){ const head=document.getElementById('puffHead'); let dx=0,dy=0,drag=false;
   head.addEventListener('mousedown',e=>{ if(e.target.tagName==='A'||e.target.tagName==='BUTTON')return; drag=true; const r=puffPanel.getBoundingClientRect(); dx=e.clientX-r.left; dy=e.clientY-r.top; puffPanel.style.bottom='auto'; head.style.cursor='grabbing'; e.preventDefault(); });
-  addEventListener('mousemove',e=>{ if(!drag)return; puffPanel.style.left=Math.max(4,Math.min(innerWidth-60,e.clientX-dx))+'px'; puffPanel.style.top=Math.max(4,Math.min(innerHeight-60,e.clientY-dy))+'px'; });
+  addEventListener('mousemove',e=>{ if(!drag)return; const width=puffPanel.offsetWidth||340,height=puffPanel.offsetHeight||380;puffPanel.style.left=Math.max(4,Math.min(innerWidth-width-4,e.clientX-dx))+'px'; puffPanel.style.top=Math.max(4,Math.min(innerHeight-height-4,e.clientY-dy))+'px'; });
   addEventListener('mouseup',()=>{ drag=false; head.style.cursor='grab'; }); })();
 
 // Puff.social-compatible Puffco client. Current Peak Pros speak Lorax over BLE;
@@ -5356,10 +5438,10 @@ document.getElementById('puffClose').addEventListener('click',()=>togglePuff(fal
 const PUFF=(function(){
   const LORAX={ service:'e276967f-ea8a-478a-a92e-d78f5dd15dd5', version:'05434bca-cc7f-4ef6-bbb3-b1c520b9800c', command:'60133d5c-5727-4f2c-9697-d842c5292a3c', reply:'8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c', event:'43312cd1-7d34-46ce-a7d3-0a98fd9b4cb8', key:'ZMZFYlbyb1scoSc3pd1x+w==' };
   const LEGACY={ services:['06caf9c0-74d3-454f-9be9-e30cd999c17a','f9a98c15-c651-4f34-b656-d100bf580000'], off:{seed:'e0',battery:'20',temp:'25',tempCmd:'26',mode:'40',state:'22'}, key:'FUrZc0WilhUBteT2JlCc+A==' };
-  const PUP={ service:'420b9b40-457d-4abe-a3bf-71609d79581b', appVersion:'58b0a7aa-d89f-4bf2-961d-0d892d7439d8' };
-  let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve();
+  let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve(),connectionEpoch=0;
   const pending=new Map();
   function flushPending(reason='Peak Pro connection closed.'){
+    connectionEpoch++;
     for(const request of pending.values()){ clearTimeout(request.timer); request.reject(new Error(reason)); }
     pending.clear(); commandQueue=Promise.resolve();
   }
@@ -5391,12 +5473,14 @@ const PUFF=(function(){
     if(status) request.reject(new Error('Peak Pro rejected '+request.label+' (Lorax code '+status+').'));
     else request.resolve(payload);
   }
-  async function loraxCommand(opcode,body=new Uint8Array(),expected=null,label='command 0x'+opcode.toString(16)){
+  async function loraxCommand(opcode,body=new Uint8Array(),expected=null,label='command 0x'+opcode.toString(16),timeoutMs=5000){
+    const epoch=connectionEpoch;
     const job=async()=>{
+      if(epoch!==connectionEpoch)throw new Error('Peak Pro connection changed before this command could run.');
       if(!device?.gatt?.connected||!loraxChars?.command)throw new Error('Peak Pro connection was lost. Reconnect manually when it is nearby.');
       const id=seq++&0xffff, packet=cat(u16(id),Uint8Array.of(opcode),body);
       const reply=new Promise((resolve,reject)=>{
-        const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Peak Pro did not respond. Keep it awake and nearby, then reconnect.'));},5000);
+        const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Peak Pro did not respond. Keep it awake and nearby, then reconnect.'));},timeoutMs);
         pending.set(id,{resolve,reject,timer,label});
       });
       try { await write(loraxChars.command,packet); const payload=await reply; if(expected!==null&&payload.length!==expected) throw new Error('Unexpected Peak Pro response.'); return payload; }
@@ -5404,18 +5488,18 @@ const PUFF=(function(){
     };
     const result=commandQueue.then(job,job); commandQueue=result.catch(()=>{}); return result;
   }
-  async function loraxRead(path,size,offset=0){ return loraxCommand(0x10,cat(u16(offset),u16(size),bytes(path))); }
+  async function loraxRead(path,size,offset=0){ return loraxCommand(0x10,cat(u16(offset),u16(size),bytes(path)),null,'read '+path,2500); }
   async function loraxWrite(path,value,offset=0){ await loraxCommand(0x11,cat(u16(offset),Uint8Array.of(0),bytes(path),Uint8Array.of(0),value),0); }
   async function authenticateLorax(){
     let lastError;
-    // Puffco.app retries Lorax unlocks because a Peak may still be finishing
-    // its Bluetooth state transition just after connection.
-    for(let attempt=0;attempt<10;attempt++){ try {
+    // A single short retry covers the device's post-connect transition without
+    // repeatedly poking a Peak that has already rejected the unlock.
+    for(let attempt=0;attempt<2;attempt++){ try {
       const seed=await loraxCommand(0x00,new Uint8Array(),16,'access-seed request'), input=cat(base64(LORAX.key),seed);
       // Lorax unlock is the first 16 bytes of SHA-256(key || seed), not the
       // complete 32-byte digest. Sending all 32 bytes is rejected as code 22.
       const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash.slice(0,16),0,'access unlock'); return;
-    } catch(error){ lastError=error; if(!device?.gatt?.connected) throw error; await delay(120); } }
+    } catch(error){ lastError=error; if(!device?.gatt?.connected||/rejected|Lorax code|access unlock/i.test(String(error?.message||error))) throw error; if(attempt===0)await delay(220); } }
     throw lastError;
   }
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -5424,17 +5508,15 @@ const PUFF=(function(){
     for(const service of services){ const characteristics=await service.getCharacteristics(); found.set(service.uuid.toLowerCase(),{service,characteristics}); }
     return found;
   }
-  async function triggerPuffcoBonding(found){
-    const pup=found.get(PUP.service); if(!pup) return;
-    const version=pup.characteristics.find(ch=>ch.uuid.toLowerCase()===PUP.appVersion); if(!version) return;
-    // Puffco.app reads this once before unlocking control. Never retry here:
-    // the device itself, not the game, must own any further pairing action.
-    await version.readValue();
+  async function failedConnectCleanup(reason){
+    const selected=device; protocol='';chars={};loraxChars=null;flushPending(reason||'Peak Pro connection setup ended.');
+    try{if(selected?.gatt?.connected)selected.gatt.disconnect();}catch{}
+    if(device===selected)device=null;
   }
   async function connect(){
     if(!navigator.bluetooth) throw new Error('Web Bluetooth unsupported — use desktop Chrome or Edge.');
     if(!window.isSecureContext) throw new Error('Not secure context — run the game from http://localhost, not by opening the file directly.');
-    const requested=[LORAX.service,...LEGACY.services,PUP.service];
+    const requested=[LORAX.service,...LEGACY.services];
     // Puffco's advertised name varies by model and firmware. Do not filter by
     // name here: show nearby devices and verify the Lorax service after pairing.
     if(device?.gatt?.connected)device.gatt.disconnect();
@@ -5445,7 +5527,7 @@ const PUFF=(function(){
     // Pairing is initiated only by the user and the device button. Do not read
     // PUP or retry automatically: either action can make the device buzz and
     // re-enter pairing mode repeatedly.
-    return connectAttempt();
+    try{return await connectAttempt();}catch(error){await failedConnectCleanup('Peak Pro connection setup failed.');throw error;}
   }
   async function connectAttempt(){
     const server=await device.gatt.connect(); const services=await discoverServices(server);
@@ -5465,10 +5547,9 @@ const PUFF=(function(){
       if(loraxVersion!==0) try { await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0); } catch(error) {
         if(!device?.gatt?.connected) throw error;
       }
-      // Puffco.app checks the PUP app version only after Lorax is initialized,
-      // immediately before it sends the access-unlock command.
-      await triggerPuffcoBonding(services);
-      if(!device.gatt.connected) throw new Error('The Peak ended the one-time bonding read. Put it in blue pairing mode again, then press Connect once more.');
+      // PUP is an update service, not a control prerequisite. Leave it alone in
+      // the normal flow so a user click never re-enters pairing/bonding on its own.
+      if(!device.gatt.connected) throw new Error('The Peak disconnected during control setup. Put it in blue pairing mode and retry once.');
       await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);
@@ -5484,7 +5565,6 @@ const PUFF=(function(){
         protocol='legacy'; return {name:device.name||'unnamed device',protocol};
       }catch(e){ legacyError=e; } }
       const found=[...services.keys()].join(', ')||'none';
-      if(services.has(PUP.service)) throw new Error('Selected “'+(device.name||'unnamed device')+'” exposes only PUP, not a Peak control service. Services found: '+found);
       throw new Error('Selected “'+(device.name||'unnamed device')+'” has no supported Peak control service. Services found: '+found+'. '+legacyError.message);
     }
   }
@@ -5556,7 +5636,7 @@ const PUFF=(function(){
   }
   return {
     connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;},
-    disconnect(){ flushPending('Peak Pro disconnected.'); if(device&&device.gatt&&device.gatt.connected) device.gatt.disconnect(); },
+    disconnect(){ const selected=device; protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.'); try{if(selected?.gatt?.connected)selected.gatt.disconnect();}catch{} if(device===selected)device=null; },
     // Peak Pro exposes battery capacity in hundredths of a percent (e.g.
     // 5909 means 59.09%), while legacy models already return a percentage.
     battery:()=>protocol==='Lorax'?readFloat('/p/bat/cap').then(value=>value/100):legacyRead(LEGACY.off.battery),
@@ -5584,12 +5664,18 @@ const PUFF=(function(){
   const $=id=>document.getElementById(id);
   const stat=$('puffStatus'), note=$('puffNote2'), live=$('puffLive');
   const STATES={0:'starting',1:'version',2:'battery',3:'off',4:'sleep',5:'idle',6:'selecting temperature',7:'preheating',8:'heating',9:'cooldown',10:'version',11:'battery',12:'factory test',13:'pairing'};
-  let poll=null,selectedProfile=null,refreshInFlight=false,missedPolls=0,lastState=null;
+  let poll=null,selectedProfile=null,refreshInFlight=false,missedPolls=0,lastState=null,deviceBusy=false,lastTelemetryAt=0,inactiveReads=0,sessionRecordedForCycle=false,heatStartedInGame=false,deviceActionEpoch=0;
   function setStat(t){ stat.textContent=t; }
-  function setNote(t){ note.innerHTML=t||''; }
-  if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs <code>http://localhost</code> — ask me for the one-click launcher.');
+  function setNote(t){ note.textContent=t||''; }
+  function renderLink(now=Date.now()){const link=$('pLink');if(!PUFF.connected){link.textContent='offline';return;}if(deviceBusy){link.textContent='applying…';return;}if(!lastTelemetryAt){link.textContent='awaiting reply';return;}const age=Math.max(0,Math.round((now-lastTelemetryAt)/1000));link.textContent=age<5?'live · '+age+'s ago':'quiet · '+age+'s ago';}
+  const writableControls=()=>[...puffPanel.querySelectorAll('.pbtn,.ppreset')].filter(button=>button.id!=='pDisc');
+  function setDeviceBusy(active,label=''){deviceBusy=active;writableControls().forEach(button=>button.disabled=active);renderLink();if(active&&label)setStat(label);}
+  const ACTION_CANCELLED=Symbol('Peak Pro action cancelled');
+  async function deviceAction(label,work){if(deviceBusy)return ACTION_CANCELLED;const epoch=++deviceActionEpoch;if(poll){clearTimeout(poll);poll=null;}setDeviceBusy(true,label);try{return await work(()=>epoch===deviceActionEpoch);}catch(error){if(epoch!==deviceActionEpoch)return ACTION_CANCELLED;throw error;}finally{if(epoch!==deviceActionEpoch)return;setDeviceBusy(false);if(PUFF.connected){await refresh();scheduleRefresh(300);}}}
+  if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs http://localhost — ask me for the one-click launcher.');
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
-  const WARMUP_KEY='emberwatch.peak-pro.warmups.v1',READY_MARGIN_C=.5;
+  const WARMUP_KEY_PREFIX='emberwatch.peak-pro.warmups.v2.',READY_MARGIN_C=.5;
+  const warmupKey=()=>WARMUP_KEY_PREFIX+(PUFF.device?.id||'unbound');
   let lastReadError='',lastBatteryAt=0,lastRgbAt=0,profileRgbDirty=true,cycleStartedAt=null,warmupAttempt=null,lastWarmupSeconds=null,warmupSamples=loadWarmups();
   const FAHRENHEIT_MIN=302, FAHRENHEIT_MAX=599;
   const toFahrenheit=c=>c*9/5+32, toCelsius=f=>(f-32)*5/9;
@@ -5598,11 +5684,11 @@ const PUFF=(function(){
   const activeHeat=state=>state===7||state===8;
   function scheduleRefresh(delay=0){
     if(poll)clearTimeout(poll);
-    poll=setTimeout(async()=>{ poll=null; await refresh(); if(PUFF.connected)scheduleRefresh(activeHeat(lastState)?1600:4200); },delay);
+    poll=setTimeout(async()=>{ poll=null;if(deviceBusy){if(PUFF.connected)scheduleRefresh(450);return;}await refresh();if(PUFF.connected){const base=activeHeat(lastState)?2200:6500,backoff=missedPolls?Math.min(18000,base*(2**Math.min(missedPolls,2))):base,quiet=!puffPanel.classList.contains('open')||document.visibilityState!=='visible';scheduleRefresh(quiet?Math.max(backoff,10000):backoff);} },delay);
   }
   const median=values=>{ const sorted=[...values].sort((a,b)=>a-b),middle=Math.floor(sorted.length/2); return sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2; };
-  function loadWarmups(){ try{ const saved=JSON.parse(localStorage.getItem(WARMUP_KEY)||'[]'); return Array.isArray(saved)?saved.filter(sample=>Number.isFinite(sample.target)&&Number.isFinite(sample.start)&&Number.isFinite(sample.seconds)&&sample.seconds>=2&&sample.seconds<=180).slice(-40):[]; }catch{return [];} }
-  function saveWarmups(){ try{localStorage.setItem(WARMUP_KEY,JSON.stringify(warmupSamples.slice(-40)));}catch{} }
+  function loadWarmups(){ try{ const saved=JSON.parse(localStorage.getItem(warmupKey())||'[]'); return Array.isArray(saved)?saved.filter(sample=>Number.isFinite(sample.target)&&Number.isFinite(sample.start)&&Number.isFinite(sample.seconds)&&sample.seconds>=2&&sample.seconds<=180).slice(-40):[]; }catch{return [];} }
+  function saveWarmups(){ try{localStorage.setItem(warmupKey(),JSON.stringify(warmupSamples.slice(-40)));}catch{} }
   function warmupEstimate(target,start){ if(!Number.isFinite(target)||!Number.isFinite(start))return null; let nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=16&&Math.abs(sample.start-start)<=45); if(nearby.length<3)nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=25); if(nearby.length<3)return null; nearby.sort((a,b)=>(Math.abs(a.target-target)+Math.abs(a.start-start)*.25)-(Math.abs(b.target-target)+Math.abs(b.start-start)*.25)); const matched=nearby.slice(0,Math.min(7,nearby.length)); return {seconds:median(matched.map(sample=>sample.seconds)),count:matched.length}; }
   function recordWarmup(now){ if(!warmupAttempt)return null; const {target,start}=warmupAttempt,seconds=(now-warmupAttempt.startedAt)/1000; warmupAttempt=null; if(seconds<2||seconds>180)return null; warmupSamples.push({target,start,seconds}); warmupSamples=warmupSamples.slice(-40); saveWarmups(); lastWarmupSeconds=seconds; return seconds; }
   function updateWarmupDisplay(target,start,state,now){ const holder=$('pWarmup'),estimate=warmupEstimate(target,start); if(warmupAttempt&&activeHeat(state)){ if(estimate){ const left=Math.max(0,estimate.seconds-(now-warmupAttempt.startedAt)/1000); holder.textContent='≈ '+formatSeconds(left)+' left · '+estimate.count+' runs'; } else holder.textContent='learning · '+warmupSamples.length+' runs'; return; } if(lastWarmupSeconds!=null){holder.textContent='last '+formatSeconds(lastWarmupSeconds);return;} holder.textContent=estimate?'≈ '+formatSeconds(estimate.seconds)+' · '+estimate.count+' runs':'learning · '+warmupSamples.length+' runs'; }
@@ -5646,49 +5732,55 @@ const PUFF=(function(){
     const saved=await PUFF.setProfileRgb(rgb); renderRgb(saved); setSpellPaletteFromPeak(saved.palette); profileRgbDirty=false; lastRgbAt=Date.now(); syncColorInputs(rgb); setNote('solid profile light saved · spells now follow it ✓');
   }
   async function refresh(){
-    if(refreshInFlight||!PUFF.connected)return; refreshInFlight=true;
+    if(refreshInFlight||!PUFF.connected||deviceBusy)return; refreshInFlight=true;
     try{
-      lastReadError=''; const now=Date.now(),state=await safely(()=>PUFF.state()),target=await safely(()=>PUFF.temp()),session=await safely(()=>PUFF.sessionTime()),heater=await safely(()=>PUFF.heaterTemp());
-      if(state==null&&target==null&&session==null&&heater==null){missedPolls++;if(missedPolls===3)setNote('connection is quiet — keeping the same bond and checking again shortly.');return;} missedPolls=0;
-      if(state!=null){ lastState=state; const stateName=STATES[Math.round(state)]||('#'+Math.round(state)); $('pState').textContent=stateName; if(!activeHeat(state)){cycleStartedAt=null;if(state===3||state===4||state===9||(state===5&&(!warmupAttempt||now-warmupAttempt.startedAt>8000)))warmupAttempt=null;} }
-      if(target!=null){ const celsius=Math.round(target),fahrenheit=Math.round(toFahrenheit(target)); $('pTemp').textContent=fahrenheit+'°F · '+celsius+'°C'; if(document.activeElement!==$('pTarget')) $('pTarget').value=fahrenheit; setSpellToneFromFahrenheit(fahrenheit); syncQuickProfiles(fahrenheit); }
-      const fullyHeated=target!=null&&heater!=null&&Number.isFinite(heater)&&heater>=target-READY_MARGIN_C;
-      if(fullyHeated&&activeHeat(state)){ if(!cycleStartedAt)cycleStartedAt=now; const recorded=recordWarmup(now); if(recorded!=null)setNote('ready in '+formatSeconds(recorded)+' · saved to this Peak’s warm-up history ✓'); }
-      updateWarmupDisplay(target,heater,state,now);
-      if(session!=null&&session>0){ let label=formatSeconds(session); if(cycleStartedAt&&activeHeat(state)){ const left=Math.max(0,session-(now-cycleStartedAt)/1000); label+=' · ~'+formatSeconds(left)+' left'; } else if(activeHeat(state))label+=' · starts when hot'; $('pSession').textContent=label; if(document.activeElement!==$('pSessionTarget'))$('pSessionTarget').value=Math.round(session); }
-      if(heater!=null&&Number.isFinite(heater)){ const fahrenheit=Math.round(toFahrenheit(heater)),celsius=Math.round(heater),status=target!=null?heatStatus(target,heater,state):''; $('pLiveTemp').textContent=fahrenheit+'°F · '+celsius+'°C'+status; }
+      lastReadError=''; const now=Date.now(),state=await safely(()=>PUFF.state());
+      if(state==null){missedPolls++;renderLink(now);if(missedPolls===2)setNote('connection is quiet — manual actions stay available, and Emberwatch is backing off its checks.');return;}
+      lastState=state;const stateName=STATES[Math.round(state)]||('#'+Math.round(state));$('pState').textContent=stateName;
+      if(activeHeat(state)){inactiveReads=0;}else{inactiveReads++;if(inactiveReads>=2||state===3||state===4||state===9){cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;if(state===3||state===4||state===9||(state===5&&(!warmupAttempt||now-warmupAttempt.startedAt>8000)))warmupAttempt=null;}}
+      if(deviceBusy)return;
+      const target=await safely(()=>PUFF.temp());
+      if(target==null){missedPolls++;renderLink(now);return;}
+      const celsius=Math.round(target),fahrenheit=Math.round(toFahrenheit(target)); $('pTemp').textContent=fahrenheit+'°F · '+celsius+'°C'; if(document.activeElement!==$('pTarget')) $('pTarget').value=fahrenheit; setSpellToneFromFahrenheit(fahrenheit); syncQuickProfiles(fahrenheit);
+      const lorax=PUFF.protocol==='Lorax';
+      if(lorax){
+        if(deviceBusy)return;const session=await safely(()=>PUFF.sessionTime());
+        if(session==null){missedPolls++;renderLink(now);return;}
+        if(deviceBusy)return;const heater=await safely(()=>PUFF.heaterTemp());
+        if(heater==null){missedPolls++;renderLink(now);return;}
+        const fullyHeated=Number.isFinite(heater)&&heater>=target-READY_MARGIN_C;
+        if(fullyHeated&&activeHeat(state)){ if(!cycleStartedAt)cycleStartedAt=now; const recorded=recordWarmup(now); if(recorded!=null)setNote('ready in '+formatSeconds(recorded)+' · saved to this Peak’s warm-up history ✓'); if(heatStartedInGame&&!sessionRecordedForCycle){recordStrainSession();sessionRecordedForCycle=true;} }
+        updateWarmupDisplay(target,heater,state,now);
+        if(session>0){ let label=formatSeconds(session); if(cycleStartedAt&&activeHeat(state)){ const left=Math.max(0,session-(now-cycleStartedAt)/1000); label+=' · detected · ~'+formatSeconds(left)+' left'; } else if(activeHeat(state))label+=' · starts when hot'; $('pSession').textContent=label; if(document.activeElement!==$('pSessionTarget'))$('pSessionTarget').value=Math.round(session); }
+        const liveFahrenheit=Math.round(toFahrenheit(heater)),liveCelsius=Math.round(heater),status=heatStatus(target,heater,state); $('pLiveTemp').textContent=liveFahrenheit+'°F · '+liveCelsius+'°C'+status;
+      }else{$('pSession').textContent='—';$('pLiveTemp').textContent='—';$('pWarmup').textContent='not available';}
+      lastTelemetryAt=Date.now();missedPolls=0;renderLink(lastTelemetryAt);
+      if(deviceBusy)return;
       if(now-lastBatteryAt>10000){ const battery=await safely(()=>PUFF.battery()); if(battery!=null){ $('pBatt').textContent=Math.max(0,Math.min(100,Math.round(battery)))+'%'; lastBatteryAt=now; } }
+      if(deviceBusy)return;
       if(profileRgbDirty||now-lastRgbAt>12000){ const rgb=await safely(()=>PUFF.profileRgb()); if(rgb){ renderRgb(rgb); setSpellPaletteFromPeak(rgb.palette); } else { renderRgb(null); clearPeakSpellPalette(); if(target!=null)setSpellToneFromFahrenheit(Math.round(toFahrenheit(target))); } profileRgbDirty=false; lastRgbAt=now; }
-    }finally{refreshInFlight=false;}
+    }finally{refreshInFlight=false;renderLink();}
   }
-  function onDisc(){ lastReadError=''; selectedProfile=null; cycleStartedAt=null; warmupAttempt=null; refreshInFlight=false; missedPolls=0; lastState=null; clearPeakSpellPalette(); puffPanel.classList.remove('online'); setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearTimeout(poll);poll=null;} }
-  $('puffConnect').onclick=async()=>{
-    setStat('requesting device…'); setNote('');
-    try{
-      const connected=await PUFF.connect();
-      selectedProfile=await PUFF.activeProfile(); puffPanel.classList.add('online'); setStat('connected ✓ · '+connected.protocol+' · '+connected.name); live.style.display='flex'; $('puffConnect').style.display='none';
-      const connectedDevice=PUFF.device;
-      connectedDevice.addEventListener('gattserverdisconnected',()=>{if(PUFF.device===connectedDevice)onDisc();},{once:true});
-      scheduleRefresh(0);
-    }catch(e){
-      setStat('⚠ '+e.message);
-      if(/service|GATT|not found|No Services|control service/i.test(e.message)) setNote('Put the Peak into Bluetooth pairing mode: wake it, then hold the button about 6 seconds until it flashes blue. Close the Puffco app or any other Bluetooth connection before retrying.');
-      else if(/secure|localhost/i.test(e.message)) setNote('Run the game from <code>http://localhost</code> (I can hand you a one-click launcher).');
-    }
-  };
-  $('pSet').onclick=()=>setTargetFahrenheit(+$('pTarget').value).catch(e=>setNote('⚠ '+e.message));
-  $('pSessionSet').onclick=()=>setSessionSeconds(+$('pSessionTarget').value).catch(e=>setNote('⚠ '+e.message));
+  function onDisc(){ deviceActionEpoch++;lastReadError=''; selectedProfile=null; cycleStartedAt=null; warmupAttempt=null; refreshInFlight=false; missedPolls=0;lastState=null;lastTelemetryAt=0;inactiveReads=0;sessionRecordedForCycle=false;heatStartedInGame=false;setDeviceBusy(false);clearPeakSpellPalette(); puffPanel.classList.remove('online'); setStat('disconnected'); live.style.display='none'; $('puffConnect').style.display='block'; if(poll){clearTimeout(poll);poll=null;}renderLink(); }
+  $('puffConnect').onclick=()=>deviceAction('requesting device…',async isCurrent=>{
+    setNote('');try{const connected=await PUFF.connect();if(!isCurrent()){PUFF.disconnect();return;}const profile=await PUFF.activeProfile();if(!isCurrent()){PUFF.disconnect();return;}selectedProfile=profile;warmupSamples=loadWarmups();lastWarmupSeconds=null;warmupAttempt=null;puffPanel.classList.add('online');setStat('connected ✓ · '+connected.protocol+' · '+connected.name);live.style.display='flex';$('puffConnect').style.display='none';const connectedDevice=PUFF.device;connectedDevice?.addEventListener('gattserverdisconnected',()=>{if(PUFF.device===connectedDevice)onDisc();},{once:true});}catch(e){if(!isCurrent())return;onDisc();setStat('⚠ '+e.message);if(/service|GATT|not found|No Services|control service/i.test(e.message))setNote('Put the Peak into Bluetooth pairing mode: wake it, then hold the button about 6 seconds until it flashes blue. Close the Puffco app or any other Bluetooth connection before retrying.');else if(/secure|localhost/i.test(e.message))setNote('Run the game from http://localhost (I can hand you a one-click launcher).');}
+  });
+  $('pSet').onclick=()=>deviceAction('saving temperature…',()=>setTargetFahrenheit(+$('pTarget').value)).catch(e=>setNote('⚠ '+e.message));
+  $('pSessionSet').onclick=()=>deviceAction('saving duration…',()=>setSessionSeconds(+$('pSessionTarget').value)).catch(e=>setNote('⚠ '+e.message));
   $('pColor').addEventListener('input',()=>{$('pColorHex').value=$('pColor').value.toUpperCase();});
   $('pColorHex').addEventListener('change',()=>{const rgb=rgbForHex($('pColorHex').value);if(rgb)syncColorInputs(rgb);});
-  $('pColorSet').onclick=()=>setProfileColor().catch(e=>setNote('⚠ '+e.message));
-  document.querySelectorAll('[data-profile-f]').forEach(button=>button.onclick=()=>applyQuickProfile(button).catch(e=>setNote('⚠ '+e.message)));
-  $('pHeat').onclick=async()=>{ try{ const [target,start]=await Promise.all([safely(()=>PUFF.temp()),safely(()=>PUFF.heaterTemp())]); await PUFF.mode('heat'); recordStrainSession(); warmupAttempt=Number.isFinite(target)&&Number.isFinite(start)&&start<target-READY_MARGIN_C?{startedAt:Date.now(),target,start}:null; setNote(warmupAttempt?'heat cycle started · timing this warm-up ✓':'heat cycle started ✓'); if(typeof cast==='function')cast(); await refresh(); }catch(e){setNote('⚠ '+e.message);} };
-  $('pBoostTime').onclick=()=>boostSessionTime().catch(e=>setNote('⚠ '+e.message));
-  $('pBoostTemp').onclick=()=>boostTemperature().catch(e=>setNote('⚠ '+e.message));
-  $('pIdle').onclick=()=>PUFF.mode('idle').then(()=>{warmupAttempt=null;cycleStartedAt=null;setNote('heat cycle stopped ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
-  $('pSleep').onclick=()=>PUFF.mode('sleep').then(()=>{warmupAttempt=null;cycleStartedAt=null;setNote('sleep mode requested ✓'); refresh();}).catch(e=>setNote('⚠ '+e.message));
-  $('pDisc').onclick=()=>PUFF.disconnect();
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&PUFF.connected)scheduleRefresh(0);});
+  $('pColorSet').onclick=()=>deviceAction('saving profile light…',setProfileColor).catch(e=>setNote('⚠ '+e.message));
+  document.querySelectorAll('[data-profile-f]').forEach(button=>button.onclick=()=>deviceAction('selecting heat profile…',()=>applyQuickProfile(button)).catch(e=>setNote('⚠ '+e.message)));
+  $('pHeat').onclick=()=>deviceAction('starting heat…',async()=>{const target=await PUFF.temp(),start=await PUFF.heaterTemp();await PUFF.mode('heat');sessionRecordedForCycle=false;heatStartedInGame=true;warmupAttempt=Number.isFinite(target)&&Number.isFinite(start)&&start<target-READY_MARGIN_C?{startedAt:Date.now(),target,start}:null;setNote(warmupAttempt?'heat cycle started · timing this warm-up ✓':'heat cycle started ✓');if(typeof cast==='function')cast();}).catch(e=>setNote('⚠ '+e.message));
+  $('pBoostTime').onclick=()=>deviceAction('saving +15 seconds…',boostSessionTime).catch(e=>setNote('⚠ '+e.message));
+  $('pBoostTemp').onclick=()=>deviceAction('saving +15°F…',boostTemperature).catch(e=>setNote('⚠ '+e.message));
+  $('pIdle').onclick=()=>deviceAction('stopping heat…',async()=>{await PUFF.mode('idle');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;setNote('heat cycle stopped ✓');}).catch(e=>setNote('⚠ '+e.message));
+  $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
+  $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
+  $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'chamber: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
+  document.addEventListener('emberwatch:puff-panel-open',()=>{if(PUFF.connected)scheduleRefresh(0);});
+  document.addEventListener('visibilitychange',()=>{if(!PUFF.connected)return;if(document.visibilityState==='hidden'){if(poll){clearTimeout(poll);poll=null;}}else scheduleRefresh(0);});
 })();
 
 let loadedModel=null,loadedModelURL=null;
@@ -5700,7 +5792,7 @@ function loadGLB(url,name){ LMSG.textContent='loading '+(name||'model')+'…'; c
     loadedModel.position.x-=cc.x; loadedModel.position.z-=cc.z; loadedModel.position.y-=box.min.y; scene.add(loadedModel);
     player.x=0; player.z=Math.max(6,sz.z*0.55); document.getElementById('track').textContent='⛰ '+(name||'model'); },
     undefined, err=>{ releaseBlobURL(url); document.getElementById('track').textContent='model failed — export .glb'; }); }
-function handleGLBFile(f){ if(f) loadGLB(URL.createObjectURL(f), f.name.replace(/\.[^.]+$/,'')); }
+function handleGLBFile(f){ if(!f)return;if(f.size>30*1024*1024){document.getElementById('track').textContent='scenery limit is 30 MB';showGameToast('That scenery file is over the 30 MB limit.');return;}loadGLB(URL.createObjectURL(f), f.name.replace(/\.[^.]+$/,'')); }
 document.getElementById('glb').addEventListener('change',e=>handleGLBFile(e.target.files[0]));
 const drop=document.getElementById('drop');
 addEventListener('dragover',e=>{ e.preventDefault(); drop.style.display='flex'; }); addEventListener('dragleave',e=>{ if(e.relatedTarget===null) drop.style.display='none'; });
@@ -5723,7 +5815,7 @@ const LIGHTING={
 };
 function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=name in LIGHTING?name:'night'; scene.fog.color.setHex(next.fog); scene.background.setHex(next.fog); hemi.color.setHex(next.hemi); hemi.groundColor.setHex(next.ground); moon.color.setHex(next.moon); moon.intensity=next.moonPower; ground.material.color.setHex(next.ground); document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
 document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting(savedGameState?.lighting||'night');
-const pxSteps=[0.65,0.45,0.3]; let pxi=1; if(Number.isFinite(savedGameState?.renderScale)){const savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex>=0){pxi=savedIndex;RS=pxSteps[pxi];resize();}} document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); saveGameState(); };
+const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let pxi=1;function updateGraphicsButton(){document.getElementById('pxBtn').textContent='▦ graphics · '+pxNames[pxi];}if(Number.isFinite(savedGameState?.renderScale)){const savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex>=0){pxi=savedIndex;RS=pxSteps[pxi];resize();}}updateGraphicsButton();document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); updateGraphicsButton();saveGameState(); };
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
@@ -5733,7 +5825,7 @@ const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
   let f=0,r=0;
   if(keys['KeyW']||keys['ArrowUp'])f+=1; if(keys['KeyS']||keys['ArrowDown'])f-=1; if(keys['KeyD']||keys['ArrowRight'])r+=1; if(keys['KeyA']||keys['ArrowLeft'])r-=1;
-  if(stickVec.x||stickVec.y){ f+=-stickVec.y; r+=stickVec.x; }
+  const uiOpen=anyOverlayOpen(); if(!uiOpen&&(stickVec.x||stickVec.y)){ f+=-stickVec.y; r+=stickVec.x; } if(uiOpen){f=0;r=0;}
   const mag=Math.hypot(f,r),moving=mag>0.06;
   const fwdX=-Math.sin(yaw),fwdZ=-Math.cos(yaw),rgtX=Math.cos(yaw),rgtZ=-Math.sin(yaw);
   if(moving){ let mx=fwdX*f+rgtX*r,mz=fwdZ*f+rgtZ*r; const ml=Math.hypot(mx,mz); mx/=ml; mz/=ml;
@@ -5741,13 +5833,13 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
     const nx=player.x+mx*sp,nz=player.z+mz*sp;
     if(!blocked(nx,player.z)) player.x=Math.max(-lim,Math.min(lim,nx));
     if(!blocked(player.x,nz)) player.z=Math.max(-lim,Math.min(lim,nz)); }
-  if(keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
+  if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t,dt);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t,dt);updateWayfinder(t);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
-  for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextZ=fromZ+s.v.z*dt,hit=spellBarrier(fromX,fromZ,nextX,nextZ); if(hit){spellImpact(hit.x,s.g.position.y,hit.z,s.color);scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
+  for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
   for(let i=spellHits.length-1;i>=0;i--){const hit=spellHits[i];hit.life-=dt;hit.mesh.rotation.y+=dt*9;hit.mesh.scale.multiplyScalar(1+dt*3.2);if(hit.life<=0){scene.remove(hit.mesh);spellHits.splice(i,1);}}
   for(let i=socialSmoke.length-1;i>=0;i--){ const puff=socialSmoke[i]; puff.life-=dt; puff.mesh.position.y+=dt*.55; puff.mesh.scale.multiplyScalar(1+dt*.6); puff.mesh.material.opacity=Math.max(0,puff.life*.22); if(puff.life<=0){ scene.remove(puff.mesh); puff.mesh.geometry.dispose(); puff.mesh.material.dispose(); socialSmoke.splice(i,1); } }
   if(fireParticles){ const fp=fireParticles.geometry.attributes.position; for(let i=0;i<fpN;i++){ let y=fp.getY(i)+fpV[i]*60*dt; if(y>3.2)y=1; fp.setY(i,y); } fp.needsUpdate=true; if(fireLight) fireLight.intensity=2.4+Math.sin(t*12)*0.4; }
