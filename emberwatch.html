@@ -140,6 +140,8 @@
   <div class="sep"></div><h4>World</h4>
   <div class="row"><label class="btn glb" style="flex:1">⛰ add .glb scenery<input id="glb" type="file" accept=".glb" hidden></label></div>
   <div class="row"><button class="btn" id="unstuckBtn" style="flex:1">↟ return to North Gate</button></div>
+  <div class="row"><button class="btn" id="worldSeedCopy" style="flex:1" title="Copy this city seed">⌘ copy city seed · <span id="worldSeedText"></span></button></div>
+  <div class="row"><button class="btn ember" id="worldSeedReset" style="flex:1" title="Create a new seeded city and reload">↻ forge a new Vaneth</button></div>
   <div class="sep"></div><h4>Lighting</h4>
   <div class="row"><button class="btn active" data-light="night" style="flex:1">☾ night</button><button class="btn" data-light="dusk" style="flex:1">◐ dusk</button><button class="btn ember" data-light="ember" style="flex:1">✦ ember</button></div>
   <div class="sep"></div><h4>Display</h4>
@@ -175,7 +177,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r49 city life</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r50 seeded Vaneth</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4728,12 +4730,49 @@ moon.shadow.mapSize.set(2048,2048); const scam=moon.shadow.camera; scam.left=-12
 const moonDisc=new THREE.Mesh(new THREE.CircleGeometry(9,28),new THREE.MeshBasicMaterial({color:0xd9ccff,fog:false})); moonDisc.position.set(-110,80,-150); scene.add(moonDisc);
 const moon2=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xd98a6a,fog:false})); moon2.position.set(90,64,-160); scene.add(moon2);
 
-// helpers — the city gets one browser-local seed, so a saved position never
-// reloads into a differently generated street or tree line.
-const WORLD_SEED_KEY='emberwatch.vaneth.world-seed.v1';
-const WORLD_SEED=(()=>{try{const saved=Number(localStorage.getItem(WORLD_SEED_KEY));if(Number.isFinite(saved)&&saved>0)return saved>>>0;const created=((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0)||0x5eeda11;localStorage.setItem(WORLD_SEED_KEY,String(created));return created;}catch{return 0x5eeda11;}})();
+// helpers — Vaneth is generated from one browser-local seed.  The seed is
+// written both here and into the save file, so a restored position cannot
+// silently land in a different street or tree line.
+const GAME_SAVE_KEY='emberwatch.game-state.v3';
+const LEGACY_GAME_SAVE_KEYS=['emberwatch.game-state.v2','emberwatch.game-state.v1'];
+const WORLD_SEED_KEY='emberwatch.vaneth.world-seed.v2';
+const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
+const WORLD_SEED_VERSION=1;
+// Bump this deliberately when geometry, street plans, or collision placement
+// changes enough that an old coordinate could be unsafe in the new layout.
+const WORLD_LAYOUT_VERSION=1;
+function normalWorldSeed(value){
+  if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
+  const text=String(value??'').trim();
+  if(!/^\d{1,10}$/.test(text))return null;
+  const numeric=Number(text); return Number.isSafeInteger(numeric)&&numeric>=0&&numeric<=0xffffffff?numeric>>>0:null;
+}
+function worldSeedFromSave(save){return normalWorldSeed(save?.world?.seed??save?.worldSeed);}
+function storedWorldSeed(){
+  for(const key of [WORLD_SEED_KEY,...LEGACY_WORLD_SEED_KEYS])try{const seed=normalWorldSeed(localStorage.getItem(key));if(seed!==null)return seed;}catch{}
+  return null;
+}
+function savedWorldSeed(){
+  for(const key of [GAME_SAVE_KEY,...LEGACY_GAME_SAVE_KEYS])try{const raw=localStorage.getItem(key);if(!raw)continue;const seed=worldSeedFromSave(JSON.parse(raw));if(seed!==null)return seed;}catch{}
+  return null;
+}
+function newWorldSeed(){
+  const entropy=new Uint32Array(1);
+  try{if(globalThis.crypto?.getRandomValues){crypto.getRandomValues(entropy);return entropy[0]>>>0;}}catch{}
+  return ((Date.now()^Math.floor(performance.now()*1000))>>>0);
+}
+function persistWorldSeed(seed){try{localStorage.setItem(WORLD_SEED_KEY,String(seed>>>0));return true;}catch{return false;}}
+const WORLD_SEED=(()=>{try{const stored=storedWorldSeed();if(stored!==null){persistWorldSeed(stored);return stored;}const restored=savedWorldSeed(),created=restored??newWorldSeed();persistWorldSeed(created);return created;}catch{return 0x5eeda11;}})();
+function worldStreamSeed(label){
+  let hash=(WORLD_SEED^0x9e3779b9)>>>0;
+  for(const char of String(label)){hash^=char.charCodeAt(0);hash=Math.imul(hash,0x85ebca6b)>>>0;hash^=hash>>>13;}
+  return hash>>>0;
+}
 let worldRngState=WORLD_SEED;
 function worldRandom(){let value=worldRngState+=0x6D2B79F5;value=Math.imul(value^value>>>15,value|1);value^=value+Math.imul(value^value>>>7,value|61);return((value^value>>>14)>>>0)/4294967296;}
+function useWorldStream(label){worldRngState=worldStreamSeed(label);}
+// Only world construction uses this stream. Runtime movement and animation
+// stay time-driven, so revisiting a seed does not affect gameplay timing.
 const rand=(a,b)=>a+worldRandom()*(b-a), pick=a=>a[(worldRandom()*a.length)|0];
 function shade(hex,d){ const c=v=>Math.max(0,Math.min(255,v|0)); return 'rgb('+c((hex>>16&255)+d)+','+c((hex>>8&255)+d)+','+c((hex&255)+d)+')'; }
 function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('canvas');cvs.width=cvs.height=S;const x=cvs.getContext('2d'),pattern=opt.pattern||'';x.fillStyle=shade(base,0);x.fillRect(0,0,S,S);
@@ -4748,6 +4787,7 @@ function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('c
 function sm(tex){ return new THREE.MeshStandardMaterial({map:tex,flatShading:true,roughness:1,metalness:0}); }
 function em(color,intensity){ return new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:intensity,flatShading:true}); }
 
+useWorldStream('textures');
 const TX={ground:makeTex(0x27301d,{pattern:'ground',density:.06,jitter:10,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15]}),
   wall:makeTex(0x706556,{pattern:'stone',density:.04,jitter:12}),wall2:makeTex(0x5d596b,{pattern:'stone',density:.04,jitter:12}),
   brick:makeTex(0x6a4239,{pattern:'brick',density:.03,jitter:10}),roof:makeTex(0x67343b,{pattern:'roof',density:.03,jitter:10}),
@@ -5092,12 +5132,12 @@ function perimeterWards(){
   interiorHouse('The Westwall Refuge',-220,-42,20,16,'guild');
 }
 function plannedDistricts(){
-  denseCityWards();
-  infillDistricts();
-  northGateWard();
-  perimeterWards();
-  gateApproaches();
-  cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
+  useWorldStream('districts-core');denseCityWards();
+  useWorldStream('districts-infill');infillDistricts();
+  useWorldStream('districts-north-gate');northGateWard();
+  useWorldStream('districts-perimeter');perimeterWards();
+  useWorldStream('districts-gates');gateApproaches();
+  useWorldStream('districts-landmarks');cathedral(89,-46,-.18); interiorHouse('The Moon Archive',-86,-44,20,16,'archive'); interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild'); interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');
   spire(-158,-12,20); spire(156,18,18);
 }
@@ -5108,7 +5148,7 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
 function denseForest(){const trees=[];let tries=0;while(trees.length<2100&&tries++<18000){const a=rand(0,Math.PI*2),r=rand(CITY_RADIUS+15,M*.49),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<13||Math.abs(z)<13)continue;if(Math.hypot(x+292,z+178)<30||Math.hypot(x-292,z+172)<30||Math.hypot(x+295,z-178)<31||Math.hypot(x-294,z-174)<27)continue;trees.push([x,z,rand(3.7,8.2),rand(.75,1.35)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
-function outerCity(){graveyard(-292,-178);ruins(292,-172);pond(-295,178);stones(294,174);denseForest();mountains();}
+function outerCity(){useWorldStream('outer-graveyard');graveyard(-292,-178);useWorldStream('outer-ruins');ruins(292,-172);useWorldStream('outer-pond');pond(-295,178);useWorldStream('outer-stones');stones(294,174);useWorldStream('outer-forest');denseForest();useWorldStream('outer-mountains');mountains();}
 const ravens=[];
 function cityLantern(x,z,lit=true){aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');addCollider(x,z,.25);if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
 function marketCart(x,z,ry=0){aBox(2.7,.44,1.45,x,.9,z,'wood',ry);aBox(3.05,.16,1.75,x,2.3,z,'cloth',ry);for(const side of[-1,1])aCyl(.33,.33,.15,8,x+Math.cos(ry)*side*1.05,.36,z-Math.sin(ry)*side*1.05,'stone',ry+Math.PI/2);aCyl(.08,.08,2.1,5,x-Math.sin(ry)*1.55,1.55,z-Math.cos(ry)*1.55,'wood',ry+Math.PI/2);addCollider(x,z,1.55);}
@@ -5133,7 +5173,7 @@ function cityLifeDetails(){
   [[-8,202],[8,202],[-18,183],[18,183],[-111,145],[111,145],[-176,83],[176,83]].forEach(spot=>cityLantern(spot[0],spot[1],false));
 }
 function addRavens(){const feather=new THREE.MeshBasicMaterial({color:0x16131f,side:THREE.DoubleSide});for(let i=0;i<14;i++){const g=new THREE.Group(),body=new THREE.Mesh(new THREE.ConeGeometry(.16,.7,4),feather),left=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather),right=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather);body.rotation.z=Math.PI*.5;left.position.x=-.38;right.position.x=.38;g.add(body,left,right);g.position.set(rand(-185,185),rand(17,41),rand(-185,185));scene.add(g);ravens.push({g,left,right,radius:rand(85,220),height:g.position.y,phase:rand(0,6.28),speed:rand(.08,.18)});}}
-function makeVanethLively(){cityClutter();cityLifeDetails();plantLife();addRavens();}
+function makeVanethLively(){useWorldStream('city-clutter');cityClutter();useWorldStream('city-life');cityLifeDetails();useWorldStream('flora');plantLife();useWorldStream('ravens');addRavens();}
 function auditVanethGeometry(){
   const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0);
   const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ));
@@ -5147,10 +5187,10 @@ function auditVanethGeometry(){
 }
 
 // ---------- ASSEMBLE ----------
-LMSG.textContent='planning the avenues…'; streetPlan();
-LMSG.textContent='raising the citadel…'; citadel();
-LMSG.textContent='building the districts…'; plannedDistricts(); marketDistrict();
-LMSG.textContent='fortifying the city…'; citadelWall();
+LMSG.textContent='planning the avenues…'; useWorldStream('street-plan');streetPlan();
+LMSG.textContent='raising the citadel…'; useWorldStream('citadel');citadel();
+LMSG.textContent='building the districts…'; useWorldStream('districts');plannedDistricts();useWorldStream('market');marketDistrict();
+LMSG.textContent='fortifying the city…'; useWorldStream('city-wall');citadelWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 const vanethGeometry=auditVanethGeometry();
@@ -5250,6 +5290,7 @@ const vanethResidents=[
   ['Pilgrim Sorell',96,55,0x8f8061,'Leave a little quiet for the shrine.'],
   ['Chamberlain Ash',-5,-18,0x513d78,'The Great Hall has room for every kind of ambition.']
 ];
+useWorldStream('residents-core');
 vanethResidents.forEach(resident=>villager(...resident));
 const vanethPassers=[
   ['Rill the Fishmonger',-22,91,0x3b6170,'Fresh stock is a matter of tide, timing, and patience.',vanethRoutes.market],
@@ -5279,10 +5320,12 @@ const vanethPassers=[
   ['Tor Bell',-45,-154,0x606a4e,'The fields have their own calendar.',vanethRoutes.south],
   ['Ari Wells',42,-112,0x526e86,'A traveler tells you where the wind has been.',vanethRoutes.south]
 ];
+useWorldStream('residents-passers');
 vanethPassers.forEach(resident=>villager(...resident));
 
 // starlight
 const stN=850,stG=new THREE.BufferGeometry(),stP=new Float32Array(stN*3);
+useWorldStream('starlight');
 for(let i=0;i<stN;i++){ const r=440,t=rand(0,6.28),p=rand(0.1,1.4); stP[i*3]=Math.cos(t)*Math.sin(p)*r; stP[i*3+1]=Math.cos(p)*r*0.6+40; stP[i*3+2]=Math.sin(t)*Math.sin(p)*r; }
 stG.setAttribute('position',new THREE.BufferAttribute(stP,3)); scene.add(new THREE.Points(stG,new THREE.PointsMaterial({color:0xdcd2ff,size:0.9,transparent:true,opacity:0.8,fog:false})));
 
@@ -5290,13 +5333,21 @@ stG.setAttribute('position',new THREE.BufferAttribute(stP,3)); scene.add(new THR
 //  CONTROLLER + UI  (unchanged core)
 // ============================================================
 const player={x:0,z:CITY_RADIUS+5,y:0,vy:0,onGround:true}; let yaw=0,pitch=-0.02;
-const GAME_SAVE_KEY='emberwatch.game-state.v2';
-function loadGameState(){try{const saved=JSON.parse(localStorage.getItem(GAME_SAVE_KEY)||localStorage.getItem('emberwatch.game-state.v1')||'null');return saved&&(saved.version===1||saved.version===2)?saved:null;}catch{return null;}}
+function loadGameState(){
+  for(const key of [GAME_SAVE_KEY,...LEGACY_GAME_SAVE_KEYS])try{const raw=localStorage.getItem(key);if(!raw)continue;const saved=JSON.parse(raw);if(saved&&[1,2,3].includes(saved.version))return saved;}catch{}
+  return null;
+}
+function worldLayoutFromSave(save){const version=save?.world?.layoutVersion??save?.layoutVersion;return Number.isInteger(version)?version:null;}
+function canRestoreSavedPosition(save){
+  return !!(save&&worldSeedFromSave(save)===WORLD_SEED&&worldLayoutFromSave(save)===WORLD_LAYOUT_VERSION&&Number.isFinite(save.x)&&Number.isFinite(save.z)&&Math.abs(save.x)<M*.47&&Math.abs(save.z)<M*.47&&!blocked(save.x,save.z));
+}
 const savedGameState=loadGameState();
-if(savedGameState&&savedGameState.worldSeed===WORLD_SEED&&Number.isFinite(savedGameState.x)&&Number.isFinite(savedGameState.z)&&Math.abs(savedGameState.x)<M*.47&&Math.abs(savedGameState.z)<M*.47&&!blocked(savedGameState.x,savedGameState.z)){
+const restoreSavedPosition=canRestoreSavedPosition(savedGameState);
+if(restoreSavedPosition){
   player.x=savedGameState.x; player.z=savedGameState.z; yaw=Number.isFinite(savedGameState.yaw)?savedGameState.yaw:yaw; pitch=Number.isFinite(savedGameState.pitch)?Math.max(-1.3,Math.min(1.3,savedGameState.pitch)):pitch;
 }
-function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:2,worldSeed:WORLD_SEED,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,interior:activeInterior?.name||null}));}catch{}}
+const restoredInterior=restoreSavedPosition&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
+function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,interior:activeInterior?.name||null}));}catch{}}
 let nextGameSaveAt=0;
 addEventListener('beforeunload',saveGameState);addEventListener('pagehide',saveGameState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveGameState();});
 const keys={}; function typing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.isContentEditable)); }
@@ -5351,12 +5402,12 @@ function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-
   const g=new THREE.Group(),core=new THREE.Mesh(spellCoreGeometry,spellMaterial(castColor)); g.add(core); g.position.copy(from).addScaledVector(dir,1); scene.add(g); spells.push({g,v:dir.multiplyScalar(38),core,color:castColor,life:1.5}); }
 function blocked(x,z){ return colliderBlocked(x,z); }
 const lim=M*0.47;
-let nearestVillager=null,nearestDoor=null,activeInterior=savedGameState?.interior?interiorDoors.find(door=>door.name===savedGameState.interior)||null:null,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
+let nearestVillager=null,nearestDoor=null,activeInterior=restoredInterior,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
 const interactHint=document.getElementById('interactHint'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
 function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
 
 // ---------- Wayfinder: a lightweight reason to inhabit the city ----------
-const WAYFINDER_KEY='emberwatch.vaneth-wayfinder.v1';
+const WAYFINDER_KEY='emberwatch.vaneth-wayfinder.v2';
 const VANETH_LANDMARKS=[
   {id:'north-gate',name:'North Gate',x:0,z:218,radius:18,detail:'The lantern road from the wilds.'},
   {id:'cinder-market',name:'Cinder Market',x:0,z:108,radius:25,detail:'The city’s warmest and loudest square.'},
@@ -5365,7 +5416,10 @@ const VANETH_LANDMARKS=[
   {id:'eastwall',name:'Eastwall Scriptorium',x:220,z:42,radius:16,detail:'The ledger house by the eastern wall.'},
   {id:'foxglove-pond',name:'Foxglove Pond',x:-295,z:178,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
 ];
-function loadWayfinder(){try{const raw=JSON.parse(localStorage.getItem(WAYFINDER_KEY)||'{}'),sameWorld=!raw.worldSeed||raw.worldSeed===WORLD_SEED,discovered=sameWorld?[...new Set(Array.isArray(raw.discovered)?raw.discovered:[])].filter(id=>VANETH_LANDMARKS.some(place=>place.id===id)):[],focusedId=typeof raw.focusedId==='string'&&VANETH_LANDMARKS.some(place=>place.id===raw.focusedId)&&!discovered.includes(raw.focusedId)?raw.focusedId:null;return{version:2,worldSeed:WORLD_SEED,discovered,focusedId};}catch{return{version:2,worldSeed:WORLD_SEED,discovered:[],focusedId:null};}}
+function loadWayfinder(){
+  try{const raw=JSON.parse(localStorage.getItem(WAYFINDER_KEY)||localStorage.getItem('emberwatch.vaneth-wayfinder.v1')||'{}'),sameWorld=worldSeedFromSave(raw)===WORLD_SEED&&worldLayoutFromSave(raw)===WORLD_LAYOUT_VERSION,discovered=sameWorld?[...new Set(Array.isArray(raw.discovered)?raw.discovered:[])].filter(id=>VANETH_LANDMARKS.some(place=>place.id===id)):[],focusedId=typeof raw.focusedId==='string'&&VANETH_LANDMARKS.some(place=>place.id===raw.focusedId)&&!discovered.includes(raw.focusedId)?raw.focusedId:null;return{version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,discovered,focusedId};
+  }catch{return{version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,discovered:[],focusedId:null};}
+}
 let wayfinderState=loadWayfinder(),chronicleOpen=false,lastWayfinderAt=0,lastWardName='';
 const wayfinderWard=document.getElementById('wayfinderWard'),wayfinderGoal=document.getElementById('wayfinderGoal'),wayfinderDistance=document.getElementById('wayfinderDistance'),wayfinderArrow=document.getElementById('wayfinderArrow'),wayfinderCount=document.getElementById('wayfinderCount'),chroniclePanel=document.getElementById('chroniclePanel'),chronicleList=document.getElementById('chronicleList'),chronicleFoot=document.getElementById('chronicleFoot');
 function saveWayfinder(){try{localStorage.setItem(WAYFINDER_KEY,JSON.stringify(wayfinderState));}catch{}}
@@ -5514,6 +5568,22 @@ document.getElementById('gear').addEventListener('click',()=>openSettings());
 document.getElementById('settingsClose').addEventListener('click',()=>openSettings(false));
 function returnToNorthGate(){closeDialogue();activeInterior=null;player.x=0;player.z=CITY_RADIUS+5;player.y=0;player.vy=0;player.onGround=true;yaw=0;pitch=-.02;clearPressedKeys();saveGameState();showGameToast('You return to the North Gate.');}
 document.getElementById('unstuckBtn').addEventListener('click',returnToNorthGate);
+const worldSeedText=document.getElementById('worldSeedText');
+worldSeedText.textContent=String(WORLD_SEED);
+async function copyWorldSeed(){
+  const text=String(WORLD_SEED);
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);showGameToast('Vaneth seed copied.');return;}}catch{}
+  const field=document.createElement('textarea');field.value=text;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';document.body.append(field);field.select();
+  try{if(document.execCommand('copy'))showGameToast('Vaneth seed copied.');else showGameToast('Seed: '+text);}catch{showGameToast('Seed: '+text);}finally{field.remove();}
+}
+function forgeNewVaneth(){
+  if(!confirm('Forge a new Vaneth? Its façades, wilds, and residents will be regenerated; the planned roads and landmarks stay put. You will return to the North Gate. Your strains and Peak settings stay saved.'))return;
+  let next=newWorldSeed();if(next===WORLD_SEED)next=(next+1)>>>0;
+  if(!persistWorldSeed(next)){showGameToast('This browser would not save a new world seed.');return;}
+  location.reload();
+}
+document.getElementById('worldSeedCopy').addEventListener('click',copyWorldSeed);
+document.getElementById('worldSeedReset').addEventListener('click',forgeNewVaneth);
 
 // ---- personal, browser-local strain journal ----
 const STRAIN_STORAGE_KEY='emberwatch.personal-strains.v1';
@@ -5896,11 +5966,11 @@ const PUFF=(function(){
   function syncQuickProfiles(fahrenheit){ document.querySelectorAll('[data-profile-f]').forEach(button=>{ const matchesSlot=selectedProfile!==null&&Number(button.dataset.profileSlot)===selectedProfile; const matchesTemp=selectedProfile===null&&Number(button.dataset.profileF)===fahrenheit; button.classList.toggle('active',matchesSlot||matchesTemp); }); }
   async function setTargetFahrenheit(fahrenheit){
     if(!Number.isFinite(fahrenheit)||fahrenheit<FAHRENHEIT_MIN||fahrenheit>FAHRENHEIT_MAX) throw new Error('Choose a target from 302°F to 599°F.');
-    const saved=await PUFF.setTemp(toCelsius(fahrenheit)); selectedProfile=await PUFF.activeProfile(); const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); clearPeakSpellPalette(); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote('profile saved at '+confirmed+'°F ✓'); await refresh();
+    const saved=await PUFF.setTemp(toCelsius(fahrenheit)); selectedProfile=await PUFF.activeProfile(); const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote('profile saved at '+confirmed+'°F ✓'); await refresh();
   }
   async function applyQuickProfile(button){
     const fahrenheit=Number(button.dataset.profileF),slot=Number(button.dataset.profileSlot),label=button.querySelector('span').textContent;
-    const saved=await PUFF.activateProfile(slot,toCelsius(fahrenheit)); selectedProfile=slot; const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); clearPeakSpellPalette(); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote(label+' profile saved, verified, and selected at '+confirmed+'°F ✓'); await refresh();
+    const saved=await PUFF.activateProfile(slot,toCelsius(fahrenheit)); selectedProfile=slot; const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote(label+' profile saved, verified, and selected at '+confirmed+'°F ✓'); await refresh();
   }
   async function setSessionSeconds(seconds){
     if(!Number.isFinite(seconds)||seconds<15||seconds>120)throw new Error('Choose a session duration from 15 to 120 seconds.');
@@ -5919,7 +5989,7 @@ const PUFF=(function(){
     const next=Math.min(FAHRENHEIT_MAX,Math.round(toFahrenheit(current))+15);
     if(next<=Math.round(toFahrenheit(current)))throw new Error('Target is already at the 599°F device limit.');
     const saved=await PUFF.setTemp(toCelsius(next)); selectedProfile=await PUFF.activeProfile(); const confirmed=Math.round(toFahrenheit(saved));
-    $('pTarget').value=confirmed; syncQuickProfiles(confirmed); clearPeakSpellPalette(); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true;
+    $('pTarget').value=confirmed; syncQuickProfiles(confirmed); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true;
     setNote('target raised to '+confirmed+'°F ✓'); await refresh();
   }
   async function setProfileColor(){
@@ -5977,7 +6047,7 @@ const PUFF=(function(){
       }else{$('pSession').textContent='—';$('pLiveTemp').textContent='—';$('pWarmup').textContent='not available';}
       lastTelemetryAt=Date.now();missedPolls=0;renderLink(lastTelemetryAt);
       if(deviceBusy)return;
-      if(profileRgbDirty||now-lastRgbAt>12000){const rgb=await safely(()=>PUFF.profileRgb());if(rgb){renderRgb(rgb);setSpellPaletteFromPeak(rgb.palette);}else{renderRgb(null);clearPeakSpellPalette();if(target!=null)setSpellToneFromFahrenheit(Math.round(toFahrenheit(target)));}profileRgbDirty=false;lastRgbAt=now;}
+      if(profileRgbDirty||now-lastRgbAt>12000){const rgb=await safely(()=>PUFF.profileRgb()),hasPalette=!!(rgb&&Array.isArray(rgb.palette)&&rgb.palette.length);if(hasPalette){renderRgb(rgb);setSpellPaletteFromPeak(rgb.palette);lastRgbAt=now;}else if(PUFF.protocol!=='Lorax'){renderRgb(null);clearPeakSpellPalette();if(target!=null)setSpellToneFromFahrenheit(Math.round(toFahrenheit(target)));lastRgbAt=now;}else if(!usingPeakRgb){renderRgb(null);}profileRgbDirty=false;}
     }finally{refreshInFlight=false;renderLink();void refreshBattery(Date.now());}
   }
   function onDisc(){deviceActionEpoch++;backgroundTelemetryGeneration++;lastReadError='';selectedProfile=null;cycleStartedAt=null;warmupAttempt=null;refreshInFlight=false;missedPolls=0;lastState=null;lastTelemetryAt=0;inactiveReads=0;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();lastBatteryAt=0;lastBatteryAttemptAt=0;lastBatterySample=null;batteryError='';$('pBatt').textContent='—';setDeviceBusy(false);clearPeakSpellPalette();puffPanel.classList.remove('online');setStat('disconnected');live.style.display='none';$('puffConnect').style.display='block';if(poll){clearTimeout(poll);poll=null;}renderLink();}
