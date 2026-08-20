@@ -177,7 +177,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r51 city compiler</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r52 test-ready</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -185,7 +185,7 @@
       <div class="puff-metrics">
         <div class="pstat"><span>Battery charge</span><b id="pBatt">—</b></div>
         <div class="pstat"><span>Profile target</span><b id="pTemp">—</b></div>
-        <div class="pstat"><span>Chamber now</span><b id="pLiveTemp">—</b></div>
+        <div class="pstat"><span>Reported heater temperature</span><b id="pLiveTemp">—</b></div>
         <div class="pstat"><span>Session time</span><b id="pSession">—</b></div>
         <div class="pstat"><span>Warm-up</span><b id="pWarmup">learning</b></div>
         <div class="pstat"><span>Lighting</span><b id="pRgb">—</b></div>
@@ -207,7 +207,7 @@
         <button class="ppreset" data-profile-f="530" data-profile-slot="2"><span>Strong</span><b>530°F</b></button>
         <button class="ppreset" data-profile-f="545" data-profile-slot="3"><span>Peak</span><b>545°F</b></button>
       </div>
-      <div class="prow pcontrols"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Idle</button><button class="pbtn" id="pSleep">Sleep</button></div>
+      <div class="prow pcontrols"><button class="pbtn heat" id="pHeat">Heat</button><button class="pbtn" id="pIdle">Stop heat</button><button class="pbtn" id="pSleep">Sleep</button></div>
       <div class="puff-section">Next-cycle adjustments</div>
       <div class="prow"><button class="pbtn" id="pBoostTime">+15 sec</button><button class="pbtn" id="pBoostTemp">+15°F</button></div>
       <div class="pnote">Saves a +15-second duration or +15°F target for the selected profile. This does not claim to be the Peak’s live Boost command.</div>
@@ -5098,7 +5098,7 @@ function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
   else if(kind==='archive'){ for(let i=-1;i<=1;i+=2){ aBox(.8,4,d*.58,x+i*(w*.36),2,z,'wood'); } aBox(3,.85,1.5,x,.43,z+1.2,'wood'); addCollider(x,z+1.2,1.1); }
   else { aBox(w*.58,.7,2.2,x,.36,z+1.6,'stone'); aCyl(.7,.8,1.2,8,x,.6,z-2,'stone'); }
   furnishInterior(name,x,z,w,d,kind);
-  interiorDoors.push({id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,kind,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'});
+  interiorDoors.push({id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,cx:x,cz:z,w,d,kind,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'});
 }
 function marketDistrict(){
   fireLight=new THREE.PointLight(0xff7a2d,2.8,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
@@ -5173,7 +5173,19 @@ const DISTRICT_SPECS=Object.freeze([
     {axis:'x',start:-112,end:-25,at:-183,ry:Math.PI,archetypes:['workshop','rowhouse','tavern']},{axis:'x',start:25,end:112,at:-183,ry:Math.PI,archetypes:['rowhouse','workshop','tavern']}
   ]}
 ]);
-function compilerLotClear(x,z,r){
+const COMPILER_ROAD_GAP=.3;
+function compilerLotTouchesRoad(x,z,w,d,ry,gap=COMPILER_ROAD_GAP){
+  // Every compiler road is currently axis-aligned.  Project the rotated lot
+  // into an AABB so a house cannot consume even a thin sliver of its lane.
+  const co=Math.abs(Math.cos(ry)),si=Math.abs(Math.sin(ry)),halfX=(co*w+si*d)*.5+gap,halfZ=(si*w+co*d)*.5+gap;
+  return CITY_PLAN.roads.some(road=>{
+    const half=road.width*.5;
+    const minX=Math.min(road.x1,road.x2)-half,maxX=Math.max(road.x1,road.x2)+half,minZ=Math.min(road.z1,road.z2)-half,maxZ=Math.max(road.z1,road.z2)+half;
+    return x+halfX>minX&&x-halfX<maxX&&z+halfZ>minZ&&z-halfZ<maxZ;
+  });
+}
+function compilerLotClear(x,z,r,w,d,ry){
+  if(compilerLotTouchesRoad(x,z,w,d,ry))return false;
   if(COMPILER_EXCLUSIONS.some(zone=>Math.hypot(x-zone.x,z-zone.z)<zone.r+r))return false;
   // World construction is a one-off and only has a few hundred colliders at
   // this point.  A full scan is safer than the runtime cell lookup here: a
@@ -5208,24 +5220,28 @@ function compilerLot(district,row,index,count){
   const x=row.axis==='x'?along:row.at,z=row.axis==='x'?row.at:along;
   const archetypes=row.archetypes||['rowhouse'],archetype=archetypes[index%archetypes.length];
   const width=archetype==='barracks'?10.2:archetype==='archive'?8.3:7.4+(worldRandom()>.58?1.1:0),depth=archetype==='workshop'?8.6:7.1+(worldRandom()>.66?.9:0),stories=archetype==='archive'?3:archetype==='barracks'?2:(archetype==='rowhouse'&&worldRandom()>.36?2:1),palette=district.theme==='archive'?['wall2','stone','wall']:district.theme==='works'?['brick','wall','stone']:district.theme==='market'?['brick','wall','wall2']:district.theme==='citadel'?['stone','wall2','wall']:['wall','brick','wall2'],key=palette[(index+Math.floor(worldRandom()*palette.length))%palette.length],radius=Math.max(width,depth)*.56;
-  if(!compilerLotClear(x,z,radius))return null;
+  if(!compilerLotClear(x,z,radius,width,depth,row.ry))return null;
   const id=district.id+':lot-'+row.id+'-'+index,lot={id,districtId:district.id,row:row.id,index,x,z,w:width,d:depth,ry:row.ry,archetype,stories,key,accent:district.accent};
   compilerArchetype(archetype,lot);
   const building={id:id+':building',districtId:district.id,parcelId:id,archetype,stories,footprint:{x,z,w:width,d:depth,ry:row.ry},access:'facade',tags:[district.theme,archetype]},streetDistance=Math.max(width,depth)*.56+.75;
   const anchor={id:id+':doorstep',districtId:district.id,buildingId:building.id,kind:'doorstep',x:x+Math.sin(row.ry)*streetDistance,z:z+Math.cos(row.ry)*streetDistance,facing:row.ry};
   CITY_PLAN.parcels.push(lot);CITY_PLAN.buildings.push(building);CITY_PLAN.anchors.push(anchor);district.parcelIds.push(id);district.buildingIds.push(building.id);district.anchorIds.push(anchor.id);return lot;
 }
+function stageCompilerRoads(){
+  if(CITY_PLAN.roads.length)return;
+  DISTRICT_SPECS.forEach(spec=>(spec.roads||[]).forEach((road,index)=>CITY_PLAN.roads.push({id:spec.id+':road-'+index,districtId:spec.id,x1:road[0],z1:road[1],x2:road[2],z2:road[3],width:road[4]})));
+}
 function compileDistrict(spec){
   useWorldStream('compiler:'+spec.id);const district={id:spec.id,name:spec.name,theme:spec.theme,parcelIds:[],buildingIds:[],anchorIds:[],roadIds:[]};CITY_PLAN.districts.push(district);
-  (spec.roads||[]).forEach((road,index)=>{roadBetween(...road);const id=spec.id+':road-'+index;CITY_PLAN.roads.push({id,districtId:spec.id,x1:road[0],z1:road[1],x2:road[2],z2:road[3],width:road[4]});district.roadIds.push(id);});compilerCourt(spec);
+  (spec.roads||[]).forEach((road,index)=>{roadBetween(...road);district.roadIds.push(spec.id+':road-'+index);});compilerCourt(spec);
   (spec.frontages||[]).forEach((row,rowIndex)=>{const length=Math.abs(row.end-row.start),count=Math.max(2,Math.floor(length/13));const compiled={...row,id:rowIndex};for(let index=0;index<count;index++)compilerLot(district,compiled,index,count);});
 }
 function auditCityPlan(){
   const ids=[...CITY_PLAN.districts,...CITY_PLAN.roads,...CITY_PLAN.parcels,...CITY_PLAN.buildings,...CITY_PLAN.anchors].map(entry=>entry.id),seen=new Set();
-  const duplicates=ids.filter(id=>seen.has(id)?true:(seen.add(id),false)),blockedAnchors=CITY_PLAN.anchors.filter(anchor=>colliderBlocked(anchor.x,anchor.z,.35));if(duplicates.length)console.warn('Vaneth compiler duplicate IDs',duplicates);if(blockedAnchors.length)console.warn('Vaneth compiler blocked anchors',blockedAnchors.map(anchor=>anchor.id));return{districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,buildings:CITY_PLAN.buildings.length,anchors:CITY_PLAN.anchors.length,duplicates:duplicates.length,blockedAnchors:blockedAnchors.length};
+  const duplicates=ids.filter(id=>seen.has(id)?true:(seen.add(id),false)),blockedAnchors=CITY_PLAN.anchors.filter(anchor=>colliderBlocked(anchor.x,anchor.z,.35)),roadOverlaps=CITY_PLAN.parcels.filter(lot=>compilerLotTouchesRoad(lot.x,lot.z,lot.w,lot.d,lot.ry));if(duplicates.length)console.warn('Vaneth compiler duplicate IDs',duplicates);if(blockedAnchors.length)console.warn('Vaneth compiler blocked anchors',blockedAnchors.map(anchor=>anchor.id));if(roadOverlaps.length)console.warn('Vaneth compiler road overlaps',roadOverlaps.map(lot=>lot.id));return{districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,buildings:CITY_PLAN.buildings.length,anchors:CITY_PLAN.anchors.length,duplicates:duplicates.length,blockedAnchors:blockedAnchors.length,roadOverlaps:roadOverlaps.length};
 }
 function compileVanethCity(){
-  DISTRICT_SPECS.forEach(compileDistrict);useWorldStream('compiler:gates');gateApproaches();
+  stageCompilerRoads();DISTRICT_SPECS.forEach(compileDistrict);useWorldStream('compiler:gates');gateApproaches();
   useWorldStream('compiler:landmarks');cathedral(89,-46,-.18);interiorHouse('The Moon Archive',-86,-44,20,16,'archive');interiorHouse('Pilgrim Shrine',96,52,18,15,'shrine');
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild');interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');spire(-158,-12,20);spire(156,18,18);return auditCityPlan();
 }
@@ -5279,6 +5295,7 @@ function auditVanethGeometry(){
 LMSG.textContent='planning the avenues…'; useWorldStream('street-plan');streetPlan();
 LMSG.textContent='raising the citadel…'; useWorldStream('citadel');citadel();
 LMSG.textContent='building the districts…'; useWorldStream('districts');plannedDistricts();useWorldStream('market');marketDistrict();
+LMSG.textContent='opening the wall houses…'; useWorldStream('perimeter-wards');perimeterWards();
 LMSG.textContent='fortifying the city…'; useWorldStream('city-wall');citadelWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
@@ -5306,10 +5323,16 @@ const INTERIOR_HOST_ACTIVITY=Object.freeze({
 function villager(name,x,z,robe,line,route=[]){
   const district=villagerDistrict(route),patrol=route.length&& !route.some(point=>Math.abs(point[0]-x)<.01&&Math.abs(point[1]-z)<.01)?[[x,z],...route]:route;
   const signature=[...name].reduce((value,char)=>((value*31)+char.charCodeAt(0))>>>0,7),variant=signature%5;
-  const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:robe,flatShading:true,roughness:1}),trim=new THREE.MeshStandardMaterial({color:[0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>3)%5],flatShading:true,roughness:1}),skin=new THREE.MeshStandardMaterial({color:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30][(signature>>5)%5],flatShading:true,roughness:1}),hair=new THREE.MeshStandardMaterial({color:[0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>8)%4],flatShading:true,roughness:1}),leather=new THREE.MeshStandardMaterial({color:0x382519,flatShading:true,roughness:1});
+  // signature was forced unsigned via >>>0, but a signed >> on a value above
+  // 0x7fffffff sign-extends back to negative, which turns %5/%4 negative and
+  // indexes these palettes out of bounds (a silent `undefined` material color
+  // — about half of residents were getting the Three.js default white instead
+  // of their trim/skin/hair tone). Use unsigned >>> throughout so the shifted
+  // value stays non-negative like signature itself.
+  const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:robe,flatShading:true,roughness:1}),trim=new THREE.MeshStandardMaterial({color:[0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5],flatShading:true,roughness:1}),skin=new THREE.MeshStandardMaterial({color:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30][(signature>>>5)%5],flatShading:true,roughness:1}),hair=new THREE.MeshStandardMaterial({color:[0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4],flatShading:true,roughness:1}),leather=new THREE.MeshStandardMaterial({color:0x382519,flatShading:true,roughness:1});
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),faceStyle=signature%6;
   const face=new THREE.Mesh(new THREE.SphereGeometry(.29,7,6),skin); face.position.y=.2; headPivot.position.y=1.7; headPivot.add(face);
-  const eyeMaterial=npcEyeMaterials[(signature>>11)%npcEyeMaterials.length],mouthMaterial=npcMouthMaterials[(signature>>14)%npcMouthMaterials.length],eyeScale=[1,.82,1.18,.72,1.05,.9][faceStyle],eyeLift=[.255,.24,.27,.248,.262,.25][faceStyle];
+  const eyeMaterial=npcEyeMaterials[(signature>>>11)%npcEyeMaterials.length],mouthMaterial=npcMouthMaterials[(signature>>>14)%npcMouthMaterials.length],eyeScale=[1,.82,1.18,.72,1.05,.9][faceStyle],eyeLift=[.255,.24,.27,.248,.262,.25][faceStyle];
   const leftEye=new THREE.Mesh(new THREE.SphereGeometry(.052,5,4),eyeMaterial),rightEye=leftEye.clone();
   leftEye.position.set(-.105,eyeLift,.266); rightEye.position.set(.105,eyeLift,.266); leftEye.scale.set(eyeScale,eyeScale,1); rightEye.scale.set(eyeScale,eyeScale,1);
   const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.105,.018,.014),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.105,.018,.014),hair);
@@ -5620,8 +5643,8 @@ const sessionRambleEl=document.getElementById('sessionRamble'),sessionRambleMeta
 const sessionRamble={armed:null,active:null,
   hide(){sessionRambleEl.style.display='none';sessionRambleEl.setAttribute('aria-hidden','true');},
   companion(key){return key?villagers.find(npc=>livingNpcKey(npc)===key):nearestVillager;},
-  arm(detail){const candidate=this.companion(detail?.npcKey),npc=candidate&&Math.hypot(candidate.g.position.x-player.x,candidate.g.position.z-player.z)<=8?candidate:null;this.armed={strainId:String(detail?.strainId||''),strainName:String(detail?.strainName||'your jar'),targetF:smokeSessionTemp(detail?.targetF),seconds:smokeSessionSeconds(detail?.seconds),npcKey:npc?livingNpcKey(npc):null};this.active=null;this.hide();return !!npc;},
-  onPeakReady(){if(!this.armed)return;const plan=this.armed,npc=plan.npcKey?this.companion(plan.npcKey):null;this.armed=null;if(!npc){showGameToast(plan.strainName+' is ready. Find a resident before your next shared session.');return;}const strain=strainJournal.records.find(record=>record.id===plan.strainId)||{id:plan.strainId,name:plan.strainName,form:'unspecified',uses:[]},context=livingStrainContext(strain),profile=livingProfile(npc),aromas=livingList(context.aromas.slice(0,2))||'a little quiet at the edge of the night',memory=profile.memory||'the lamps coming on over the market',lines=[npc.name+': “'+context.name+' has '+aromas+'. Let it take its time.”',npc.name+': “For me, '+livingMood(context)+'. No need to hurry it.”',npc.name+': “It reminds me of '+memory+'. Strange what a small ritual can hold.”',npc.name+': “The city can wait another minute. Keep the good part of the evening.”'];const maxLines=plan.seconds>=72?4:plan.seconds>=40?3:2;this.active={npcKey:livingNpcKey(npc),strainName:context.name,seconds:plan.seconds,lines:lines.slice(0,maxLines),lineIndex:0,nextAt:0,endsAt:0,started:false,startedAt:0};npc.sessionAnchor={x:npc.g.position.x,z:npc.g.position.z};npc.pauseLeft=Math.max(npc.pauseLeft||0,plan.seconds+4);releaseSocialSmoke(npc);},
+  arm(detail){const candidate=this.companion(detail?.npcKey),npc=candidate&&Math.hypot(candidate.g.position.x-player.x,candidate.g.position.z-player.z)<=8?candidate:null;this.armed={strainId:String(detail?.strainId||''),strainName:String(detail?.strainName||'your jar'),targetF:smokeSessionTemp(detail?.targetF),seconds:smokeSessionSeconds(detail?.seconds),npcKey:npc?livingNpcKey(npc):null};this.active=null;if(npc){/* Keep the companion at the shared-ember spot during warm-up. closeDialogue restores a route, but updateVillagers honours sessionAnchor first. */npc.sessionAnchor={x:npc.g.position.x,z:npc.g.position.z};npc.pauseLeft=Math.max(npc.pauseLeft||0,this.armed.seconds+4);}this.hide();return !!npc;},
+  onPeakReady(){if(!this.armed)return;const plan=this.armed,npc=plan.npcKey?this.companion(plan.npcKey):null;this.armed=null;if(!npc){showGameToast(plan.strainName+' is ready. Find a resident before your next shared session.');return;}const strain=strainJournal.records.find(record=>record.id===plan.strainId)||{id:plan.strainId,name:plan.strainName,form:'unspecified',uses:[]},context=livingStrainContext(strain),profile=livingProfile(npc),aromas=livingList(context.aromas.slice(0,2))||'a little quiet at the edge of the night',memory=profile.memory||'the lamps coming on over the market',lines=[npc.name+': “'+context.name+' has '+aromas+'. Let it take its time.”',npc.name+': “For me, '+livingMood(context)+'. No need to hurry it.”',npc.name+': “It reminds me of '+memory+'. Strange what a small ritual can hold.”',npc.name+': “The city can wait another minute. Keep the good part of the evening.”'];const maxLines=plan.seconds>=72?4:plan.seconds>=40?3:2;this.active={npcKey:livingNpcKey(npc),strainName:context.name,seconds:plan.seconds,lines:lines.slice(0,maxLines),lineIndex:0,nextAt:0,endsAt:0,started:false,startedAt:0};const heldAnchor=npc.sessionAnchor&&Number.isFinite(npc.sessionAnchor.x)&&Number.isFinite(npc.sessionAnchor.z)?npc.sessionAnchor:{x:npc.g.position.x,z:npc.g.position.z};npc.sessionAnchor={x:heldAnchor.x,z:heldAnchor.z};npc.pauseLeft=Math.max(npc.pauseLeft||0,plan.seconds+4);releaseSocialSmoke(npc);},
   setDuration(seconds){const duration=smokeSessionSeconds(seconds);if(this.armed)this.armed.seconds=duration;const active=this.active;if(!active||active.seconds===duration)return;active.seconds=duration;if(active.started)active.endsAt=active.startedAt+duration+3;},
   tick(t){const active=this.active;if(!active)return;if(!active.started){active.started=true;active.startedAt=t;active.endsAt=t+active.seconds+3;active.nextAt=t;}if(t>=active.endsAt){this.stop();return;}if(document.visibilityState!=='visible'||anyOverlayOpen()){this.hide();return;}if(t>=active.nextAt){const line=active.lines[Math.min(active.lineIndex,active.lines.length-1)];sessionRambleLine.textContent=line;sessionRambleMeta.textContent=active.strainName+' · '+Math.max(0,Math.ceil(active.endsAt-t))+'s';sessionRambleEl.style.display='block';sessionRambleEl.setAttribute('aria-hidden','false');active.lineIndex++;const remaining=Math.max(1,active.lines.length-active.lineIndex);active.nextAt=t+Math.max(9,Math.min(18,(active.endsAt-t)/remaining));}else{sessionRambleMeta.textContent=active.strainName+' · '+Math.max(0,Math.ceil(active.endsAt-t))+'s';}},
   stop(){const active=this.active,armed=this.armed;if(active?.npcKey){const npc=this.companion(active.npcKey);if(npc){delete npc.sessionAnchor;if(!npc.talking)anchorNpcRoute(npc);}}if(armed?.npcKey){const npc=this.companion(armed.npcKey);if(npc){delete npc.sessionAnchor;if(!npc.talking)anchorNpcRoute(npc);}}this.armed=null;this.active=null;this.hide();}
@@ -5649,7 +5672,19 @@ function updateVillagers(t,dt){ let closest=null,best=16;
   const npcNearby=!!(closest&&best<18),preferNpc=npcNearby&&(!door||best<doorDistance); nearestVillager=npcNearby?closest:null; nearestDoor=preferNpc?null:door;
   const close=nearestDoor||nearestVillager; interactHint.style.display=!dialogueOpen&&close?'block':'none';if(close){const label=nearestDoor?(activeInterior===nearestDoor?'leave '+nearestDoor.name:'enter '+nearestDoor.name):'talk with '+nearestVillager.name;interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=nearestDoor?(activeInterior===nearestDoor?'LEAVE':'ENTER'):'TALK';}else mobileInteractBtn.textContent='TALK';
 }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;activeInterior=null;showGameToast('You step back out into Vaneth.');}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;activeInterior=nearestDoor;showGameToast('You enter '+nearestDoor.name+' — '+(nearestDoor.purpose||'a room with its own small routine')+'.');}saveGameState();return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+// Interiors have a real open doorway (no door leaf, see interiorHouse), so a
+// player can simply walk through the gap instead of pressing E. activeInterior
+// must therefore track physical position every frame, not just the E-teleport
+// below — otherwise walking in leaves the game thinking you are still outside
+// (wrong toast, wrong save, wrong enter/leave label).
+function interiorRoomAt(px,pz){for(const door of interiorDoors){if(px>door.cx-door.w/2&&px<door.cx+door.w/2&&pz>door.cz-door.d/2&&pz<door.cz+door.d/2)return door;}return null;}
+function syncActiveInterior(){
+  const room=interiorRoomAt(player.x,player.z); if(room===activeInterior)return;
+  if(room){activeInterior=room;showGameToast('You enter '+room.name+' — '+(room.purpose||'a room with its own small routine')+'.');}
+  else{activeInterior=null;showGameToast('You step back out into Vaneth.');}
+  saveGameState();
+}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
 function anyOverlayOpen(){return chronicleOpen||dialogueOpen||settingsEl.classList.contains('open')||strainPanel.classList.contains('open')||puffPanel.classList.contains('open');}
@@ -5679,14 +5714,76 @@ document.getElementById('worldSeedReset').addEventListener('click',forgeNewVanet
 const STRAIN_STORAGE_KEY='emberwatch.personal-strains.v1';
 function cleanStrainText(value,max){ return String(value||'').trim().slice(0,max); }
 function strainKey(name){ return cleanStrainText(name,64).toLocaleLowerCase().replace(/\s+/g,' '); }
-const KNOWN_STRAIN_NAMES={'moroccan peach':'Moroccan Peaches'};
+const KNOWN_STRAIN_NAMES={'moroccan peach':'Moroccan Peaches','gg4':'Gorilla Glue','gg#4':'Gorilla Glue','gorilla glue #4':'Gorilla Glue','gsc':'Girl Scout Cookies','girl scout cookie':'Girl Scout Cookies','mac1':'MAC','mac 1':'MAC','miracle alien cookies':'MAC','dosidos':'Do-Si-Dos','do si dos':'Do-Si-Dos','super lemon':'Super Lemon Haze'};
 function canonicalStrainName(name){const clean=cleanStrainText(name,64);return KNOWN_STRAIN_NAMES[strainKey(clean)]||clean;}
+// A small set of Vaneth's own fictional house strains, plus a much larger
+// offline reference of well-known real strains. The offline set exists so
+// autocomplete and NPC conversation have real aroma/effect notes to draw on
+// even without a network connection — previously only 5 strains had any
+// local reference data, so almost every real strain fell back to residents
+// saying "I don't know this jar yet."
 const STRAIN_REFERENCE_LIBRARY={
+  // Vaneth house jars
   'strawberry cheesecake':{match:'Baker’s garden notes',lineage:'Chronic × White Widow × Cheese',terpenes:[],aromas:['strawberry','cheese','sweet earth'],effects:['relaxed','happy','euphoric'],note:'Berry sweetness and tangy cheese settle into a soft, earthy finish.'},
   'island time':{match:'Wandering trader’s notes',lineage:'Banana OG × (Cherry Pie × Tangie) × Guava Cooler 3',terpenes:['earthy','citrus','woody'],aromas:['tropical citrus','mango','pine'],effects:['uplifted','relaxed','creative'],note:'Tropical fruit drifts in first, then a piney, easygoing finish.'},
   'honey banana coffee':{match:'Orchard keeper’s notes',lineage:'Strawberry Banana × Honey Boo Boo',terpenes:['earthy','citrus','peppery'],aromas:['honey','banana','sweet fruit'],effects:['giggly','happy','relaxed'],note:'Honeyed banana sweetness with a darker, roasted edge from the name it carries.'},
   'orange push pop':{match:'Citadel apothecary notes',lineage:'Orange Cookies × Triangle Kush',terpenes:['peppery','citrus','earthy'],aromas:['orange','vanilla','citrus cream'],effects:['tingly','relaxed','giggly'],note:'A bright, creamy jar with a little earth beneath the fruit.'},
-  'moroccan peaches':{match:'Peach-house ledger',lineage:'Spanish Barbara × Lemon Tree Skorange',terpenes:['citrus','peppery','earthy'],aromas:['peach','apricot','citrus','funky gas'],effects:['energetic','focused','creative'],note:'Sun-warm peach and tart citrus lead, with a small funky gas bite at the end.'}
+  'moroccan peaches':{match:'Peach-house ledger',lineage:'Spanish Barbara × Lemon Tree Skorange',terpenes:['citrus','peppery','earthy'],aromas:['peach','apricot','citrus','funky gas'],effects:['energetic','focused','creative'],note:'Sun-warm peach and tart citrus lead, with a small funky gas bite at the end.'},
+  // classic and heirloom cuts
+  'og kush':{match:'Cinder Market apothecary notes',lineage:'lineage debated, likely Chemdawg/Hindu Kush lines',terpenes:['myrcene','limonene','caryophyllene'],aromas:['pine','lemon','fuel'],effects:['relaxed','euphoric','happy'],note:'The old standard: piney fuel up front, a heavy, contented weight after.'},
+  'northern lights':{match:'Old garden ledger',lineage:'Afghani × Thai landrace lines',terpenes:['myrcene','caryophyllene','pinene'],aromas:['sweet pine','earthy spice','faint citrus'],effects:['relaxed','sleepy','calm'],note:'A slow, resinous cut that settles into the couch before it settles into conversation.'},
+  'white widow':{match:'Northwatch quartermaster’s notes',lineage:'Brazilian sativa × South Indian indica',terpenes:['myrcene','pinene','caryophyllene'],aromas:['earthy','woody','faint spice'],effects:['euphoric','uplifted','talkative'],note:'Frosty and blunt, with an energy that arrives before it mellows.'},
+  'durban poison':{match:'Wandering trader’s notes',lineage:'South African landrace',terpenes:['terpinolene','myrcene'],aromas:['sweet anise','pine','black licorice'],effects:['energetic','focused','uplifted'],note:'A clean, sweet-sharp sativa that keeps the head clear and the pace up.'},
+  'jack herer':{match:'Eastwall scribe’s footnote',lineage:'Haze × (Northern Lights #5 × Shiva Skunk)',terpenes:['terpinolene','pinene','caryophyllene'],aromas:['pine','spice','citrus'],effects:['creative','uplifted','focused'],note:'Bright and piney, the kind of jar that makes a blank page feel less blank.'},
+  'ak-47':{match:'Southgate traveler’s notes',lineage:'Colombian × Mexican × Thai × Afghani',terpenes:['myrcene','limonene','caryophyllene'],aromas:['earthy','floral','sour'],effects:['relaxed','happy','talkative'],note:'A long, easy hum despite the name — more porch conversation than static.'},
+  // diesel and fuel lines
+  'sour diesel':{match:'West Works grower’s tally',lineage:'Chemdawg × Super Skunk (disputed)',terpenes:['caryophyllene','myrcene','limonene'],aromas:['diesel','citrus','skunk'],effects:['energetic','uplifted','focused'],note:'Sharp fuel up front, sweeter citrus trailing after — a jar that argues with sleep.'},
+  'chemdawg':{match:'West Works grower’s tally',lineage:'origin debated, foundational diesel line',terpenes:['caryophyllene','myrcene','limonene'],aromas:['diesel','earthy','pungent'],effects:['relaxed','euphoric','cerebral'],note:'Heavy, resinous fuel notes with a slow-building, thoughtful lift.'},
+  'gorilla glue':{match:'West Works grower’s tally',lineage:'Chem’s Sister × Sour Dubb × Chocolate Diesel',terpenes:['caryophyllene','limonene','myrcene'],aromas:['earthy','pungent','pine'],effects:['relaxed','happy','sleepy'],note:'Sticky and heavy-handed, the kind of jar that makes plans for you.'},
+  // dessert and cookie hybrids
+  'girl scout cookies':{match:'Cinder Market apothecary notes',lineage:'OG Kush × Durban Poison (widely cited)',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet earth','mint','cherry'],effects:['relaxed','euphoric','happy'],note:'A sugary front porch over a dense, earthy foundation.'},
+  'wedding cake':{match:'Cinder Market apothecary notes',lineage:'Triangle Kush × Animal Mints',terpenes:['limonene','caryophyllene','linalool'],aromas:['vanilla','sweet dough','peppery earth'],effects:['relaxed','happy','calm'],note:'Rich and tangy, like something cooling on a windowsill.'},
+  'gelato':{match:'Cinder Market apothecary notes',lineage:'Sunset Sherbet × Thin Mint GSC',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet cream','citrus','berry'],effects:['euphoric','relaxed','giggly'],note:'Dessert-sweet and smooth, with a lazy, contented tail.'},
+  'biscotti':{match:'Cinder Market apothecary notes',lineage:'Gelato #25 × South Florida OG',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet nutty','earthy','faint diesel'],effects:['relaxed','happy','calm'],note:'A cookie-jar sweetness with a peppery, grounding finish.'},
+  'ice cream cake':{match:'Cinder Market apothecary notes',lineage:'Wedding Cake × Gelato #33',terpenes:['limonene','linalool','caryophyllene'],aromas:['sweet cream','vanilla','earthy'],effects:['relaxed','sleepy','calm'],note:'Rich and custardy, best saved for the end of the night.'},
+  'cereal milk':{match:'Cinder Market apothecary notes',lineage:'Snowman × Y Life',terpenes:['limonene','linalool'],aromas:['sweet cream','fruity','vanilla'],effects:['happy','relaxed','giggly'],note:'Tastes almost exactly like the name promises, in the best way.'},
+  'apple fritter':{match:'Cinder Market apothecary notes',lineage:'Sour Apple × Animal Cookies',terpenes:['caryophyllene','limonene'],aromas:['baked apple','cinnamon','earthy'],effects:['happy','relaxed','creative'],note:'Warm baked-fruit sweetness with a doughy, grounding edge.'},
+  'kush mints':{match:'Cinder Market apothecary notes',lineage:'Bubba Kush × Animal Mints',terpenes:['caryophyllene','limonene','humulene'],aromas:['mint','earthy','sweet gas'],effects:['relaxed','euphoric','calm'],note:'Cool mint over a heavy kush base — a jar that slows a room down gently.'},
+  'gushers':{match:'Cinder Market apothecary notes',lineage:'Gelato #41 × Triangle Kush',terpenes:['limonene','caryophyllene'],aromas:['tropical fruit','sweet candy','earthy'],effects:['relaxed','happy','giggly'],note:'Candy-sweet fruit with a gentle, easy landing.'},
+  'animal cookies':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Fire OG',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet earth','nutty','spice'],effects:['relaxed','euphoric','sleepy'],note:'Dense and sweet, a slow slide toward the end of the evening.'},
+  'sunset sherbet':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Pink Panties',terpenes:['limonene','caryophyllene'],aromas:['sweet citrus','berry','earthy'],effects:['relaxed','happy','calm'],note:'Bright citrus-berry sweetness over a soft, easy body.'},
+  'jealousy':{match:'Cinder Market apothecary notes',lineage:'Gelato #41 × Sherbet Bx1',terpenes:['limonene','caryophyllene'],aromas:['sweet citrus','gas','candy'],effects:['euphoric','relaxed','happy'],note:'Sweet and gassy in equal measure — a jar that lives up to the name.'},
+  'lemon cherry gelato':{match:'Cinder Market apothecary notes',lineage:'Lemon Cherry Kush × Gelato lines',terpenes:['limonene','caryophyllene'],aromas:['lemon','cherry','sweet cream'],effects:['euphoric','happy','relaxed'],note:'Tart cherry and lemon over a soft, dessert-toned finish.'},
+  'peanut butter breath':{match:'Cinder Market apothecary notes',lineage:'Do-Si-Dos × Mendo Breath',terpenes:['caryophyllene','limonene'],aromas:['nutty','earthy','sweet gas'],effects:['relaxed','calm','sleepy'],note:'Nutty and dense, the kind of jar that ends the night gently.'},
+  'slurricane':{match:'Cinder Market apothecary notes',lineage:'Do-Si-Dos × Purple Punch',terpenes:['caryophyllene','limonene'],aromas:['grape candy','vanilla','earthy'],effects:['relaxed','sleepy','happy'],note:'Sweet and heavy, built for the last hour of the evening.'},
+  // fruit-forward hybrids
+  'zkittlez':{match:'Peach-house ledger',lineage:'Grape Ape × Grapefruit (disputed)',terpenes:['caryophyllene','limonene','humulene'],aromas:['candy grape','tropical fruit','berry'],effects:['relaxed','happy','giggly'],note:'Sweet and candy-forward, the kind of jar that gets passed around fast.'},
+  'runtz':{match:'Peach-house ledger',lineage:'Zkittlez × Gelato',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet fruit','candy','gas'],effects:['euphoric','relaxed','giggly'],note:'Candy-shop sweetness with a gassy undercurrent that keeps it honest.'},
+  'grape ape':{match:'Peach-house ledger',lineage:'Mendocino Purps × Skunk × Afghani',terpenes:['myrcene','pinene'],aromas:['grape','berry','earthy'],effects:['relaxed','calm','sleepy'],note:'Deep grape sweetness that settles heavy and slow.'},
+  'blueberry':{match:'Peach-house ledger',lineage:'Afghani × Thai landrace lines',terpenes:['myrcene','pinene','caryophyllene'],aromas:['blueberry','sweet earth','berry'],effects:['relaxed','happy','calm'],note:'A classic fruit-forward indica jar, sweet down to the last pull.'},
+  'strawberry cough':{match:'Peach-house ledger',lineage:'Strawberry Fields × Haze',terpenes:['myrcene','pinene','terpinolene'],aromas:['strawberry','sweet hay','citrus'],effects:['uplifted','talkative','energetic'],note:'Bright berry sweetness with a clear-headed, chatty lift.'},
+  'purple punch':{match:'Peach-house ledger',lineage:'Larry OG × Granddaddy Purple',terpenes:['caryophyllene','limonene'],aromas:['grape candy','blueberry muffin','sweet'],effects:['relaxed','sleepy','happy'],note:'Dessert-grape sweetness that leans toward an easy, early bedtime.'},
+  'forbidden fruit':{match:'Peach-house ledger',lineage:'Cherry Pie × Tangie',terpenes:['limonene','myrcene','caryophyllene'],aromas:['citrus','cherry','tropical'],effects:['relaxed','happy','calm'],note:'Tart cherry and citrus over a mellow, unhurried body.'},
+  'cherry pie':{match:'Peach-house ledger',lineage:'Granddaddy Purple × Durban Poison',terpenes:['caryophyllene','limonene','pinene'],aromas:['cherry','sweet earth','tart'],effects:['relaxed','happy','euphoric'],note:'Sweet-tart cherry up front, settling into a calm, easy warmth.'},
+  'tangie':{match:'Peach-house ledger',lineage:'California Orange × Skunk Hybrid',terpenes:['limonene','myrcene'],aromas:['orange','citrus','sweet'],effects:['uplifted','energetic','creative'],note:'Fresh-squeezed citrus that keeps the head bright and moving.'},
+  'mimosa':{match:'Peach-house ledger',lineage:'Purple Punch × Clementine',terpenes:['limonene','myrcene'],aromas:['orange','citrus','tropical'],effects:['uplifted','happy','energetic'],note:'A brunch-bright citrus jar that leans toward daytime energy.'},
+  'papaya':{match:'Peach-house ledger',lineage:'Citral #13 × Ice #2',terpenes:['myrcene','caryophyllene'],aromas:['tropical fruit','sweet earth','papaya'],effects:['relaxed','happy','calm'],note:'Soft tropical sweetness over a quietly heavy base.'},
+  // kush and indica-leaning
+  'bubba kush':{match:'Northwatch quartermaster’s notes',lineage:'pre-98 Bubba × Kush hybrid, exact lineage unconfirmed',terpenes:['caryophyllene','myrcene','limonene'],aromas:['coffee','earthy','sweet hash'],effects:['relaxed','sleepy','calm'],note:'Dark, coffee-toned kush weight that settles a room quickly.'},
+  'master kush':{match:'Northwatch quartermaster’s notes',lineage:'Hindu Kush × Skunk #1',terpenes:['myrcene','caryophyllene'],aromas:['earthy','citrus','spice'],effects:['relaxed','calm','happy'],note:'A quiet, hash-toned kush without much drama in the jar.'},
+  'granddaddy purple':{match:'Peach-house ledger',lineage:'Purple Urkle × Big Bud',terpenes:['myrcene','caryophyllene','pinene'],aromas:['grape','berry','sweet earth'],effects:['relaxed','sleepy','happy'],note:'Deep grape and berry over a classic, heavy purple-strain weight.'},
+  'do-si-dos':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Face Off OG',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet earth','floral','mint'],effects:['relaxed','euphoric','sleepy'],note:'Sweet and floral at first, then a slow, heavy settle.'},
+  'headband':{match:'Northwatch quartermaster’s notes',lineage:'OG Kush × Sour Diesel',terpenes:['caryophyllene','limonene','myrcene'],aromas:['diesel','lemon','earthy'],effects:['relaxed','euphoric','focused'],note:'Named for the pressure it leaves behind the eyes — sharp, then calm.'},
+  'larry og':{match:'Northwatch quartermaster’s notes',lineage:'OG Kush × Lemon Thai × Old World Paki Kush',terpenes:['limonene','myrcene','caryophyllene'],aromas:['lemon','pine','earthy'],effects:['relaxed','happy','calm'],note:'Citrus-forward OG with a soft, unhurried landing.'},
+  // sativa-leaning, citrus, and other classics
+  'pineapple express':{match:'Peach-house ledger',lineage:'Trainwreck × Hawaiian',terpenes:['myrcene','limonene','pinene'],aromas:['pineapple','pine','tropical'],effects:['uplifted','energetic','happy'],note:'Sweet tropical fruit that keeps the pace up rather than slowing it down.'},
+  'trainwreck':{match:'West Works grower’s tally',lineage:'Mexican × Thai × Afghani',terpenes:['terpinolene','pinene','myrcene'],aromas:['lemon','pine','spice'],effects:['energetic','euphoric','creative'],note:'A fast, piney sativa that arrives before you finish the first pull.'},
+  'green crack':{match:'West Works grower’s tally',lineage:'Skunk #1 phenotype (disputed origin)',terpenes:['myrcene','limonene'],aromas:['citrus','mango','sweet earth'],effects:['energetic','focused','uplifted'],note:'Sharp citrus energy — a jar better suited to daylight than dusk.'},
+  'super lemon haze':{match:'Eastwall scribe’s footnote',lineage:'Lemon Skunk × Super Silver Haze',terpenes:['limonene','terpinolene'],aromas:['lemon','citrus','sweet'],effects:['uplifted','energetic','creative'],note:'Sour lemon brightness with a clear, chatty lift.'},
+  'amnesia haze':{match:'Eastwall scribe’s footnote',lineage:'Jamaican × Hawaiian × Cambodian × Afghani lines',terpenes:['terpinolene','myrcene','limonene'],aromas:['citrus','earthy','spice'],effects:['euphoric','energetic','creative'],note:'A rambling, cerebral haze that rewards a slow afternoon.'},
+  'maui wowie':{match:'Peach-house ledger',lineage:'Hawaiian landrace lines',terpenes:['limonene','pinene'],aromas:['tropical fruit','pineapple','earthy'],effects:['uplifted','happy','energetic'],note:'Island-bright and easygoing, built for an unhurried afternoon.'},
+  'purple haze':{match:'Peach-house ledger',lineage:'Purple Thai × Haze lines',terpenes:['myrcene','terpinolene'],aromas:['berry','earthy','sweet spice'],effects:['euphoric','creative','uplifted'],note:'A dreamy, berry-toned haze that keeps thoughts loose and moving.'},
+  'mac':{match:'Eastwall scribe’s footnote',lineage:'Alien Cookies × (Miracle 15 × Columbian)',terpenes:['limonene','caryophyllene','pinene'],aromas:['citrus','earthy','sweet gas'],effects:['euphoric','uplifted','relaxed'],note:'A well-balanced jar: bright up front, settled and even after.'}
 };
 function referenceForStrain(name){ const reference=STRAIN_REFERENCE_LIBRARY[strainKey(canonicalStrainName(name))];return reference?{...reference,terpenes:[...reference.terpenes],aromas:[...reference.aromas],effects:[...reference.effects]}:null; }
 function archiveList(value,max=4){return String(value||'').replace(/[\[\]'\"]/g,'').split(/[,;|/]/).map(part=>cleanStrainText(part,44)).filter(part=>part&&part.toUpperCase()!=='NULL'&&part.length<=44).slice(0,max);}
@@ -5729,8 +5826,11 @@ function loadGrowArchive(){try{const saved=JSON.parse(localStorage.getItem(GROW_
 function saveGrowArchive(){try{localStorage.setItem(GROW_ARCHIVE_STORAGE,JSON.stringify(growArchive));}catch{}}
 async function ensureGrowArchive(){if(growArchive.length)return growArchive;if(!growArchivePromise)growArchivePromise=fetch(GROW_ARCHIVE_URL,{mode:'cors'}).then(response=>{if(!response.ok)throw new Error('catalog unavailable');return response.text();}).then(text=>{growArchive=growEntriesFromCsv(text);saveGrowArchive();return growArchive;}).catch(()=>{growArchivePromise=null;return [];});return growArchivePromise;}
 function growReferenceFrom(entry){return storedArchiveReference({match:'Garden ledger notes',origin:'an old garden ledger',terpenes:entry.terpenes,aromas:entry.aromas,effects:entry.effects,note:'A fuller smoke note was carried into Vaneth from an old garden ledger.'});}
-function growArchiveMatches(query){const key=strainKey(query),ranked=growArchive.filter(entry=>strainKey(entry.name).includes(key)&&(entry.aromas.length+entry.effects.length+entry.terpenes.length>=2)).sort((a,b)=>Number(strainKey(b.name).startsWith(key))-Number(strainKey(a.name).startsWith(key)));return ranked.slice(0,8).map(entry=>({name:entry.name,reference:growReferenceFrom(entry),detail:'smell, taste, or effect notes found'}));}
-function localArchiveMatches(query){const search=strainKey(query),found=[],seen=new Set(),add=(name,reference,detail)=>{const clean=canonicalStrainName(name),key=strainKey(clean);if(!clean||seen.has(key)||!key.includes(search))return;seen.add(key);found.push({name:clean,reference,detail});};for(const record of strainJournal.records)add(record.name,record.reference,'already in your smoke ledger');for(const stock of INITIAL_WAX_STOCK)add(stock.name,referenceForStrain(stock.name),'already in Vaneth’s notes');Object.keys(STRAIN_REFERENCE_LIBRARY).forEach(name=>add(name,referenceForStrain(name),'already in Vaneth’s notes'));return found.slice(0,6);}
+// A suggestion's detail line should show what makes it worth picking — its
+// actual aroma/effect words — rather than only where the data came from.
+function referencePreview(reference){if(!reference)return '';return [reference.aromas?.slice(0,2).join(', '),reference.effects?.slice(0,2).join(', ')].filter(Boolean).join(' · ');}
+function growArchiveMatches(query){const key=strainKey(query),ranked=growArchive.filter(entry=>strainKey(entry.name).includes(key)&&(entry.aromas.length+entry.effects.length+entry.terpenes.length>=2)).sort((a,b)=>Number(strainKey(b.name).startsWith(key))-Number(strainKey(a.name).startsWith(key)));return ranked.slice(0,8).map(entry=>{const reference=growReferenceFrom(entry);return {name:entry.name,reference,detail:referencePreview(reference)||'smell, taste, or effect notes found'};});}
+function localArchiveMatches(query){const search=strainKey(query),found=[],seen=new Set(),add=(name,reference,fallback)=>{const clean=canonicalStrainName(name),key=strainKey(clean);if(!clean||seen.has(key)||!key.includes(search))return;seen.add(key);const preview=referencePreview(reference);found.push({name:clean,reference,detail:preview?preview+' · '+fallback:fallback});};for(const record of strainJournal.records)add(record.name,record.reference,'already in your smoke ledger');for(const stock of INITIAL_WAX_STOCK)add(stock.name,referenceForStrain(stock.name),'already in Vaneth’s notes');Object.keys(STRAIN_REFERENCE_LIBRARY).forEach(name=>add(name,referenceForStrain(name),'already in Vaneth’s notes'));return found.slice(0,6);}
 function hideStrainSuggestions(){strainSuggestions.classList.remove('show');strainSuggestions.replaceChildren();}
 function archiveNoteSummary(reference){if(!reference)return '';const parts=[];if(reference.aromas?.length)parts.push('taste: '+reference.aromas.slice(0,3).join(', '));if(reference.terpenes?.length)parts.push('scent: '+reference.terpenes.slice(0,3).join(', '));if(reference.effects?.length)parts.push('common tale: '+reference.effects.slice(0,3).join(', '));return parts.join(' · ').slice(0,120);}
 function clearLookupPreview(){strainLookupPreview.replaceChildren();if(strainTopNotes.value===autoLookupNote)strainTopNotes.value='';autoLookupNote='';}
@@ -5738,7 +5838,7 @@ function setLookupPreview(reference){strainLookupPreview.replaceChildren();if(!r
 function chooseArchiveMatch(match){strainNameInput.value=canonicalStrainName(match.name);const reference=match.reference||referenceForStrain(match.name);pendingArchiveMatch={name:strainNameInput.value,reference};setLookupPreview(reference);hideStrainSuggestions();strainNameInput.focus();}
 function showStrainSuggestions(matches,note){strainSuggestions.replaceChildren();if(note){const message=document.createElement('div');message.className='strain-suggest-note';message.textContent=note;strainSuggestions.append(message);}for(const match of matches){const button=document.createElement('button'),detail=document.createElement('small');button.type='button';button.className='strain-suggestion';button.setAttribute('role','option');button.textContent=match.name;detail.textContent=match.detail;button.append(detail);button.onclick=()=>chooseArchiveMatch(match);strainSuggestions.append(button);}if(matches.length||note)strainSuggestions.classList.add('show');else hideStrainSuggestions();}
 function mergeArchiveMatches(local,remote){const merged=[],seen=new Set();for(const match of [...local,...remote]){const key=strainKey(match.name);if(!key||seen.has(key))continue;seen.add(key);merged.push(match);}return merged.slice(0,7);}
-async function searchStrainArchive(query,token){let rows=archiveSearchCache.get(query)||[];try{if(!archiveSearchCache.has(query)){const response=await fetch(STRAIN_ARCHIVE_SEARCH+encodeURIComponent(query),{mode:'cors'});if(!response.ok)throw new Error('archive unavailable');const body=await response.json();rows=Array.isArray(body&&body.data)?body.data:[];archiveSearchCache.set(query,rows);}}catch{}await ensureGrowArchive();if(token!==archiveLookupToken)return;const local=localArchiveMatches(query),garden=growArchiveMatches(query),remote=rows.map(entry=>{const reference=archiveReferenceFrom(entry);return {name:canonicalStrainName(archiveValue(entry,['strain_name','name'])),reference,detail:reference?'smell, taste, or effect notes found':'name found — add your own smoke notes'};}).filter(match=>match.name),matches=mergeArchiveMatches(local,[...garden,...remote]),exact=matches.find(match=>strainKey(match.name)===strainKey(query)&&match.reference);if(exact){chooseArchiveMatch(exact);return;}showStrainSuggestions(matches,matches.length?'':'Nothing close was found. You can still write it in by hand.');}
+async function searchStrainArchive(query,token){let rows=archiveSearchCache.get(query)||[];try{if(!archiveSearchCache.has(query)){const response=await fetch(STRAIN_ARCHIVE_SEARCH+encodeURIComponent(query),{mode:'cors'});if(!response.ok)throw new Error('archive unavailable');const body=await response.json();rows=Array.isArray(body&&body.data)?body.data:[];archiveSearchCache.set(query,rows);}}catch{}await ensureGrowArchive();if(token!==archiveLookupToken)return;const local=localArchiveMatches(query),garden=growArchiveMatches(query),remote=rows.map(entry=>{const reference=archiveReferenceFrom(entry);return {name:canonicalStrainName(archiveValue(entry,['strain_name','name'])),reference,detail:reference?(referencePreview(reference)||'smell, taste, or effect notes found'):'name found — add your own smoke notes'};}).filter(match=>match.name),matches=mergeArchiveMatches(local,[...garden,...remote]),exact=matches.find(match=>strainKey(match.name)===strainKey(query)&&match.reference);if(exact){chooseArchiveMatch(exact);return;}showStrainSuggestions(matches,matches.length?'':'Nothing close was found. You can still write it in by hand.');}
 function queueStrainArchiveSearch(){const query=cleanStrainText(strainNameInput.value,64);pendingArchiveMatch=null;clearLookupPreview();clearTimeout(archiveLookupTimer);const token=++archiveLookupToken;if(query.length<2){hideStrainSuggestions();return;}const local=localArchiveMatches(query),exact=local.find(match=>strainKey(match.name)===strainKey(query)&&match.reference);if(exact){chooseArchiveMatch(exact);return;}showStrainSuggestions(local,'Looking through the seed archive…');archiveLookupTimer=setTimeout(()=>searchStrainArchive(query,token),360);}
 strainNameInput.addEventListener('input',queueStrainArchiveSearch);
 strainNameInput.addEventListener('focus',()=>{const isChosen=pendingArchiveMatch&&strainKey(pendingArchiveMatch.name)===strainKey(strainNameInput.value);if(!isChosen&&strainNameInput.value.trim().length>=2)queueStrainArchiveSearch();});
@@ -5809,7 +5909,9 @@ const PUFF=(function(){
     throw new Error('This Peak Pro does not expose a writable control channel.');
   }
   function replyHandler(event){
-    const value=event.target.value, id=value.getUint16(0,true), request=pending.get(id);
+    const value=event?.target?.value;
+    if(!value||value.byteLength<3)return;
+    const id=value.getUint16(0,true), request=pending.get(id);
     if(!request) return;
     pending.delete(id); clearTimeout(request.timer);
     // Lorax replies are sequence (2 bytes), status (1 byte), then payload.
@@ -5882,12 +5984,14 @@ const PUFF=(function(){
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
       loraxChars={version:pick(LORAX.version),command:pick(LORAX.command),reply:pick(LORAX.reply),event:pick(LORAX.event)};
-      assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply'); assertChar(loraxChars.event,'Lorax event');
+      assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply');
       const versionValue=await loraxChars.version.readValue();
       if(versionValue.byteLength!==2) throw new Error('Unexpected Lorax version response.');
       const loraxVersion=versionValue.getUint16(0,true); if(loraxVersion>255) throw new Error('Unsupported Lorax version '+loraxVersion+'.');
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
-      await loraxChars.event.startNotifications();
+      // Emberwatch currently consumes only request/reply packets. Do not reject
+      // a compatible Peak merely because its unused event stream is unavailable.
+      if(loraxChars.event)try{await loraxChars.event.startNotifications();}catch(error){if(!device?.gatt?.connected)throw error;}
       // Puffco.app attempts this setup for Lorax v1+, but older firmware may
       // reject it as an unsupported value. It is optional, so continue unless
       // the device actually disconnected.
@@ -6017,7 +6121,7 @@ const PUFF=(function(){
   function setNote(t){ note.textContent=t||''; }
   function renderLink(now=Date.now()){const link=$('pLink');if(!PUFF.connected){link.textContent='offline';return;}if(deviceBusy){link.textContent='applying…';return;}if(!lastTelemetryAt){link.textContent='awaiting reply';return;}const age=Math.max(0,Math.round((now-lastTelemetryAt)/1000));link.textContent=age<5?'live · '+age+'s ago':'quiet · '+age+'s ago';}
   const writableControls=()=>[...puffPanel.querySelectorAll('.pbtn,.ppreset')].filter(button=>button.id!=='pDisc');
-  function setDeviceBusy(active,label=''){deviceBusy=active;writableControls().forEach(button=>button.disabled=active);renderLink();if(active&&label)setStat(label);}
+  function setDeviceBusy(active,label=''){deviceBusy=active;writableControls().forEach(button=>button.disabled=active);syncCycleControls();renderLink();if(active&&label)setStat(label);}
   const ACTION_CANCELLED=Symbol('Peak Pro action cancelled');
   async function deviceAction(label,work){if(deviceBusy)return ACTION_CANCELLED;const epoch=++deviceActionEpoch;backgroundTelemetryGeneration++;if(poll){clearTimeout(poll);poll=null;}setDeviceBusy(true,label);try{return await work(()=>epoch===deviceActionEpoch);}catch(error){if(epoch!==deviceActionEpoch)return ACTION_CANCELLED;throw error;}finally{if(epoch===deviceActionEpoch){setDeviceBusy(false);if(PUFF.connected){await refresh();scheduleRefresh(300);}}}}
   if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs http://localhost — ask me for the one-click launcher.');
@@ -6030,6 +6134,10 @@ const PUFF=(function(){
   const formatSeconds=value=>{ const total=Math.max(0,Math.round(value||0)),minutes=Math.floor(total/60),seconds=String(total%60).padStart(2,'0'); return minutes+':'+seconds; };
   const safely=async work=>{ try{return await work();}catch(error){lastReadError=error;return null;} };
   const activeHeat=state=>state===7||state===8;
+  const heatCycleDetected=()=>activeHeat(lastState)||lastState===9||heatStartedInGame;
+  const nextCycleControls=()=>[$('pTarget'),$('pSet'),$('pSessionTarget'),$('pSessionSet'),$('pColor'),$('pColorHex'),$('pColorSet'),$('pBoostTime'),$('pBoostTemp'),...document.querySelectorAll('[data-profile-f]')].filter(Boolean);
+  function syncCycleControls(){const locked=heatCycleDetected();nextCycleControls().forEach(button=>button.disabled=deviceBusy||locked);}
+  function assertNextCycleSettingsAvailable(){if(heatCycleDetected())throw new Error('Finish or stop the current heat cycle before changing next-cycle settings.');}
   function renderBattery(now=Date.now()){const holder=$('pBatt');if(!PUFF.connected){holder.textContent='—';return;}if(!lastBatterySample){holder.textContent=batteryError?'unavailable':'checking…';return;}const age=Math.max(0,Math.round((now-lastBatteryAt)/1000)),parts=[Math.round(lastBatterySample.percent)+'%'];if(age>=8)parts.push(age+'s ago');holder.textContent=parts.join(' · ');}
   async function refreshBattery(now=Date.now()){
     if(!PUFF.connected||deviceBusy)return;const sampledDevice=PUFF.device,generation=backgroundTelemetryGeneration,interval=(!puffPanel.classList.contains('open')||document.visibilityState!=='visible')?30000:12000,isFresh=()=>PUFF.connected&&PUFF.device===sampledDevice&&!deviceBusy&&generation===backgroundTelemetryGeneration;if(!sampledDevice||now-lastBatteryAttemptAt<interval)return;lastBatteryAttemptAt=now;
@@ -6055,18 +6163,22 @@ const PUFF=(function(){
   function heatStatus(target,current,state){ if(!Number.isFinite(target)||!Number.isFinite(current))return ''; if(current>=target-READY_MARGIN_C)return ' · ready'; return activeHeat(state)?' · warming':''; }
   function syncQuickProfiles(fahrenheit){ document.querySelectorAll('[data-profile-f]').forEach(button=>{ const matchesSlot=selectedProfile!==null&&Number(button.dataset.profileSlot)===selectedProfile; const matchesTemp=selectedProfile===null&&Number(button.dataset.profileF)===fahrenheit; button.classList.toggle('active',matchesSlot||matchesTemp); }); }
   async function setTargetFahrenheit(fahrenheit){
+    assertNextCycleSettingsAvailable();
     if(!Number.isFinite(fahrenheit)||fahrenheit<FAHRENHEIT_MIN||fahrenheit>FAHRENHEIT_MAX) throw new Error('Choose a target from 302°F to 599°F.');
     const saved=await PUFF.setTemp(toCelsius(fahrenheit)); selectedProfile=await PUFF.activeProfile(); const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote('profile saved at '+confirmed+'°F ✓'); await refresh();
   }
   async function applyQuickProfile(button){
+    assertNextCycleSettingsAvailable();
     const fahrenheit=Number(button.dataset.profileF),slot=Number(button.dataset.profileSlot),label=button.querySelector('span').textContent;
     const saved=await PUFF.activateProfile(slot,toCelsius(fahrenheit)); selectedProfile=slot; const confirmed=Math.round(toFahrenheit(saved)); $('pTarget').value=confirmed; syncQuickProfiles(confirmed); setSpellToneFromFahrenheit(confirmed); profileRgbDirty=true; setNote(label+' profile saved, verified, and selected at '+confirmed+'°F ✓'); await refresh();
   }
   async function setSessionSeconds(seconds){
+    assertNextCycleSettingsAvailable();
     if(!Number.isFinite(seconds)||seconds<15||seconds>120)throw new Error('Choose a session duration from 15 to 120 seconds.');
     const saved=await PUFF.setSessionTime(seconds),confirmed=smokeSessionSeconds(saved);if(pendingSmokeSession?.live){pendingSmokeSession.seconds=confirmed;sessionRamble.setDuration(confirmed);} $('pSessionTarget').value=Math.round(saved); setNote('session duration applied at '+Math.round(saved)+' seconds ✓'); await refresh();
   }
   async function boostSessionTime(){
+    assertNextCycleSettingsAvailable();
     const current=await PUFF.sessionTime();
     if(!Number.isFinite(current))throw new Error('Peak Pro did not report a session duration.');
     const next=Math.min(120,Math.round(current)+15);
@@ -6074,6 +6186,7 @@ const PUFF=(function(){
     const saved=await PUFF.setSessionTime(next),confirmed=smokeSessionSeconds(saved);if(pendingSmokeSession?.live){pendingSmokeSession.seconds=confirmed;sessionRamble.setDuration(confirmed);} $('pSessionTarget').value=Math.round(saved); setNote('session duration raised to '+Math.round(saved)+' seconds ✓'); await refresh();
   }
   async function boostTemperature(){
+    assertNextCycleSettingsAvailable();
     const current=await PUFF.temp();
     if(!Number.isFinite(current))throw new Error('Peak Pro did not report a target temperature.');
     const next=Math.min(FAHRENHEIT_MAX,Math.round(toFahrenheit(current))+15);
@@ -6083,6 +6196,7 @@ const PUFF=(function(){
     setNote('target raised to '+confirmed+'°F ✓'); await refresh();
   }
   async function setProfileColor(){
+    assertNextCycleSettingsAvailable();
     const rgb=rgbForHex($('pColorHex').value)||rgbForHex($('pColor').value); if(!rgb)throw new Error('Choose a six-digit RGB color.');
     const saved=await PUFF.setProfileRgb(rgb); renderRgb(saved); setSpellPaletteFromPeak(saved.palette); profileRgbDirty=false; lastRgbAt=Date.now(); syncColorInputs(rgb); setNote('solid profile light saved · spells now follow it ✓');
   }
@@ -6112,14 +6226,14 @@ const PUFF=(function(){
     try{
       lastReadError='';const now=Date.now(),state=await safely(()=>PUFF.state());
       if(state==null){missedPolls++;renderLink(now);if(missedPolls===2)setNote('connection is quiet — manual actions stay available, and Emberwatch is backing off its checks.');return;}
-      lastState=state;const stateName=STATES[Math.round(state)]||('#'+Math.round(state));$('pState').textContent=stateName;
+      lastState=state;const stateName=STATES[Math.round(state)]||('#'+Math.round(state));$('pState').textContent=stateName;syncCycleControls();
       if(activeHeat(state))inactiveReads=0;
       else{
         const waitingForHeat=heatStartedInGame&&heatRequestedAt&&now-heatRequestedAt<12000;
         if(waitingForHeat)inactiveReads=0;
         else{inactiveReads++;if(inactiveReads>=2||state===3||state===4||state===9){const stalled=!!pendingSmokeSession&&!pendingSmokeSession.live;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;if(state===3||state===4||state===9||(state===5&&(!warmupAttempt||now-warmupAttempt.startedAt>8000)))warmupAttempt=null;clearCycleTracking();if(stalled)setNote('Peak stayed idle after the heat request. Nothing was logged.');}}
       }
-      if(deviceBusy)return;
+      syncCycleControls();if(deviceBusy)return;
       const target=await safely(()=>PUFF.temp());
       if(target==null){missedPolls++;renderLink(now);return;}
       const celsius=Math.round(target),fahrenheit=Math.round(toFahrenheit(target));$('pTemp').textContent=fahrenheit+'°F · '+celsius+'°C';if(document.activeElement!==$('pTarget'))$('pTarget').value=fahrenheit;setSpellToneFromFahrenheit(fahrenheit);syncQuickProfiles(fahrenheit);
@@ -6157,7 +6271,7 @@ const PUFF=(function(){
   $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
   $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
-  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'chamber: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length].join('\n');try{if(!navigator.clipboard?.writeText)throw new Error('clipboard unavailable');await navigator.clipboard.writeText(report);setNote('Connection status copied.');}catch{setNote('Clipboard is unavailable here. Status: '+report.replace(/\n/g,' · '));}};
   globalThis.emberwatchPeakSession={
     status:()=>({connected:PUFF.connected,lorax:PUFF.protocol==='Lorax',busy:deviceBusy,active:activeHeat(lastState)||heatStartedInGame}),
     async beginStrainSession(detail){if(deviceBusy)throw new Error('Peak controls are already applying another action.');try{const result=await deviceAction('preparing '+String(detail?.strainName||'strain')+'…',()=>startHeatCycle({smoke:detail||{}}));if(result===ACTION_CANCELLED)throw new Error('Peak control action was cancelled.');return result;}catch(error){setNote('⚠ '+String(error?.message||error));throw error;}}
@@ -6219,7 +6333,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; updateVillagers(t,dt);sessionRamble.tick(t);updateWayfinder(t);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt);sessionRamble.tick(t);updateWayfinder(t);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }

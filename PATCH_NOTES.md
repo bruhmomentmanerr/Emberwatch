@@ -1,4 +1,6 @@
-**r51 — city compiler** · 2026-08-20 · phase 3, NPCs, collision, city compiler
+**r52 — test ready** · 2026-08-20 · phase 3, NPCs, collision, city compiler
+
+In its own panel header: *r52 test-ready*.
 
 ### Summary
 
@@ -6,8 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.96 MB (+10,282 bytes on r50).
-- 8 functions added: `auditCityPlan`, `compileDistrict`, `compileVanethCity`, `compilerArchetype`, `compilerCourt`, `compilerFront`, `compilerLot`, `compilerLotClear`.
+- 0.97 MB (+19,638 bytes on r51).
+- 7 functions added: `assertNextCycleSettingsAvailable`, `compilerLotTouchesRoad`, `interiorRoomAt`, `referencePreview`, `stageCompilerRoads`, `syncActiveInterior`, `syncCycleControls`.
 
 ### Play it
 
