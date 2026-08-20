@@ -1,6 +1,6 @@
-**r53 — interior and strain fixes** · 2026-08-20 · phase 4, streets, crowds, inner city
+**r55 — doors castle warmup** · 2026-08-20 · phase 4, streets, crowds, inner city
 
-In its own panel header: *r53 bugfix pass*.
+In its own panel header: *r55 doors, castle & warm-up*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 0.97 MB (+1 bytes on r52).
-- No functions added or removed.
+- 1.00 MB (+27,279 bytes on r53).
+- 10 functions added: `buildInteriorDoorLeaves`, `castleGatehouse`, `castleRange`, `crenelRun`, `curtainDetail`, `doorMaterial`, `migrateLegacyWarmups`, `npcBlocked`, `npcObstructed`, `updateInteriorDoors`.
 
 ### Play it
 

@@ -177,7 +177,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r53 bugfix pass</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r55 doors, castle &amp; warm-up</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4813,7 +4813,9 @@ function addCollider(x,z,r){ const collider={x,z,r}; colliders.push(collider); c
 function collidersNearPoint(x,z){ return colliderGrid.get(colliderKey(colliderCell(x),colliderCell(z)))||[]; }
 function collidersAlong(x1,z1,x2,z2){ const minX=colliderCell(Math.min(x1,x2)),maxX=colliderCell(Math.max(x1,x2)),minZ=colliderCell(Math.min(z1,z2)),maxZ=colliderCell(Math.max(z1,z2)),seen=new Set(),nearby=[];
   for(let gx=minX;gx<=maxX;gx++)for(let gz=minZ;gz<=maxZ;gz++)for(const collider of colliderGrid.get(colliderKey(gx,gz))||[]){if(!seen.has(collider)){seen.add(collider);nearby.push(collider);}} return nearby; }
-function colliderBlocked(x,z,extra=CONFIG.playerRadius){ for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z;if(dx*dx+dz*dz<(collider.r+extra)*(collider.r+extra))return true;} return false; }
+// `open` lets a collider be stood down at runtime — currently only the
+// interior door leaves, which stop being an obstacle once they swing wide.
+function colliderBlocked(x,z,extra=CONFIG.playerRadius){ for(const collider of collidersNearPoint(x,z)){if(collider.open)continue;const dx=x-collider.x,dz=z-collider.z;if(dx*dx+dz*dz<(collider.r+extra)*(collider.r+extra))return true;} return false; }
 function wallColl(x1,z1,x2,z2,r){ const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/(r*1.4))); for(let i=0;i<=n;i++) addCollider(x1+(x2-x1)*i/n, z1+(z2-z1)*i/n, r); }
 
 // ---------- ground ----------
@@ -4845,7 +4847,19 @@ function building(x,z,w,d,stories,key,ry){ const h=stories*2.6;
   aBox(w,h,d,x,h/2,z,key,ry);
   if(worldRandom()<0.5) aBox(w*1.06,0.5,d*1.06,x,h+0.25,z,'slate',ry); else aCone(Math.max(w,d)*0.72,2.2,4,x,h+1.1,z,'roof',ry+Math.PI/4);
   facadeWindows(x,z,w,d,h,ry); addCollider(x,z,Math.max(w,d)*0.58); }
-function spire(x,z,h){ aCyl(1.1,1.5,h,6,x,h/2,z,'stone'); aCone(1.95,4,6,x,h+2,z,'slate'); for(let s=1;s<h/3;s++){ aBox(0.5,0.9,0.12,x,s*3,z+1.15,'arcane'); aBox(0.12,0.9,0.5,x+1.15,s*3,z,'arcane'); } addCollider(x,z,1.4); }
+function spire(x,z,h){ const rb=1.5,rt=1.1,faces=6;
+  aCyl(rt,rb,h,faces,x,h/2,z,'stone'); aCone(1.95,4,faces,x,h+2,z,'slate');
+  // A crenellated ring at the roofline — a bare cone cap read as a silo, not
+  // a tower. Merlons sit just past the taper's true top radius.
+  for(let f=0;f<faces;f+=2){ const angle=(f/faces)*Math.PI*2+Math.PI/faces,mr=rt+.14; aBox(.42,.5,.42,x+Math.cos(angle)*mr,h+.25,z+Math.sin(angle)*mr,'stone'); }
+  // Window offset now tracks the cylinder's actual radius at each height
+  // instead of a fixed 1.15 — the old constant sat inside the taper near
+  // the base and drifted outside it near the top, so the windows floated
+  // free of the stone instead of sitting flush in it.
+  const levels=Math.max(2,Math.round(h/3));
+  for(let s=1;s<=levels;s++){ const y=s*(h/(levels+1)),faceRadius=rb+(rt-rb)*(y/h);
+    for(let f=0;f<faces;f+=2){ const angle=(f/faces)*Math.PI*2+Math.PI/faces,wr=faceRadius+.05; aBox(.4,.8,.1,x+Math.cos(angle)*wr,y,z+Math.sin(angle)*wr,'arcane',angle-Math.PI/2); } }
+  addCollider(x,z,rb); }
 
 function keep(){ const R=24,H=8;
   // curtain walls (south gate gap around x in [-4,4] at z=+R)
@@ -4927,7 +4941,11 @@ function pond(cx,cz){ const w=new THREE.Mesh(new THREE.CircleGeometry(13,36).rot
 function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
 function forestRing(){ for(let i=0;i<240;i++){ const a=rand(0,6.28),r=rand(CITY_RADIUS+9,M*0.47),x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(2,3.4);
   aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(worldRandom()<0.4) addCollider(x,z,0.5); } }
-function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(40,78); const mtn=new THREE.Mesh(new THREE.ConeGeometry(rand(30,50),h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn); } }
+function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(40,78),mr=rand(30,50); const mtn=new THREE.Mesh(new THREE.ConeGeometry(mr,h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn);
+  // The cone mesh above never had a matching collider, so the mountains were
+  // walkable straight through. A slightly reduced radius blocks the solid
+  // base without turning the whole silhouette into a flat wall.
+  addCollider(x,z,mr*0.82); } }
 
 // ============================================================
 //  VANETH CITADEL CITY — planned districts, not scatter generation
@@ -4948,16 +4966,20 @@ const INTERIOR_PURPOSES=Object.freeze({
   'The Gilded Finch':'soft booths, a musician’s nook, and a late-night room'
 });
 function interiorRug(x,z,w,d,key='cloth'){aBox(w,.035,d,x,.075,z,key);}
-function interiorTable(x,z,w=2.2,d=1.1,key='wood'){aBox(w,.18,d,x,.82,z,key);for(const sx of[-1,1])for(const sz of[-1,1])aBox(.14,.72,.14,x+sx*(w*.39),.42,z+sz*(d*.32),key);}
+function interiorTable(x,z,w=2.2,d=1.1,key='wood'){aBox(w,.18,d,x,.82,z,key);for(const sx of[-1,1])for(const sz of[-1,1])aBox(.14,.72,.14,x+sx*(w*.39),.42,z+sz*(d*.32),key);
+  // Furniture had no footprint at all — you could stand inside a table.
+  // A rectangle-ish blocker (two circles along the long axis) reads truer
+  // than one big circle without needing a second collider shape.
+  const long=Math.max(w,d),short=Math.min(w,d);if(long>short*1.4){const half=(long-short)*.5*.72,horizontal=w>=d;for(const s of[-1,1])addCollider(x+(horizontal?s*half:0),z+(horizontal?0:s*half),short*.56);}else addCollider(x,z,long*.5);}
 function interiorShelf(x,z,w=3.2,axis='x'){
   const horizontal=axis==='x',wide=horizontal?w:.42,deep=horizontal?.42:w;
   [0.72,1.4,2.08,2.76,3.44].forEach(y=>aBox(wide,.11,deep,x,y,z,'wood'));
-  if(horizontal){aBox(.14,3.55,deep,x-w*.5+.07,1.78,z,'wood');aBox(.14,3.55,deep,x+w*.5-.07,1.78,z,'wood');}
-  else{aBox(wide,3.55,.14,x,1.78,z-w*.5+.07,'wood');aBox(wide,3.55,.14,x,1.78,z+w*.5-.07,'wood');}
+  if(horizontal){aBox(.14,3.55,deep,x-w*.5+.07,1.78,z,'wood');aBox(.14,3.55,deep,x+w*.5-.07,1.78,z,'wood');wallColl(x-w*.5+.2,z,x+w*.5-.2,z,.32);}
+  else{aBox(wide,3.55,.14,x,1.78,z-w*.5+.07,'wood');aBox(wide,3.55,.14,x,1.78,z+w*.5-.07,'wood');wallColl(x,z-w*.5+.2,x,z+w*.5-.2,.32);}
 }
 function interiorBanner(x,z,key='cloth'){aBox(.11,4.15,.11,x,2.08,z,'wood');aBox(1.05,1.48,.055,x,3.05,z,key);}
-function interiorHearth(x,z,w=3.5){aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'stone');aBox(w*.5,.18,.12,x,.76,z+.2,'amber');aBox(.72,.34,.15,x,.98,z+.19,'amber');}
-function interiorGlow(x,z,key='amber',color=0xffb060){aCyl(.055,.075,1.8,5,x,.9,z,'wood');aBox(.29,.29,.29,x,1.92,z,key);const light=new THREE.PointLight(color,.52,8);light.position.set(x,2.02,z);scene.add(light);lights.push({light,base:.52,phase:rand(0,6)});}
+function interiorHearth(x,z,w=3.5){aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'stone');aBox(w*.5,.18,.12,x,.76,z+.2,'amber');aBox(.72,.34,.15,x,.98,z+.19,'amber');addCollider(x,z+.13,w*.5);}
+function interiorGlow(x,z,key='amber',color=0xffb060){aCyl(.055,.075,1.8,5,x,.9,z,'wood');aBox(.29,.29,.29,x,1.92,z,key);const light=new THREE.PointLight(color,.52,8);light.position.set(x,2.02,z);scene.add(light);lights.push({light,base:.52,phase:rand(0,6)});addCollider(x,z,.28);}
 function interiorBeams(x,z,w,d){[-d*.24,d*.24].forEach(offset=>aBox(w-.75,.16,.18,x,6.1,z+offset,'wood'));[-w*.28,w*.28].forEach(offset=>aBox(.18,.16,d-.75,x+offset,6.1,z,'wood'));}
 function furnishInterior(name,x,z,w,d,kind){
   interiorBeams(x,z,w,d);
@@ -5076,14 +5098,135 @@ function streetPlan(){
   const citadelLane=new THREE.Mesh(new THREE.RingGeometry(53,60,96).rotateX(-Math.PI/2),MATS.cobble); citadelLane.position.y=.055; citadelLane.receiveShadow=true; scene.add(citadelLane);
   const marketLane=new THREE.Mesh(new THREE.CircleGeometry(31,48).rotateX(-Math.PI/2),MATS.cobble); marketLane.position.set(0,.06,MARKET_Z); marketLane.receiveShadow=true; scene.add(marketLane);
 }
+// ---------- castle fortification ----------
+// A castle has to read as defence first. The citadel was four flat-topped
+// boxes, a gap where a gate should be, and two ordinary town houses inside.
+// These helpers give it a crenellated curtain, buttressed faces, arrow loops,
+// a real gatehouse, and ranges that look like they belong to a keep.
+// Run convention matches roadBetween: ry=atan2(dx,dz) puts local +Z along the
+// run, so local X is "across the wall" and local Z is "along the wall".
+function crenelRun(x1,z1,x2,z2,topY,thick){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz),steps=Math.max(2,Math.round(len/3.6));
+  for(let i=0;i<=steps;i++){ const t=i/steps; aBox(thick,1.5,1.6,x1+dx*t,topY+.75,z1+dz*t,'stone',ry); }
+}
+function curtainDetail(x1,z1,x2,z2,H,thick){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz),nx=dz/len,nz=-dx/len,bays=Math.max(2,Math.round(len/11));
+  // String course under the parapet reads as a wall walk from the courtyard.
+  aBox(thick+.6,.42,len,(x1+x2)/2,H-1.5,(z1+z2)/2,'stone',ry);
+  for(let i=1;i<bays;i++){ const t=i/bays,bx=x1+dx*t,bz=z1+dz*t,off=thick*.5+.35;
+    aBox(1.2,H-1.2,1.6,bx+nx*off,(H-1.2)/2,bz+nz*off,'stone',ry); }
+  for(let i=0;i<bays;i++){ const t=(i+.5)/bays,sx=x1+dx*t,sz=z1+dz*t,off=thick*.5+.04;
+    aBox(.34,1.6,.24,sx+nx*off,H*.62,sz+nz*off,'dark',ry); }
+  crenelRun(x1,z1,x2,z2,H,thick);
+}
+function castleGatehouse(R,H){
+  // Twin towers already flank x=±6; this is the masonry that makes it a gate
+  // rather than a hole: a lintel band, machicolation corbels, and a portcullis
+  // hanging in the arch. Deliberately no collider — the gate stays walkable.
+  const openH=6.6,span=12;
+  aBox(span,H-openH,2.6,0,openH+(H-openH)/2,R,'stone');
+  for(let i=-2;i<=2;i++)aBox(1.05,.9,1.5,i*2.6,openH-.2,R+1.15,'stone');
+  aBox(span+1.6,.6,3.2,0,H+.3,R,'stone');
+  crenelRun(-span/2-.4,R,span/2+.4,R,H+.6,2.8);
+  for(let i=-3;i<=3;i++)aBox(.17,1.5,.17,i*1.7,openH-.85,R,'dark');
+  for(const y of[openH-.25,openH-1.5])aBox(span-.8,.16,.16,0,y,R,'dark');
+  aBox(2.4,.24,.7,0,H-.7,R+1.4,'amber');
+}
+function castleRange(x,z,w,d,ry,kind){
+  // A hall block with buttresses and lancet windows, in place of the generic
+  // two-storey town houses that used to sit inside the walls.
+  const h=kind==='chapel'?9.5:7.4,co=Math.cos(ry),si=Math.sin(ry);
+  aBox(w,h,d,x,h/2,z,'stone',ry);
+  aBox(w*1.06,.5,d*1.06,x,h+.25,z,'slate',ry);
+  aCone(Math.max(w,d)*.66,kind==='chapel'?5:3.6,4,x,h+(kind==='chapel'?2.9:2.3),z,'roof',ry+Math.PI/4);
+  for(let t=-1;t<=1;t++){ const ox=t*w*.33;
+    for(const side of[-1,1]){ const bx=x+ox*co-side*(d*.5+.3)*si,bz=z+ox*si+side*(d*.5+.3)*co;
+      aBox(.85,h*.84,1.0,bx,h*.42,bz,'stone',ry);
+      const wx=x+ox*co-side*(d*.5+.06)*si,wz=z+ox*si+side*(d*.5+.06)*co;
+      aBox(.5,2.3,.12,wx,h*.56,wz,'arcane',ry); } }
+  if(kind==='chapel'){ aCyl(.9,1.1,5.5,6,x,h+5.2,z,'stone'); aCone(1.5,3.4,6,x,h+9.6,z,'slate'); }
+  addCollider(x,z,Math.max(w,d)*.55);
+}
 function citadel(){ const R=49,H=11;
   aBox(R*2,H,2,0,H/2,-R,'stone'); aBox(2,H,R*2,-R,H/2,0,'stone'); aBox(2,H,R*2,R,H/2,0,'stone'); aBox(R-5,H,2,-(R+5)/2,H/2,R,'stone'); aBox(R-5,H,2,(R+5)/2,H/2,R,'stone');
   wallColl(-R,-R,R,-R,1.3); wallColl(-R,-R,-R,R,1.3); wallColl(R,-R,R,R,1.3); wallColl(-R,R,-6,R,1.3); wallColl(6,R,R,R,1.3);
-  [[-R,-R],[R,-R],[R,R],[-R,R],[-6,R],[6,R]].forEach((t,i)=>{ const h=H+(i<4?7:4); aCyl(3.4,3.8,h,8,t[0],h/2,t[1],'stone'); aCone(4.8,4,8,t[0],h+2,t[1],'slate'); aBox(.65,1.1,.15,t[0],h*.58,t[1]+3.82,'arcane'); addCollider(t[0],t[1],3.5); });
-  aCyl(8.5,10,39,10,0,19,2,'stone'); aCone(12,10,10,0,44,2,'slate'); for(let y=5;y<35;y+=4){ aBox(1,1.2,.14,0,y,12.1,'arcane'); aBox(.14,1.2,1,12.1,y,2,'arcane'); }
-  const crown=new THREE.PointLight(0x9d7bff,2.8,52); crown.position.set(0,40,2); scene.add(crown); lights.push({light:crown,base:2.8,phase:1});
-  interiorHouse('The Great Hall',0,-20,26,18,'royal'); cityHouse(-27,-16,11,8,2,'stone',.2,'arcane'); cityHouse(27,-16,11,8,2,'stone',-.2,'arcane');
+  [[-R,-R],[R,-R],[R,R],[-R,R],[-6,R],[6,R]].forEach((t,i)=>{ const h=H+(i<4?7:4); aCyl(3.4,3.8,h,8,t[0],h/2,t[1],'stone'); aCone(4.8,4,8,t[0],h+2,t[1],'slate'); aBox(.65,1.1,.15,t[0],h*.58,t[1]+3.82,'arcane'); addCollider(t[0],t[1],3.5);
+    // Crown each drum with merlons so the towers stop reading as capped pipes.
+    for(let f=0;f<8;f+=2){ const a=(f/8)*Math.PI*2,mr=3.6; aBox(1.05,1.25,1.05,t[0]+Math.cos(a)*mr,h+.6,t[1]+Math.sin(a)*mr,'stone'); } });
+  // Curtain detail. Runs are traversed so the computed normal points outward.
+  curtainDetail(-R,-R,R,-R,H,2); curtainDetail(R,-R,R,R,H,2); curtainDetail(-R,R,-R,-R,H,2);
+  curtainDetail(-6,R,-R,R,H,2); curtainDetail(R,R,6,R,H,2);
+  castleGatehouse(R,H);
+  // Great tower: the citadel's central keep, and the tallest thing in
+  // Vaneth. It never had its own collider, so it was fully walk-through —
+  // its footprint alone is bigger than any city-block building's.
+  // Seated further north than before: it now stands at the far end of the
+  // courtyard from the gate (proper castle planning) and, practically, leaves
+  // room for a plinth without crowding the Great Hall's doorstep.
+  const towerCx=0,towerCz=8,towerRb=10,towerRt=8.5,towerH=39,towerFaces=10;
+  // Stepped plinth so the keep grows out of a motte instead of sprouting from
+  // flat pavement. Visual only — the collider stays at the shaft radius.
+  aCyl(towerRb+2.1,towerRb+3.1,2.2,towerFaces,towerCx,1.1,towerCz,'stone');
+  aCyl(towerRb+.9,towerRb+2.1,1.7,towerFaces,towerCx,3.05,towerCz,'stone');
+  aCyl(towerRt,towerRb,towerH,towerFaces,towerCx,towerH/2,towerCz,'stone'); aCone(12,10,towerFaces,towerCx,towerH+5,towerCz,'slate');
+  // Clasping corner buttresses give the shaft vertical articulation.
+  for(let f=1;f<towerFaces;f+=2){ const a=(f/towerFaces)*Math.PI*2,br=towerRb-.2,bh=towerH*.72;
+    aBox(1.7,bh,2.2,towerCx+Math.cos(a)*br,bh/2,towerCz+Math.sin(a)*br,'stone',-a);
+    aCone(1.5,2.1,4,towerCx+Math.cos(a)*br,bh+1.05,towerCz+Math.sin(a)*br,'slate',Math.PI/4); }
+  addCollider(towerCx,towerCz,towerRb);
+  // A merlon ring at the roofline so the tallest building in the city reads
+  // as a keep, not a silo with a witch's hat.
+  for(let f=0;f<towerFaces;f+=2){ const angle=(f/towerFaces)*Math.PI*2,mr=towerRt+.5; aBox(1.3,1.4,1.3,towerCx+Math.cos(angle)*mr,towerH+.6,towerCz+Math.sin(angle)*mr,'stone'); }
+  // Window offset was a flat 12.1 in both columns — nowhere near the tower's
+  // actual 8.5-10 radius, so the second column floated 2-3 units off the
+  // stone at every height. Both now track the true taper per level.
+  for(let y=5;y<35;y+=4){ const faceRadius=towerRb+(towerRt-towerRb)*(y/towerH);
+    [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(angle=>{ const wr=faceRadius+.06; aBox(1,1.2,.16,towerCx+Math.cos(angle)*wr,y,towerCz+Math.sin(angle)*wr,'arcane',angle-Math.PI/2); }); }
+  const crown=new THREE.PointLight(0x9d7bff,2.8,52); crown.position.set(towerCx,towerH+1,towerCz); scene.add(crown); lights.push({light:crown,base:2.8,phase:1});
+  interiorHouse('The Great Hall',0,-20,26,18,'royal');
+  // Were two ordinary town houses — the exact "walled set of generated NPC
+  // buildings" problem. Now a barracks range and a chapel with its own spire.
+  castleRange(-29,-14,13,9,.18,'barracks'); castleRange(29,-14,13,9,-.18,'chapel');
+  castleRange(-31,20,11,8,Math.PI/2,'barracks'); castleRange(31,20,11,8,-Math.PI/2,'barracks');
   torch(-7,R+.8,0xffa64d,1.6,17); torch(7,R+.8,0xffa64d,1.6,17);
+}
+// ---------- interior doors ----------
+// Kept as live meshes rather than batched geometry so each leaf can hinge.
+// Nine rooms times two leaves is a trivial object count next to the merged city.
+const DOOR_SWING=1.32, DOOR_NEAR=2.9, DOOR_MATS={};
+function doorMaterial(key,color){ if(!DOOR_MATS[key])DOOR_MATS[key]=new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}); return DOOR_MATS[key]; }
+function buildInteriorDoorLeaves(door,doorW,kind){
+  const leafW=doorW/2-.05,leafH=2.32,plank=doorMaterial('plank',kind==='royal'?0x4a3556:0x4a3524),iron=doorMaterial('iron',0x24202a),stud=doorMaterial('stud',kind==='royal'?0xa78cff:0xd9a05a);
+  door.leaves=[-1,1].map(side=>{
+    // Pivot sits on the jamb; the panel hangs off it so rotation is a hinge,
+    // not a spin about the leaf's own centre.
+    const hinge=new THREE.Group(); hinge.position.set(door.doorX+side*doorW/2,0,door.doorZ);
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(leafW,leafH,.13),plank); panel.position.set(-side*leafW/2,leafH/2+.02,0);
+    panel.castShadow=true; panel.receiveShadow=true; hinge.add(panel);
+    for(const bandY of[.55,1.72]){ const band=new THREE.Mesh(new THREE.BoxGeometry(leafW*.92,.13,.17),iron); band.position.set(-side*leafW/2,bandY,0); hinge.add(band); }
+    const handle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.22),stud); handle.position.set(-side*(leafW-.28),1.16,.05); hinge.add(handle);
+    scene.add(hinge); return {hinge,side};
+  });
+  // One collider is enough: the flanking jamb runs already reach to within a
+  // narrow slot at the centre, which is exactly the gap people walked through.
+  door.collider=addCollider(door.doorX,door.doorZ,.9);
+  door.openAmount=0;
+}
+function updateInteriorDoors(dt){
+  for(const door of interiorDoors){
+    if(!door.leaves)continue;
+    let near=Math.hypot(player.x-door.doorX,player.z-door.doorZ)<DOOR_NEAR;
+    // Residents get the courtesy too, so a host stepping to the threshold
+    // opens their own door instead of standing behind a shut one.
+    if(!near)for(const npc of villagers){ if(Math.hypot(npc.g.position.x-door.doorX,npc.g.position.z-door.doorZ)<DOOR_NEAR){near=true;break;} }
+    const want=near?1:0;
+    door.openAmount+=(want-door.openAmount)*Math.min(1,dt*5.5);
+    if(Math.abs(door.openAmount-want)<.01)door.openAmount=want;
+    const angle=door.openAmount*DOOR_SWING;
+    for(const leaf of door.leaves)leaf.hinge.rotation.y=leaf.side*angle;
+    // Stand the blocker down once there is genuinely room to walk through.
+    if(door.collider)door.collider.open=door.openAmount>.42;
+  }
 }
 function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
   // Four wall pieces and a real opening make these walk-in rooms, not a
@@ -5098,7 +5241,14 @@ function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
   else if(kind==='archive'){ for(let i=-1;i<=1;i+=2){ aBox(.8,4,d*.58,x+i*(w*.36),2,z,'wood'); } aBox(3,.85,1.5,x,.43,z+1.2,'wood'); addCollider(x,z+1.2,1.1); }
   else { aBox(w*.58,.7,2.2,x,.36,z+1.6,'stone'); aCyl(.7,.8,1.2,8,x,.6,z-2,'stone'); }
   furnishInterior(name,x,z,w,d,kind);
-  interiorDoors.push({id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,cx:x,cz:z,w,d,kind,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'});
+  // Real hinged doors. The opening was previously just a gap in the wall with
+  // a decorative frame around it — the room advertised "press E to enter" and
+  // you could also stroll straight through the empty middle. These leaves are
+  // individual meshes (not merged into the static batch) so they can swing,
+  // and they carry a collider that stands down only once they are open.
+  const doorRecord={id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,cx:x,cz:z,w,d,kind,doorX:x,doorZ:front,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'};
+  buildInteriorDoorLeaves(doorRecord,doorW,kind);
+  interiorDoors.push(doorRecord);
 }
 function marketDistrict(){
   fireLight=new THREE.PointLight(0xff7a2d,2.8,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
@@ -5124,9 +5274,13 @@ function perimeterWards(){
   // façade-only lots.
   const palette=['wall','brick','wall2','stone'];
   const edgeLots=[-108,-96,-84,-72,-60,-24,24,60,72,84,96,108];
-  edgeLots.forEach((x,index)=>cityHouse(x,-220,8.6,8,1+(index%4===0?2:1),palette[index%palette.length],0,index%5===0?'arcane':'amber'));
-  edgeLots.forEach((z,index)=>cityHouse(220,z,8.6,8,1+(index%4===0?2:1),palette[(index+1)%palette.length],-Math.PI/2,index%5===0?'arcane':'amber'));
-  edgeLots.forEach((z,index)=>cityHouse(-220,z,8.6,8,1+(index%4===0?2:1),palette[(index+2)%palette.length],Math.PI/2,index%5===0?'arcane':'amber'));
+  // Stories/palette/accent used to follow a fixed index%N pattern — every
+  // seed produced the identical two-story-every-fourth-house rhythm along
+  // every wall street. Pulling from the world stream instead means the
+  // perimeter actually reshuffles on a reroll, same as the interior wards.
+  edgeLots.forEach(x=>cityHouse(x,-220,8+rand(0,1.1),7.4+rand(0,1.2),1+(worldRandom()<.22?2:1),pick(palette),0,worldRandom()<.2?'arcane':'amber'));
+  edgeLots.forEach(z=>cityHouse(220,z,8+rand(0,1.1),7.4+rand(0,1.2),1+(worldRandom()<.22?2:1),pick(palette),-Math.PI/2,worldRandom()<.2?'arcane':'amber'));
+  edgeLots.forEach(z=>cityHouse(-220,z,8+rand(0,1.1),7.4+rand(0,1.2),1+(worldRandom()<.22?2:1),pick(palette),Math.PI/2,worldRandom()<.2?'arcane':'amber'));
   interiorHouse('The Southgate Rest',0,-220,20,16,'tavern');
   interiorHouse('The Eastwall Scriptorium',220,42,20,16,'archive');
   interiorHouse('The Westwall Refuge',-220,-42,20,16,'guild');
@@ -5218,7 +5372,12 @@ function compilerCourt(spec){
 function compilerLot(district,row,index,count){
   const span=row.end-row.start,t=(index+.5)/count,along=row.start+span*t;
   const x=row.axis==='x'?along:row.at,z=row.axis==='x'?row.at:along;
-  const archetypes=row.archetypes||['rowhouse'],archetype=archetypes[index%archetypes.length];
+  // Archetype used to be a fixed index%length rotation, so every seed put
+  // the same shop/tavern/rowhouse pattern in the same slots along a row —
+  // only the palette and dimensions actually varied. Drawing it from the
+  // world stream instead means a reroll can genuinely put the tavern
+  // somewhere else in the row, not just repaint it.
+  const archetypes=row.archetypes||['rowhouse'],archetype=pick(archetypes);
   const width=archetype==='barracks'?10.2:archetype==='archive'?8.3:7.4+(worldRandom()>.58?1.1:0),depth=archetype==='workshop'?8.6:7.1+(worldRandom()>.66?.9:0),stories=archetype==='archive'?3:archetype==='barracks'?2:(archetype==='rowhouse'&&worldRandom()>.36?2:1),palette=district.theme==='archive'?['wall2','stone','wall']:district.theme==='works'?['brick','wall','stone']:district.theme==='market'?['brick','wall','wall2']:district.theme==='citadel'?['stone','wall2','wall']:['wall','brick','wall2'],key=palette[(index+Math.floor(worldRandom()*palette.length))%palette.length],radius=Math.max(width,depth)*.56;
   if(!compilerLotClear(x,z,radius,width,depth,row.ry))return null;
   const id=district.id+':lot-'+row.id+'-'+index,lot={id,districtId:district.id,row:row.id,index,x,z,w:width,d:depth,ry:row.ry,archetype,stories,key,accent:district.accent};
@@ -5505,7 +5664,7 @@ function setSpellToneFromFahrenheit(fahrenheit){
 }
 function spellBarrier(x1,z1,x2,z2,radius=.18){
   const vx=x2-x1,vz=z2-z1,denominator=vx*vx+vz*vz; let hit=null;
-  for(const collider of collidersAlong(x1,z1,x2,z2)){const reach=collider.r+radius;let ratio=denominator?((collider.x-x1)*vx+(collider.z-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,pz=z1+vz*ratio,dx=px-collider.x,dz=pz-collider.z;if(dx*dx+dz*dz<=reach*reach&&(!hit||ratio<hit.ratio))hit={x:px,z:pz,ratio};}
+  for(const collider of collidersAlong(x1,z1,x2,z2)){if(collider.open)continue;const reach=collider.r+radius;let ratio=denominator?((collider.x-x1)*vx+(collider.z-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,pz=z1+vz*ratio,dx=px-collider.x,dz=pz-collider.z;if(dx*dx+dz*dz<=reach*reach&&(!hit||ratio<hit.ratio))hit={x:px,z:pz,ratio};}
   return hit;
 }
 function spellVillagerBarrier(x1,y1,z1,x2,y2,z2,radius=.22){const vx=x2-x1,vz=z2-z1,denominator=vx*vx+vz*vz;let hit=null;for(const npc of villagers){const nx=npc.g.position.x,nz=npc.g.position.z;let ratio=denominator?((nx-x1)*vx+(nz-z1)*vz)/denominator:0;ratio=Math.max(0,Math.min(1,ratio));const px=x1+vx*ratio,py=y1+(y2-y1)*ratio,pz=z1+vz*ratio,dx=px-nx,dz=pz-nz;if(py<.42||py>2.35)continue;if(dx*dx+dz*dz<(.48+radius)**2&&(!hit||ratio<hit.ratio))hit={x:px,y:py,z:pz,ratio,npc};}return hit;}
@@ -5513,7 +5672,12 @@ function spellImpact(x,y,z,color){while(spellHits.length>=SPELL_HIT_CAP)scene.re
 function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-lastCastAt<105)return; lastCastAt=now; while(spells.length>=SPELL_CAP)scene.remove(spells.shift().g);
   const from=camera.position.clone(),dir=new THREE.Vector3(); camera.getWorldDirection(dir); const castColor=spellPalette[spellIndex++%spellPalette.length]||spellColor; spellColor=castColor;
   const g=new THREE.Group(),core=new THREE.Mesh(spellCoreGeometry,spellMaterial(castColor)); g.add(core); g.position.copy(from).addScaledVector(dir,1); scene.add(g); spells.push({g,v:dir.multiplyScalar(38),core,color:castColor,life:1.5}); }
-function blocked(x,z){ return colliderBlocked(x,z); }
+// A plain literal, not a module-level const: canRestoreSavedPosition() calls
+// blocked() synchronously during startup, before this point in the file has
+// executed, so a const declared here would still be in its temporal dead
+// zone at that first call and throw.
+function npcBlocked(x,z){ for(const npc of villagers){ const dx=x-npc.g.position.x,dz=z-npc.g.position.z,reach=.42+CONFIG.playerRadius; if(dx*dx+dz*dz<reach*reach)return true; } return false; }
+function blocked(x,z){ return colliderBlocked(x,z)||npcBlocked(x,z); }
 const lim=M*0.47;
 let nearestVillager=null,nearestDoor=null,activeInterior=restoredInterior,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
 const interactHint=document.getElementById('interactHint'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
@@ -5600,7 +5764,33 @@ const LIVING_NPC_PROFILES={
   'Jori Caskmaker':{role:'caskmaker',work:'I make containers for things that change with time. You learn patience quickly when a small gap can spoil a whole barrel.',news:'A cask split clean down the seam today. It was old enough to know better.',memory:'steam rising from fresh-cut wood',smoke:'A good thing needs a little space around it. Same with people.',leadId:'cinder-market'},
   'Iria Starling':{role:'archive reader',work:'I read the inconvenient parts twice. It saves everyone trouble later, though no one thanks me for it.',news:'The east lamps have been burning low in sequence. I am trying not to make a pattern of it until I have to.',memory:'a hidden annotation in the margin of a map',smoke:'I enjoy a scent that makes the next thought arrive slowly enough to notice.',leadId:'moon-archive'},
   'Garron Vale':{role:'south-road scout',work:'I walk the road far enough to know when it is lying about being clear, then I come back before it can prove me right.',news:'The fog has been keeping to the ditches. That is better than last week, but only just.',memory:'a campfire reflected in a wet road',smoke:'Out on the road, a shared pause is worth more than a speech.',leadId:'foxglove-pond'},
-  'Chamberlain Ash':{role:'hall chamberlain',work:'I make sure grand rooms do not swallow the people who enter them. It is a more delicate craft than it sounds.',news:'The Great Hall has been hosting meetings that end with everyone smiling too carefully.',memory:'the last candle burning in an empty chamber',smoke:'A little warmth can make even a formal room tell the truth.',leadId:'great-hall'}
+  'Chamberlain Ash':{role:'hall chamberlain',work:'I make sure grand rooms do not swallow the people who enter them. It is a more delicate craft than it sounds.',news:'The Great Hall has been hosting meetings that end with everyone smiling too carefully.',memory:'the last candle burning in an empty chamber',smoke:'A little warmth can make even a formal room tell the truth.',leadId:'great-hall'},
+  'Rill the Fishmonger':{role:'fishmonger',work:'I read the tide better than most people read a clock, and I sell what the river decided to give up this morning.',news:'The morning catch has been thinner but stranger — more silver than usual, and half of it curious about the wrong depth.',memory:'ice melting on a cart at first light',smoke:'A shared jar should smell like something honest, same as good fish.',leadId:'cinder-market'},
+  'Ona Bellkeeper':{role:'bell tender',work:'I ring the market awake before it agrees to be awake. Someone has to argue with the morning first.',news:'The bell cracked a note yesterday and half the stalls swore it sounded like an apology.',memory:'the first pull of a rope in cold air',smoke:'I like a jar that arrives quietly, the way a good bell fades instead of stopping.',leadId:'north-gate'},
+  'Kest the Florist':{role:'florist',work:'I sell small excuses to slow down. A flower does not fix anything, but it buys you a minute to breathe.',news:'Something is blooming out of season near the old fountain, and nobody wants to be the one who pulls it up to ask why.',memory:'petals pressed flat in an old ledger',smoke:'A good smoke and a good flower want the same thing: to be noticed slowly.',leadId:'cinder-market'},
+  'Bram Tallowhand':{role:'chandler',work:'I dip wicks and trim them straighter than most people trim their own plans.',news:'Tallow prices jumped for no reason anyone will admit to. Somebody is hoarding candles again.',memory:'a whole shelf of wicks curing in the dark',smoke:'A clean burn matters, whether it is a candle or a jar.',leadId:'north-gate'},
+  'Lio the Porter':{role:'porter',work:'I carry what nobody else wants to carry, up stairs nobody else wants to climb.',news:'A crate marked fragile arrived unbroken for once. The whole market is suspicious about it.',memory:'the exact moment a heavy load finally sets down',smoke:'After a full day of carrying, I want something that does not ask anything more of me.',leadId:'moon-archive'},
+  'Merrin Vale':{role:'stall minder',work:'I watch three stalls at once so three different owners can pretend they never left.',news:'The square looks different by lamplight than by daylight, and I trust the lamplight version more.',memory:'coins counted twice out of habit, not doubt',smoke:'A shared jar in the evening turns three stalls into one conversation.',leadId:'cinder-market'},
+  'Sergeant Iven':{role:'wall sergeant',work:'I walk the same stretch of wall enough times a night that I have named the worst stones in it.',news:'The changing of the watch has been quieter than usual, which in this job is its own kind of loud.',memory:'frost forming on a spear tip before dawn',smoke:'Off duty, I want something that makes the wall feel further away for a while.',leadId:'great-hall'},
+  'Nella Farsight':{role:'ramparts lookout',work:'I watch the horizon long enough that ordinary shapes start looking like decisions.',news:'There has been a light out past the forest three nights running, gone by the time anyone climbs up to check.',memory:'the moment fog finally lifts off a familiar road',smoke:'A good jar makes the long watch feel like company instead of waiting.',leadId:'moon-archive'},
+  'Tomas Reed':{role:'gate hand',work:'I check the same latches every night, because a gate only checked after it fails has already failed once too many times.',news:'Someone tried the north gate at an odd hour and left without knocking twice. Probably nothing.',memory:'the particular creak of a hinge that finally gets oiled',smoke:'There is more to a gate than the lock on it, and more to a jar than the smoke.',leadId:'north-gate'},
+  'Yara Flint':{role:'watch scout',work:'I notice things before they become anyone else’s problem. That is the whole job, dressed up in a uniform.',news:'The scouts keep finding boot prints that do not match anyone on the roster.',memory:'a held breath before deciding something is nothing',smoke:'A sharp eye needs a soft evening now and then.',leadId:'great-hall'},
+  'Linn Fenway':{role:'roofline neighbor',work:'I know every roof in this ward by how it sounds in the rain.',news:'The rooflines have started catching the dawn a little earlier than they used to. Nobody can explain why.',memory:'the first warm tile under bare feet in spring',smoke:'The north catches the light first. I like sharing a jar before the rest of the city wakes up to it.',leadId:'north-gate'},
+  'Pip Rowan':{role:'lane sweep',work:'I keep the lane quiet enough that people can hear themselves think, which is rarer than it should be.',news:'Someone left a stack of clean laundry on a stoop with no note. It has been there two days and nobody claims it.',memory:'a lane finally going still after a long day',smoke:'The quiet lane deserves a quiet jar. I keep both unhurried.',leadId:'cinder-market'},
+  'Hessa Lark':{role:'doorstep singer',work:'I keep a little song for every doorstep in the ward. Some people need the reminder that someone noticed their door.',news:'A song I have not heard in years came back to me yesterday, whole, like it had been waiting.',memory:'a melody finally landing on the right note',smoke:'A shared jar makes a good audience for an old song.',leadId:'north-gate'},
+  'Dune Marrow':{role:'garden keeper',work:'I tend what grows here even when the season argues against it. Sleeping is not the same as gone.',news:'Something is budding early near the north wall, weeks ahead of when it should.',memory:'the first green thread pushing through old frost',smoke:'A garden and a good jar both reward patience over rushing.',leadId:'cinder-market'},
+  'Fenn Copper':{role:'toolwright',work:'I fix what arrives bent, and I insult it a little on the way, because tools listen better than people think.',news:'A whole crate of good copper went missing between the forge and the cart. Someone is going to have an awkward conversation about it.',memory:'the ring of a hammer finding the exact right spot',smoke:'Tools behave better after a good insult, and so do I, apparently.',leadId:'foxglove-pond'},
+  'Mara Vell':{role:'night machinist',work:'The workshops never really close, and neither do I, most nights. Something always needs one more turn of a wrench.',news:'A gear started turning on its own last night. Everyone has a theory. None of them are good.',memory:'the smell of oil on cold metal at midnight',smoke:'A jar at the end of a long shift is the only thing that convinces my hands to stop moving.',leadId:'moon-archive'},
+  'Cale Brindle':{role:'wheelwright',work:'A wheel only complains when it needs you, so I have learned to listen for complaints instead of waiting for silence.',news:'A cart came in with a wheel that had clearly been fixed by someone who had never fixed a wheel before.',memory:'the moment a repaired wheel finally spins true',smoke:'I like something that turns smooth, same as a good wheel.',leadId:'foxglove-pond'},
+  'Tilda Ash':{role:'forge tender',work:'Sparks are just ideas in a hurry, and my job is making sure the hurried ones do not burn the workshop down.',news:'The forge has been running hotter than usual for no reason the coal can explain.',memory:'the exact color a flame turns right before it settles',smoke:'A good ember and a good jar both want tending, not neglect.',leadId:'moon-archive'},
+  'Faro Ink':{role:'margin scribe',work:'I write in the margins where the real questions live, because the main text is usually too polite to ask them.',news:'A page in the east archive has been rewriting its own footnotes. Everyone insists it is a joke. Nobody is laughing.',memory:'ink finally drying on a page that took too long to write',smoke:'The best margins leave room for silence. So does a good jar.',leadId:'eastwall'},
+  'Nyx Rowan':{role:'shelf keeper',work:'I keep the archive shelves in an order only I fully trust, and I am fine with that.',news:'The shelves move when no one is looking. Probably. I have stopped trying to prove otherwise.',memory:'a book found exactly where it should not have been',smoke:'A quiet shelf and a quiet jar make the same kind of company.',leadId:'moon-archive'},
+  'Darrow Pike':{role:'cartographer',work:'Maps are apologies to places too large to hold in your head, and I write a lot of apologies.',news:'A survey came back with a street that does not match the one underfoot. Someone is wrong. It might be the street.',memory:'a coastline finally agreeing to lie flat on paper',smoke:'A good jar helps me stop arguing with my own maps for one evening.',leadId:'eastwall'},
+  'Suri Hal':{role:'lamp warden',work:'I keep the eastern lamps lit long after most people have forgotten why they were lit in the first place.',news:'A lamp near the scriptorium turned blue for one breath last night. No one else caught it, but I did.',memory:'the exact moment a wick catches after three failed strikes',smoke:'Old light and a shared jar both deserve patience before you judge them.',leadId:'eastwall'},
+  'Kip Roadward':{role:'road greeter',work:'The road is friendlier when you wave first, so that is the whole of my job: waving first.',news:'A traveler came through today swearing the south fog waved back. I did not ask for details.',memory:'the first familiar face at the end of a long walk',smoke:'Share the jar before you share the story. It goes down easier that way.',leadId:'foxglove-pond'},
+  'Mina Gorse':{role:'fog reader',work:'Fog makes every journey a little personal, and I have learned to read what it is hiding before it decides to hide it from me.',news:'The fog has been sitting lower than usual, right at boot height, like it is looking for something small.',memory:'a road appearing all at once when the fog finally lifts',smoke:'A good jar and a thick fog want the same thing from you: patience.',leadId:'great-hall'},
+  'Tor Bell':{role:'field hand',work:'The fields have their own calendar, and mine mostly just tries to keep up with it.',news:'Something grew back in a field that was supposed to be resting this season. Nobody planted it.',memory:'the smell of turned soil after the first rain',smoke:'Nothing pairs better with a long day in the fields than an unhurried jar at the end of it.',leadId:'foxglove-pond'},
+  'Ari Wells':{role:'road scout',work:'A traveler tells you where the wind has been, so I make it my business to talk to every one that passes through.',news:'Three separate travelers described the same abandoned camp on the south road, each swearing they found it alone.',memory:'a shared fire with strangers who stayed strangers by choice',smoke:'The road teaches you that a shared jar is just a fire you can carry.',leadId:'great-hall'}
 };
 const LIVING_NPC_MEMORY_KEY='emberwatch.vaneth-social-ledger.v1';
 function livingProfileLine(value,key,fallback=''){const lines=Array.isArray(value)?value:value?[value]:[];return lines.length?lines[nameIndex(key,lines.length)]:fallback;}
@@ -5658,12 +5848,20 @@ function askSmokePairing(npc,strain){const lead=livingLeadFor(npc);if(lead)point
 function sitWithNpc(npc,strain){const place=conversationFor(npc).place,context=livingStrainContext(strain),ending=['For a while neither of you says anything. Somewhere beyond the roofs, a cart creaks and a lantern bell taps in the wind.','The city keeps moving around you. '+npc.name+' gives a small nod, as if that silence answered a question.','You pass the jar back and watch the last of the smoke thin above '+place+'. It is enough to be there for a minute.'][nameIndex(npc.name+context.name+' quiet',3)];writeDialogue(npc,'A little quiet',ending,[{label:'Keep talking',action:showDialogueGreeting},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 dialoguePanel.addEventListener('keydown',event=>{if(event.key!=='Tab'||!dialogueOpen)return;const focusable=[...dialoguePanel.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])')].filter(element=>element.offsetParent!==null);if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}});
 function routePoint(npc){const route=npc.route,length=route.length,progress=(npc.routeProgress%length+length)%length,index=Math.floor(progress),next=(index+1)%length,blend=progress-index,ease=blend*blend*(3-2*blend),from=route[index],to=route[next];return {x:from[0]+(to[0]-from[0])*ease,z:from[1]+(to[1]-from[1])*ease};}
+// Patrol movement only ever checked world geometry, so a resident on their
+// route would walk straight through the player or through each other. This
+// mirrors the player's own npcBlocked check, minus the NPC being tested.
+function npcObstructed(npc,x,z){
+  if(!npc.talking&&!npc.sessionAnchor){const pdx=x-player.x,pdz=z-player.z,preach=.42+CONFIG.playerRadius+.15;if(pdx*pdx+pdz*pdz<preach*preach)return true;}
+  for(const other of villagers){if(other===npc)continue;const dx=x-other.g.position.x,dz=z-other.g.position.z,reach=.42*1.7;if(dx*dx+dz*dz<reach*reach)return true;}
+  return false;
+}
 function updateVillagers(t,dt){ let closest=null,best=16;
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
     else if(npc.route.length<=1&&npc.routeLoop?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
-    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;if(!npcPathClear(npc.lastX,npc.lastZ,x,z)){anchorNpcRoute(npc);x=npc.lastX;z=npc.lastZ;}else{const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}}else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
+    else if(npc.route.length>1){ const target=routePoint(npc); if(npc.pauseLeft>0){npc.pauseLeft-=dt;x=target.x;z=target.z;}else{const priorIndex=Math.floor(npc.routeProgress);npc.routeProgress=(npc.routeProgress+dt*npc.walkSpeed)%npc.route.length;const next=routePoint(npc);x=next.x;z=next.z;if(!npcPathClear(npc.lastX,npc.lastZ,x,z)){anchorNpcRoute(npc);x=npc.lastX;z=npc.lastZ;}else if(npcObstructed(npc,x,z)){npc.routeProgress=priorIndex;x=npc.lastX;z=npc.lastZ;npc.pauseLeft=.35;}else{const dx=x-npc.lastX,dz=z-npc.lastZ;if(dx*dx+dz*dz>.0001)npc.g.rotation.y=Math.atan2(dx,dz);movingNpc=true;if(Math.floor(npc.routeProgress)!==priorIndex)npc.pauseLeft=1.1+((npc.phase*11)%2.4);}}}else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
     const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
     npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} }
   let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
@@ -6126,8 +6324,33 @@ const PUFF=(function(){
   async function deviceAction(label,work){if(deviceBusy)return ACTION_CANCELLED;const epoch=++deviceActionEpoch;backgroundTelemetryGeneration++;if(poll){clearTimeout(poll);poll=null;}setDeviceBusy(true,label);try{return await work(()=>epoch===deviceActionEpoch);}catch(error){if(epoch!==deviceActionEpoch)return ACTION_CANCELLED;throw error;}finally{if(epoch===deviceActionEpoch){setDeviceBusy(false);if(PUFF.connected){await refresh();scheduleRefresh(300);}}}}
   if(!window.isSecureContext) setNote('⚠ Opened from a file. Web Bluetooth needs http://localhost — ask me for the one-click launcher.');
   else if(!navigator.bluetooth) setNote('⚠ This browser has no Web Bluetooth. Use desktop Chrome or Edge.');
-  const WARMUP_KEY_PREFIX='emberwatch.peak-pro.warmups.v2.',READY_MARGIN_C=.5;
-  const warmupKey=()=>WARMUP_KEY_PREFIX+(PUFF.device?.id||'unbound');
+  const WARMUP_KEY_PREFIX='emberwatch.peak-pro.warmups.v3.',LEGACY_WARMUP_PREFIX='emberwatch.peak-pro.warmups.v2.',READY_MARGIN_C=.5;
+  // Warm-up history is keyed per hardware platform, not per device. A Web
+  // Bluetooth device id is origin-scoped and can change when pairing
+  // permission is re-granted, which silently orphaned every learned sample.
+  // Thermal behavior belongs to the platform anyway, so one pool per protocol
+  // is both sturdier and fills up far faster. A future proxy/other platform
+  // simply gets its own bucket by returning a different id here.
+  const platformId=()=>PUFF.protocol==='legacy'?'peak-pro-legacy':'peak-pro-lorax';
+  // Sticky, so a save that happens after a disconnect still lands in the pool
+  // it was learned in rather than a placeholder bucket.
+  let warmupPlatform=platformId();
+  const warmupKey=()=>WARMUP_KEY_PREFIX+warmupPlatform;
+  // One-time lift of any per-device v2 history into this platform's pool so
+  // previously learned runs are not thrown away by the key change.
+  function migrateLegacyWarmups(){
+    try{
+      if(localStorage.getItem(warmupKey()))return;
+      const carried=[];
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(!key||!key.startsWith(LEGACY_WARMUP_PREFIX))continue;
+        const saved=JSON.parse(localStorage.getItem(key)||'[]');
+        if(Array.isArray(saved))carried.push(...saved);
+      }
+      if(carried.length)localStorage.setItem(warmupKey(),JSON.stringify(carried.slice(-40)));
+    }catch{}
+  }
   let lastReadError='',lastBatteryAt=0,lastBatteryAttemptAt=0,lastBatterySample=null,batteryError='',lastRgbAt=0,profileRgbDirty=true,cycleStartedAt=null,warmupAttempt=null,lastWarmupSeconds=null,warmupSamples=loadWarmups();
   const FAHRENHEIT_MIN=302, FAHRENHEIT_MAX=599;
   const toFahrenheit=c=>c*9/5+32, toCelsius=f=>(f-32)*5/9;
@@ -6147,14 +6370,46 @@ const PUFF=(function(){
   }
   function scheduleRefresh(delay=0){
     if(poll)clearTimeout(poll);
-    poll=setTimeout(async()=>{ poll=null;if(deviceBusy){if(PUFF.connected)scheduleRefresh(450);return;}await refresh();if(PUFF.connected){const base=activeHeat(lastState)?2200:6500,backoff=missedPolls?Math.min(18000,base*(2**Math.min(missedPolls,2))):base,quiet=!puffPanel.classList.contains('open')||document.visibilityState!=='visible';scheduleRefresh(quiet?Math.max(backoff,10000):backoff);} },delay);
+    poll=setTimeout(async()=>{ poll=null;if(deviceBusy){if(PUFF.connected)scheduleRefresh(450);return;}await refresh();if(PUFF.connected){const base=activeHeat(lastState)?2200:6500,backoff=missedPolls?Math.min(18000,base*(2**Math.min(missedPolls,2))):base,quiet=!puffPanel.classList.contains('open')||document.visibilityState!=='visible';
+      // While a warm-up is actually being timed, ignore the quiet backoff. The
+      // 10s idle floor was applied even mid-warm-up, so a ~20s heat could be
+      // caught up to 10s late and the "learned" seconds were badly wrong —
+      // the run got recorded, it was just recorded as nonsense.
+      scheduleRefresh(warmupAttempt?Math.min(backoff,1500):(quiet?Math.max(backoff,10000):backoff));} },delay);
   }
+  // Widest gap between polls that still lets us place a device-started cycle
+  // accurately enough to be worth learning from. Sized just past the 6.5s
+  // idle cadence so a normal open-panel poll qualifies.
+  const WARMUP_OBSERVE_WINDOW_MS=7500;
   const median=values=>{ const sorted=[...values].sort((a,b)=>a-b),middle=Math.floor(sorted.length/2); return sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2; };
   function loadWarmups(){ try{ const saved=JSON.parse(localStorage.getItem(warmupKey())||'[]'); return Array.isArray(saved)?saved.filter(sample=>Number.isFinite(sample.target)&&Number.isFinite(sample.start)&&Number.isFinite(sample.seconds)&&sample.seconds>=2&&sample.seconds<=180).slice(-40):[]; }catch{return [];} }
   function saveWarmups(){ try{localStorage.setItem(warmupKey(),JSON.stringify(warmupSamples.slice(-40)));}catch{} }
-  function warmupEstimate(target,start){ if(!Number.isFinite(target)||!Number.isFinite(start))return null; let nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=16&&Math.abs(sample.start-start)<=45); if(nearby.length<3)nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=25); if(nearby.length<3)return null; nearby.sort((a,b)=>(Math.abs(a.target-target)+Math.abs(a.start-start)*.25)-(Math.abs(b.target-target)+Math.abs(b.start-start)*.25)); const matched=nearby.slice(0,Math.min(7,nearby.length)); return {seconds:median(matched.map(sample=>sample.seconds)),count:matched.length}; }
+  // Tolerances are Celsius, because target/start are stored in Celsius. The
+  // old ±16/±45 window read like Fahrenheit numbers: ±16°C is ±29°F, wide
+  // enough to average a 490°F run together with a 545°F one, so the "estimate"
+  // was really just a blended median of unrelated profiles.
+  function warmupEstimate(target,start){ if(!Number.isFinite(target)||!Number.isFinite(start))return null; let nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=6&&Math.abs(sample.start-start)<=20); if(nearby.length<3)nearby=warmupSamples.filter(sample=>Math.abs(sample.target-target)<=14); if(nearby.length<3)return null; nearby.sort((a,b)=>(Math.abs(a.target-target)+Math.abs(a.start-start)*.25)-(Math.abs(b.target-target)+Math.abs(b.start-start)*.25)); const matched=nearby.slice(0,Math.min(7,nearby.length)); return {seconds:median(matched.map(sample=>sample.seconds)),count:matched.length}; }
   function recordWarmup(now){ if(!warmupAttempt)return null; const {target,start}=warmupAttempt,seconds=(now-warmupAttempt.startedAt)/1000; warmupAttempt=null; if(seconds<2||seconds>180)return null; warmupSamples.push({target,start,seconds}); warmupSamples=warmupSamples.slice(-40); saveWarmups(); lastWarmupSeconds=seconds; return seconds; }
-  function updateWarmupDisplay(target,start,state,now){ const holder=$('pWarmup'),estimate=warmupEstimate(target,start); if(warmupAttempt&&activeHeat(state)){ if(estimate){ const left=Math.max(0,estimate.seconds-(now-warmupAttempt.startedAt)/1000); holder.textContent='≈ '+formatSeconds(left)+' left · '+estimate.count+' runs'; } else holder.textContent='learning · '+warmupSamples.length+' runs'; return; } if(lastWarmupSeconds!=null){holder.textContent='last '+formatSeconds(lastWarmupSeconds);return;} holder.textContent=estimate?'≈ '+formatSeconds(estimate.seconds)+' · '+estimate.count+' runs':'learning · '+warmupSamples.length+' runs'; }
+  function updateWarmupDisplay(target,start,state,now){
+    const holder=$('pWarmup');
+    if(warmupAttempt&&activeHeat(state)){
+      // Bug: this used to call warmupEstimate(target,start) with the live,
+      // still-rising heater reading standing in for "start" — so every poll
+      // re-asked "how long does a warmup from (nearly at target) usually
+      // take", which historically is quick, making the countdown shrink or
+      // jump instead of counting down steadily. The estimate for one warmup
+      // has to be pinned to the temperature it actually started from.
+      const estimate=warmupEstimate(warmupAttempt.target,warmupAttempt.start);
+      if(estimate){ const left=Math.max(0,estimate.seconds-(now-warmupAttempt.startedAt)/1000); holder.textContent='≈ '+formatSeconds(left)+' left · '+estimate.count+' runs'; }
+      else holder.textContent='learning · '+warmupSamples.length+' runs';
+      return;
+    }
+    // Idle: no attempt in progress, so the live reading is a reasonable
+    // stand-in for "if I started now" — this half was already correct.
+    const estimate=warmupEstimate(target,start);
+    if(lastWarmupSeconds!=null){holder.textContent='last '+formatSeconds(lastWarmupSeconds);return;}
+    holder.textContent=estimate?'≈ '+formatSeconds(estimate.seconds)+' · '+estimate.count+' runs':'learning · '+warmupSamples.length+' runs';
+  }
   function colorWord(rgb){ const [r,g,b]=rgb.map(value=>Math.max(0,Math.min(255,value))/255),max=Math.max(r,g,b),min=Math.min(r,g,b),spread=max-min,light=(max+min)/2; if(max<.12)return 'black'; if(spread<.12)return light>.82?'white':light>.55?'silver':light>.3?'gray':'charcoal'; let hue; if(max===r)hue=60*((g-b)/spread%6); else if(max===g)hue=60*((b-r)/spread+2); else hue=60*((r-g)/spread+4); if(hue<0)hue+=360; if(hue<15||hue>=345)return light<.38?'deep red':'red'; if(hue<42)return light<.42?'ember orange':'orange'; if(hue<62)return 'gold'; if(hue<92)return 'lime'; if(hue<158)return light<.34?'forest green':'green'; if(hue<190)return 'aqua'; if(hue<215)return 'sky blue'; if(hue<252)return 'blue'; if(hue<285)return 'violet'; if(hue<325)return 'magenta'; return 'rose'; }
   const hexForRgb=rgb=>'#'+rgb.map(value=>Math.max(0,Math.min(255,Math.round(value))).toString(16).padStart(2,'0')).join('').toUpperCase();
   const rgbForHex=value=>{const match=String(value||'').trim().match(/^#?([0-9a-f]{6})$/i);return match?[parseInt(match[1].slice(0,2),16),parseInt(match[1].slice(2,4),16),parseInt(match[1].slice(4,6),16)]:null;};
@@ -6226,6 +6481,7 @@ const PUFF=(function(){
     try{
       lastReadError='';const now=Date.now(),state=await safely(()=>PUFF.state());
       if(state==null){missedPolls++;renderLink(now);if(missedPolls===2)setNote('connection is quiet — manual actions stay available, and Emberwatch is backing off its checks.');return;}
+      const priorState=lastState,sincePrevPoll=lastTelemetryAt?now-lastTelemetryAt:Infinity;
       lastState=state;const stateName=STATES[Math.round(state)]||('#'+Math.round(state));$('pState').textContent=stateName;syncCycleControls();
       if(activeHeat(state))inactiveReads=0;
       else{
@@ -6244,6 +6500,18 @@ const PUFF=(function(){
         if(deviceBusy)return;const heater=await safely(()=>PUFF.heaterTemp());
         if(heater==null){missedPolls++;renderLink(now);return;}
         const fullyHeated=Number.isFinite(heater)&&heater>=target-READY_MARGIN_C,justReady=fullyHeated&&activeHeat(state)&&!cycleStartedAt;
+        // The big reason this never learned: a warm-up was only ever timed
+        // when the cycle was started from the in-game Heat button. Pressing
+        // the button on the Peak itself — how most sessions actually begin —
+        // left warmupAttempt null, so no run was ever recorded no matter how
+        // much you smoked. Pick up device-started cycles here too.
+        if(!warmupAttempt&&activeHeat(state)&&priorState!=null&&!activeHeat(priorState)&&Number.isFinite(target)&&Number.isFinite(heater)&&heater<target-READY_MARGIN_C){
+          // Only trust it when the previous poll was recent enough to place
+          // the start; otherwise skip rather than record a bad sample. The
+          // cycle began somewhere in (previous poll, now], so the midpoint is
+          // the lowest-expected-error guess we can honestly make.
+          if(sincePrevPoll<=WARMUP_OBSERVE_WINDOW_MS)warmupAttempt={startedAt:now-sincePrevPoll/2,target,start:heater,observed:true};
+        }
         if(fullyHeated&&activeHeat(state)){if(justReady)cycleStartedAt=now;const recorded=recordWarmup(now);if(recorded!=null)setNote('ready in '+formatSeconds(recorded)+' · saved to this Peak’s warm-up history ✓');if(heatStartedInGame&&!sessionRecordedForCycle){recordStrainSession(heatStrainId);sessionRecordedForCycle=true;}if(justReady&&pendingSmokeSession){pendingSmokeSession.live=true;sessionRamble.onPeakReady();setNote(pendingSmokeSession.strainName+' is ready · '+pendingSmokeSession.seconds+' second session underway ✓');}}
         updateWarmupDisplay(target,heater,state,now);
         if(session>0){const observedSeconds=smokeSessionSeconds(session);if(pendingSmokeSession?.live&&pendingSmokeSession.seconds!==observedSeconds){pendingSmokeSession.seconds=observedSeconds;sessionRamble.setDuration(observedSeconds);}let label=formatSeconds(session);if(cycleStartedAt&&activeHeat(state)){const left=Math.max(0,session-(now-cycleStartedAt)/1000);label+=' · detected · ~'+formatSeconds(left)+' left';}else if(activeHeat(state))label+=' · starts when hot';$('pSession').textContent=label;if(document.activeElement!==$('pSessionTarget'))$('pSessionTarget').value=Math.round(session);}else $('pSession').textContent='—';
@@ -6256,7 +6524,7 @@ const PUFF=(function(){
   }
   function onDisc(){deviceActionEpoch++;backgroundTelemetryGeneration++;lastReadError='';selectedProfile=null;cycleStartedAt=null;warmupAttempt=null;refreshInFlight=false;missedPolls=0;lastState=null;lastTelemetryAt=0;inactiveReads=0;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();lastBatteryAt=0;lastBatteryAttemptAt=0;lastBatterySample=null;batteryError='';$('pBatt').textContent='—';setDeviceBusy(false);clearPeakSpellPalette();puffPanel.classList.remove('online');setStat('disconnected');live.style.display='none';$('puffConnect').style.display='block';if(poll){clearTimeout(poll);poll=null;}renderLink();}
   $('puffConnect').onclick=()=>deviceAction('requesting device…',async isCurrent=>{
-    setNote('');try{const connected=await PUFF.connect();if(!isCurrent()){PUFF.disconnect();return;}const profile=await PUFF.activeProfile();if(!isCurrent()){PUFF.disconnect();return;}selectedProfile=profile;warmupSamples=loadWarmups();lastWarmupSeconds=null;warmupAttempt=null;puffPanel.classList.add('online');setStat('connected ✓ · '+connected.protocol+' · '+connected.name);live.style.display='flex';$('puffConnect').style.display='none';const connectedDevice=PUFF.device;connectedDevice?.addEventListener('gattserverdisconnected',()=>{if(PUFF.device===connectedDevice)onDisc();},{once:true});}catch(e){if(!isCurrent())return;onDisc();setStat('⚠ '+e.message);if(/service|GATT|not found|No Services|control service/i.test(e.message))setNote('Put the Peak into Bluetooth pairing mode: wake it, then hold the button about 6 seconds until it flashes blue. Close the Puffco app or any other Bluetooth connection before retrying.');else if(/secure|localhost/i.test(e.message))setNote('Run the game from http://localhost (I can hand you a one-click launcher).');}
+    setNote('');try{const connected=await PUFF.connect();if(!isCurrent()){PUFF.disconnect();return;}const profile=await PUFF.activeProfile();if(!isCurrent()){PUFF.disconnect();return;}selectedProfile=profile;warmupPlatform=platformId();migrateLegacyWarmups();warmupSamples=loadWarmups();lastWarmupSeconds=null;warmupAttempt=null;puffPanel.classList.add('online');setStat('connected ✓ · '+connected.protocol+' · '+connected.name);live.style.display='flex';$('puffConnect').style.display='none';const connectedDevice=PUFF.device;connectedDevice?.addEventListener('gattserverdisconnected',()=>{if(PUFF.device===connectedDevice)onDisc();},{once:true});}catch(e){if(!isCurrent())return;onDisc();setStat('⚠ '+e.message);if(/service|GATT|not found|No Services|control service/i.test(e.message))setNote('Put the Peak into Bluetooth pairing mode: wake it, then hold the button about 6 seconds until it flashes blue. Close the Puffco app or any other Bluetooth connection before retrying.');else if(/secure|localhost/i.test(e.message))setNote('Run the game from http://localhost (I can hand you a one-click launcher).');}
   });
   $('pSet').onclick=()=>deviceAction('saving temperature…',()=>setTargetFahrenheit(+$('pTarget').value)).catch(e=>setNote('⚠ '+e.message));
   $('pSessionSet').onclick=()=>deviceAction('saving duration…',()=>setSessionSeconds(+$('pSessionTarget').value)).catch(e=>setNote('⚠ '+e.message));
@@ -6333,7 +6601,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt);sessionRamble.tick(t);updateWayfinder(t);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
