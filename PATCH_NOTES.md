@@ -1,6 +1,6 @@
-**r44 — spawn ward** · 2026-08-20 · phase 3, NPCs, collision, city compiler
+**r45 — audit overhaul** · 2026-08-20 · phase 3, NPCs, collision, city compiler
 
-In its own panel header: *r44 steady control deck*.
+In its own panel header: *r45 steady control deck*.
 
 ### Summary
 
@@ -8,8 +8,8 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 ### In the code
 
-- 0.85 MB (+1,152 bytes on r43).
-- 1 function added: `northGateWard`.
+- 0.86 MB (+8,789 bytes on r44).
+- 10 functions added: `boostSessionTime`, `boostTemperature`, `colliderBlocked`, `collidersAlong`, `collidersNearPoint`, `flushPending`, `loadGameState`, `perimeterWards`, `saveGameState`, `scheduleRefresh`.
 
 ### Play it
 
