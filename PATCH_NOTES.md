@@ -1,4 +1,4 @@
-**r66 — npc schedules** · 2026-08-21 · phase 4, streets, crowds, inner city
+**r67 — organic city** · 2026-08-21 · phase 4, streets, crowds, inner city
 
 ### Summary
 
@@ -6,8 +6,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.05 MB (+13,431 bytes on r65).
-- 5 functions added: `askAboutErrand`, `errandsFor`, `housePorch`, `npcActivity`, `npcActivityPhrase`.
+- 1.05 MB (+1,703 bytes on r66).
+- No functions added or removed.
 
 ### Play it
 

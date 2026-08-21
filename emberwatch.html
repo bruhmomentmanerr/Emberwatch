@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r66 NPC schedules</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r67 organic city</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5645,63 +5645,96 @@ function outerWall(){
     aBox(2.6,.26,.8,px,H-1.1,pz+0,'amber',ry);
     torch(px+ox*.62,pz+oz*.62,0xffa64d,1.9,20); torch(px-ox*.62,pz-oz*.62,0xffa64d,1.9,20); });
 }
+// ============================================================
+//  ORGANIC WARDS
+//  The outer city used to be a polar lattice: buildings on concentric rings at
+//  fixed angular steps. That structure is *why* it read as "a big ring" with
+//  curved rows and no sense of place — every street was either an arc or a
+//  spoke, and the whole thing looked the same in every direction.
+//  This replaces it with a warped quad grid. Grid NODES are displaced by a
+//  deterministic hash, so cell edges stop being parallel and streets meet at
+//  irregular angles the way a grown town does. Each cell is a real block:
+//  streets run along its edges, terraced houses line the inside of its
+//  frontage, and a minority of cells become squares or carry a landmark tower
+//  so there is something to navigate by above the rooftops.
+// ============================================================
 function outerWards(){
+  const BLOCK=58, STREET=7.5, INSET=STREET*.5+4.2, FILL=.82;
   const palettes=[['wall','brick','wall2'],['brick','wall','stone'],['wall2','stone','wall'],['wall','wall2','brick']];
-  const accents=['amber','arcane'];
-  const bands=Math.max(4,Math.round((OUTER_WARD_R1-OUTER_WARD_R0)/24));
-  const LANES=26;
-  // Ring roads and the boulevard that links the mid-wall gates. Without this
-  // last one the offset-gate design would be tedious instead of exploratory.
-  ringRoad(MID_WALL_R+20,7); ringRoad(OUTER_WARD_R1+14,6);
-  for(let b=1;b<bands;b+=2)ringRoad(OUTER_WARD_R0+b*(OUTER_WARD_R1-OUTER_WARD_R0)/bands,4.6);
-  for(let l=0;l<LANES;l++){ const a=(l/LANES)*Math.PI*2;
-    roadBetween(Math.cos(a)*(MID_WALL_R+16),Math.sin(a)*(MID_WALL_R+16),Math.cos(a)*(OUTER_CITY_R-8),Math.sin(a)*(OUTER_CITY_R-8),4.4); }
-  // Gate approaches, both rings, so each gate reads as a way through.
-  OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-30),Math.sin(a)*(OUTER_CITY_R-30),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
-  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+34),Math.sin(a)*(MID_WALL_R+34),10);});
-  let built=0;
-  for(let b=0;b<bands;b++){
-    useWorldStream('outer-band-'+b);
-    const r=OUTER_WARD_R0+(b+.5)*(OUTER_WARD_R1-OUTER_WARD_R0)/bands;
-    // Staggering the lane phase per band is what stops the sprawl reading as a
-    // clean radial pie: streets jog rather than run straight to the wall.
-    const laneShift=(b%2?.5:0)+worldRandom()*.34;
-    const palette=palettes[b%palettes.length],count=Math.max(10,Math.floor(2*Math.PI*r/12.5));
-    for(let i=0;i<count;i++){
-      const a=((i+(b%2?.5:0))/count)*Math.PI*2,deg=(a*180/Math.PI+360)%360;
-      const laneA=(a/(Math.PI*2))*LANES+laneShift;
-      if(Math.abs(laneA-Math.round(laneA))<.082)continue;                      // radial street
-      if(OUTER_GATE_DEG.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<900/r;}))continue;  // outer gate approach
-      if(MID_GATE_DEG.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<820/r;}))continue;    // mid gate approach
-      const jitter=(worldRandom()-.5)*3.2,rr=r+jitter;
-      if(rr<OUTER_WARD_R0-4||rr>OUTER_WARD_R1+4)continue;
-      const x=Math.cos(a)*rr,z=Math.sin(a)*rr,ry=Math.atan2(x,z)+Math.PI;      // face the street, toward the centre
-      const w=7+worldRandom()*3.4,d=6.4+worldRandom()*2.6,stories=1+(worldRandom()<.42?1:0)+(worldRandom()<.12?1:0);
-      const key=palette[(i+b)%palette.length],accent=accents[worldRandom()<.18?1:0];
-      // A minority get the full façade so the skyline is not uniformly plain.
-      if(worldRandom()<.13)cityHouse(x,z,w,d,stories,key,ry,accent);
-      else wardHouse(x,z,w,d,stories,key,ry,accent);
-      housePorch(x,z,w,d,ry,accent);
-      built++;
+  // Per-node hash rather than the sequential stream: a cell's shape must not
+  // depend on how many cells were generated before it.
+  const nodeRand=(i,j,salt)=>{ let h=(WORLD_SEED^Math.imul(i|0,374761393)^Math.imul(j|0,668265263)^Math.imul(salt,1274126177))>>>0;
+    h=Math.imul(h^(h>>>13),1274126177)>>>0; return ((h^(h>>>16))>>>0)/4294967296; };
+  const warp=(i,j)=>[i*BLOCK+(nodeRand(i,j,1)-.5)*BLOCK*.40, j*BLOCK+(nodeRand(i,j,2)-.5)*BLOCK*.40];
+  const clearOfGates=(x,z)=>{
+    const deg=(Math.atan2(z,x)*180/Math.PI+360)%360, r=Math.hypot(x,z);
+    const near=(list,width)=>list.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<width/Math.max(1,r/57.3);});
+    return !near(OUTER_GATE_DEG,17)&&!near(MID_GATE_DEG,15);
+  };
+  let built=0,squares=0,landmarks=0;
+  const span=Math.ceil(OUTER_WARD_R1/BLOCK)+1;
+  for(let i=-span;i<=span;i++)for(let j=-span;j<=span;j++){
+    const c00=warp(i,j),c10=warp(i+1,j),c11=warp(i+1,j+1),c01=warp(i,j+1);
+    const cx=(c00[0]+c10[0]+c11[0]+c01[0])/4, cz=(c00[1]+c10[1]+c11[1]+c01[1])/4;
+    const r=Math.hypot(cx,cz);
+    if(r<OUTER_WARD_R0||r>OUTER_WARD_R1)continue;
+    if(!clearOfGates(cx,cz))continue;
+    // Streets along two edges per cell; neighbours supply the other two, so
+    // every edge gets exactly one road and the network stays connected.
+    roadBetween(c00[0],c00[1],c10[0],c10[1],STREET);
+    roadBetween(c00[0],c00[1],c01[0],c01[1],STREET);
+    const roll=nodeRand(i,j,3);
+    if(roll<.11){ // a square: the thing that makes a quarter recognisable
+      squares++;
+      const plaza=new THREE.Mesh(new THREE.CircleGeometry(BLOCK*.30,28).rotateX(-Math.PI/2),MATS.cobble);
+      plaza.position.set(cx,.07,cz); plaza.receiveShadow=true; scene.add(plaza);
+      aCyl(1.5,1.7,1.2,10,cx,.6,cz,'stone'); aCyl(1.2,1.2,.25,10,cx,1.25,cz,'dark'); addCollider(cx,cz,1.7);
+      for(let s=0;s<4;s++){ const a=s/4*Math.PI*2+roll*6.28,px=cx+Math.cos(a)*BLOCK*.22,pz=cz+Math.sin(a)*BLOCK*.22;
+        if(colliderBlocked(px,pz,1.6))continue;
+        aBox(3.0,.26,2.0,px,2.25,pz,'cloth',a); for(const t of[-1,1])aCyl(.09,.09,2.2,5,px+Math.cos(a+Math.PI/2)*t*1.3,1.1,pz+Math.sin(a+Math.PI/2)*t*1.3,'wood');
+        aBox(2.4,.7,1.3,px,.35,pz,'wood',a); addCollider(px,pz,1.3); }
+      cityLantern(cx+BLOCK*.24,cz,true); cityLantern(cx-BLOCK*.24,cz,true);
+      continue;
+    }
+    const sector=Math.floor(((Math.atan2(cz,cx)+Math.PI)/(Math.PI*2))*4)%4;
+    const palette=palettes[sector];
+    if(roll>.93){ // a landmark tower, visible over the rooftops for orientation
+      landmarks++; spire(cx,cz,17+nodeRand(i,j,5)*9);
+    }
+    // Terraced frontage down the inside of each edge.
+    const corners=[c00,c10,c11,c01];
+    for(let e=0;e<4;e++){
+      const A=corners[e],B=corners[(e+1)%4];
+      const mx=(A[0]+B[0])/2,mz=(A[1]+B[1])/2;
+      let nx=cx-mx,nz=cz-mz; const nl=Math.hypot(nx,nz)||1; nx/=nl; nz/=nl;      // inward
+      const ax=A[0]+nx*INSET,az=A[1]+nz*INSET,bx=B[0]+nx*INSET,bz=B[1]+nz*INSET;
+      const len=Math.hypot(bx-ax,bz-az); if(len<12)continue;
+      const ux=(bx-ax)/len,uz=(bz-az)/len;
+      const ry=Math.atan2(-nx,-nz);                                              // face the street
+      let t=3.0;
+      while(t<len-3.0){
+        const w=7.2+nodeRand(i*97+e,Math.round(t),6)*2.6;
+        if(t+w>len-3.0)break;
+        const px=ax+ux*(t+w/2), pz=az+uz*(t+w/2);
+        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1 && !colliderBlocked(px,pz,Math.max(w,7)*.55)){
+          const stories=1+(nodeRand(i*13+e,Math.round(t),8)<.45?1:0)+(nodeRand(i*7+e,Math.round(t),9)<.13?1:0);
+          const key=palette[Math.floor(nodeRand(i*5+e,Math.round(t),10)*palette.length)%palette.length];
+          const accent=nodeRand(i*3+e,Math.round(t),11)<.18?'arcane':'amber';
+          const depth=6.6+nodeRand(i*11+e,Math.round(t),12)*2.0;
+          wardHouse(px,pz,w,depth,stories,key,ry,accent);
+          housePorch(px,pz,w,depth,ry,accent);
+          built++;
+          t+=w+0.35;                                    // terraced: near-touching
+        } else t+=w*.42;                                // a yard or side alley
+      }
     }
   }
-  // Street furniture, sparse enough not to cost much across this area.
-  useWorldStream('outer-dressing');
-  // Three lamps per lane across a 270-unit-deep ward left the streets pitch
-  // dark and empty between them. Light every ~34 units instead, and dress the
-  // lane edges so the roadway itself has something on it.
-  for(let l=0;l<LANES;l++){ const a=(l/LANES)*Math.PI*2,ux=Math.cos(a),uz=Math.sin(a),px=-uz,pz=ux;
-    for(let rr=OUTER_WARD_R0+16;rr<OUTER_WARD_R1;rr+=34){
-      const side=((l+Math.round(rr))%2)?1:-1,lx=ux*rr+px*side*5.4,lz=uz*rr+pz*side*5.4;
-      if(!colliderBlocked(lx,lz,1.0))cityLantern(lx,lz,(l+Math.round(rr))%4!==0);
-      // Occasional roadside dressing: a trough, a milestone, a planter.
-      const dx=ux*(rr+17)+px*-side*4.6,dz=uz*(rr+17)+pz*-side*4.6;
-      if(colliderBlocked(dx,dz,1.4))continue;
-      const pick=(l+Math.round(rr))%3;
-      if(pick===0){ aBox(2.1,.62,.9,dx,.31,dz,'stone',a); aBox(1.8,.14,.65,dx,.6,dz,'dark',a); addCollider(dx,dz,1.0); }
-      else if(pick===1){ aCyl(.42,.5,1.1,6,dx,.55,dz,'stone'); aBox(.5,.16,.5,dx,1.16,dz,'dark'); addCollider(dx,dz,.55); }
-      else { aBox(1.15,.4,1.15,dx,.2,dz,'stone'); aCone(.62,1.2,5,dx,.95,dz,'foliage'); addCollider(dx,dz,.7); } } }
-  return built;
+  // Ring boulevard just outside the mid wall stays: it is the route that links
+  // the offset gates, and without it the two rings barely connect.
+  ringRoad(MID_WALL_R+20,7);
+  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
+  OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-34),Math.sin(a)*(OUTER_CITY_R-34),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
+  return {built,squares,landmarks};
 }
 // ============================================================
 //  AVENUE BREAKS
