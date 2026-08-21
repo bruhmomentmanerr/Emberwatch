@@ -5658,8 +5658,38 @@ function outerWall(){
 //  frontage, and a minority of cells become squares or carry a landmark tower
 //  so there is something to navigate by above the rooftops.
 // ============================================================
+// Why a terrace could never actually terrace, from r56 all the way to r67.
+// The frontage loop steps t by w+0.35 to stand houses shoulder to shoulder,
+// but it cleared each site with colliderBlocked(px,pz,max(w,7)*.55) — a circle
+// of radius ~0.55w about the house centre. The neighbour just placed is only
+// w+0.35 away, so its box collider ends w/2+0.35 from the new centre: about
+// 4.6 units, against a probe reaching about 4.7. The numbers cross for every
+// width in the 7.2–9.8 range, so *every second house in every terrace was
+// rejected by the house next to it*. The loop then advanced a mere w*.42 and
+// built there instead, which is why the wards came out as a picket fence with
+// a 4-unit hole between each pair and the block interior showing through every
+// one of them — the single biggest reason the city kept reading as barren no
+// matter how much clutter went in. Probe the real footprint, shrunk by a unit
+// so an abutting neighbour passes and a genuine overlap still does not.
+function frontageClear(x,z,w,d,ry){
+  const co=Math.cos(ry),si=Math.sin(ry);
+  const ha=Math.max(.6,w*.5-1.0), hb=Math.max(.6,d*.5-1.0);
+  const probes=[[0,0],[ha,hb],[-ha,hb],[ha,-hb],[-ha,-hb],[0,hb],[0,-hb]];
+  for(const p of probes){
+    const a=p[0],b=p[1];
+    if(colliderBlocked(x+co*a+si*b, z-si*a+co*b, .8))return false;
+  }
+  return true;
+}
 function outerWards(){
-  const BLOCK=58, STREET=7.5, INSET=STREET*.5+4.2, FILL=.82;
+  // STREET/VERGE replace r67's 7.5 road + 4.2 bare verge. That gave 15.9 units
+  // of open ground between facing house fronts against ~8-unit-wide houses, so
+  // the "streets" read as an airfield with buildings parked round the edge. A
+  // street is made by enclosure: the carriageway is now 6.6 with a 2.3 kerb
+  // either side, which is just wide enough to hold the porch clutter (the
+  // handcart reaches d*.5+1.5 plus its own radius) without it spilling into
+  // the road. Front-to-front drops 15.9 -> 11.2.
+  const BLOCK=58, STREET=6.6, VERGE=2.5, FRONT=STREET*.5+VERGE, FILL=.82;
   const palettes=[['wall','brick','wall2'],['brick','wall','stone'],['wall2','stone','wall'],['wall','wall2','brick']];
   // Per-node hash rather than the sequential stream: a cell's shape must not
   // depend on how many cells were generated before it.
@@ -5671,18 +5701,44 @@ function outerWards(){
     const near=(list,width)=>list.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<width/Math.max(1,r/57.3);});
     return !near(OUTER_GATE_DEG,17)&&!near(MID_GATE_DEG,15);
   };
-  let built=0,squares=0,landmarks=0;
-  const span=Math.ceil(OUTER_WARD_R1/BLOCK)+1;
+  const cellOf=(i,j)=>{ const c00=warp(i,j),c10=warp(i+1,j),c11=warp(i+1,j+1),c01=warp(i,j+1);
+    return {c:[c00,c10,c11,c01], x:(c00[0]+c10[0]+c11[0]+c01[0])/4, z:(c00[1]+c10[1]+c11[1]+c01[1])/4}; };
+
+  // ---- pass 1: which blocks exist ----------------------------------------
+  const span=Math.ceil(OUTER_WARD_R1/BLOCK)+1, live=[];
   for(let i=-span;i<=span;i++)for(let j=-span;j<=span;j++){
-    const c00=warp(i,j),c10=warp(i+1,j),c11=warp(i+1,j+1),c01=warp(i,j+1);
-    const cx=(c00[0]+c10[0]+c11[0]+c01[0])/4, cz=(c00[1]+c10[1]+c11[1]+c01[1])/4;
-    const r=Math.hypot(cx,cz);
+    const q=cellOf(i,j), r=Math.hypot(q.x,q.z);
     if(r<OUTER_WARD_R0||r>OUTER_WARD_R1)continue;
-    if(!clearOfGates(cx,cz))continue;
-    // Streets along two edges per cell; neighbours supply the other two, so
-    // every edge gets exactly one road and the network stays connected.
-    roadBetween(c00[0],c00[1],c10[0],c10[1],STREET);
-    roadBetween(c00[0],c00[1],c01[0],c01[1],STREET);
+    if(!clearOfGates(q.x,q.z))continue;
+    live.push({i,j,q});
+  }
+
+  // ---- pass 2: pave every edge that borders a block -----------------------
+  // r67 paved only each cell's north and west edge, on the assumption that
+  // "neighbours supply the other two". That assumption fails wherever the
+  // neighbour does not exist — the inner and outer rim of the ward ring, and
+  // the gate exclusion wedges — and it failed silently, because the houses
+  // were still built facing a street that was never drawn. Measured on r67:
+  // 42 of 244 junctions were dead ends and only 68% of blocks were enclosed
+  // by paving. Keying the edge itself and paving it from either side fixes
+  // both without drawing anything twice.
+  const paved=new Set(), nodes=new Set();
+  const pave=(t,i,j)=>{ const k=t+i+','+j; if(paved.has(k))return; paved.add(k);
+    const A=warp(i,j), B=(t==='H')?warp(i+1,j):warp(i,j+1);
+    roadBetween(A[0],A[1],B[0],B[1],STREET);
+    nodes.add(i+','+j); nodes.add(t==='H'?(i+1)+','+j:i+','+(j+1)); };
+  for(const c of live){ pave('H',c.i,c.j); pave('H',c.i,c.j+1); pave('V',c.i,c.j); pave('V',c.i+1,c.j); }
+  // Segments are rectangles butted end to end, so where two meet at anything
+  // other than a straight line the outside of the turn is left as a notch of
+  // bare ground. A disc at each node fills the corner and makes a junction
+  // read as a junction. Goes through the merge batcher, not its own mesh.
+  for(const k of nodes){ const ij=k.split(','), p=warp(+ij[0],+ij[1]);
+    aCyl(STREET*.66,STREET*.66,.16,10,p[0],.07,p[1],'cobble'); }
+
+  // ---- pass 3: block contents --------------------------------------------
+  let built=0,squares=0,landmarks=0,yards=0;
+  for(const cell of live){
+    const i=cell.i, j=cell.j, cx=cell.q.x, cz=cell.q.z, corners=cell.q.c;
     const roll=nodeRand(i,j,3);
     if(roll<.11){ // a square: the thing that makes a quarter recognisable
       squares++;
@@ -5702,25 +5758,38 @@ function outerWards(){
       landmarks++; spire(cx,cz,17+nodeRand(i,j,5)*9);
     }
     // Terraced frontage down the inside of each edge.
-    const corners=[c00,c10,c11,c01];
     for(let e=0;e<4;e++){
       const A=corners[e],B=corners[(e+1)%4];
-      const mx=(A[0]+B[0])/2,mz=(A[1]+B[1])/2;
-      let nx=cx-mx,nz=cz-mz; const nl=Math.hypot(nx,nz)||1; nx/=nl; nz/=nl;      // inward
-      const ax=A[0]+nx*INSET,az=A[1]+nz*INSET,bx=B[0]+nx*INSET,bz=B[1]+nz*INSET;
-      const len=Math.hypot(bx-ax,bz-az); if(len<12)continue;
-      const ux=(bx-ax)/len,uz=(bz-az)/len;
-      const ry=Math.atan2(-nx,-nz);                                              // face the street
+      const len=Math.hypot(B[0]-A[0],B[1]-A[1]); if(len<12)continue;
+      const ux=(B[0]-A[0])/len,uz=(B[1]-A[1])/len;
+      // r67 took the inward direction from the edge midpoint to the block
+      // centroid, which on a warped quad is not perpendicular to the edge.
+      // The houses inherited that error twice over: the setback varied with
+      // the skew, and atan2 of the same vector left each house off-parallel
+      // to the street it fronts by a median 8 degrees and up to 35. Rows of
+      // houses each cocked at a slightly different angle is most of why the
+      // wards looked wrong. Use the edge's own normal; the centroid picks the
+      // sign and nothing else.
+      let nx=-uz,nz=ux;
+      if(nx*(cx-A[0])+nz*(cz-A[1])<0){ nx=-nx; nz=-nz; }
+      const ry=Math.atan2(-nx,-nz);                                            // square to the street
       let t=3.0;
       while(t<len-3.0){
         const w=7.2+nodeRand(i*97+e,Math.round(t),6)*2.6;
         if(t+w>len-3.0)break;
-        const px=ax+ux*(t+w/2), pz=az+uz*(t+w/2);
-        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1 && !colliderBlocked(px,pz,Math.max(w,7)*.55)){
+        const depth=6.6+nodeRand(i*11+e,Math.round(t),12)*2.0;
+        // FRONT is the clear gap from the street's centre line to the façade,
+        // so the house centre has to sit half its own depth beyond that. r67
+        // offset the centre by one flat INSET instead, which put the façade of
+        // a 7.6-deep house 1.8 units from the centre line — the terrace was
+        // standing in the carriageway, not beside it, and what looked like a
+        // wide empty road was the road plus both pavements plus the houses.
+        const off=FRONT+depth*.5;
+        const px=A[0]+ux*(t+w/2)+nx*off, pz=A[1]+uz*(t+w/2)+nz*off;
+        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1 && frontageClear(px,pz,w,depth,ry)){
           const stories=1+(nodeRand(i*13+e,Math.round(t),8)<.45?1:0)+(nodeRand(i*7+e,Math.round(t),9)<.13?1:0);
           const key=palette[Math.floor(nodeRand(i*5+e,Math.round(t),10)*palette.length)%palette.length];
           const accent=nodeRand(i*3+e,Math.round(t),11)<.18?'arcane':'amber';
-          const depth=6.6+nodeRand(i*11+e,Math.round(t),12)*2.0;
           wardHouse(px,pz,w,depth,stories,key,ry,accent);
           housePorch(px,pz,w,depth,ry,accent);
           built++;
@@ -5728,13 +5797,61 @@ function outerWards(){
         } else t+=w*.42;                                // a yard or side alley
       }
     }
+    yards+=blockYard(cx,cz,BLOCK,s=>nodeRand(i,j,20+s));
   }
   // Ring boulevard just outside the mid wall stays: it is the route that links
   // the offset gates, and without it the two rings barely connect.
   ringRoad(MID_WALL_R+20,7);
   MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
   OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-34),Math.sin(a)*(OUTER_CITY_R-34),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
-  return {built,squares,landmarks};
+  return {built,squares,landmarks,yards};
+}
+// A 58-unit block with ~12 units of frontage round the rim leaves a 30-unit
+// void down the middle. On bare city hardscape that reads as a car park seen
+// between the houses, which is the other half of "the city looks weird" — you
+// look through every gap in the terrace and see nothing at all. Real blocks
+// are solid to the centre: back yards, sheds, a privy, a tree. Every piece is
+// tested against colliderBlocked, so this can only fill space the frontage
+// left empty and can never push into a street or a house.
+function blockYard(cx,cz,block,rnd){
+  let n=0;
+  const R=block*.30;
+  for(let s=0;s<7;s++){
+    const a=rnd(s)*Math.PI*2, rad=R*(.30+rnd(s+40)*.62);
+    const px=cx+Math.cos(a)*rad, pz=cz+Math.sin(a)*rad, pick=rnd(s+80);
+    if(pick<.34){                                    // an outbuilding / shed
+      const w=3.0+rnd(s+120)*2.2, d=2.6+rnd(s+160)*1.8, ry=rnd(s+200)*Math.PI*2;
+      if(colliderBlocked(px,pz,Math.max(w,d)*.62))continue;
+      aBox(w,2.4,d,px,1.2,pz,rnd(s+240)<.5?'wood':'wall2',ry);
+      aCone(Math.max(w,d)*.64,1.5,4,px,3.1,pz,'slate',ry+Math.PI/4);
+      addBoxCollider(px,pz,w,d,ry); n++;
+    } else if(pick<.62){                             // a yard tree
+      if(colliderBlocked(px,pz,1.7))continue;
+      const h=3.4+rnd(s+280)*2.4;
+      aCyl(.24,.34,h,5,px,h/2,pz,'wood');
+      aCone(1.7+rnd(s+320)*.9,2.6,6,px,h+.9,pz,'foliage');
+      aCone(1.3+rnd(s+360)*.7,2.0,6,px,h+2.1,pz,'foliage');
+      addCollider(px,pz,.5); n++;
+    } else if(pick<.80){                             // a low yard wall
+      const len=4.5+rnd(s+400)*7.0, ry=rnd(s+440)*Math.PI*2;
+      if(colliderBlocked(px,pz,len*.55))continue;
+      aBox(len,1.5,.55,px,.75,pz,'stone',ry);
+      addBoxCollider(px,pz,len,.55,ry); n++;
+    } else if(pick<.90){                             // stacked stores
+      if(colliderBlocked(px,pz,1.3))continue;
+      for(let b=0;b<2+Math.floor(rnd(s+480)*3);b++)
+        aCyl(.34,.38,.86,8,px+(rnd(s+520+b)-.5)*1.6,.43,pz+(rnd(s+560+b)-.5)*1.6,'wood');
+      addCollider(px,pz,1.0); n++;
+    } else {                                         // washing strung between poles
+      if(colliderBlocked(px,pz,2.6))continue;
+      const ry=rnd(s+600)*Math.PI*2, ex=Math.cos(ry)*2.4, ez=Math.sin(ry)*2.4;
+      for(const t of[-1,1])aCyl(.09,.11,2.6,5,px+ex*t,1.3,pz+ez*t,'wood');
+      for(let c=0;c<3;c++){ const f=(c+1)/4;
+        aBox(.7,.9,.05,px+ex*(f*2-1),1.9,pz+ez*(f*2-1),'cloth',ry); }
+      addCollider(px,pz,.4); n++;
+    }
+  }
+  return n;
 }
 // ============================================================
 //  AVENUE BREAKS
@@ -7473,7 +7590,7 @@ const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let px
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
-window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,setPixel:v=>{RS=v;resize();}};
+window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,wards:outerBuilt,setPixel:v=>{RS=v;resize();}};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
