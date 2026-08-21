@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r61 city layout</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r62 visual fixes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5484,16 +5484,20 @@ function auditVanethGeometry(){
 // Silhouette variety matters more than surface detail at this density: every
 // house having one shape and one roof is what made the wards read as copies.
 // Roof form, height, upper-floor jetty, chimneys and dormers are all seeded.
+// Every variant is cone-based on purpose. aBox can only be rotated about Y, so
+// the previous "gable" — two flat slabs meant to be pitched — was never tilted
+// at all and rendered as a mangled shelf, and the "flat parapet" variant left
+// blank featureless stone boxes standing in the street. Cones are guaranteed to
+// come out as real pitched roofs; variety comes from pitch, footprint, facing
+// and tiering instead of from geometry types that cannot exist here.
 function wardRoof(kind,x,z,w,d,h,ry,key){
-  if(kind===0){ aCone(Math.max(w,d)*.72,2.2,4,x,h+1.3,z,'roof',ry+Math.PI/4); return; }         // pyramid
-  if(kind===1){ // gable: two pitched slabs meeting at a ridge
-    for(const side of[-1,1])aBox(w*.56,.22,d*1.04,x+Math.cos(ry)*side*w*.26,h+.78,z-Math.sin(ry)*side*w*.26,'roof',ry);
-    aBox(w*.2,1.5,d*1.02,x,h+.75,z,'roof',ry); return; }
-  if(kind===2){ // flat with parapet — reads as a townhouse block
-    aBox(w*1.04,.5,d*1.04,x,h+.25,z,'slate',ry);
-    for(const side of[-1,1]){ aBox(w*1.06,.72,.26,x+Math.sin(ry)*side*d*.52,h+.6,z+Math.cos(ry)*side*d*.52,'stone',ry);
-      aBox(.26,.72,d*1.04,x+Math.cos(ry)*side*w*.52,h+.6,z-Math.sin(ry)*side*w*.52,'stone',ry); } return; }
-  aCone(Math.max(w,d)*.62,3.4,4,x,h+1.9,z,'roof',ry+Math.PI/4);                                  // steep spire-ish
+  const span=Math.max(w,d);
+  if(kind===0){ aCone(span*.74,2.2,4,x,h+1.3,z,'roof',ry+Math.PI/4); return; }                   // broad pyramid, flat face forward
+  if(kind===1){ aCone(span*.66,3.1,4,x,h+1.75,z,'roof',ry); return; }                            // steeper, corner forward
+  if(kind===2){ aBox(w*1.05,.34,d*1.05,x,h+.17,z,'slate',ry);                                    // eaves course then a low hip
+    aCone(span*.8,1.5,6,x,h+1.05,z,'roof',ry); return; }
+  aCone(span*.72,1.6,4,x,h+1.0,z,'roof',ry+Math.PI/4);                                           // tiered: two stacked pitches
+  aCone(span*.48,1.7,4,x,h+2.35,z,'roof',ry+Math.PI/4);
 }
 function wardHouse(x,z,w,d,stories,key,ry,accent){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),front=d*.5+.05;
@@ -5517,16 +5521,35 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
 function ringRoad(radius,width){ const road=new THREE.Mesh(new THREE.RingGeometry(radius-width/2,radius+width/2,120).rotateX(-Math.PI/2),MATS.cobble); road.position.y=.05; road.receiveShadow=true; scene.add(road); }
 function outerWall(){
   const R=OUTER_CITY_R,H=13,seg=224;
-  const atGate=deg=>OUTER_GATE_DEG.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<2.4;});
+  // Gate opening and tower placement now come from ONE number. They used to be
+  // independent — the wall skipped 2.4° (about 23 units of arc either side at
+  // this radius) while the towers stood at a hardcoded ±7, so every gate had a
+  // 16-unit hole between each tower and the end of the wall. That is the
+  // "towers that don't connect to the gate walls".
+  const GATE_HALF_DEG=1.5, gateHalf=GATE_HALF_DEG*Math.PI/180*R;
+  const atGate=deg=>OUTER_GATE_DEG.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<GATE_HALF_DEG;});
   for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;
     if(atGate(deg))continue;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.4,ry=Math.atan2(x1-x0,z1-z0);
     aBox(2.3,H,len,mx,H/2,mz,'stone',ry); aBox(2.8,1,len,mx,H+.5,mz,'stone',ry);
     if(i%7===0){ aCyl(2.5,2.9,H+5,8,mx,(H+5)/2,mz,'stone'); aCone(3.5,3.8,8,mx,H+7,mz,'slate'); addCollider(mx,mz,2.6); }
     wallColl(x0,z0,x1,z1,1.5); }
-  OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180,px=Math.cos(a)*R,pz=Math.sin(a)*R,tan=a+Math.PI/2,ox=Math.cos(tan)*7,oz=Math.sin(tan)*7;
-    [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([tx,tz])=>{ aCyl(3,3.4,H+8,8,tx,(H+8)/2,tz,'stone'); aCone(4.2,4.4,8,tx,H+10,tz,'slate'); addCollider(tx,tz,3.1); });
-    torch(px+ox*.55,pz+oz*.55,0xffa64d,1.9,20); torch(px-ox*.55,pz-oz*.55,0xffa64d,1.9,20); });
+  OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180,px=Math.cos(a)*R,pz=Math.sin(a)*R,tan=a+Math.PI/2;
+    // Towers stand exactly where the curtain stops, so the wall reads as
+    // continuous masonry that thickens into a gatehouse.
+    const ox=Math.cos(tan)*gateHalf,oz=Math.sin(tan)*gateHalf,ry=Math.atan2(Math.cos(tan),Math.sin(tan));
+    [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([tx,tz])=>{ aCyl(3.2,3.6,H+8,8,tx,(H+8)/2,tz,'stone'); aCone(4.4,4.6,8,tx,H+10,tz,'slate');
+      for(let f=0;f<8;f+=2){ const ang=(f/8)*Math.PI*2; aBox(1.1,1.3,1.1,tx+Math.cos(ang)*3.4,H+8.6,tz+Math.sin(ang)*3.4,'stone'); }
+      addCollider(tx,tz,3.3); });
+    // Masonry bridging the two towers turns the gap into an actual gateway.
+    const span=gateHalf*2;
+    aBox(2.6,H-8.5,span,px,8.5+(H-8.5)/2,pz,'stone',ry);
+    aBox(3.1,.7,span+2.4,px,H+.45,pz,'stone',ry);
+    crenelRun(px-ox,pz-oz,px+ox,pz+oz,H+.8,3.0);
+    for(let i=-2;i<=2;i++){ const t=i/2.4; aBox(1.0,.85,1.4,px+ox*t+Math.cos(a)*1.3,8.1,pz+oz*t+Math.sin(a)*1.3,'stone',ry); }
+    for(let i=-3;i<=3;i++){ const t=i/3.4; aBox(.18,1.5,.18,px+ox*t,7.3,pz+oz*t,'dark'); }
+    aBox(2.6,.26,.8,px,H-1.1,pz+0,'amber',ry);
+    torch(px+ox*.62,pz+oz*.62,0xffa64d,1.9,20); torch(px-ox*.62,pz-oz*.62,0xffa64d,1.9,20); });
 }
 function outerWards(){
   const palettes=[['wall','brick','wall2'],['brick','wall','stone'],['wall2','stone','wall'],['wall','wall2','brick']];
@@ -5990,7 +6013,7 @@ const auroraUniforms={
   uHorizon:{value:new THREE.Color(0x1a1030)},
   uIntensity:{value:1}
 };
-const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,40,28),new THREE.ShaderMaterial({
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.ShaderMaterial({
   side:THREE.BackSide, depthWrite:false, fog:false, uniforms:auroraUniforms,
   vertexShader:`varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:`
@@ -6001,31 +6024,43 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,40,28),new THREE.Shade
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y); }
     float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*noise(p); p*=2.03; a*=0.5; } return v; }
+    // Deliberately stylised, not photoreal. The smooth version read as a
+    // stock aurora photo bolted onto a pixel-art game. Three things fix that:
+    // the sky direction is snapped to a coarse grid so the whole thing renders
+    // in chunky blocks matching the game's pixelation, the glow is posterised
+    // into hard steps so bands have crisp edges instead of soft gradients, and
+    // the palette is pushed to saturated fantasy teal/violet/magenta.
     void main(){
       vec3 d=normalize(vDir);
       float el=d.y;
-      float az=atan(d.z,d.x);
-      float t=uTime*0.055;
-      // Base night gradient.
+      // Everything is sampled from the direction vector's horizontal component
+      // rather than from atan(z,x). An azimuth angle wraps from +PI to -PI, and
+      // the noise either side of that line does not agree — which is the seam
+      // running up the sky, the "boxy part where it all meets". d.xz is
+      // continuous in every direction, so the curtains close on themselves.
+      vec2 h=d.xz;
+      float t=uTime*0.085;
       vec3 sky=mix(uHorizon,uZenith,pow(clamp(el,0.0,1.0),0.65));
-      // Three drifting curtains at different heights, each one warped by noise
-      // along the azimuth so the band snakes instead of ringing the horizon.
+      // Four curtains, each drifting on its own vector so they slide across
+      // one another instead of moving as one sheet.
       float glow=0.0;
-      for(int i=0;i<3;i++){
+      for(int i=0;i<4;i++){
         float fi=float(i);
-        float warp=fbm(vec2(az*1.7+fi*4.3,t*0.5+fi*2.1))-0.5;
-        float centre=0.26+fi*0.15+warp*0.30;
-        float width=0.055+0.022*fi;
+        vec2 drift=vec2(t*(0.5+fi*0.22),-t*(0.34+fi*0.16));
+        float warp=fbm(h*2.4+drift+fi*7.3)-0.5;
+        float sway=fbm(h*0.9-drift*0.6+fi*3.1)-0.5;
+        float centre=0.22+fi*0.115+warp*0.34+sway*0.16;
+        float width=0.052+0.020*fi;
         float ribbon=exp(-pow((el-centre)/width,2.0));
-        float flicker=0.5+0.5*fbm(vec2(az*7.0-t*2.3,fi*5.0+t*0.7));
-        glow+=ribbon*flicker*(1.0-fi*0.24);
+        float flicker=0.45+0.70*fbm(h*9.0-drift*3.0+fi*5.0);
+        glow+=ribbon*flicker*(1.0-fi*0.18);
       }
-      // Vertical striations, the give-away texture of a real aurora.
-      glow*=0.45+0.75*fbm(vec2(az*26.0,el*7.0-t*1.6));
+      // Fine vertical striations, still seam-free because they use h as well.
+      glow*=0.42+0.86*fbm(h*26.0+vec2(0.0,-t*2.2));
       glow=max(glow,0.0);
-      vec3 tint=mix(vec3(0.16,0.95,0.52),vec3(0.30,0.62,1.0),smoothstep(0.20,0.55,el));
-      tint=mix(tint,vec3(0.78,0.36,0.96),smoothstep(0.46,0.85,el)*0.65);
-      sky+=tint*glow*uIntensity;
+      vec3 tint=mix(vec3(0.10,1.00,0.58),vec3(0.18,0.66,1.00),smoothstep(0.16,0.50,el));
+      tint=mix(tint,vec3(0.86,0.26,1.00),smoothstep(0.40,0.80,el)*0.85);
+      sky+=tint*glow*uIntensity*1.06;
       // Settle into the fog colour at the skyline so the dome meets the terrain.
       sky=mix(uFog,sky,smoothstep(-0.02,0.24,el));
       gl_FragColor=vec4(sky,1.0);
