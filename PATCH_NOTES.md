@@ -1,4 +1,4 @@
-**r68 — streets** · 2026-08-21 · phase 4, streets, crowds, inner city
+**r69 — inner city** · 2026-08-21 · phase 4, streets, crowds, inner city
 
 In its own panel header: *r67 organic city*.
 
@@ -8,8 +8,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.06 MB (+7,034 bytes on r67).
-- 2 functions added: `blockYard`, `frontageClear`.
+- 1.07 MB (+7,651 bytes on r68).
+- 3 functions added: `innerInfill`, `onRoad`, `registerRing`.
 
 ### Play it
 

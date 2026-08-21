@@ -5075,7 +5075,32 @@ function furnishInterior(name,x,z,w,d,kind){
     interiorRug(x,z+1,w*.36,d*.42,'dark');interiorTable(x,z+1.2,3.2,1.35);interiorGlow(x,z-1.9,kind==='royal'?'arcane':'amber',kind==='royal'?0xa78cff:0xffb060);
   }
 }
-function roadBetween(x1,z1,x2,z2,width=8){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz); aBox(width,.12,len,(x1+x2)/2,.06,(z1+z2)/2,'cobble',ry); }
+// Every carriageway is recorded as it is drawn. Roads carry no colliders — a
+// street has to stay walkable — so `colliderBlocked` cannot stop anything from
+// being built on top of the paving. Any generator that places buildings near
+// the street network needs this list to keep off it.
+const ROAD_RECTS=[];
+function roadBetween(x1,z1,x2,z2,width=8){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz);
+  if(len>0)ROAD_RECTS.push({x1,z1,len,w:width,ux:dx/len,uz:dz/len,
+    minX:Math.min(x1,x2)-width,maxX:Math.max(x1,x2)+width,minZ:Math.min(z1,z2)-width,maxZ:Math.max(z1,z2)+width});
+  aBox(width,.12,len,(x1+x2)/2,.06,(z1+z2)/2,'cobble',ry); }
+// Ring roads are drawn as annulus meshes rather than through roadBetween, so
+// they need their own registry or onRoad would report clear ground over the
+// ring boulevard, the citadel lane and the market circle.
+const ROAD_RINGS=[];
+function registerRing(radius,width){ ROAD_RINGS.push({r:radius,w:width}); }
+// True if (x,z) lies on, or within `pad` of, any carriageway.
+function onRoad(x,z,pad=0){
+  for(let i=0;i<ROAD_RECTS.length;i++){ const r=ROAD_RECTS[i];
+    if(x<r.minX-pad||x>r.maxX+pad||z<r.minZ-pad||z>r.maxZ+pad)continue;   // cheap reject
+    let t=(x-r.x1)*r.ux+(z-r.z1)*r.uz; t=t<0?0:(t>r.len?r.len:t);
+    const dx=x-(r.x1+r.ux*t), dz=z-(r.z1+r.uz*t);
+    if(dx*dx+dz*dz < (r.w*.5+pad)*(r.w*.5+pad))return true; }
+  const rad=Math.hypot(x,z);
+  for(let i=0;i<ROAD_RINGS.length;i++){ const g=ROAD_RINGS[i];
+    if(Math.abs(rad-g.r) < g.w*.5+pad)return true; }
+  return false;
+}
 function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),frontX=x+si*d*.5,frontZ=z+co*d*.5;
   aBox(w,h,d,x,h/2,z,key,ry); aBox(w*1.08,.32,d*1.08,x,h+.16,z,'slate',ry); aCone(Math.max(w,d)*.76,2.6,4,x,h+1.55,z,'roof',ry+Math.PI/4);
@@ -5150,7 +5175,7 @@ function streetPlan(){
   [[-218,-140,-28,-140],[28,-140,218,-140],[-218,140,-28,140],[28,140,218,140],[-142,-218,-142,-30],[142,-218,142,-30],[-142,30,-142,218],[142,30,142,218]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
   // Inner boulevard: a readable boundary route joining the four city gates.
   [[-170,-210,170,-210],[-170,210,170,210],[-210,-170,-210,170],[210,-170,210,170]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
-  const citadelLane=new THREE.Mesh(new THREE.RingGeometry(53,60,96).rotateX(-Math.PI/2),MATS.cobble); citadelLane.position.y=.055; citadelLane.receiveShadow=true; scene.add(citadelLane);
+  registerRing(56.5,7); const citadelLane=new THREE.Mesh(new THREE.RingGeometry(53,60,96).rotateX(-Math.PI/2),MATS.cobble); citadelLane.position.y=.055; citadelLane.receiveShadow=true; scene.add(citadelLane);
   const marketLane=new THREE.Mesh(new THREE.CircleGeometry(31,48).rotateX(-Math.PI/2),MATS.cobble); marketLane.position.set(0,.06,MARKET_Z); marketLane.receiveShadow=true; scene.add(marketLane);
 }
 // ---------- castle fortification ----------
@@ -5612,7 +5637,7 @@ function housePorch(x,z,w,d,ry,accent){
       for(const s of[-1,1])aCyl(.3,.3,.12,8,px+co*s*.62,.32,pz-si*s*.62,'dark',ry+Math.PI/2);
       aCyl(.07,.07,1.3,5,px+si*.9,.9,pz+co*.9,'wood',ry+Math.PI/2); addCollider(px,pz,.95); } }
 }
-function ringRoad(radius,width){ const road=new THREE.Mesh(new THREE.RingGeometry(radius-width/2,radius+width/2,120).rotateX(-Math.PI/2),MATS.cobble); road.position.y=.05; road.receiveShadow=true; scene.add(road); }
+function ringRoad(radius,width){ registerRing(radius,width); const road=new THREE.Mesh(new THREE.RingGeometry(radius-width/2,radius+width/2,120).rotateX(-Math.PI/2),MATS.cobble); road.position.y=.05; road.receiveShadow=true; scene.add(road); }
 function outerWall(){
   const R=OUTER_CITY_R,H=13,seg=224;
   // Gate opening and tower placement now come from ONE number. They used to be
@@ -5735,6 +5760,15 @@ function outerWards(){
   for(const k of nodes){ const ij=k.split(','), p=warp(+ij[0],+ij[1]);
     aCyl(STREET*.66,STREET*.66,.16,10,p[0],.07,p[1],'cobble'); }
 
+  // The ring boulevard and the gate approaches used to be drawn at the very
+  // end of this function, i.e. after the houses. Roads carry no colliders, so
+  // nothing stopped a terrace being built across a road that did not exist
+  // yet — and once ROAD_RECTS existed it showed up as buildings standing on
+  // the carriageway. Every road now goes down before anything is built on it.
+  ringRoad(MID_WALL_R+20,7);
+  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
+  OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-34),Math.sin(a)*(OUTER_CITY_R-34),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
+
   // ---- pass 3: block contents --------------------------------------------
   let built=0,squares=0,landmarks=0,yards=0;
   for(const cell of live){
@@ -5786,7 +5820,11 @@ function outerWards(){
         // wide empty road was the road plus both pavements plus the houses.
         const off=FRONT+depth*.5;
         const px=A[0]+ux*(t+w/2)+nx*off, pz=A[1]+uz*(t+w/2)+nz*off;
-        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1 && frontageClear(px,pz,w,depth,ry)){
+        // Roads carry no colliders, so frontageClear cannot see them; without
+        // the explicit test a terrace runs straight over the gate approaches
+        // and the ring boulevard where they cut through a block.
+        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1
+           && !onRoad(px,pz,Math.max(w,depth)*.5+.6) && frontageClear(px,pz,w,depth,ry)){
           const stories=1+(nodeRand(i*13+e,Math.round(t),8)<.45?1:0)+(nodeRand(i*7+e,Math.round(t),9)<.13?1:0);
           const key=palette[Math.floor(nodeRand(i*5+e,Math.round(t),10)*palette.length)%palette.length];
           const accent=nodeRand(i*3+e,Math.round(t),11)<.18?'arcane':'amber';
@@ -5799,11 +5837,6 @@ function outerWards(){
     }
     yards+=blockYard(cx,cz,BLOCK,s=>nodeRand(i,j,20+s));
   }
-  // Ring boulevard just outside the mid wall stays: it is the route that links
-  // the offset gates, and without it the two rings barely connect.
-  ringRoad(MID_WALL_R+20,7);
-  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
-  OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-34),Math.sin(a)*(OUTER_CITY_R-34),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
   return {built,squares,landmarks,yards};
 }
 // A 58-unit block with ~12 units of frontage round the rim leaves a 30-unit
@@ -5852,6 +5885,120 @@ function blockYard(cx,cz,block,rnd){
     }
   }
   return n;
+}
+// ============================================================
+//  INNER CITY INFILL
+//  Measured on r68, buildings per 10k square units by radius band: citadel 8.0,
+//  inner core 5.2, inner wards 10.2, dead ring 12.4, outer wards 40.2. The
+//  outer city had ended up eight times denser than the middle, so Vaneth was a
+//  donut — walk in from the gate and the place thins out the closer you get to
+//  the castle, which is backwards for any real city and would have read as
+//  "barren" all over again, just relocated.
+//
+//  The inner city already has a perfectly good street network from
+//  `streetPlan()`; almost nothing was ever built along it. So rather than
+//  overlaying a second grid on top of hand-authored ground — which would have
+//  fought the named interiors, the district frontages and the NPC routes —
+//  this terraces along the streets the city already has, exactly the way a
+//  real town infills. Every candidate is gated on the authored exclusion
+//  zones, the carriageway list, and the same footprint probe the outer wards
+//  use, so it can only ever occupy ground that was empty.
+// ============================================================
+function innerInfill(){
+  const VERGE=2.6, FILL=.86;
+  let built=0, yards=0;
+  // The citadel precinct, the market, and every named interior are already
+  // listed as no-build zones for the city compiler. Reuse them rather than
+  // inventing a second, divergent set.
+  const excluded=(x,z,extra)=>{
+    for(const e of COMPILER_EXCLUSIONS){ const dx=x-e.x,dz=z-e.z,rr=e.r+extra;
+      if(dx*dx+dz*dz<rr*rr)return true; }
+    return false;
+  };
+  const inBuildableRing=(x,z)=>{
+    const r=Math.hypot(x,z);
+    // Inside the mid wall, clear of the wall itself; plus the dead ring beyond
+    // it, which has been empty ground since r56.
+    return (r>66 && r<CITY_RADIUS-9) || (r>CITY_RADIUS+8 && r<OUTER_WARD_R0-6);
+  };
+  const streets=ROAD_RECTS.filter(r=>{
+    const mx=r.x1+r.ux*r.len*.5, mz=r.z1+r.uz*r.len*.5;
+    return Math.hypot(mx,mz)<=OUTER_WARD_R0+4 && r.len>=24;
+  });
+  for(const road of streets){
+    for(const side of[-1,1]){
+      const nx=-road.uz*side, nz=road.ux*side;                 // outward from the carriageway
+      const ry=Math.atan2(-nx,-nz);                            // square to the street
+      let t=4.0;
+      while(t<road.len-4.0){
+        const w=7.0+worldRandom()*2.8;
+        if(t+w>road.len-4.0)break;
+        const depth=6.4+worldRandom()*2.2;
+        const off=road.w*.5+VERGE+depth*.5;
+        const px=road.x1+road.ux*(t+w/2)+nx*off, pz=road.z1+road.uz*(t+w/2)+nz*off;
+        const ok = worldRandom()<FILL
+          && inBuildableRing(px,pz)
+          && !excluded(px,pz,Math.max(w,depth)*.5)
+          // The footprint must clear every carriageway, not just this one —
+          // corners where two authored streets meet would otherwise be built
+          // straight across.
+          && !onRoad(px,pz,Math.max(w,depth)*.5+.7)
+          && frontageClear(px,pz,w,depth,ry);
+        if(ok){
+          const stories=1+(worldRandom()<.52?1:0)+(worldRandom()<.20?1:0);
+          const key=['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
+          const accent=worldRandom()<.18?'arcane':'amber';
+          wardHouse(px,pz,w,depth,stories,key,ry,accent);
+          housePorch(px,pz,w,depth,ry,accent);
+          built++;
+          t+=w+0.35;                                           // terraced
+        } else t+=w*.42;
+      }
+    }
+  }
+  // Ring roads are annuli rather than segments, so the rect pass above cannot
+  // see them — and the ring boulevard at MID_WALL_R+20 is the *only* street
+  // the dead ring between the two walls has ever had. Terrace it by walking
+  // the circumference, converting each frontage width into an arc step.
+  for(const ring of ROAD_RINGS){
+    if(ring.r>OUTER_WARD_R0+4)continue;
+    for(const side of[-1,1]){
+      let ang=0;
+      while(ang<Math.PI*2){
+        const w=7.0+worldRandom()*2.8, depth=6.4+worldRandom()*2.2;
+        const rad=ring.r+side*(ring.w*.5+VERGE+depth*.5);
+        if(rad<10)break;
+        const ca=Math.cos(ang), sa=Math.sin(ang);
+        const px=ca*rad, pz=sa*rad;
+        // Normal from carriageway to house is side*(ca,sa); wardHouse's front
+        // is (sin ry, cos ry), and it has to point back at the road.
+        const ry=Math.atan2(-side*ca,-side*sa);
+        const ok = worldRandom()<FILL
+          && inBuildableRing(px,pz)
+          && !excluded(px,pz,Math.max(w,depth)*.5)
+          && !onRoad(px,pz,Math.max(w,depth)*.5+.7)
+          && frontageClear(px,pz,w,depth,ry);
+        if(ok){
+          const stories=1+(worldRandom()<.48?1:0)+(worldRandom()<.16?1:0);
+          const key=['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
+          const accent=worldRandom()<.18?'arcane':'amber';
+          wardHouse(px,pz,w,depth,stories,key,ry,accent);
+          housePorch(px,pz,w,depth,ry,accent);
+          built++;
+          ang+=(w+0.35)/rad;
+        } else ang+=(w*.42)/rad;
+      }
+    }
+  }
+  // Back yards behind the new terraces. The authored lane grid sits at 0/±42/
+  // ±124/±210 on both axes, so the block centres fall between those lines.
+  const lines=[-210,-124,-42,0,42,124,210];
+  for(let a=0;a<lines.length-1;a++)for(let b=0;b<lines.length-1;b++){
+    const cx=(lines[a]+lines[a+1])/2, cz=(lines[b]+lines[b+1])/2;
+    if(!inBuildableRing(cx,cz)||excluded(cx,cz,10))continue;
+    yards+=blockYard(cx,cz,Math.min(lines[a+1]-lines[a],lines[b+1]-lines[b]),()=>worldRandom());
+  }
+  return {built,yards};
 }
 // ============================================================
 //  AVENUE BREAKS
@@ -5912,6 +6059,7 @@ LMSG.textContent='raising the greater city…'; useWorldStream('outer-wards');co
 LMSG.textContent='closing the outer wall…'; useWorldStream('outer-wall');outerWall();
 LMSG.textContent='sowing the outer wards…'; outerCity();
 LMSG.textContent='breaking the long avenues…'; useWorldStream('avenue-breaks');avenueBreaks();
+LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 CITY_PLAN.audit=auditCityPlan();
 const vanethGeometry=auditVanethGeometry();
@@ -7590,7 +7738,7 @@ const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let px
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
-window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,wards:outerBuilt,setPixel:v=>{RS=v;resize();}};
+window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,wards:outerBuilt,inner:innerBuilt,setPixel:v=>{RS=v;resize();}};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
