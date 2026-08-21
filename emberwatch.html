@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r63 paths &amp; paving</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r64 nav fix</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5675,7 +5675,7 @@ mergeAll();
 //  grid plus A*, so they route around obstacles instead of stalling on them.
 // ============================================================
 const NAV_CELL=4, NAV_HALF=Math.ceil(M/2/NAV_CELL), NAV_N=NAV_HALF*2, NAV_TOTAL=NAV_N*NAV_N;
-const NAV_OPEN=1, NAV_NEAR_WALL=9;           // strongly prefer the middle of a lane over scraping a facade
+const NAV_OPEN=1, NAV_NEAR_WALL=3;   // mild: see budget note in navFindPath
 const navCost=new Uint8Array(NAV_TOTAL);
 const navIndex=(ci,cj)=>ci*NAV_N+cj;
 const navToWorld=ci=>(ci-NAV_HALF)*NAV_CELL+NAV_CELL*.5;
@@ -5719,7 +5719,14 @@ function navNearestOpen(ci,cj,reach=3){
   return -1;
 }
 const NAV_DIRS=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
-function navFindPath(sx,sz,gx,gz,budget=2600){
+// Budget note: the heuristic is straight-line distance in CELLS, so it is only
+// admissible against a minimum step cost of 1. Push NAV_NEAR_WALL far above
+// that and real path costs dwarf the estimate, A* degenerates towards Dijkstra,
+// searches explode, and long legs exhaust the budget and return null. A raised
+// near-wall cost of 9 did exactly that: requests failed en masse, residents sat
+// in backoff with no path, and the whole population froze after ~90 seconds.
+// Keep the near-wall penalty mild and leave real headroom here.
+function navFindPath(sx,sz,gx,gz,budget=9000){
   const start=navNearestOpen(worldToNav(sx),worldToNav(sz)),goal=navNearestOpen(worldToNav(gx),worldToNav(gz));
   if(start<0||goal<0)return null;
   if(start===goal)return [[gx,gz]];
@@ -6366,9 +6373,25 @@ function routePoint(npc){const route=npc.route,length=route.length,progress=(npc
 // Patrol movement only ever checked world geometry, so a resident on their
 // route would walk straight through the player or through each other. This
 // mirrors the player's own npcBlocked check, minus the NPC being tested.
+// Only yield to somebody who is actually IN FRONT. This used to yield to any
+// neighbour in any direction, including behind — so in a crowd every resident
+// blocked every other one, all of them paused, and the group locked solid
+// permanently. That is the clump standing in the market: not a pathfinding
+// failure but a mutual-yield deadlock, and it hid inside a healthy-looking
+// average because everyone outside the crowd kept walking normally.
 function npcObstructed(npc,x,z){
-  if(!npc.talking&&!npc.sessionAnchor){const pdx=x-player.x,pdz=z-player.z,preach=.42+CONFIG.playerRadius+.15;if(pdx*pdx+pdz*pdz<preach*preach)return true;}
-  for(const other of villagers){if(other===npc)continue;const dx=x-other.g.position.x,dz=z-other.g.position.z,reach=.42*1.7;if(dx*dx+dz*dz<reach*reach)return true;}
+  const mx=x-npc.lastX,mz=z-npc.lastZ,ml=Math.hypot(mx,mz);
+  if(ml<1e-6)return false;
+  const dirx=mx/ml,dirz=mz/ml;
+  const ahead=(dx,dz,dist)=>dist<1e-6?true:(dx*dirx+dz*dirz)/dist>.34;   // ~70° cone
+  if(!npc.talking&&!npc.sessionAnchor){
+    const pdx=player.x-npc.lastX,pdz=player.z-npc.lastZ,pd=Math.hypot(pdx,pdz),preach=.42+CONFIG.playerRadius+.15;
+    if(pd<preach&&ahead(pdx,pdz,pd))return true;
+  }
+  const reach=.42*1.7;
+  for(const other of villagers){ if(other===npc)continue;
+    const dx=other.g.position.x-npc.lastX,dz=other.g.position.z-npc.lastZ,dist=Math.hypot(dx,dz);
+    if(dist<reach&&ahead(dx,dz,dist))return true; }
   return false;
 }
 function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue();
@@ -6391,9 +6414,28 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue();
             navRequest(npc); } }
         else{
           const step=Math.min(npc.walkSpeed*38*dt,dist),nx=npc.lastX+dx/dist*step,nz=npc.lastZ+dz/dist*step;
-          if(npcObstructed(npc,nx,nz))npc.pauseLeft=.3;                       // someone in the way: wait a beat
+          if(npcObstructed(npc,nx,nz)){
+            // Yielding alone is a trap: once residents are packed, every step
+            // any of them tries is blocked by a neighbour, so they re-pause
+            // every frame and the group never unpacks. Traced one standing
+            // still for 240 frames with a clear path and a target 36 units
+            // away, pauseLeft simply oscillating. After a moment of waiting,
+            // shove apart instead — separation is the escape hatch that lets
+            // a jam resolve itself.
+            npc.blockedFor=(npc.blockedFor||0)+dt;
+            if(npc.blockedFor>.7){
+              let bx=0,bz=0;
+              for(const other of villagers){ if(other===npc)continue;
+                const ox=npc.lastX-other.g.position.x,oz=npc.lastZ-other.g.position.z,od=Math.hypot(ox,oz);
+                if(od<1.4&&od>1e-4){ bx+=ox/od; bz+=oz/od; } }
+              const bl=Math.hypot(bx,bz);
+              if(bl>1e-4){ const sx=npc.lastX+bx/bl*step,sz=npc.lastZ+bz/bl*step;
+                if(npcPathClear(npc.lastX,npc.lastZ,sx,sz)){ x=sx; z=sz; movingNpc=true; } }
+              npc.blockedFor=0;
+            } else npc.pauseLeft=.3;
+          }                       // someone in the way: wait a beat
           else if(!npcPathClear(npc.lastX,npc.lastZ,nx,nz)){npc.path=null;navRequest(npc);}  // world changed: re-plan
-          else{ x=nx; z=nz; npc.g.rotation.y=Math.atan2(dx,dz); movingNpc=true; }
+          else{ npc.blockedFor=0; x=nx; z=nz; npc.g.rotation.y=Math.atan2(dx,dz); movingNpc=true; }
         }
       }
     }else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;

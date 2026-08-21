@@ -1,6 +1,6 @@
-**r63 — path and paving** · 2026-08-21 · phase 4, streets, crowds, inner city
+**r64 — crowd and electron** · 2026-08-21 · phase 4, streets, crowds, inner city
 
-In its own panel header: *r63 paths & paving*.
+In its own panel header: *r64 nav fix*.
 
 ### Summary
 
@@ -8,7 +8,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.03 MB (+1,205 bytes on r62).
+- 1.04 MB (+2,436 bytes on r63).
 - No functions added or removed.
 
 ### Play it
