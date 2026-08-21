@@ -1,4 +1,4 @@
-**r65 — citadel** · 2026-08-21 · phase 4, streets, crowds, inner city
+**r66 — npc schedules** · 2026-08-21 · phase 4, streets, crowds, inner city
 
 ### Summary
 
@@ -6,8 +6,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.04 MB (+3,029 bytes on r64).
-- 2 functions added: `tileBoxUV`, `tileRadialUV`.
+- 1.05 MB (+13,431 bytes on r65).
+- 5 functions added: `askAboutErrand`, `errandsFor`, `housePorch`, `npcActivity`, `npcActivityPhrase`.
 
 ### Play it
 
