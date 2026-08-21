@@ -1,4 +1,4 @@
-**r60 — city rebuild** · 2026-08-20 · phase 4, streets, crowds, inner city
+**r61 — city layout** · 2026-08-21 · phase 4, streets, crowds, inner city
 
 ### Summary
 
@@ -6,8 +6,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.03 MB (+5,541 bytes on r58).
-- 3 functions added: `addBoxCollider`, `spellBoxHit`, `wardRoof`.
+- 1.03 MB (+2,876 bytes on r60).
+- 2 functions added: `avenueBreaks`, `avenueMonument`.
 
 ### Play it
 
