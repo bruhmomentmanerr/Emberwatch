@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r64 nav fix</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r65 citadel</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4797,9 +4797,37 @@ const MATS={ wall:sm(TX.wall), wall2:sm(TX.wall2), brick:sm(TX.brick), roof:sm(T
 
 // ---------- batching ----------
 const bins={}; function collect(k,g){ (bins[k]||(bins[k]=[])).push(g); }
-function aBox(w,h,d,x,y,z,k,ry=0){ const g=new THREE.BoxGeometry(w,h,d); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
-function aCone(r,h,s,x,y,z,k,ry=0){ const g=new THREE.ConeGeometry(r,h,s); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
-function aCyl(rt,rb,h,s,x,y,z,k,ry=0){ const g=new THREE.CylinderGeometry(rt,rb,h,s); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
+// ---------- texture scale ----------
+// Every primitive is built with UVs running 0..1 across each face, so one
+// texture tile is stretched to fit whatever the object's size happens to be.
+// An 8-unit house wall and a 39-unit keep shaft both get exactly one tile —
+// which is why the big towers and curtain walls looked smeared while ordinary
+// houses looked fine. Scale UVs by real world size instead, so masonry keeps a
+// constant stone size no matter how large the surface is.
+// Clamped at 1: small props keep their present look exactly, only oversized
+// surfaces gain extra repeats, so this can only fix stretching, never add it.
+const TEX_TILE=8;
+// Skipped for keys whose texture already carries a large repeat (ground,
+// cobble, city paving) — those would compound into a shimmering mess.
+const UV_TILED_KEYS=new Set(['wall','wall2','brick','stone','roof','slate','wood','dark','cloth']);
+const uvScale=(size)=>Math.max(1,size/TEX_TILE);
+function tileBoxUV(g,w,h,d){
+  const uv=g.attributes.uv; if(!uv)return;
+  // BoxGeometry face order is +X,-X,+Y,-Y,+Z,-Z with 4 vertices each.
+  const faces=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(let f=0;f<6;f++){ const su=uvScale(faces[f][0]),sv=uvScale(faces[f][1]);
+    for(let i=0;i<4;i++){ const k=(f*4+i)*2; uv.array[k]*=su; uv.array[k+1]*=sv; } }
+  uv.needsUpdate=true;
+}
+function tileRadialUV(g,radiusAvg,h){
+  const uv=g.attributes.uv; if(!uv)return;
+  const su=uvScale(Math.PI*2*radiusAvg),sv=uvScale(h);
+  for(let i=0;i<uv.count;i++){ uv.array[i*2]*=su; uv.array[i*2+1]*=sv; }
+  uv.needsUpdate=true;
+}
+function aBox(w,h,d,x,y,z,k,ry=0){ const g=new THREE.BoxGeometry(w,h,d); if(UV_TILED_KEYS.has(k))tileBoxUV(g,w,h,d); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
+function aCone(r,h,s,x,y,z,k,ry=0){ const g=new THREE.ConeGeometry(r,h,s); if(UV_TILED_KEYS.has(k))tileRadialUV(g,r*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
+function aCyl(rt,rb,h,s,x,y,z,k,ry=0){ const g=new THREE.CylinderGeometry(rt,rb,h,s); if(UV_TILED_KEYS.has(k))tileRadialUV(g,(rt+rb)*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
 function mergeAll(){ for(const k in bins){ const source=bins[k],merged=THREE.BufferGeometryUtils.mergeBufferGeometries(source,false); source.forEach(geometry=>geometry.dispose()); delete bins[k]; if(!merged)continue;
   const mesh=new THREE.Mesh(merged,MATS[k]||MATS.stone); const glow=(k==='window'||k==='arcane'||k==='amber'); mesh.castShadow=!glow; mesh.receiveShadow=!glow; scene.add(mesh); } }
 
@@ -5211,10 +5239,31 @@ function citadel(){ const R=49,H=11;
     [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(angle=>{ const wr=faceRadius+.06; aBox(1,1.2,.16,towerCx+Math.cos(angle)*wr,y,towerCz+Math.sin(angle)*wr,'arcane',angle-Math.PI/2); }); }
   const crown=new THREE.PointLight(0x9d7bff,2.8,52); crown.position.set(towerCx,towerH+1,towerCz); scene.add(crown); lights.push({light:crown,base:2.8,phase:1});
   interiorHouse('The Great Hall',0,-20,26,18,'royal');
-  // Were two ordinary town houses — the exact "walled set of generated NPC
-  // buildings" problem. Now a barracks range and a chapel with its own spire.
-  castleRange(-29,-14,13,9,.18,'barracks'); castleRange(29,-14,13,9,-.18,'chapel');
-  castleRange(-31,20,11,8,Math.PI/2,'barracks'); castleRange(31,20,11,8,-Math.PI/2,'barracks');
+  // Ranges now back onto the inside of the curtain the way a real bailey is
+  // built, instead of standing free in the middle of the courtyard — free
+  // blocks scattered on open ground are exactly why this read as "four NPC
+  // buildings around a tower" rather than a castle.
+  [[-30,-42,0,'barracks'],[30,-42,0,'chapel'],
+   [42,-2,-Math.PI/2,'barracks'],[42,26,-Math.PI/2,'barracks'],
+   [-42,-2,Math.PI/2,'barracks'],[-42,26,Math.PI/2,'barracks'],
+   [-31,40,Math.PI,'barracks'],[31,40,Math.PI,'barracks']
+  ].forEach(([rx,rz,rry,kind])=>castleRange(rx,rz,12,8,rry,kind));
+  // A forebuilding: castle keeps are entered up an external stair to a raised
+  // door, never at ground level. This gives the tower an approach and a front.
+  const foreZ=towerCz+towerRb+1.2;
+  aBox(7.5,4.6,5.0,towerCx,2.3,foreZ,'stone');
+  aBox(8.1,.5,5.6,towerCx,4.8,foreZ,'slate');
+  for(let s=0;s<5;s++)aBox(6.4-s*.35,.45,1.5,towerCx,.22+s*.45,foreZ+3.4+s*1.3,'stone');
+  aBox(2.2,3.0,.3,towerCx,3.0,foreZ-2.4,'wood');
+  for(const side of[-1,1])aBox(.5,4.4,.5,towerCx+side*3.4,2.2,foreZ-2.2,'stone');
+  addBoxCollider(towerCx,foreZ,7.5,5.0,0);
+  // Courtyard fittings: a well and banner poles, so the bailey has business
+  // in it rather than being an empty parade ground.
+  aCyl(1.5,1.7,1.2,10,-18,.6,26,'stone'); aCyl(1.2,1.2,.25,10,-18,1.25,26,'dark');
+  for(const s of[-1,1])aBox(.22,3.0,.22,-18+s*1.7,1.5,26,'wood');
+  aBox(4.0,.22,.22,-18,3.1,26,'wood'); addCollider(-18,26,1.7);
+  for(const [bx,bz] of [[-14,-38],[14,-38],[-38,10],[38,10]]){
+    aBox(.24,7.0,.24,bx,3.5,bz,'wood'); aBox(1.5,2.4,.08,bx,5.4,bz,'cloth'); addCollider(bx,bz,.35); }
   torch(-7,R+.8,0xffa64d,1.6,17); torch(7,R+.8,0xffa64d,1.6,17);
 }
 // ---------- interior doors ----------

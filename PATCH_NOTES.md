@@ -1,6 +1,4 @@
-**r64 — crowd and electron** · 2026-08-21 · phase 4, streets, crowds, inner city
-
-In its own panel header: *r64 nav fix*.
+**r65 — citadel** · 2026-08-21 · phase 4, streets, crowds, inner city
 
 ### Summary
 
@@ -8,8 +6,8 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 ### In the code
 
-- 1.04 MB (+2,436 bytes on r63).
-- No functions added or removed.
+- 1.04 MB (+3,029 bytes on r64).
+- 2 functions added: `tileBoxUV`, `tileRadialUV`.
 
 ### Play it
 
