@@ -171,7 +171,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r62 visual fixes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r63 paths &amp; paving</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4841,6 +4841,13 @@ const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=560, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
 const OUTER_GATE_DEG=[45,135,225,315], MID_GATE_DEG=[0,90,180,270];
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(M,M).rotateX(-Math.PI/2), sm(TX.ground)); ground.receiveShadow=true; scene.add(ground);
+// The paved city floor sits only 0.012 above this plane. Over a 1500-unit map
+// with a 1100 far plane that gap is below depth-buffer precision at range, so
+// the two surfaces z-fight and the paving drops out in patches — buildings
+// look like they are standing on bare dirt. Pushing the ground back in depth
+// (rather than raising the floor, which would then fight the roads stacked
+// just above it) makes the paved layer win everywhere without moving anything.
+ground.material.polygonOffset=true; ground.material.polygonOffsetFactor=2; ground.material.polygonOffsetUnits=4;
 function cityFloor(){
   // The city is continuous hardscape: there should never be a green void
   // between districts and the wall. Main roads sit just above this pavement.
@@ -5668,7 +5675,7 @@ mergeAll();
 //  grid plus A*, so they route around obstacles instead of stalling on them.
 // ============================================================
 const NAV_CELL=4, NAV_HALF=Math.ceil(M/2/NAV_CELL), NAV_N=NAV_HALF*2, NAV_TOTAL=NAV_N*NAV_N;
-const NAV_OPEN=1, NAV_NEAR_WALL=4;           // near-wall cells cost more, so people walk down the middle of a lane
+const NAV_OPEN=1, NAV_NEAR_WALL=9;           // strongly prefer the middle of a lane over scraping a facade
 const navCost=new Uint8Array(NAV_TOTAL);
 const navIndex=(ci,cj)=>ci*NAV_N+cj;
 const navToWorld=ci=>(ci-NAV_HALF)*NAV_CELL+NAV_CELL*.5;
@@ -5683,7 +5690,10 @@ function buildNavGrid(){
   const pass=navCost.slice();
   for(let ci=1;ci<NAV_N-1;ci++)for(let cj=1;cj<NAV_N-1;cj++){ const k=navIndex(ci,cj);
     if(!pass[k])continue;
-    if(!pass[k-NAV_N]||!pass[k+NAV_N]||!pass[k-1]||!pass[k+1])navCost[k]=NAV_NEAR_WALL; }
+    // Diagonals included: a cell touching only the corner of a building was
+    // treated as open street, which is precisely where residents were clipping.
+    if(!pass[k-NAV_N]||!pass[k+NAV_N]||!pass[k-1]||!pass[k+1]
+      ||!pass[k-NAV_N-1]||!pass[k-NAV_N+1]||!pass[k+NAV_N-1]||!pass[k+NAV_N+1])navCost[k]=NAV_NEAR_WALL; }
 }
 // Reused across searches; a stamp avoids clearing 140k entries every call.
 const navG=new Float32Array(NAV_TOTAL),navFrom=new Int32Array(NAV_TOTAL),navStamp=new Uint32Array(NAV_TOTAL);
@@ -5742,7 +5752,12 @@ function navFindPath(sx,sz,gx,gz,budget=2600){
   points[points.length-1]=[gx,gz];
   const smooth=[points[0]]; let anchor=0;
   for(let i=2;i<points.length;i++){
-    if(!npcPathClear(points[anchor][0],points[anchor][1],points[i][0],points[i][1],.5)){ smooth.push(points[i-1]); anchor=i-1; } }
+    // Clearance here has to be generous. String-pulling replaces a safe grid
+    // route with a straight shortcut, and at a slim margin the shortcut clips
+    // the corner of a building — the resident walks into a wall, the movement
+    // check then refuses it, and they re-plan and wander off. Requiring real
+    // shoulder room to take the shortcut keeps them off the masonry.
+    if(!npcPathClear(points[anchor][0],points[anchor][1],points[i][0],points[i][1],.95)){ smooth.push(points[i-1]); anchor=i-1; } }
   smooth.push(points[points.length-1]);
   return smooth.slice(1);
 }
