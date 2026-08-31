@@ -172,7 +172,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r71 stability &amp; access</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r72 lived-in Vaneth</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5616,6 +5616,40 @@ function cityLifeDetails(){
 }
 function addRavens(){const feather=new THREE.MeshBasicMaterial({color:0x16131f,side:THREE.DoubleSide});for(let i=0;i<14;i++){const g=new THREE.Group(),body=new THREE.Mesh(new THREE.ConeGeometry(.16,.7,4),feather),left=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather),right=new THREE.Mesh(new THREE.BoxGeometry(.8,.035,.14),feather);body.rotation.z=Math.PI*.5;left.position.x=-.38;right.position.x=.38;g.add(body,left,right);g.position.set(rand(-185,185),rand(17,41),rand(-185,185));scene.add(g);ravens.push({g,left,right,radius:rand(85,220),height:g.position.y,phase:rand(0,6.28),speed:rand(.08,.18)});}}
 function makeVanethLively(){useWorldStream('city-clutter');cityClutter();useWorldStream('city-life');cityLifeDetails();useWorldStream('flora');plantLife();useWorldStream('ravens');addRavens();}
+let cityAtmosphere=null;
+function buildCityAtmosphere(){
+  // One vertex-coloured point cloud gives each ward its own airborne texture
+  // without multiplying materials and draw calls. These are ambience only:
+  // they never enter the collision or simulation layers.
+  const emitters=[
+    {x:0,z:MARKET_Z,color:0xffa052,r:25,min:1,max:8,rise:.42,drift:.32},
+    {x:-172,z:-104,color:0xff6338,r:28,min:2,max:15,rise:.8,drift:.5},
+    {x:168,z:-104,color:0xb490ff,r:30,min:1,max:12,rise:.18,drift:.2},
+    {x:0,z:194,color:0xffd69b,r:36,min:1,max:9,rise:.28,drift:.22},
+    {x:0,z:-180,color:0xe8b06e,r:34,min:.6,max:7,rise:.24,drift:.18},
+    {x:0,z:-20,color:0x9d7bff,r:48,min:2,max:14,rise:.16,drift:.16},
+    {x:-295,z:178,color:0x79d6c9,r:22,min:.4,max:5,rise:.1,drift:.13}
+  ];
+  let state=worldStreamSeed('district-atmosphere');
+  const next=()=>{let value=state+=0x6D2B79F5;value=Math.imul(value^value>>>15,value|1);value^=value+Math.imul(value^value>>>7,value|61);return((value^value>>>14)>>>0)/4294967296;};
+  const perEmitter=32,count=emitters.length*perEmitter,positions=new Float32Array(count*3),colors=new Float32Array(count*3),particles=[];
+  let index=0;
+  emitters.forEach((emitter,emitterIndex)=>{const color=new THREE.Color(emitter.color);for(let n=0;n<perEmitter;n++,index++){
+    const radius=Math.sqrt(next())*emitter.r,phase=next()*Math.PI*2,y=emitter.min+next()*(emitter.max-emitter.min),shade=.72+next()*.28;
+    positions[index*3]=emitter.x+Math.cos(phase)*radius;positions[index*3+1]=y;positions[index*3+2]=emitter.z+Math.sin(phase)*radius;
+    colors[index*3]=color.r*shade;colors[index*3+1]=color.g*shade;colors[index*3+2]=color.b*shade;
+    particles.push({emitterIndex,radius,phase,y,rise:emitter.rise*(.55+next()*.9),drift:emitter.drift*(.55+next()*.9)});
+  }});
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  const motes=new THREE.Points(geometry,new THREE.PointsMaterial({size:.34,vertexColors:true,transparent:true,opacity:.66,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true}));motes.frustumCulled=false;scene.add(motes);
+
+  const chimneys=[[-181,-121],[-160,-82],[-38,MARKET_Z+6],[70,-183]],smokeCount=96,smokePositions=new Float32Array(smokeCount*3),smoke=[];
+  for(let i=0;i<smokeCount;i++){const emitterIndex=i%chimneys.length,source=chimneys[emitterIndex],phase=next()*Math.PI*2,radius=next()*.7,y=4+next()*9;smokePositions[i*3]=source[0]+Math.cos(phase)*radius;smokePositions[i*3+1]=y;smokePositions[i*3+2]=source[1]+Math.sin(phase)*radius;smoke.push({emitterIndex,phase,radius,y,rise:.55+next()*.55,drift:.08+next()*.12});}
+  const smokeGeometry=new THREE.BufferGeometry();smokeGeometry.setAttribute('position',new THREE.BufferAttribute(smokePositions,3));const haze=new THREE.Points(smokeGeometry,new THREE.PointsMaterial({color:0xb8a9a4,size:1.25,transparent:true,opacity:.18,depthWrite:false,sizeAttenuation:true}));haze.frustumCulled=false;scene.add(haze);
+  cityAtmosphere={emitters,particles,motes,chimneys,smoke,haze};
+}
+function updateCityAtmosphere(t,dt){if(!cityAtmosphere)return;const motePosition=cityAtmosphere.motes.geometry.attributes.position;cityAtmosphere.particles.forEach((particle,index)=>{const emitter=cityAtmosphere.emitters[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>emitter.max)particle.y=emitter.min;const angle=particle.phase+t*particle.drift*.08;motePosition.setXYZ(index,emitter.x+Math.cos(angle)*particle.radius+Math.sin(t*.21+particle.phase)*.18,particle.y,emitter.z+Math.sin(angle)*particle.radius);});motePosition.needsUpdate=true;
+  const smokePosition=cityAtmosphere.haze.geometry.attributes.position;cityAtmosphere.smoke.forEach((particle,index)=>{const source=cityAtmosphere.chimneys[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>14){particle.y=4;particle.radius=.1;}else particle.radius+=dt*.08;const angle=particle.phase+t*particle.drift;smokePosition.setXYZ(index,source[0]+Math.cos(angle)*particle.radius+t*.018,particle.y,source[1]+Math.sin(angle)*particle.radius);});smokePosition.needsUpdate=true;}
 function auditVanethGeometry(){
   const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0);
   const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ));
@@ -6151,6 +6185,7 @@ CITY_PLAN.finalAnchorRepair=repairCityPlanAnchors();
 CITY_PLAN.audit={...auditCityPlan(),...CITY_PLAN.finalAnchorRepair};
 const vanethGeometry=auditVanethGeometry();
 mergeAll();
+buildCityAtmosphere();
 
 // ============================================================
 //  NAVIGATION
@@ -6802,6 +6837,22 @@ const VANETH_LANDMARKS=[
 // survives purely as a place list residents can point at in conversation, and
 // the panel is now just a "you are here" label.
 let lastWayfinderAt=0,lastWardName='';
+const visitedWardAtmosphere=new Set();
+const WARD_ATMOSPHERE={
+  'Citadel Ward':'The Great Hall gathers the city around it; ward lamps burn violet against the old stone.',
+  'Cinder Market':'Coal smoke, hot bread, and a dozen overlapping conversations meet in the market air.',
+  'North Ward':'Gate bells and pale lanterns keep time along the northern houses.',
+  'South Road':'Cart ruts, low tavern light, and road dust make the south feel half departure, half return.',
+  'West Wall':'Hammer-song carries from the West Works, followed by sparks and the smell of quenched iron.',
+  'East Wall':'Loose pages worry at the archive doors while violet motes hang over the scriptorium lane.',
+  'Lower Vaneth':'The lower streets narrow into workshops, kitchens, and old doors polished by generations of hands.',
+  'Old Vaneth':'Here the streets turn on older foundations and every courtyard seems to remember another name.',
+  'Outer Gate':'Beyond the outer wall, Vaneth’s lamps thin into fields, ruins, and deep forest.',
+  'Eastreach':'Broken towers and wind-bent roofs watch the eastern road.',
+  'Highfields':'The high fields breathe open and cold beneath the city wall.',
+  'Westmarch':'Foxglove water and dark pines soften the western edge of Vaneth.',
+  'Southmoor':'Low fog follows the southbound tracks between scattered holdings.'
+};
 const wayfinderWard=document.getElementById('wayfinderWard');
 function wardAt(x,z){
   const r=Math.hypot(x,z),deg=(Math.atan2(z,x)*180/Math.PI+360)%360;
@@ -6816,7 +6867,7 @@ function wardAt(x,z){
   if(deg<225)return'Westmarch';
   return'Southmoor';
 }
-function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;}}
+function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
 const VANETH_CONVERSATION={
   'Market Ward':{place:'the Market Ward',city:'The market tells the truth before the council does. Watch which stallholders stop talking when a bell rings.',roots:'I stay because every road comes through here eventually. A person learns a city by listening to what it needs.'},
   'Citadel Ward':{place:'the Citadel Ward',city:'Up here, every promise echoes twice: once in the hall and once in the barracks. Keep the second echo in mind.',roots:'Someone has to remember that a wall is for sheltering people, not merely keeping people out.'},
@@ -7827,7 +7878,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r71',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r72',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
 
@@ -7847,6 +7898,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
+  updateCityAtmosphere(t,dt);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }

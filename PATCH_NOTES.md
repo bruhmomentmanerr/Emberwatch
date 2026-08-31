@@ -1,15 +1,15 @@
-**r71 — stability access** · 2026-08-31 · phase 5, world depth
+**r72 — lived in vaneth** · 2026-08-31 · phase 5, world depth
 
-In its own panel header: *r71 stability & access*.
+In its own panel header: *r72 lived-in Vaneth*.
 
 ### Summary
 
-full-world doorstep repair; zero blocked anchors; safer app:// containment; leaner permissions; WebGL context recovery; reduced-motion and diagnostics
+district atmosphere, forge smoke and ward arrival prose in two batched particle draw calls
 
 ### In the code
 
-- 1.08 MB (+1,828 bytes on r70).
-- 1 function added: `emberDiagnostics`.
+- 1.08 MB (+5,846 bytes on r71).
+- 2 functions added: `buildCityAtmosphere`, `updateCityAtmosphere`.
 
 ### Play it
 
