@@ -1,15 +1,13 @@
-**r69 — inner city** · 2026-08-21 · phase 4, streets, crowds, inner city
-
-In its own panel header: *r67 organic city*.
+**r70 — district character** · 2026-08-31 · phase 5, world depth
 
 ### Summary
 
-Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street layout, inner city
+district-specific civic courts and outer-quarter landmarks; corrected South Road/Citadel frontage directions; repaired and expanded world audits
 
 ### In the code
 
-- 1.07 MB (+7,651 bytes on r68).
-- 3 functions added: `innerInfill`, `onRoad`, `registerRing`.
+- 1.07 MB (+6,605 bytes on r69).
+- 2 functions added: `colliderContains`, `repairCityPlanAnchors`.
 
 ### Play it
 
