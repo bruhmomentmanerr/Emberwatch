@@ -98,6 +98,7 @@
   .wayfinder-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:1.35px;color:#cbb488}.wayfinder-top span:last-child{color:#8eb7c6;font-family:'Trebuchet MS',sans-serif;letter-spacing:.8px}.wayfinder-ward{display:block;margin-top:4px;font:700 15px Georgia,'Times New Roman',serif;color:#f0e5ca}.wayfinder-goal{display:block;margin-top:3px;color:#c6baa3;font-size:10px;line-height:1.35}.wayfinder-row{display:flex;align-items:center;gap:7px;margin-top:8px;border-top:1px solid rgba(189,161,114,.18);padding-top:7px;color:#a7c8d0;font-size:10px}.wayfinder-arrow{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(117,183,207,.42);border-radius:50%;color:#9bd5e8;font-size:11px;transition:transform .18s linear}.wayfinder-open{margin-left:auto;border:0;background:transparent;color:#d7bc8a;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:.8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   #chroniclePanel{position:fixed;left:50%;top:50%;z-index:32;display:none;width:min(500px,calc(100vw - 28px));max-height:min(620px,calc(100vh - 34px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(154,127,87,.76);border-radius:7px;background:linear-gradient(110deg,rgba(33,29,25,.99),rgba(15,14,14,.995));box-shadow:0 28px 80px rgba(0,0,0,.78),inset 0 0 0 2px rgba(0,0,0,.38);color:#eadfc9}.chronicle-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;padding:13px 15px;background:linear-gradient(90deg,rgba(43,36,29,.99),rgba(20,19,18,.99));border-bottom:1px solid rgba(184,148,93,.34)}.chronicle-head strong{flex:1;font:700 17px Georgia,'Times New Roman',serif;letter-spacing:1px}.chronicle-head button{border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;padding:4px 8px;cursor:pointer}.chronicle-body{padding:16px}.chronicle-intro{color:#c5b79d;font-size:11px;line-height:1.5}.chronicle-list{display:grid;grid-template-columns:1fr;gap:7px;margin-top:13px}.chronicle-entry{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid rgba(180,149,102,.2);border-radius:6px;background:rgba(255,255,255,.035)}.chronicle-entry i{display:inline-flex;width:17px;height:17px;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(140,130,109,.45);font-size:9px;font-style:normal;color:#89806f}.chronicle-entry.found{border-color:rgba(122,182,173,.48);background:rgba(61,105,91,.16)}.chronicle-entry.found i{border-color:rgba(126,213,184,.7);color:#c6f0d9}.chronicle-entry b{display:block;font:700 13px Georgia,'Times New Roman',serif;color:#eee1c8}.chronicle-entry small{display:block;margin-top:2px;color:#bcb097;font-size:10px;line-height:1.35}.chronicle-foot{margin-top:14px;padding-top:11px;border-top:1px solid rgba(184,148,93,.2);color:#8faebb;font-size:10px;line-height:1.45}
   @media(max-width:620px){#wayfinder{top:10px;left:10px;width:205px;padding:8px 10px}.wayfinder-goal{display:none}.wayfinder-row{margin-top:5px;padding-top:5px}#gameTitle{top:12px;left:auto;right:11px;width:auto;text-align:right}#gameTitle .t{font-size:17px;letter-spacing:3px}#gameTitle .u{font-size:8px;letter-spacing:2px}.touch #wayfinder{top:10px;left:10px}.touch #puffBtn{left:12px;bottom:218px}.touch #strainBtn{left:12px;bottom:170px}.touch #gear{right:12px;bottom:12px}.touch #settings{right:12px;bottom:62px}.touch #puffPanel,.touch #strainPanel{left:12px;bottom:268px;max-height:calc(100vh - 286px)}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
 </style>
 </head>
 <body>
@@ -171,7 +172,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r70 district character</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r71 stability &amp; access</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4718,6 +4719,9 @@ const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-pe
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 if('outputEncoding' in renderer)renderer.outputEncoding=THREE.sRGBEncoding;if(THREE.ACESFilmicToneMapping!==undefined)renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 document.getElementById('app').appendChild(renderer.domElement);
+let webglContextLost=false;
+renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();webglContextLost=true;showGameToast('The renderer paused after losing its graphics context. Emberwatch will recover automatically.');});
+renderer.domElement.addEventListener('webglcontextrestored',()=>{location.reload();});
 let RS=CONFIG.renderScale;
 function resize(){ const w=innerWidth,h=innerHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(Math.max(1,Math.floor(w*RS)),Math.max(1,Math.floor(h*RS)),false); }
 addEventListener('resize',resize); resize();
@@ -4739,7 +4743,7 @@ const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
 const WORLD_SEED_VERSION=1;
 // Bump this deliberately when geometry, street plans, or collision placement
 // changes enough that an old coordinate could be unsafe in the new layout.
-const WORLD_LAYOUT_VERSION=3;
+const WORLD_LAYOUT_VERSION=4;
 function normalWorldSeed(value){
   if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
   const text=String(value??'').trim();
@@ -6139,7 +6143,12 @@ LMSG.textContent='sowing the outer wards…'; outerCity();
 LMSG.textContent='breaking the long avenues…'; useWorldStream('avenue-breaks');avenueBreaks();
 LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
-CITY_PLAN.audit=auditCityPlan();
+// The compiler performs an early access pass, but hand-authored infill is
+// assembled afterwards and can obstruct a previously safe doorstep. Resolve
+// once more against the complete world before publishing the authoritative
+// audit. Unresolvable facade-only anchors are removed rather than advertised.
+CITY_PLAN.finalAnchorRepair=repairCityPlanAnchors();
+CITY_PLAN.audit={...auditCityPlan(),...CITY_PLAN.finalAnchorRepair};
 const vanethGeometry=auditVanethGeometry();
 mergeAll();
 
@@ -7816,7 +7825,11 @@ const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let px
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
-window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,setPixel:v=>{RS=v;resize();}};
+function emberDiagnostics(){
+  const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
+  return{revision:'r71',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+}
+window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
@@ -7847,7 +7860,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   // the starfield keeps a constant apparent distance across the larger map.
   auroraUniforms.uTime.value=t;
   skyDome.position.copy(camera.position); starField.position.set(camera.position.x,0,camera.position.z);
-  renderer.render(scene,camera);
+  if(!webglContextLost)renderer.render(scene,camera);
   if(!started){ started=true; L.style.opacity='0'; setTimeout(()=>L.remove(),800); }
 }
 loop();

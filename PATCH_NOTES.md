@@ -1,13 +1,15 @@
-**r70 — district character** · 2026-08-31 · phase 5, world depth
+**r71 — stability access** · 2026-08-31 · phase 5, world depth
+
+In its own panel header: *r71 stability & access*.
 
 ### Summary
 
-district-specific civic courts and outer-quarter landmarks; corrected South Road/Citadel frontage directions; repaired and expanded world audits
+full-world doorstep repair; zero blocked anchors; safer app:// containment; leaner permissions; WebGL context recovery; reduced-motion and diagnostics
 
 ### In the code
 
-- 1.07 MB (+6,605 bytes on r69).
-- 2 functions added: `colliderContains`, `repairCityPlanAnchors`.
+- 1.08 MB (+1,828 bytes on r70).
+- 1 function added: `emberDiagnostics`.
 
 ### Play it
 
