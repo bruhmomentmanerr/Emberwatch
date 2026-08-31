@@ -1,13 +1,15 @@
-**r73 — vaneth chronicle** · 2026-08-31 · phase 5, world depth
+**r74 — streets residents** · 2026-08-31 · phase 5, world depth
+
+In its own panel header: *r74 streets & residents*.
 
 ### Summary
 
-persistent, non-checklist Vaneth Chronicle; wards, interiors and residents remembered; eight reachable world-detail interactions
+coherent world-scale paving, calmer outer-road warp, cleaner street density, rebuilt resident faces and silhouettes, nearby acknowledgement
 
 ### In the code
 
-- 1.09 MB (+8,179 bytes on r72).
-- 7 functions added: `chronicleEntries`, `chronicleRecord`, `loadChronicle`, `renderChronicle`, `saveChronicle`, `toggleChronicle`, `worldInteractionReachable`.
+- 1.09 MB (+1,640 bytes on r73).
+- 2 functions added: `npcMaterial`, `tileFlatUV`.
 
 ### Play it
 
