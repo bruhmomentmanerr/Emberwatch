@@ -1,15 +1,13 @@
-**r72 — lived in vaneth** · 2026-08-31 · phase 5, world depth
-
-In its own panel header: *r72 lived-in Vaneth*.
+**r73 — vaneth chronicle** · 2026-08-31 · phase 5, world depth
 
 ### Summary
 
-district atmosphere, forge smoke and ward arrival prose in two batched particle draw calls
+persistent, non-checklist Vaneth Chronicle; wards, interiors and residents remembered; eight reachable world-detail interactions
 
 ### In the code
 
-- 1.08 MB (+5,846 bytes on r71).
-- 2 functions added: `buildCityAtmosphere`, `updateCityAtmosphere`.
+- 1.09 MB (+8,179 bytes on r72).
+- 7 functions added: `chronicleEntries`, `chronicleRecord`, `loadChronicle`, `renderChronicle`, `saveChronicle`, `toggleChronicle`, `worldInteractionReachable`.
 
 ### Play it
 
