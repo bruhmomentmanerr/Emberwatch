@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r80 citadel &amp; approaches</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r81 keep &amp; hall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5385,7 +5385,13 @@ function citadel(){ const R=49,H=11;
   // Seated further north than before: it now stands at the far end of the
   // courtyard from the gate (proper castle planning) and, practically, leaves
   // room for a plinth without crowding the Great Hall's doorstep.
-  const towerCx=0,towerCz=8,towerRb=10,towerRt=8.5,towerH=39,towerFaces=10;
+  // The keep sat at z=8 with the Great Hall stranded behind it at z=-20, its
+  // door facing the back of the keep across six units of alley — which is why
+  // reaching the hall meant squeezing round the motte. The keep now stands at
+  // the centre of the bailey (proper castle planning) and the Great Hall is
+  // built against its south face as one connected mass, so the whole thing
+  // reads as a single great building with a tower rising out of it.
+  const towerCx=0,towerCz=0,towerRb=10,towerRt=8.5,towerH=39,towerFaces=10;
   // Stepped plinth so the keep grows out of a motte instead of sprouting from
   // flat pavement. Visual only — the collider stays at the shaft radius.
   aCyl(towerRb+2.1,towerRb+3.1,2.2,towerFaces,towerCx,1.1,towerCz,'stone');
@@ -5410,7 +5416,37 @@ function citadel(){ const R=49,H=11;
   for(let y=5;y<35;y+=4){ const faceRadius=towerRb+(towerRt-towerRb)*(y/towerH);
     [0,Math.PI/2,Math.PI,Math.PI*1.5].forEach(angle=>{ const wr=faceRadius+.06; aBox(1,1.2,.16,towerCx+Math.cos(angle)*wr,y,towerCz+Math.sin(angle)*wr,'arcane',angle-Math.PI/2); }); }
   const crown=new THREE.PointLight(0x9d7bff,2.8,52); crown.position.set(towerCx,towerH+1,towerCz); scene.add(crown); lights.push({light:crown,base:2.8,phase:1});
-  interiorHouse('The Great Hall',0,-20,26,18,'royal');
+  // 32 x 22 against the old 26 x 18: this is now the hall of the keep, entered
+  // straight off the processional way from the gatehouse, with the tower behind
+  // it. Its back wall stands a unit clear of the keep's plinth, and the
+  // stonework below stitches the two together so they read as one building.
+  const HALL_CZ=25,HALL_W=32,HALL_D=22,hallBack=HALL_CZ-HALL_D/2;
+  interiorHouse('The Great Hall',0,HALL_CZ,HALL_W,HALL_D,'royal');
+  // Fusing course: a stone skirt along the hall's back, run up to the plinth,
+  // plus corner buttresses in the keep's own material so the hall does not
+  // read as a separate box parked against a tower.
+  aBox(HALL_W+1.6,3.2,2.6,0,1.6,hallBack-.6,'stone');
+  aBox(15,2.2,hallBack-(towerCz+towerRb-2),0,1.1,(towerCz+towerRb-2+hallBack)/2,'stone');
+  for(const sx of[-1,1]){
+    aBox(2.4,8.5,2.4,sx*(HALL_W/2+.4),4.25,hallBack+1.2,'stone');
+    aBox(2.4,8.5,2.4,sx*(HALL_W/2+.4),4.25,HALL_CZ+HALL_D/2-1.2,'stone');
+    aCone(2.1,2.6,4,sx*(HALL_W/2+.4),9.6,hallBack+1.2,'slate',Math.PI/4);
+    aCone(2.1,2.6,4,sx*(HALL_W/2+.4),9.6,HALL_CZ+HALL_D/2-1.2,'slate',Math.PI/4);
+    addBoxCollider(sx*(HALL_W/2+.4),hallBack+1.2,2.4,2.4,0);
+    addBoxCollider(sx*(HALL_W/2+.4),HALL_CZ+HALL_D/2-1.2,2.4,2.4,0);
+  }
+  // The bailey had no paving of its own once the through-roads were cut at the
+  // curtain in r80 — you walked in the gate onto bare ground. A processional
+  // way runs gate to hall door, with a cross lane serving the ranges.
+  roadBetween(0,R-2,0,HALL_CZ+HALL_D/2+1,9,0,true);
+  // Kept clear of the ranges: the pairs at +-31,40 span z 36-44 and the ones
+  // at +-42 span x 38-46, so the lanes stop short of both rather than being
+  // laid straight through a barracks.
+  roadBetween(-24,HALL_CZ+HALL_D/2+5,24,HALL_CZ+HALL_D/2+5,5.5);
+  roadBetween(-24,-30,24,-30,5.5);
+  // x=+-22 and stopping at z=33: the ranges at +-31,40 span x 25-37, so a lane
+  // at 33 ran straight through them, and the hall occupies x +-16.
+  for(const sx of[-1,1]) roadBetween(sx*22,-30,sx*22,33,5);
   // Ranges now back onto the inside of the curtain the way a real bailey is
   // built, instead of standing free in the middle of the courtyard — free
   // blocks scattered on open ground are exactly why this read as "four NPC
@@ -5420,20 +5456,16 @@ function citadel(){ const R=49,H=11;
    [-42,-2,Math.PI/2,'barracks'],[-42,26,Math.PI/2,'barracks'],
    [-31,40,Math.PI,'barracks'],[31,40,Math.PI,'barracks']
   ].forEach(([rx,rz,rry,kind])=>castleRange(rx,rz,12,8,rry,kind));
-  // A forebuilding: castle keeps are entered up an external stair to a raised
-  // door, never at ground level. This gives the tower an approach and a front.
-  const foreZ=towerCz+towerRb+1.2;
-  aBox(7.5,4.6,5.0,towerCx,2.3,foreZ,'stone');
-  aBox(8.1,.5,5.6,towerCx,4.8,foreZ,'slate');
-  for(let s=0;s<5;s++)aBox(6.4-s*.35,.45,1.5,towerCx,.22+s*.45,foreZ+3.4+s*1.3,'stone');
-  aBox(2.2,3.0,.3,towerCx,3.0,foreZ-2.4,'wood');
-  for(const side of[-1,1])aBox(.5,4.4,.5,towerCx+side*3.4,2.2,foreZ-2.2,'stone');
-  addBoxCollider(towerCx,foreZ,7.5,5.0,0);
+  // The forebuilding used to stand here — an external stair block giving the
+  // tower a front. The Great Hall now IS the keep's front, at proper scale, so
+  // the stair would only crowd the join between them.
   // Courtyard fittings: a well and banner poles, so the bailey has business
   // in it rather than being an empty parade ground.
-  aCyl(1.5,1.7,1.2,10,-18,.6,26,'stone'); aCyl(1.2,1.2,.25,10,-18,1.25,26,'dark');
-  for(const s of[-1,1])aBox(.22,3.0,.22,-18+s*1.7,1.5,26,'wood');
-  aBox(4.0,.22,.22,-18,3.1,26,'wood'); addCollider(-18,26,1.7);
+  // Was at -18,26, which the widened hall now occupies. Moved out to the west
+  // side of the bailey, clear of the hall and of the new cross lane.
+  aCyl(1.5,1.7,1.2,10,-28,.6,8,'stone'); aCyl(1.2,1.2,.25,10,-28,1.25,8,'dark');
+  for(const s of[-1,1])aBox(.22,3.0,.22,-28+s*1.7,1.5,8,'wood');
+  aBox(4.0,.22,.22,-28,3.1,8,'wood'); addCollider(-28,8,1.7);
   for(const [bx,bz] of [[-14,-38],[14,-38],[-38,10],[38,10]]){
     aBox(.24,7.0,.24,bx,3.5,bz,'wood'); aBox(1.5,2.4,.08,bx,5.4,bz,'cloth'); addCollider(bx,bz,.35); }
   torch(-7,R+.8,0xffa64d,1.6,17); torch(7,R+.8,0xffa64d,1.6,17);
@@ -5477,15 +5509,20 @@ function updateInteriorDoors(dt){
   }
 }
 function interiorHouse(name,x,z,w,d,kind){ const h=7,front=z+d/2,doorW=3;
+  // The royal hall is built against the foot of the keep, so it takes the
+  // keep's stone rather than the tan house wall — two different materials
+  // meeting at the join read as two buildings parked together, which is
+  // exactly what it is not supposed to be.
+  const WK=kind==='royal'?'stone':'wall';
   // Four wall pieces and a real opening make these walk-in rooms, not a
   // teleport placed inside a solid building.
-  aBox(w,h,.42,x,h/2,z-d/2,'wall'); aBox(.42,h,d,x-w/2,h/2,z); aBox(.42,h,d,x+w/2,h/2,z);
-  aBox((w-doorW)/2,h,.42,x-(w+doorW)/4,h/2,front,'wall'); aBox((w-doorW)/2,h,.42,x+(w+doorW)/4,h/2,front,'wall');
+  aBox(w,h,.42,x,h/2,z-d/2,WK); aBox(.42,h,d,x-w/2,h/2,z,WK); aBox(.42,h,d,x+w/2,h/2,z,WK);
+  aBox((w-doorW)/2,h,.42,x-(w+doorW)/4,h/2,front,WK); aBox((w-doorW)/2,h,.42,x+(w+doorW)/4,h/2,front,WK);
   // The doorway ran the full seven units of wall height, so every interior had
   // a 3-wide hole straight through the front above its door — you could see the
   // roof void and the sky from inside, in all nine rooms. The leaves are 2.35
   // tall, so the wall picks up again just above them.
-  const DOOR_H=2.5; aBox(doorW,h-DOOR_H,.42,x,DOOR_H+(h-DOOR_H)/2,front,'wall');
+  const DOOR_H=2.5; aBox(doorW,h-DOOR_H,.42,x,DOOR_H+(h-DOOR_H)/2,front,WK);
   aBox(w-.6,.08,d-.6,x,.045,z,'cobble'); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark'); aCone(Math.max(w,d)*.74,3.2,4,x,h+1.5,z,'slate',Math.PI/4);
   wallColl(x-w/2,z-d/2,x+w/2,z-d/2,.7); wallColl(x-w/2,z-d/2,x-w/2,z+d/2,.7); wallColl(x+w/2,z-d/2,x+w/2,z+d/2,.7); wallColl(x-w/2,front,x-doorW/2,front,.7); wallColl(x+doorW/2,front,x+w/2,front,.7);
   const signColor=kind==='royal'?'arcane':'amber'; aBox(doorW+.44,.24,.55,x,2.45,front+.03,'wood'); aBox(.22,2.35,.55,x-doorW/2-.08,1.17,front+.03,'wood'); aBox(.22,2.35,.55,x+doorW/2+.08,1.17,front+.03,'wood'); aBox(2.5,.22,.7,x,2.78,front+.08,signColor); aBox(2.2,.14,.72,x,2.95,front+.1,'dark');
@@ -5957,19 +5994,25 @@ function housePorch(x,z,w,d,ry,accent){
   const seed=Math.abs(Math.round(x*11.7+z*5.3));
   const put=(n)=>((seed>>n)&7);
   // Almost every house gets something; a few stay bare so it is not uniform.
+  // Every piece below is placed relative to the house front and tested with
+  // colliderBlocked, which cannot see a carriageway — roads carry no colliders.
+  // So porch clutter landed in the street: the loose crates and barrels sitting
+  // on open paving with nothing around them. The handcart at out=1.5 was the
+  // worst offender, reaching past the kerb into the road proper. Each placement
+  // now checks the road as well.
   if(put(0)<6){ // barrels or a crate stack beside the door
     const [px,pz]=at((put(1)%2?1:-1)*(w*.30+.5),.75);
-    if(!colliderBlocked(px,pz,.9)){
+    if(!colliderBlocked(px,pz,.9)&&!onRoad(px,pz,.6)){
       if(put(2)%2){ for(let i=0;i<1+put(3)%2;i++)aCyl(.34,.38,.86,8,px+i*.8*co,.43,pz-i*.8*si,'wood'); }
       else { aBox(.85,.8,.85,px,.4,pz,'wood',ry); if(put(4)%3===0)aBox(.7,.65,.7,px,1.15,pz,'wood',ry+.3); }
       addCollider(px,pz,.5); } }
   if(put(3)<3){ // firewood stacked along the wall
     const [px,pz]=at(-(w*.34),.55);
-    if(!colliderBlocked(px,pz,.8)){ for(let i=0;i<3;i++)aCyl(.13,.13,1.5,6,px,.16+i*.28,pz,'wood',Math.PI/2);
+    if(!colliderBlocked(px,pz,.8)&&!onRoad(px,pz,.55)){ for(let i=0;i<3;i++)aCyl(.13,.13,1.5,6,px,.16+i*.28,pz,'wood',Math.PI/2);
       addCollider(px,pz,.45); } }
   if(put(4)<2){ // a bench under the window
     const [px,pz]=at(w*.18,.9);
-    if(!colliderBlocked(px,pz,1.0)){ aBox(1.9,.16,.55,px,.5,pz,'wood',ry);
+    if(!colliderBlocked(px,pz,1.0)&&!onRoad(px,pz,.9)){ aBox(1.9,.16,.55,px,.5,pz,'wood',ry);
       for(const s of[-1,1])aBox(.16,.5,.5,px+co*s*.8,.25,pz-si*s*.8,'wood',ry); addCollider(px,pz,.8); } }
   if(put(5)<2){ // hanging trade sign on a bracket
     const [px,pz]=at(w*.34,.15);
@@ -5980,7 +6023,7 @@ function housePorch(x,z,w,d,ry,accent){
     for(const s of[-1,1]){ const [bx,bz]=at(s*w*.24,1.05); aCyl(.07,.08,2.4,5,bx,1.2,bz,'wood'); } }
   if(put(7)<1){ // a handcart parked against the front
     const [px,pz]=at(-(w*.1),1.5);
-    if(!colliderBlocked(px,pz,1.3)){ aBox(1.7,.28,.95,px,.68,pz,'wood',ry);
+    if(!colliderBlocked(px,pz,1.3)&&!onRoad(px,pz,1.1)){ aBox(1.7,.28,.95,px,.68,pz,'wood',ry);
       for(const s of[-1,1])aCyl(.3,.3,.12,8,px+co*s*.62,.32,pz-si*s*.62,'dark',ry+Math.PI/2);
       aCyl(.07,.07,1.3,5,px+si*.9,.9,pz+co*.9,'wood',ry+Math.PI/2); addCollider(px,pz,.95); } }
 }
@@ -8432,7 +8475,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r80',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r81',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions};
 
