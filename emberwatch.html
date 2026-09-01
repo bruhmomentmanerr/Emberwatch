@@ -176,7 +176,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r74 streets &amp; residents</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r75 gate approaches</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4882,6 +4882,11 @@ const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 // deliberately offset between rings so there is no straight run to the centre.
 const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=560, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
 const OUTER_GATE_DEG=[45,135,225,315], MID_GATE_DEG=[0,90,180,270];
+// The gate approaches are wider than a ward street so the hierarchy reads from
+// the gate, and sit fractionally proud of ward paving so the side streets they
+// cross show as junctions rather than z-fighting into them. Recorded as they
+// are paved so the audit can prove each one reaches the ring boulevard.
+const AVENUE=11, AVENUE_LIFT=.03, GATE_AVENUES=[];
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(M,M).rotateX(-Math.PI/2), sm(TX.ground)); ground.receiveShadow=true; scene.add(ground);
 // The paved city floor sits only 0.012 above this plane. Over a 1500-unit map
 // with a 1100 far plane that gap is below depth-buffer precision at range, so
@@ -5010,7 +5015,15 @@ function pond(cx,cz){ const w=new THREE.Mesh(new THREE.CircleGeometry(13,36).rot
 function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
 function forestRing(){ for(let i=0;i<240;i++){ const a=rand(0,6.28),r=rand(CITY_RADIUS+9,M*0.47),x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(2,3.4);
   aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(worldRandom()<0.4) addCollider(x,z,0.5); } }
-function mountains(){ for(let i=0;i<14;i++){ const a=i/14*6.28+0.3,r=M*0.45,x=Math.cos(a)*r,z=Math.sin(a)*r,h=rand(40,78),mr=rand(30,50); const mtn=new THREE.Mesh(new THREE.ConeGeometry(mr,h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn);
+function mountains(){ for(let i=0;i<14;i++){ let a=i/14*6.28+0.3; const r=M*0.45; let x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(40,78),mr=rand(30,50);
+  // The gate tracks now run out through this ring to the wilderness landmarks,
+  // and two of the four ran straight into a cone — the road ended in a
+  // mountainside you could not walk round. Slide the offending peak along the
+  // ring until its pass is clear rather than deleting it: the silhouette is
+  // what makes the horizon, and the ring is what makes the valley read as one.
+  // h and mr are drawn before this so the world seed sequence is unchanged.
+  for(let t=0;t<28&&onRoad(x,z,mr*0.85+5);t++){ a+=(i%2?-0.028:0.028); x=Math.cos(a)*r; z=Math.sin(a)*r; }
+  const mtn=new THREE.Mesh(new THREE.ConeGeometry(mr,h,6),new THREE.MeshStandardMaterial({color:0x0e0b18,flatShading:true,fog:true})); mtn.position.set(x,h/2-6,z); scene.add(mtn);
   // The cone mesh above never had a matching collider, so the mountains were
   // walkable straight through. A slightly reduced radius blocks the solid
   // base without turning the whole silhouette into a flat wall.
@@ -5094,10 +5107,13 @@ function furnishInterior(name,x,z,w,d,kind){
 // being built on top of the paving. Any generator that places buildings near
 // the street network needs this list to keep off it.
 const ROAD_RECTS=[];
-function roadBetween(x1,z1,x2,z2,width=8){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz);
+function roadBetween(x1,z1,x2,z2,width=8,lift=0){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz);
   if(len>0)ROAD_RECTS.push({x1,z1,len,w:width,ux:dx/len,uz:dz/len,
     minX:Math.min(x1,x2)-width,maxX:Math.max(x1,x2)+width,minZ:Math.min(z1,z2)-width,maxZ:Math.max(z1,z2)+width});
-  aBox(width,.12,len,(x1+x2)/2,.06,(z1+z2)/2,'cobble',ry); }
+  // Two coplanar cobble slabs z-fight, so a road that has to cross other
+  // paving asks for a few centimetres of clearance instead of fighting it.
+  // The step is invisible from eye height and makes the crossing read.
+  aBox(width,.12,len,(x1+x2)/2,.06+lift,(z1+z2)/2,'cobble',ry); }
 // Ring roads are drawn as annulus meshes rather than through roadBetween, so
 // they need their own registry or onRoad would report clear ground over the
 // ring boulevard, the citadel lane and the market circle.
@@ -5598,7 +5614,14 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
-function denseForest(){const trees=[];let tries=0;while(trees.length<2100&&tries++<18000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+18,M*.49),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<13||Math.abs(z)<13)continue;if(Math.hypot(x+660,z+400)<34||Math.hypot(x-660,z+386)<34||Math.hypot(x+664,z-400)<35||Math.hypot(x-662,z-392)<31)continue;trees.push([x,z,rand(3.7,8.2),rand(.75,1.35)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
+function denseForest(){const trees=[];let tries=0;while(trees.length<2100&&tries++<26000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+18,M*.49),x=Math.cos(a)*r,z=Math.sin(a)*r;
+  // The tree line began at a fixed radius, so the forest met the fields along
+  // a drawn circle: from the gate it read as a wall someone had placed rather
+  // than as where the trees happen to stop. Two sine terms wander the edge by
+  // about 24 units either way, and rejection sampling thins whatever falls
+  // inside it, so the boundary frays instead of stepping.
+  if(r<OUTER_CITY_R+34+Math.sin(a*3.1)*15+Math.sin(a*7.3+1.7)*9)continue;
+  if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(Math.hypot(x+660,z+400)<34||Math.hypot(x-660,z+386)<34||Math.hypot(x+664,z-400)<35||Math.hypot(x-662,z-392)<31)continue;trees.push([x,z,rand(3.7,8.2),rand(.75,1.35)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
 function outerCity(){useWorldStream('outer-graveyard');graveyard(-660,-400);useWorldStream('outer-ruins');ruins(660,-386);useWorldStream('outer-pond');pond(-664,400);useWorldStream('outer-stones');stones(662,392);useWorldStream('outer-forest');denseForest();useWorldStream('outer-mountains');mountains();}
 const ravens=[];
 function cityLantern(x,z,lit=true){aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');addCollider(x,z,.25);if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
@@ -5611,7 +5634,7 @@ function cityClutter(){
   for(let i=0;i<34;i++){const a=i/34*Math.PI*2,x=Math.cos(a)*23,z=MARKET_Z+Math.sin(a)*23;aBox(rand(.35,.65),rand(.45,1),rand(.35,.65),x,rand(.25,.5),z,'wood',rand(0,.8));addCollider(x,z,.42);if(i%3===0)aCyl(.28,.32,.7,8,x+rand(-.5,.5),.35,z+rand(-.5,.5),'stone');}
   [[-52,105],[52,105],[-150,6],[151,5],[-15,174],[17,174]].forEach((spot,index)=>{aBox(3,.16,.55,spot[0],.78,spot[1],'wood',index%2?Math.PI/2:0);aBox(.16,.75,.16,spot[0]-1.05,.39,spot[1],'wood');aBox(.16,.75,.16,spot[0]+1.05,.39,spot[1],'wood');addCollider(spot[0],spot[1],1.55);});
 }
-function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<OUTER_CITY_R)return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
+function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<OUTER_CITY_R)return false;if(onRoad(x,z,1.5))return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
 function plantLife(){const positions=[];let tries=0;while(positions.length<3200&&tries++<24000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+20,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,h*.5,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
   const bloom=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.075,0),new THREE.MeshBasicMaterial({color:0xd5a1e8,vertexColors:true}),Math.min(260,positions.length)),bloomMatrix=new THREE.Matrix4();for(let i=0;i<Math.min(260,positions.length);i++){const[x,z,h]=positions[(i*13)%positions.length];bloomMatrix.makeTranslation(x,h*.92,z);bloom.setMatrixAt(i,bloomMatrix);bloom.setColorAt(i,new THREE.Color(i%3?0xd5a1e8:0xf1c56c));}bloom.instanceMatrix.needsUpdate=true;if(bloom.instanceColor)bloom.instanceColor.needsUpdate=true;scene.add(bloom);}
 function cityLifeDetails(){
@@ -5659,6 +5682,27 @@ function buildCityAtmosphere(){
 }
 function updateCityAtmosphere(t,dt){if(!cityAtmosphere)return;const motePosition=cityAtmosphere.motes.geometry.attributes.position;cityAtmosphere.particles.forEach((particle,index)=>{const emitter=cityAtmosphere.emitters[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>emitter.max)particle.y=emitter.min;const angle=particle.phase+t*particle.drift*.08;motePosition.setXYZ(index,emitter.x+Math.cos(angle)*particle.radius+Math.sin(t*.21+particle.phase)*.18,particle.y,emitter.z+Math.sin(angle)*particle.radius);});motePosition.needsUpdate=true;
   const smokePosition=cityAtmosphere.haze.geometry.attributes.position;cityAtmosphere.smoke.forEach((particle,index)=>{const source=cityAtmosphere.chimneys[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>14){particle.y=4;particle.radius=.1;}else particle.radius+=dt*.08;const angle=particle.phase+t*particle.drift;smokePosition.setXYZ(index,source[0]+Math.cos(angle)*particle.radius+t*.018,particle.y,source[1]+Math.sin(angle)*particle.radius);});smokePosition.needsUpdate=true;}
+// r74 shipped four dead gate approaches and no audit noticed, because every
+// existing check tests things against paving that exists — anchors, lots,
+// colliders. None of them can see paving that is missing. This walks each
+// avenue from the ring boulevard out past the wall and fails on the gap.
+let GATE_APPROACH_AUDIT=null;
+function auditGateApproaches(force){
+  if(GATE_APPROACH_AUDIT&&!force)return GATE_APPROACH_AUDIT;
+  const results=GATE_AVENUES.map(av=>{
+    const a=av.deg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+    let paved=0,total=0,longest=0,gap=0;
+    for(let r=av.r0;r<=OUTER_CITY_R+20;r+=2){ total++;
+      if(onRoad(ca*r,sa*r)){paved++;gap=0;} else {gap+=2;if(gap>longest)longest=gap;} }
+    return {deg:av.deg,paved:total?+(paved/total).toFixed(3):0,longestGap:longest};
+  });
+  const broken=results.filter(r=>r.paved<.97||r.longestGap>6);
+  if(broken.length)console.warn('Vaneth gate approaches unpaved: '+JSON.stringify(broken));
+  GATE_APPROACH_AUDIT={approaches:results.length,broken:broken.length,
+    worstPaved:results.length?Math.min.apply(null,results.map(r=>r.paved)):0,
+    longestGap:results.length?Math.max.apply(null,results.map(r=>r.longestGap)):0};
+  return GATE_APPROACH_AUDIT;
+}
 function auditVanethGeometry(){
   const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0);
   const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ));
@@ -5667,8 +5711,9 @@ function auditVanethGeometry(){
   const northGateClear=gateSpine.every(([x,z])=>!colliderBlocked(x,z));
   const doorsClear=interiorDoors.every(d=>!colliderBlocked(d.outsideX,d.outsideZ)&&!colliderBlocked(d.insideX,d.insideZ));
   const blockedAnchors=CITY_PLAN.anchors.filter(anchor=>colliderBlocked(anchor.x,anchor.z,.3));
-  const report={finiteCollider,finiteDoor,indexedCollider,northGateClear,doorsClear,doors:interiorDoors.length,colliders:colliders.length,cells:colliderGrid.size,districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,anchors:CITY_PLAN.anchors.length,blockedAnchors:blockedAnchors.length};
-  if(!finiteCollider||!finiteDoor||!indexedCollider||!northGateClear||!doorsClear||interiorDoors.length<9||blockedAnchors.length)console.warn('Vaneth geometry audit: '+JSON.stringify(report));
+  const gateApproaches=auditGateApproaches(true);
+  const report={finiteCollider,finiteDoor,indexedCollider,northGateClear,doorsClear,doors:interiorDoors.length,colliders:colliders.length,cells:colliderGrid.size,districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,anchors:CITY_PLAN.anchors.length,blockedAnchors:blockedAnchors.length,gateApproaches};
+  if(!finiteCollider||!finiteDoor||!indexedCollider||!northGateClear||!doorsClear||interiorDoors.length<9||blockedAnchors.length||gateApproaches.broken)console.warn('Vaneth geometry audit: '+JSON.stringify(report));
   return report;
 }
 
@@ -5892,7 +5937,54 @@ function outerWards(){
   // the carriageway. Every road now goes down before anything is built on it.
   ringRoad(MID_WALL_R+20,7);
   MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
-  OUTER_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(OUTER_CITY_R-34),Math.sin(a)*(OUTER_CITY_R-34),Math.cos(a)*(OUTER_CITY_R+26),Math.sin(a)*(OUTER_CITY_R+26),11);});
+  // r74 paved each outer gate for 60 units and stopped. Pass 2 draws streets
+  // from surviving blocks and clearOfGates deletes the blocks along the
+  // approach, so deleting them deleted the street with them — measured on r74
+  // the four gate bearings were 18-21% paved between the outer wall and the
+  // ring boulevard, against 77-89% on the mid-gate bearings. You walked in
+  // through the gate you spawn at and the road ran out under your feet. Each
+  // approach is now one avenue from the boulevard to open ground beyond the
+  // wall, laid before pass 3 so the terraces keep off it.
+  GATE_AVENUES.length=0;
+  OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+    const r0=MID_WALL_R+14, r1=OUTER_CITY_R+26;
+    roadBetween(ca*r0,sa*r0,ca*r1,sa*r1,AVENUE,AVENUE_LIFT);
+    GATE_AVENUES.push({deg:g,r0,r1});
+    // A 34-unit gate corridor with an 11-unit road down it is still a field
+    // with a stripe on it. Lamp posts down both verges give the avenue edges
+    // and turn it into something you can follow from the gate. The heads use
+    // the emissive amber material, so an unlit post still reads as a light at
+    // distance; only the pair standing inside the gate carries a PointLight,
+    // because 96 more of those would cost more than the whole ward.
+    for(let r=r0+13;r<r1-9;r+=27){ const off=AVENUE*.5+2.0;
+      for(const side of[-1,1]){ const px=ca*r-sa*side*off, pz=sa*r+ca*side*off;
+        if(colliderBlocked(px,pz,.9)||onRoad(px,pz,.4))continue;
+        cityLantern(px,pz,Math.abs(r-(OUTER_CITY_R-18))<15); } } });
+
+  // The avenue stopped 26 units past the wall, in a field. With the forest now
+  // held off the paving that stop became a clean rectangle of nothing, which
+  // is worse than the ragged version — a road only reads as a road if it is
+  // going somewhere. Every wilderness landmark already sits roughly off one
+  // gate bearing, so each avenue now leaves as a country track that narrows as
+  // it goes, 9.5 at the wall down to 4.4, and bends to the landmark on its
+  // bearing. denseForest and plantLife both test onRoad and both run after
+  // outerWards, so the trees part for the track without being told to.
+  const GATE_DESTINATIONS=[[662,392],[-664,400],[-660,-400],[660,-386]];  // stones, pond, graveyard, ruins
+  OUTER_GATE_DEG.forEach((g,gi)=>{ const a=g*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
+    const sx=ca*(OUTER_CITY_R+26), sz=sa*(OUTER_CITY_R+26);              // where the avenue ends
+    const bx=ca*(OUTER_CITY_R+96), bz=sa*(OUTER_CITY_R+96);              // leave the gate straight first
+    const dest=GATE_DESTINATIONS[gi], dr=Math.hypot(dest[0],dest[1]);
+    const ex=dest[0]/dr*(dr-36), ez=dest[1]/dr*(dr-36);                  // stop short of the landmark
+    const N=7; let px=sx, pz=sz;
+    for(let k=1;k<=N;k++){ const t=k/N, u=1-t;
+      const qx=u*u*sx+2*u*t*bx+t*t*ex, qz=u*u*sz+2*u*t*bz+t*t*ez;
+      const w=9.5+(4.4-9.5)*(t-1/N)/(1-1/N);
+      // Butted rectangles of differing width leave a notch on the outside of
+      // every bend, the same failure pass 2 fixes at its junctions. Same cure.
+      aCyl(w*.62,w*.62,.16,10,px,.07+AVENUE_LIFT,pz,'cobble');
+      roadBetween(px,pz,qx,qz,w,AVENUE_LIFT);
+      px=qx; pz=qz; }
+    aCyl(3.6,3.6,.16,10,px,.07+AVENUE_LIFT,pz,'cobble'); });                // arrival, not a cut end
 
   // ---- pass 3: block contents --------------------------------------------
   let built=0,squares=0,landmarks=0,yards=0;
@@ -5981,6 +6073,10 @@ function blockYard(cx,cz,block,rnd){
   for(let s=0;s<7;s++){
     const a=rnd(s)*Math.PI*2, rad=R*(.30+rnd(s+40)*.62);
     const px=cx+Math.cos(a)*rad, pz=cz+Math.sin(a)*rad, pick=rnd(s+80);
+    // A block is 58 across and only its centroid is held off the gate axis, so
+    // the far side of a block beside an avenue reaches the carriageway. Yard
+    // clutter is placed on colliders alone and would otherwise stand in it.
+    if(onRoad(px,pz,1.6))continue;
     if(pick<.34){                                    // an outbuilding / shed
       const w=3.0+rnd(s+120)*2.2, d=2.6+rnd(s+160)*1.8, ry=rnd(s+200)*Math.PI*2;
       if(colliderBlocked(px,pz,Math.max(w,d)*.62))continue;
@@ -7920,7 +8016,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r74',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r75',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
 

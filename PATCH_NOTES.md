@@ -1,15 +1,13 @@
-**r74 — streets residents** · 2026-08-31 · phase 5, world depth
-
-In its own panel header: *r74 streets & residents*.
+**r75 — gate approaches** · 2026-09-01 · phase 5, world depth
 
 ### Summary
 
-coherent world-scale paving, calmer outer-road warp, cleaner street density, rebuilt resident faces and silhouettes, nearby acknowledgement
+the four outer-gate approaches paved end to end as lamplit avenues; country tracks on out to the wilderness landmarks through carved mountain passes; frayed forest edge; road-absence audit
 
 ### In the code
 
-- 1.09 MB (+1,640 bytes on r73).
-- 2 functions added: `npcMaterial`, `tileFlatUV`.
+- 1.10 MB (+6,487 bytes on r74).
+- 1 function added: `auditGateApproaches`.
 
 ### Play it
 
