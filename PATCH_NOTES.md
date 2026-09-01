@@ -1,13 +1,13 @@
-**r75 — gate approaches** · 2026-09-01 · phase 5, world depth
+**r76 — device probe** · 2026-09-01 · phase 5, world depth
 
 ### Summary
 
-the four outer-gate approaches paved end to end as lamplit avenues; country tracks on out to the wilderness landmarks through carved mountain passes; frayed forest edge; road-absence audit
+wired the Electron Bluetooth chooser — the renderer had never answered select-bluetooth-device, so requestDevice() never settled and Connect hung in the desktop app; read-only BLE device probe; chooser handshake now covered by the smoke test
 
 ### In the code
 
-- 1.10 MB (+6,487 bytes on r74).
-- 1 function added: `auditGateApproaches`.
+- 1.11 MB (+12,107 bytes on r75).
+- 4 functions added: `close`, `dismiss`, `probe`, `show`.
 
 ### Play it
 

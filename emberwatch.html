@@ -70,6 +70,17 @@
   .ppreset b{font-size:12px;color:#eef8ff}.ppreset:hover{background:rgba(96,173,225,.22);transform:translateY(-1px)}.ppreset.active{border-color:rgba(255,175,99,.75);background:rgba(225,102,55,.21);box-shadow:0 0 12px rgba(255,114,61,.12)}.ppreset.active b{color:#ffe3c9}
   #puffAdv{font-size:10px;color:#a8c2d7;border-top:1px solid rgba(147,204,245,.12);padding-top:8px}#puffAdv summary{cursor:pointer;opacity:.78;padding:2px;letter-spacing:.2px}
   .pnote{font-size:10px;color:#adc5d8;opacity:.82;line-height:1.48;padding:1px 2px}
+  #probeUuids,#probeOut{width:100%;box-sizing:border-box;border:1px solid rgba(145,212,255,.36);border-radius:8px;background:rgba(5,12,21,.8);color:#d8eeff;font:11px ui-monospace,Consolas,monospace;padding:8px;resize:vertical;margin-top:6px}
+  #probeUuids{min-height:52px}#probeOut{min-height:190px;display:none}
+  #btChooser{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(4,6,11,.72)}
+  #btChooser.open{display:flex}
+  .btc-box{width:min(360px,calc(100vw - 32px));max-height:70vh;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid rgba(130,206,255,.34);border-radius:14px;background:linear-gradient(155deg,rgba(15,18,31,.98),rgba(9,7,15,.99));box-shadow:0 22px 60px rgba(0,0,0,.66)}
+  .btc-head{font-size:12px;font-weight:700;letter-spacing:.6px;color:#e7f6ff}
+  .btc-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:58px}
+  .btc-item{cursor:pointer;text-align:left;border:1px solid rgba(125,199,255,.3);background:rgba(30,48,70,.35);color:#e7f6ff;border-radius:9px;padding:9px 10px;font-size:12px}
+  .btc-item:hover{background:rgba(52,86,124,.5)}
+  .btc-item small{display:block;opacity:.6;font:10px ui-monospace,Consolas,monospace;margin-top:2px;word-break:break-all}
+  .btc-empty{font-size:11px;color:#adc5d8;opacity:.8;padding:8px 2px}
   #interactHint{position:fixed;left:50%;bottom:62px;z-index:15;transform:translateX(-50%);display:none;padding:8px 12px;border:1px solid rgba(255,200,145,.42);border-radius:10px;background:rgba(25,14,25,.82);backdrop-filter:blur(8px);color:#ffe6c9;font-size:11px;letter-spacing:.45px;pointer-events:none;box-shadow:0 6px 22px rgba(0,0,0,.35)}
   #interactHint kbd{font:10px 'Trebuchet MS';border:1px solid rgba(255,224,190,.4);border-radius:4px;padding:2px 5px;margin-right:5px}#gameToast{position:fixed;top:68px;left:50%;z-index:24;transform:translate(-50%,-8px);opacity:0;pointer-events:none;max-width:min(430px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(190,152,255,.38);border-radius:11px;background:rgba(22,14,38,.91);color:#eee5ff;font-size:12px;text-align:center;letter-spacing:.35px;transition:.22s}#gameToast.show{transform:translate(-50%,0);opacity:1}#dialoguePanel{position:fixed;left:50%;top:50%;z-index:31;display:none;width:min(440px,calc(100vw - 28px));max-height:min(570px,calc(100vh - 36px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(200,157,255,.48);border-radius:15px;background:radial-gradient(circle at 100% 0,rgba(154,107,214,.16),transparent 42%),linear-gradient(145deg,rgba(26,16,42,.98),rgba(11,8,21,.99));box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.08);color:#f3eaff}#dialoguePanel.open{display:block}#dialogueHead{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(25,15,43,.96);border-bottom:1px solid rgba(208,168,255,.18)}#dialogueHead .rune{color:#d8b9ff;font-size:14px}#dialogueHead .who{flex:1;min-width:0}#dialogueName{display:block;color:#fbf3ff;font-size:14px;letter-spacing:.55px}#dialoguePlace{display:block;margin-top:2px;color:#c6b6d9;font-size:10px;letter-spacing:.5px;text-transform:uppercase}#dialogueClose{border:1px solid rgba(202,164,255,.4);border-radius:8px;background:rgba(91,56,136,.22);color:#f2e6ff;padding:4px 8px;font-size:13px;cursor:pointer}#dialogueBody{padding:18px 16px 16px}#dialogueTopic{color:#d0b7ef;font-size:10px;letter-spacing:1.2px;text-transform:uppercase}#dialogueLines{margin:10px 0 16px;padding:13px 14px;border-left:2px solid rgba(197,151,255,.62);border-radius:0 9px 9px 0;background:rgba(255,255,255,.045);color:#f0e8fa;font-size:13px;line-height:1.56;white-space:pre-line}#dialogueLines em{color:#cfb5e7;font-style:normal}#dialogueChoices{display:grid;grid-template-columns:1fr;gap:7px}#dialogueChoices button{border:1px solid rgba(204,165,255,.3);border-radius:9px;background:rgba(117,73,165,.14);color:#f1e9fb;padding:10px 11px;text-align:left;font:11px 'Trebuchet MS',sans-serif;cursor:pointer;transition:.15s}#dialogueChoices button:hover,#dialogueChoices button:focus{border-color:rgba(219,186,255,.76);background:rgba(134,83,187,.3);outline:0}#dialogueChoices button.leave{color:#d3c4df;background:rgba(255,255,255,.04)}
   #puffFrame{flex:1;border:0;width:100%;background:#000}
@@ -176,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r75 gate approaches</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r76 device probe</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -221,7 +232,24 @@
       <div class="pnote">No UUID is needed. Emberwatch checks the known Peak Pro control services automatically after you select your device.</div>
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button></div>
     </details>
+    <details id="puffProbe"><summary>device probe</summary>
+      <div class="pnote">Surveys any Bluetooth device: every service, every characteristic, its properties, and the current value of anything readable. It only reads — nothing is written to the device.</div>
+      <div class="puff-section">Extra service UUIDs</div>
+      <textarea id="probeUuids" spellcheck="false" placeholder="one per line — full uuid, or 4-digit shorthand like 180a" aria-label="Extra BLE service UUIDs to request"></textarea>
+      <div class="pnote">Web Bluetooth hides any service that was not named before the chooser opened, so an unknown device shows nothing until its UUIDs are listed here. Read them off <b>chrome://bluetooth-internals</b> → Devices → Inspect. Saved between sessions.</div>
+      <div class="prow" style="margin-top:8px"><button class="pbtn" id="probeRun">🔍 Probe a device</button><button class="pbtn" id="probeCopy" style="flex:none">📋 Copy</button></div>
+      <div id="probeStatus" class="pnote"></div>
+      <textarea id="probeOut" readonly spellcheck="false" aria-label="Device probe report"></textarea>
+    </details>
     <div id="puffNote2" class="pnote"></div>
+  </div>
+</div>
+
+<div id="btChooser" role="dialog" aria-modal="true" aria-label="Select a Bluetooth device" aria-hidden="true">
+  <div class="btc-box">
+    <div class="btc-head">Select a Bluetooth device</div>
+    <div id="btcList" class="btc-list"><div class="btc-empty">scanning…</div></div>
+    <div class="prow"><button class="pbtn" id="btcCancel">Cancel</button></div>
   </div>
 </div>
 
@@ -7722,7 +7750,9 @@ const PUFF=(function(){
   function setStat(t){ stat.textContent=t; }
   function setNote(t){ note.textContent=t||''; }
   function renderLink(now=Date.now()){const link=$('pLink');if(!PUFF.connected){link.textContent='offline';return;}if(deviceBusy){link.textContent='applying…';return;}if(!lastTelemetryAt){link.textContent='awaiting reply';return;}const age=Math.max(0,Math.round((now-lastTelemetryAt)/1000));link.textContent=age<5?'live · '+age+'s ago':'quiet · '+age+'s ago';}
-  const writableControls=()=>[...puffPanel.querySelectorAll('.pbtn,.ppreset')].filter(button=>button.id!=='pDisc');
+  // The probe talks to its own device on its own connection, so a Peak action
+  // in flight must not disable it — that is exactly when you want to look.
+  const writableControls=()=>[...puffPanel.querySelectorAll('.pbtn,.ppreset')].filter(button=>button.id!=='pDisc'&&!/^probe/.test(button.id));
   function setDeviceBusy(active,label=''){deviceBusy=active;writableControls().forEach(button=>button.disabled=active);syncCycleControls();renderLink();if(active&&label)setStat(label);}
   const ACTION_CANCELLED=Symbol('Peak Pro action cancelled');
   async function deviceAction(label,work){if(deviceBusy)return ACTION_CANCELLED;const epoch=++deviceActionEpoch;backgroundTelemetryGeneration++;if(poll){clearTimeout(poll);poll=null;}setDeviceBusy(true,label);try{return await work(()=>epoch===deviceActionEpoch);}catch(error){if(epoch!==deviceActionEpoch)return ACTION_CANCELLED;throw error;}finally{if(epoch===deviceActionEpoch){setDeviceBusy(false);if(PUFF.connected){await refresh();scheduleRefresh(300);}}}}
@@ -7971,6 +8001,152 @@ const PUFF=(function(){
   document.addEventListener('visibilitychange',()=>{if(!PUFF.connected)return;if(document.visibilityState==='hidden'){if(poll){clearTimeout(poll);poll=null;}}else scheduleRefresh(0);});
 })();
 
+// ---- Electron Bluetooth device chooser -----------------------------------
+// preload.js exposes the bridge and main.js calls preventDefault() on
+// select-bluetooth-device, which suppresses Chromium's own picker and hands the
+// renderer the callback to answer with. Nothing ever answered it, so
+// requestDevice() never settled and Connect hung forever with no error — the
+// exact failure the comment in main.js warns about, and it would have hit any
+// device, Peak Pro included. In a plain browser there is no bridge and the
+// native chooser does this, so the whole block only installs under Electron.
+(function(){
+  // Recorded either way so the smoke test can tell "a browser, Chromium owns
+  // the picker" apart from "Electron, and nobody is answering the callback" —
+  // the second was indistinguishable from a dead Connect button for 70+ builds.
+  // On its own global rather than on EMBER, which is not assigned this early.
+  const bridge=globalThis.emberBluetooth;
+  const mark=v=>{ globalThis.emberBluetoothChooser=v; if(globalThis.EMBER)globalThis.EMBER.bluetoothChooser=v; };
+  if(!bridge){ mark('native'); return; }
+  mark('installed');
+  const overlay=document.getElementById('btChooser'), list=document.getElementById('btcList');
+  let open=false, dismissedAt=-1e9;
+  function close(){ open=false; overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); list.innerHTML=''; }
+  function dismiss(){ dismissedAt=performance.now(); close(); }
+  function show(){ if(open)return; open=true; overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); document.exitPointerLock?.(); }
+  bridge.onDevices(devices=>{
+    // A discovery update already in flight when the request was answered would
+    // otherwise re-open the chooser over a promise that has already settled.
+    // Opening one is always a deliberate click, so nothing real can arrive in
+    // the moment after a dismissal.
+    if(performance.now()-dismissedAt<1500)return;
+    show();
+    // Electron re-fires this as discovery continues and each call carries the
+    // whole list, not a delta, so the list is rebuilt rather than appended to.
+    list.innerHTML='';
+    if(!devices||!devices.length){ const empty=document.createElement('div'); empty.className='btc-empty'; empty.textContent='scanning… make sure the device is awake and advertising'; list.append(empty); return; }
+    for(const entry of devices){
+      const item=document.createElement('button'); item.type='button'; item.className='btc-item';
+      item.textContent=entry.deviceName||'unnamed device';
+      const id=document.createElement('small'); id.textContent=entry.deviceId; item.append(id);
+      item.addEventListener('click',()=>{ dismiss(); bridge.select(entry.deviceId); });
+      list.append(item);
+    }
+  });
+  document.getElementById('btcCancel').addEventListener('click',()=>{ dismiss(); bridge.cancel(); });
+  addEventListener('keydown',event=>{ if(open&&event.key==='Escape'){ dismiss(); bridge.cancel(); } });
+})();
+
+// ---- BLE device probe ----------------------------------------------------
+// A read-only survey of whatever a device exposes. It exists because the panel
+// only knows the Peak Pro, and the only way to find out whether some other
+// device can be driven at all is to look at what it advertises: which services
+// are there, which characteristics are writable, and whether anything answers.
+(function(){
+  const uuidBox=document.getElementById('probeUuids'); if(!uuidBox)return;
+  const out=document.getElementById('probeOut'), status=document.getElementById('probeStatus'),
+        runBtn=document.getElementById('probeRun'), copyBtn=document.getElementById('probeCopy');
+  // The services the panel already knows, so a Peak Pro probes usefully with an
+  // empty box, plus the two standard ones every device tends to carry and the
+  // Nordic DFU service, which is common on hardware in this class — and worth
+  // recognising, because a device that exposes only DFU can be reflashed but
+  // not controlled.
+  const KNOWN=['e276967f-ea8a-478a-a92e-d78f5dd15dd5','06caf9c0-74d3-454f-9be9-e30cd999c17a',
+    'f9a98c15-c651-4f34-b656-d100bf580000','device_information','battery_service',
+    '0000fe59-0000-1000-8000-00805f9b34fb'];
+  const STORE='emberwatch.probe.uuids';
+  try{ uuidBox.value=localStorage.getItem(STORE)||''; }catch{}
+  uuidBox.addEventListener('change',()=>{ try{ localStorage.setItem(STORE,uuidBox.value); }catch{} });
+  // Chromium accepts the 16-bit shorthand only as a number, not as "180a", so
+  // expand it into the full base UUID rather than making you type all of it.
+  const full=v=>/^[0-9a-f]{4}$/i.test(v)?'0000'+v.toLowerCase()+'-0000-1000-8000-00805f9b34fb':v.toLowerCase();
+  const extraUuids=()=>uuidBox.value.split(/[\s,;]+/).map(v=>v.trim()).filter(Boolean).map(full);
+  const hex=b=>[...b].map(v=>v.toString(16).padStart(2,'0')).join(' ');
+  const ascii=b=>[...b].map(v=>v>=32&&v<127?String.fromCharCode(v):'.').join('');
+  const PROPS=[['read','read'],['write','write'],['writeWithoutResponse','writeNR'],['notify','notify'],
+    ['indicate','indicate'],['authenticatedSignedWrites','signedWrite'],['broadcast','broadcast']];
+  const props=ch=>PROPS.filter(p=>ch.properties&&ch.properties[p[0]]).map(p=>p[1]).join(', ')||'none';
+
+  async function probe(){
+    const lines=[]; const say=t=>{ lines.push(t); out.value=lines.join('\n'); out.scrollTop=out.scrollHeight; };
+    let device=null, shown=false;
+    try{
+      const optionalServices=[...new Set([...KNOWN,...extraUuids()])];
+      status.textContent='opening the device chooser…';
+      device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices});
+      out.style.display='block'; shown=true;
+      say('Emberwatch BLE probe — '+new Date().toISOString());
+      say('name      : '+(device.name||'(none advertised)'));
+      say('id        : '+device.id);
+      say('requested : '+optionalServices.length+' service uuid(s)');
+      say('');
+      status.textContent='connecting…';
+      const server=await device.gatt.connect();
+      let services=[];
+      try{ services=await server.getPrimaryServices(); }
+      catch(error){ say('getPrimaryServices failed: '+error.message); }
+      if(!services.length){
+        say('No services came back.');
+        say('');
+        say('Either the device exposes nothing, or — far more likely — none of');
+        say('its service UUIDs were in the requested list. Web Bluetooth hides');
+        say('every service you did not name up front. Read the real UUIDs off');
+        say('chrome://bluetooth-internals -> Devices -> Inspect, paste them into');
+        say('the box above, and probe again.');
+      }
+      for(const service of services){
+        say('SERVICE '+service.uuid);
+        let chars=[];
+        try{ chars=await service.getCharacteristics(); }
+        catch(error){ say('  (characteristics unavailable: '+error.message+')'); say(''); continue; }
+        for(const ch of chars){
+          say('  CHAR '+ch.uuid);
+          say('    props: '+props(ch));
+          if(ch.properties&&ch.properties.read){
+            try{
+              const view=await ch.readValue(), bytes=new Uint8Array(view.buffer.slice(0));
+              say('    value: '+(bytes.length?hex(bytes)+'   "'+ascii(bytes)+'"':'(empty)'));
+              const d=new DataView(bytes.buffer);
+              if(bytes.length===1)say('    u8:    '+bytes[0]);
+              if(bytes.length===2)say('    u16le: '+d.getUint16(0,true));
+              if(bytes.length===4)say('    u32le: '+d.getUint32(0,true)+'    f32le: '+d.getFloat32(0,true));
+            }catch(error){ say('    value: unreadable ('+error.message+')'); }
+          }
+          try{ for(const desc of await ch.getDescriptors()) say('    desc:  '+desc.uuid); }catch{}
+        }
+        say('');
+      }
+      status.textContent=services.length?('done — '+services.length+' service(s) found. Copy the report.'):'done — nothing visible. See the note in the report.';
+    }catch(error){
+      const message=String((error&&error.message)||error);
+      status.textContent=/cancel|chooser|User denied|No device selected/i.test(message)?'cancelled.':'probe failed: '+message;
+      if(shown)say('\nPROBE ENDED: '+message);
+    }finally{
+      try{ if(device&&device.gatt&&device.gatt.connected)device.gatt.disconnect(); }catch{}
+      runBtn.disabled=false;
+    }
+  }
+
+  runBtn.addEventListener('click',()=>{
+    if(!navigator.bluetooth){ status.textContent='No Web Bluetooth here. Use the Electron app, or serve the file over http://localhost in Chrome or Edge.'; return; }
+    runBtn.disabled=true; out.value=''; probe();
+  });
+  copyBtn.addEventListener('click',async()=>{
+    if(!out.value){ status.textContent='Nothing to copy yet.'; return; }
+    try{ await navigator.clipboard.writeText(out.value); status.textContent='report copied.'; }
+    catch{ out.style.display='block'; out.focus(); out.select(); status.textContent='Clipboard blocked — the report is selected, press Ctrl+C.'; }
+  });
+})();
+
 let loadedModel=null,loadedModelURL=null;
 function disposeModel(model){ model?.traverse(o=>{ if(!o.isMesh)return; o.geometry?.dispose?.(); const materials=Array.isArray(o.material)?o.material:[o.material]; materials.forEach(m=>{ if(!m)return; Object.values(m).forEach(v=>{ if(v&&v.isTexture)v.dispose?.(); }); m.dispose?.(); }); }); }
 function releaseBlobURL(url){ if(url&&url.startsWith('blob:')) URL.revokeObjectURL(url); }
@@ -8016,7 +8192,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r75',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r76',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
 
