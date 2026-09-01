@@ -1,15 +1,13 @@
-**r77 — streets wood residents** · 2026-09-01 · phase 5, world depth
-
-In its own panel header: *r77 streets, wood & residents*.
+**r78 — road edges** · 2026-09-01 · phase 5, world depth
 
 ### Summary
 
-ward streets get kerbs so a carriageway has an edge; forest edge becomes a density gradient instead of one evenly spaced row; ward residents moved off four invisible concentric rings onto the actual street network and raised 96 -> 150; probe learns the Dr. Dabber UUIDs
+kerbs stop at junctions instead of crossing through them; wall colliders flagged so the new road obstruction audit stops counting the city's own gates as obstructions; props nudged to the verge
 
 ### In the code
 
-- 1.11 MB (+3,603 bytes on r76).
-- 1 function added: `forestEdgeAt`.
+- 1.12 MB (+5,202 bytes on r77).
+- 4 functions added: `auditRoadObstructions`, `emitKerbs`, `offRoad`, `onOtherRoad`.
 
 ### Play it
 

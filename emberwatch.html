@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r77 streets, wood &amp; residents</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r78 road edges</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4901,7 +4901,10 @@ function colliderContains(collider,x,z,extra=CONFIG.playerRadius){if(collider.op
   return dx*dx+dz*dz<(collider.r+extra)*(collider.r+extra);
 }
 function colliderBlocked(x,z,extra=CONFIG.playerRadius){return collidersNearPoint(x,z).some(collider=>colliderContains(collider,x,z,extra));}
-function wallColl(x1,z1,x2,z2,r){ const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/(r*1.4))); for(let i=0;i<=n;i++) addCollider(x1+(x2-x1)*i/n, z1+(z2-z1)*i/n, r); }
+function wallColl(x1,z1,x2,z2,r){ const n=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/(r*1.4)));
+  // Walls cross roads on purpose — a gate is exactly that. Flagged so the road
+  // obstruction audit does not count the city's own walls as obstructions.
+  for(let i=0;i<=n;i++) addCollider(x1+(x2-x1)*i/n, z1+(z2-z1)*i/n, r).wall=true; }
 
 // ---------- ground ----------
 const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
@@ -5145,14 +5148,56 @@ function roadBetween(x1,z1,x2,z2,width=8,lift=0,kerb=false){ const dx=x2-x1,dz=z
   // A street reads as a street because of its edges. Measured in a ward: 36% of
   // the ground is carriageway and 45% is the bare city floor — so there IS
   // not-street beside the street, but both are cobble textures differing only
-  // in brightness, and at night neither edge exists. A raised kerb in the pale
-  // stone material draws that line for twelve triangles a side, batched with
-  // everything else. Off by default: the inner city has 2.35-wide lanes where a
-  // kerb would be wider than the road. Held short of each end so it does not
-  // fight the junction discs.
-  if(kerb&&width>=4&&len>12){ const px=Math.cos(ry),pz=-Math.sin(ry),off=width*.5+.35,klen=len-width*.9;
-    if(klen>4)for(const side of[-1,1])
-      aBox(.7,.3,klen,(x1+x2)/2+px*side*off,.15+lift,(z1+z2)/2+pz*side*off,'stone',ry); } }
+  // in brightness, and at night neither edge exists. A kerb draws that line.
+  //
+  // It cannot be drawn here though. r77 did, simply shortened at both ends, and
+  // that is wrong wherever streets meet at anything other than a clean cross:
+  // both sets run straight on through the junction and lie over each other and
+  // over the road, which reads as planks dropped on the paving rather than an
+  // edge to it. Queue it and emit after every road is registered, so each
+  // stretch can be tested against the carriageways it would otherwise cross.
+  if(kerb&&width>=4&&len>12)KERB_QUEUE.push({x1,z1,x2,z2,w:width,lift,road:ROAD_RECTS.length-1}); }
+const KERB_QUEUE=[];
+// onRoad, but ignoring one segment — a kerb must not be cancelled by the very
+// road it belongs to.
+function onOtherRoad(x,z,skip,pad){
+  for(let i=0;i<ROAD_RECTS.length;i++){ if(i===skip)continue; const r=ROAD_RECTS[i];
+    if(x<r.minX-pad||x>r.maxX+pad||z<r.minZ-pad||z>r.maxZ+pad)continue;
+    let t=(x-r.x1)*r.ux+(z-r.z1)*r.uz; t=t<0?0:(t>r.len?r.len:t);
+    const dx=x-(r.x1+r.ux*t), dz=z-(r.z1+r.uz*t);
+    if(dx*dx+dz*dz<(r.w*.5+pad)*(r.w*.5+pad))return true; }
+  const rad=Math.hypot(x,z);
+  for(let i=0;i<ROAD_RINGS.length;i++){ const g=ROAD_RINGS[i];
+    if(Math.abs(rad-g.r)<g.w*.5+pad)return true; }
+  return false;
+}
+// Walk each queued kerb and lay only the stretches that clear every other
+// carriageway, so a kerb stops at a junction the way a real one does. Also
+// lower than r77's: 0.2 high against a 0.12 road, standing 0.08 proud rather
+// than 0.18, which is the difference between an edge and a kerbstone on view.
+function emitKerbs(){
+  const STEP=1.1, HALF=.28, H=.2, MIN=2.6;
+  for(const k of KERB_QUEUE){
+    const dx=k.x2-k.x1, dz=k.z2-k.z1, len=Math.hypot(dx,dz); if(len<1)continue;
+    const ux=dx/len, uz=dz/len, nx=uz, nz=-ux, ry=Math.atan2(dx,dz), off=k.w*.5+HALF+.05;
+    for(const side of[-1,1]){
+      let runStart=null;
+      for(let t=0;t<=len+STEP*.5;t+=STEP){
+        const at=Math.min(t,len);
+        const x=k.x1+ux*at+nx*side*off, z=k.z1+uz*at+nz*side*off;
+        const clear=at<len&&!onOtherRoad(x,z,k.road,.5);
+        if(clear){ if(runStart===null)runStart=at; continue; }
+        if(runStart!==null){
+          const runLen=at-STEP-runStart;
+          if(runLen>=MIN){ const mid=runStart+runLen*.5;
+            aBox(HALF*2,H,runLen,k.x1+ux*mid+nx*side*off,H*.5+k.lift,k.z1+uz*mid+nz*side*off,'stone',ry); }
+          runStart=null;
+        }
+      }
+    }
+  }
+  KERB_QUEUE.length=0;
+}
 // Ring roads are drawn as annulus meshes rather than through roadBetween, so
 // they need their own registry or onRoad would report clear ground over the
 // ring boulevard, the citadel lane and the market circle.
@@ -5679,9 +5724,29 @@ function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.
   trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
 function outerCity(){useWorldStream('outer-graveyard');graveyard(-660,-400);useWorldStream('outer-ruins');ruins(660,-386);useWorldStream('outer-pond');pond(-664,400);useWorldStream('outer-stones');stones(662,392);useWorldStream('outer-forest');denseForest();useWorldStream('outer-mountains');mountains();}
 const ravens=[];
-function cityLantern(x,z,lit=true){aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');addCollider(x,z,.25);if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
-function marketCart(x,z,ry=0){aBox(2.7,.44,1.45,x,.9,z,'wood',ry);aBox(3.05,.16,1.75,x,2.3,z,'cloth',ry);for(const side of[-1,1])aCyl(.33,.33,.15,8,x+Math.cos(ry)*side*1.05,.36,z-Math.sin(ry)*side*1.05,'stone',ry+Math.PI/2);aCyl(.08,.08,2.1,5,x-Math.sin(ry)*1.55,1.55,z-Math.cos(ry)*1.55,'wood',ry+Math.PI/2);addCollider(x,z,1.55);}
-function planter(x,z){aBox(1.45,.42,1.45,x,.21,z,'stone');aCone(.8,1.5,5,x,1.08,z,'foliage');aCone(.54,1.15,5,x,1.78,z,'foliage');addCollider(x,z,.8);}
+// Street dressing was placed from hand-authored coordinate lists written for a
+// much smaller city, and nothing ever checked it against the road network:
+// roads carry no colliders, so colliderBlocked cannot see a carriageway at all.
+// The r78 audit found 730 colliders standing on paving and 684 of them were
+// props — lanterns in the middle of streets, planters on junctions, a stall
+// across a lane. Nudge each to the nearest clear verge rather than dropping it,
+// so the dressing survives and the street reads as walkable.
+// Returns null when there is nowhere sensible, and the caller skips it.
+function offRoad(x,z,clear=.6,reach=9){
+  if(!onRoad(x,z,clear))return[x,z];
+  for(let step=1.3;step<=reach;step+=1.3){
+    for(let i=0;i<12;i++){
+      const a=(i/12)*Math.PI*2+step, nx=x+Math.cos(a)*step, nz=z+Math.sin(a)*step;
+      if(!onRoad(nx,nz,clear)&&!colliderBlocked(nx,nz,clear))return[nx,nz];
+    }
+  }
+  return null;
+}
+function cityLantern(x,z,lit=true){ const spot=offRoad(x,z,.55); if(!spot)return; x=spot[0]; z=spot[1];aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');addCollider(x,z,.25);if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
+function marketCart(x,z,ry=0){ const spot=offRoad(x,z,1.75); if(!spot)return; x=spot[0]; z=spot[1];
+  aBox(2.7,.44,1.45,x,.9,z,'wood',ry);aBox(3.05,.16,1.75,x,2.3,z,'cloth',ry);for(const side of[-1,1])aCyl(.33,.33,.15,8,x+Math.cos(ry)*side*1.05,.36,z-Math.sin(ry)*side*1.05,'stone',ry+Math.PI/2);aCyl(.08,.08,2.1,5,x-Math.sin(ry)*1.55,1.55,z-Math.cos(ry)*1.55,'wood',ry+Math.PI/2);addCollider(x,z,1.55);}
+function planter(x,z){ const spot=offRoad(x,z,.95); if(!spot)return; x=spot[0]; z=spot[1];
+  aBox(1.45,.42,1.45,x,.21,z,'stone');aCone(.8,1.5,5,x,1.08,z,'foliage');aCone(.54,1.15,5,x,1.78,z,'foliage');addCollider(x,z,.8);}
 function cityClutter(){
   [[-18,94],[19,95],[-16,124],[17,124],[-43,111],[47,114],[-105,15],[105,15],[-85,-40],[88,-39],[-58,161],[59,161],[-18,-149],[18,-149]].forEach((spot,index)=>cityLantern(spot[0],spot[1],index%2===0));
   [[-12,91,0],[12,91,0],[-23,116,.5],[23,116,-.5],[-117,-18,Math.PI/2],[117,-18,-Math.PI/2],[-113,158,0],[113,158,0]].forEach(cart=>marketCart(cart[0],cart[1],cart[2]));
@@ -5737,6 +5802,29 @@ function buildCityAtmosphere(){
 }
 function updateCityAtmosphere(t,dt){if(!cityAtmosphere)return;const motePosition=cityAtmosphere.motes.geometry.attributes.position;cityAtmosphere.particles.forEach((particle,index)=>{const emitter=cityAtmosphere.emitters[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>emitter.max)particle.y=emitter.min;const angle=particle.phase+t*particle.drift*.08;motePosition.setXYZ(index,emitter.x+Math.cos(angle)*particle.radius+Math.sin(t*.21+particle.phase)*.18,particle.y,emitter.z+Math.sin(angle)*particle.radius);});motePosition.needsUpdate=true;
   const smokePosition=cityAtmosphere.haze.geometry.attributes.position;cityAtmosphere.smoke.forEach((particle,index)=>{const source=cityAtmosphere.chimneys[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>14){particle.y=4;particle.radius=.1;}else particle.radius+=dt*.08;const angle=particle.phase+t*particle.drift;smokePosition.setXYZ(index,source[0]+Math.cos(angle)*particle.radius+t*.018,particle.y,source[1]+Math.sin(angle)*particle.radius);});smokePosition.needsUpdate=true;}
+// Things stand in the streets — monuments, market stalls, signboards, and the
+// hand-authored clutter whose coordinates were written for a much smaller city.
+// Nothing ever stopped it: roads carry no colliders, so colliderBlocked cannot
+// see a carriageway, and the compiler's roadOverlaps check only tests its own
+// 100 parcels, not the thousands of props everything else places. This tests
+// every collider in the world against every carriageway.
+//   inRoad     — the thing's centre is on the paving. It is in the road.
+//   intruding  — its footprint reaches into the paving from beside it.
+function auditRoadObstructions(limit=24){
+  const inRoad=[], intruding=[];
+  for(const c of colliders){
+    const reach=c.box?Math.hypot(c.hw,c.hd):c.r;
+    if(reach<.3)continue;                       // pebbles and blades of grass
+    if(c.wall)continue;                         // gates are walls crossing roads
+    if(onRoad(c.x,c.z,0)) inRoad.push({x:+c.x.toFixed(1),z:+c.z.toFixed(1),reach:+reach.toFixed(2),box:!!c.box});
+    else if(onRoad(c.x,c.z,reach)) intruding.push({x:+c.x.toFixed(1),z:+c.z.toFixed(1),reach:+reach.toFixed(2),box:!!c.box});
+  }
+  inRoad.sort((a,b)=>b.reach-a.reach); intruding.sort((a,b)=>b.reach-a.reach);
+  if(inRoad.length)console.warn('Vaneth road obstructions: '+inRoad.length+' collider(s) stand on a carriageway; worst '+
+    inRoad.slice(0,6).map(h=>h.x+','+h.z+' r'+h.reach).join(' | '));
+  return {inRoad:inRoad.length,intruding:intruding.length,worst:inRoad.slice(0,limit)};
+}
+
 // r74 shipped four dead gate approaches and no audit noticed, because every
 // existing check tests things against paving that exists — anchors, lots,
 // colliders. None of them can see paving that is missing. This walks each
@@ -6041,6 +6129,10 @@ function outerWards(){
       px=qx; pz=qz; }
     aCyl(3.6,3.6,.16,10,px,.07+AVENUE_LIFT,pz,'cobble'); });                // arrival, not a cut end
 
+  // Every carriageway in the greater city is now registered, so the kerbs can
+  // finally be laid knowing what they must stop short of.
+  emitKerbs();
+
   // ---- pass 3: block contents --------------------------------------------
   let built=0,squares=0,landmarks=0,yards=0;
   for(const cell of live){
@@ -6057,7 +6149,9 @@ function outerWards(){
       else if(sector===2){aCyl(1.5,1.8,1.25,10,cx,.63,cz,'brick');aBox(1.1,.32,1.1,cx,1.38,cz,'amber');for(const side of[-1,1])aCyl(.09,.12,3.2,5,cx+side*2.3,1.6,cz,'wood');addCollider(cx,cz,1.8);}
       else{aCyl(1.5,1.7,1.2,10,cx,.6,cz,'stone');aCyl(1.2,1.2,.25,10,cx,1.25,cz,'dark');aCone(2.2,1.5,6,cx,3.1,cz,'slate');addCollider(cx,cz,1.7);}
       for(let s=0;s<4;s++){ const a=s/4*Math.PI*2+roll*6.28,px=cx+Math.cos(a)*BLOCK*.22,pz=cz+Math.sin(a)*BLOCK*.22;
-        if(colliderBlocked(px,pz,1.6))continue;
+        // A square's paving is not a carriageway, but the streets that bound it
+        // are, and a stall pitched across one blocks the whole lane.
+        if(colliderBlocked(px,pz,1.6)||onRoad(px,pz,1.5))continue;
         aBox(3.0,.26,2.0,px,2.25,pz,'cloth',a); for(const t of[-1,1])aCyl(.09,.09,2.2,5,px+Math.cos(a+Math.PI/2)*t*1.3,1.1,pz+Math.sin(a+Math.PI/2)*t*1.3,'wood');
         aBox(2.4,.7,1.3,px,.35,pz,'wood',a); addCollider(px,pz,1.3); }
       cityLantern(cx+BLOCK*.24,cz,true); cityLantern(cx-BLOCK*.24,cz,true);
@@ -8244,9 +8338,9 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r77',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r78',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
-window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
+window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
