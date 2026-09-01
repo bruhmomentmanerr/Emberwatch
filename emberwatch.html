@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r79 residents &amp; interiors</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r80 citadel &amp; approaches</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5166,6 +5166,20 @@ function roadBetween(x1,z1,x2,z2,width=8,lift=0,kerb=false){ const dx=x2-x1,dz=z
   // stretch can be tested against the carriageways it would otherwise cross.
   if(kerb&&width>=4&&len>12)KERB_QUEUE.push({x1,z1,x2,z2,w:width,lift,road:ROAD_RECTS.length-1}); }
 const KERB_QUEUE=[];
+// The citadel curtain sits at radius 49. Roads that would cross the bailey are
+// clipped against a slightly larger disc and laid as the two stretches either
+// side, so the courtyard stays a courtyard. Straight segments only, which is
+// all the inner-city plan uses.
+const CITADEL_CLEAR=54;
+function avenueClearOfCitadel(x1,z1,x2,z2,w){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz); if(!len)return;
+  const ux=dx/len,uz=dz/len;
+  const b=x1*ux+z1*uz, c=x1*x1+z1*z1-CITADEL_CLEAR*CITADEL_CLEAR, disc=b*b-c;
+  if(disc<=0){ roadBetween(x1,z1,x2,z2,w); return; }      // misses the citadel
+  const root=Math.sqrt(disc), enter=-b-root, exit=-b+root;
+  if(enter>1) roadBetween(x1,z1,x1+ux*Math.min(enter,len),z1+uz*Math.min(enter,len),w);
+  if(exit<len-1){ const t=Math.max(exit,0); roadBetween(x1+ux*t,z1+uz*t,x2,z2,w); }
+}
 // onRoad, but ignoring one segment — a kerb must not be cancelled by the very
 // road it belongs to.
 function onOtherRoad(x,z,skip,pad){
@@ -5291,9 +5305,15 @@ function gateApproaches(){
 function streetPlan(){
   cityFloor();
   // Dense ward lanes replace the open field with a navigable city grid.
-  roadBetween(0,-CITY_RADIUS,0,CITY_RADIUS,10); roadBetween(-CITY_RADIUS,0,CITY_RADIUS,0,10);
-  [-124,-42,42,124].forEach(x=>roadBetween(x,-216,x,216,4.6));
-  [-124,-42,42,124].forEach(z=>roadBetween(-216,z,216,z,4.6));
+  // Both main avenues ran the full width of the inner city, straight through
+  // the citadel courtyard, and the +-42 grid lines crossed the bailey too.
+  // That is why barracks ranges stood in the middle of a road and the keep
+  // itself registered as a road obstruction: a castle bailey was being used
+  // as a thoroughfare. Roads now stop at the curtain and pick up beyond it,
+  // which is also how you approach a castle — up to the gatehouse, not through.
+  avenueClearOfCitadel(0,-CITY_RADIUS,0,CITY_RADIUS,10); avenueClearOfCitadel(-CITY_RADIUS,0,CITY_RADIUS,0,10);
+  [-124,-42,42,124].forEach(x=>avenueClearOfCitadel(x,-216,x,216,4.6));
+  [-124,-42,42,124].forEach(z=>avenueClearOfCitadel(-216,z,216,z,4.6));
   [[-218,-140,-28,-140],[28,-140,218,-140],[-218,140,-28,140],[28,140,218,140],[-142,-218,-142,-30],[142,-218,142,-30],[-142,30,-142,218],[142,30,142,218]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
   // Inner boulevard: a readable boundary route joining the four city gates.
   [[-170,-210,170,-210],[-170,210,170,210],[-210,-170,-210,170],[210,-170,210,170]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
@@ -5375,7 +5395,12 @@ function citadel(){ const R=49,H=11;
   for(let f=1;f<towerFaces;f+=2){ const a=(f/towerFaces)*Math.PI*2,br=towerRb-.2,bh=towerH*.72;
     aBox(1.7,bh,2.2,towerCx+Math.cos(a)*br,bh/2,towerCz+Math.sin(a)*br,'stone',-a);
     aCone(1.5,2.1,4,towerCx+Math.cos(a)*br,bh+1.05,towerCz+Math.sin(a)*br,'slate',Math.PI/4); }
-  addCollider(towerCx,towerCz,towerRb);
+  // The stepped plinth reaches radius towerRb+3.1 but the collider stopped at
+  // the shaft radius, so three units of the keep's base were walk-through —
+  // you clipped bodily into the motte trying to get round to the Great Hall.
+  // The steps are 3.9 tall and the jump apex is about 1.1, so they can never
+  // be climbed: they are a wall, and they are collided as one.
+  addCollider(towerCx,towerCz,towerRb+2.9);
   // A merlon ring at the roofline so the tallest building in the city reads
   // as a keep, not a silo with a witch's hat.
   for(let f=0;f<towerFaces;f+=2){ const angle=(f/towerFaces)*Math.PI*2,mr=towerRt+.5; aBox(1.3,1.4,1.3,towerCx+Math.cos(angle)*mr,towerH+.6,towerCz+Math.sin(angle)*mr,'stone'); }
@@ -8407,7 +8432,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r79',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r80',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions};
 
