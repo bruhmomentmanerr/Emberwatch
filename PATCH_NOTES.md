@@ -1,14 +1,12 @@
-**r81 — keep and hall** · 2026-09-01 · phase 5, world depth
-
-In its own panel header: *r81 keep & hall*.
+**r82 — the great keep** · 2026-09-01 · phase 5, world depth
 
 ### Summary
 
-keep moved to the centre of the bailey and the Great Hall rebuilt against its south face as one connected mass (32x22, was 26x18 stranded behind the keep, its door facing the keep's back across six units); royal walls take the keep's stone so the join reads as one building; the bailey gets its own roads — a processional way from the gatehouse to the hall door plus lanes routed clear of the ranges; porch clutter (crates, barrels, firewood, benches, handcarts) tested against the road network, which is what put loose boxes on open paving
+the keep IS the Great Hall — one square great tower whose ground floor is the walk-in hall, tower mass and four corner turrets rising off the same footprint. r81's separate hall block is gone; so is the cylinder keep. Avenue monuments walked out to the verge: they are 6.0 across the street and sat 2.0 off the centre line, which put 22 of them in the carriageway
 
 ### In the code
 
-- 1.13 MB (+3,054 bytes on r80).
+- 1.12 MB (−801 bytes on r81).
 - No functions added or removed.
 
 ### Play it
