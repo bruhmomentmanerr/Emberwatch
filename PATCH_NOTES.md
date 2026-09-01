@@ -1,13 +1,15 @@
-**r78 — road edges** · 2026-09-01 · phase 5, world depth
+**r79 — residents interiors** · 2026-09-01 · phase 5, world depth
+
+In its own panel header: *r79 residents & interiors*.
 
 ### Summary
 
-kerbs stop at junctions instead of crossing through them; wall colliders flagged so the new road obstruction audit stops counting the city's own gates as obstructions; props nudged to the verge
+residents merged to 6 meshes from 16.1 — draw calls 3,386 -> 1,425 at the spawn; interior counters, the Great Hall dais and lectern, the shrine altar given the footprints they never had; a lintel above every interior door, which had all been open to the sky; Fawwk added to the strain library
 
 ### In the code
 
-- 1.12 MB (+5,202 bytes on r77).
-- 4 functions added: `auditRoadObstructions`, `emitKerbs`, `offRoad`, `onOtherRoad`.
+- 1.12 MB (+4,755 bytes on r78).
+- 2 functions added: `interiorSolid`, `mergeTinted`.
 
 ### Play it
 
