@@ -1,13 +1,15 @@
-**r76 — device probe** · 2026-09-01 · phase 5, world depth
+**r77 — streets wood residents** · 2026-09-01 · phase 5, world depth
+
+In its own panel header: *r77 streets, wood & residents*.
 
 ### Summary
 
-wired the Electron Bluetooth chooser — the renderer had never answered select-bluetooth-device, so requestDevice() never settled and Connect hung in the desktop app; read-only BLE device probe; chooser handshake now covered by the smoke test
+ward streets get kerbs so a carriageway has an edge; forest edge becomes a density gradient instead of one evenly spaced row; ward residents moved off four invisible concentric rings onto the actual street network and raised 96 -> 150; probe learns the Dr. Dabber UUIDs
 
 ### In the code
 
-- 1.11 MB (+12,107 bytes on r75).
-- 4 functions added: `close`, `dismiss`, `probe`, `show`.
+- 1.11 MB (+3,603 bytes on r76).
+- 1 function added: `forestEdgeAt`.
 
 ### Play it
 

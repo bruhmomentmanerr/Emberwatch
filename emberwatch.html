@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r76 device probe</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r77 streets, wood &amp; residents</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5135,13 +5135,24 @@ function furnishInterior(name,x,z,w,d,kind){
 // being built on top of the paving. Any generator that places buildings near
 // the street network needs this list to keep off it.
 const ROAD_RECTS=[];
-function roadBetween(x1,z1,x2,z2,width=8,lift=0){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz);
+function roadBetween(x1,z1,x2,z2,width=8,lift=0,kerb=false){ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz),ry=Math.atan2(dx,dz);
   if(len>0)ROAD_RECTS.push({x1,z1,len,w:width,ux:dx/len,uz:dz/len,
     minX:Math.min(x1,x2)-width,maxX:Math.max(x1,x2)+width,minZ:Math.min(z1,z2)-width,maxZ:Math.max(z1,z2)+width});
   // Two coplanar cobble slabs z-fight, so a road that has to cross other
   // paving asks for a few centimetres of clearance instead of fighting it.
   // The step is invisible from eye height and makes the crossing read.
-  aBox(width,.12,len,(x1+x2)/2,.06+lift,(z1+z2)/2,'cobble',ry); }
+  aBox(width,.12,len,(x1+x2)/2,.06+lift,(z1+z2)/2,'cobble',ry);
+  // A street reads as a street because of its edges. Measured in a ward: 36% of
+  // the ground is carriageway and 45% is the bare city floor — so there IS
+  // not-street beside the street, but both are cobble textures differing only
+  // in brightness, and at night neither edge exists. A raised kerb in the pale
+  // stone material draws that line for twelve triangles a side, batched with
+  // everything else. Off by default: the inner city has 2.35-wide lanes where a
+  // kerb would be wider than the road. Held short of each end so it does not
+  // fight the junction discs.
+  if(kerb&&width>=4&&len>12){ const px=Math.cos(ry),pz=-Math.sin(ry),off=width*.5+.35,klen=len-width*.9;
+    if(klen>4)for(const side of[-1,1])
+      aBox(.7,.3,klen,(x1+x2)/2+px*side*off,.15+lift,(z1+z2)/2+pz*side*off,'stone',ry); } }
 // Ring roads are drawn as annulus meshes rather than through roadBetween, so
 // they need their own registry or onRoad would report clear ground over the
 // ring boulevard, the citadel lane and the market circle.
@@ -5642,14 +5653,30 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
-function denseForest(){const trees=[];let tries=0;while(trees.length<2100&&tries++<26000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+18,M*.49),x=Math.cos(a)*r,z=Math.sin(a)*r;
-  // The tree line began at a fixed radius, so the forest met the fields along
-  // a drawn circle: from the gate it read as a wall someone had placed rather
-  // than as where the trees happen to stop. Two sine terms wander the edge by
-  // about 24 units either way, and rejection sampling thins whatever falls
-  // inside it, so the boundary frays instead of stepping.
-  if(r<OUTER_CITY_R+34+Math.sin(a*3.1)*15+Math.sin(a*7.3+1.7)*9)continue;
-  if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(Math.hypot(x+660,z+400)<34||Math.hypot(x-660,z+386)<34||Math.hypot(x+664,z-400)<35||Math.hypot(x-662,z-392)<31)continue;trees.push([x,z,rand(3.7,8.2),rand(.75,1.35)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
+// Where the trees stop, as a function of bearing. Wandered rather than circular
+// so the forest does not meet the fields along a line someone obviously drew.
+function forestEdgeAt(a){ return OUTER_CITY_R+34+Math.sin(a*3.1)*15+Math.sin(a*7.3+1.7)*9; }
+function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.49;
+  while(trees.length<5200&&tries++<90000){
+  const a=rand(0,Math.PI*2),edge=forestEdgeAt(a);
+  // Sample the band around this bearing's own edge rather than the whole map.
+  // A power-skew toward `lo` was tried first and made it worse: it starved the
+  // deep forest, so the gradient had nothing to thicken into and the tree line
+  // stayed a single row. The visible band is only ~170 units deep anyway, once
+  // exponential fog at 0.007 has eaten everything past it.
+  const r=rand(Math.max(lo,edge-30),hi),x=Math.cos(a)*r,z=Math.sin(a)*r;
+  // r75 wandered the edge but left density flat across the whole band, so the
+  // forest was one evenly spaced row of trees with nothing behind it — a picket
+  // fence, not a wood. A real edge is a gradient: a few outliers standing clear
+  // of the mass, then thickening inward. Sampling the depth past the edge and
+  // rejecting on it buys that for nothing but extra tries.
+  const depth=r-edge;
+  const density=depth<0?.12*Math.max(0,1+depth/30):Math.min(1,.3+depth/60);
+  if(rand(0,1)>density)continue;
+  if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(Math.hypot(x+660,z+400)<34||Math.hypot(x-660,z+386)<34||Math.hypot(x+664,z-400)<35||Math.hypot(x-662,z-392)<31)continue;  // Scrub at the margin, full canopy once inside. The edge stops looking like
+  // full-grown trees that were simply cut off at a radius.
+  const maturity=Math.max(.55,Math.min(1,depth/70));
+  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
 function outerCity(){useWorldStream('outer-graveyard');graveyard(-660,-400);useWorldStream('outer-ruins');ruins(660,-386);useWorldStream('outer-pond');pond(-664,400);useWorldStream('outer-stones');stones(662,392);useWorldStream('outer-forest');denseForest();useWorldStream('outer-mountains');mountains();}
 const ravens=[];
 function cityLantern(x,z,lit=true){aCyl(.08,.12,3.7,5,x,1.85,z,'wood');aBox(.42,.42,.42,x,3.85,z,'amber');aBox(.7,.08,.08,x,3.35,z,'wood');addCollider(x,z,.25);if(lit){const lamp=new THREE.PointLight(0xffaf64,1.05,12);lamp.position.set(x,3.9,z);scene.add(lamp);lights.push({light:lamp,base:1.05,phase:rand(0,6)});}}
@@ -5948,7 +5975,7 @@ function outerWards(){
   const paved=new Set(), nodes=new Set();
   const pave=(t,i,j)=>{ const k=t+i+','+j; if(paved.has(k))return; paved.add(k);
     const A=warp(i,j), B=(t==='H')?warp(i+1,j):warp(i,j+1);
-    roadBetween(A[0],A[1],B[0],B[1],STREET);
+    roadBetween(A[0],A[1],B[0],B[1],STREET,0,true);
     nodes.add(i+','+j); nodes.add(t==='H'?(i+1)+','+j:i+','+(j+1)); };
   for(const c of live){ pave('H',c.i,c.j); pave('H',c.i,c.j+1); pave('V',c.i,c.j); pave('V',c.i+1,c.j); }
   // Segments are rectangles butted end to end, so where two meet at anything
@@ -5964,7 +5991,7 @@ function outerWards(){
   // yet — and once ROAD_RECTS existed it showed up as buildings standing on
   // the carriageway. Every road now goes down before anything is built on it.
   ringRoad(MID_WALL_R+20,7);
-  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10);});
+  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10,0,true);});
   // r74 paved each outer gate for 60 units and stopped. Pass 2 draws streets
   // from surviving blocks and clearOfGates deletes the blocks along the
   // approach, so deleting them deleted the street with them — measured on r74
@@ -5976,7 +6003,7 @@ function outerWards(){
   GATE_AVENUES.length=0;
   OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
     const r0=MID_WALL_R+14, r1=OUTER_CITY_R+26;
-    roadBetween(ca*r0,sa*r0,ca*r1,sa*r1,AVENUE,AVENUE_LIFT);
+    roadBetween(ca*r0,sa*r0,ca*r1,sa*r1,AVENUE,AVENUE_LIFT,true);
     GATE_AVENUES.push({deg:g,r0,r1});
     // A 34-unit gate corridor with an 11-unit road down it is still a field
     // with a stripe on it. Lamp posts down both verges give the avenue edges
@@ -6749,29 +6776,41 @@ function outerRingRoute(radius,startAngle,span,steps){
 function outerDistrictFor(deg){ if(deg<45||deg>=315)return'East Ward'; if(deg<135)return'North Ward'; if(deg<225)return'West Ward'; return'South Ward'; }
 useWorldStream('outer-residents');
 (()=>{
-  const wanted=96,radii=[OUTER_WARD_R0+26,OUTER_WARD_R0+82,OUTER_WARD_R0+140,OUTER_WARD_R1-34];
+  // Until r77 these 96 were placed on four concentric rings at fixed radii and
+  // paced arcs that had nothing to do with the street grid — they cut across
+  // yards and façades, and the "nudge along the ring" retry below existed only
+  // because the first guess so often landed inside a building. That is a large
+  // part of why the paths read as wrong. Put them on the actual carriageways
+  // instead. The wards are 4.1x the inner city's area but held about a third of
+  // its population density, so the count rises with the placement fix.
+  const wanted=150;
+  const lanes=ROAD_RECTS.filter(seg=>{
+    const mx=seg.x1+seg.ux*seg.len*.5, mz=seg.z1+seg.uz*seg.len*.5, r=Math.hypot(mx,mz);
+    return seg.len>22 && r>OUTER_WARD_R0-16 && r<OUTER_WARD_R1+16;
+  }).sort((a,b)=>b.len-a.len);          // arterials populated before alleys
   const used=new Set();
-  for(let i=0;i<wanted;i++){
-    const radius=radii[i%radii.length]+(worldRandom()-.5)*10;
-    const startAngle=(i/wanted)*Math.PI*2+worldRandom()*.22;
-    // Short arcs: a resident paces their own stretch instead of orbiting the
-    // whole city, which would look absurd and thrash the path checks.
-    const span=(worldRandom()<.5?1:-1)*(.11+worldRandom()*.13);
-    // Nudge along the ring rather than giving up: the first guess often lands
-    // on a façade, and skipping outright thinned the outer population badly.
-    let route=null;
-    for(let attempt=0;attempt<8&&!route;attempt++){
-      const candidate=outerRingRoute(radius,startAngle+attempt*.045,span,3);
-      if(!colliderBlocked(candidate[0][0],candidate[0][1],.7))route=candidate;
-    }
-    if(!route)continue;
+  let placed=0;
+  for(let i=0;i<wanted*4&&placed<wanted;i++){
+    const seg=lanes[i%lanes.length]; if(!seg)break;
+    const walk=Math.min(seg.len*.34,26), centre=seg.len*(.18+worldRandom()*.64);
+    const a=Math.max(3,centre-walk*.5), b=Math.min(seg.len-3,centre+walk*.5);
+    if(b-a<6)continue;
+    // Stand off the centre line, so two residents sharing a street pass each
+    // other rather than walking through one another.
+    const side=(worldRandom()<.5?-1:1)*Math.min(seg.w*.28,1.6);
+    const nx=-seg.uz*side, nz=seg.ux*side;
+    const route=[];
+    for(let k=0;k<=3;k++){ const d=a+(b-a)*(k/3); route.push([seg.x1+seg.ux*d+nx, seg.z1+seg.uz*d+nz]); }
+    if(colliderBlocked(route[0][0],route[0][1],.7))continue;
     const [hx,hz]=route[0];
-    let name=OUTER_FIRST[(i*7)%OUTER_FIRST.length]+' '+OUTER_LAST[(i*5)%OUTER_LAST.length];
+    let name=OUTER_FIRST[(placed*7)%OUTER_FIRST.length]+' '+OUTER_LAST[(placed*5)%OUTER_LAST.length];
     if(used.has(name))name+=' the Younger';
+    if(used.has(name))continue;
     used.add(name);
-    const deg=((startAngle*180/Math.PI)%360+360)%360;
-    const robe=[0x5a4a6e,0x6d4a35,0x3f5c60,0x74513f,0x4c6350,0x6a4358,0x556b7a,0x7a6242][i%8];
-    villager(name,hx,hz,robe,OUTER_LINES[i%OUTER_LINES.length],route,outerDistrictFor(deg));
+    const deg=((Math.atan2(hz,hx)*180/Math.PI)%360+360)%360;
+    const robe=[0x5a4a6e,0x6d4a35,0x3f5c60,0x74513f,0x4c6350,0x6a4358,0x556b7a,0x7a6242][placed%8];
+    villager(name,hx,hz,robe,OUTER_LINES[placed%OUTER_LINES.length],route,outerDistrictFor(deg));
+    placed++;
   }
 })();
 
@@ -8060,9 +8099,22 @@ const PUFF=(function(){
   // Nordic DFU service, which is common on hardware in this class — and worth
   // recognising, because a device that exposes only DFU can be reflashed but
   // not controlled.
-  const KNOWN=['e276967f-ea8a-478a-a92e-d78f5dd15dd5','06caf9c0-74d3-454f-9be9-e30cd999c17a',
-    'f9a98c15-c651-4f34-b656-d100bf580000','device_information','battery_service',
-    '0000fe59-0000-1000-8000-00805f9b34fb'];
+  // Puffco's three, plus every service the Dr. Dabber web app declares for the
+  // Switch 2 and the Switch Go — read straight out of drdabber.app's own
+  // BluetoothConfig, so a Switch enumerates without anything being pasted in.
+  // Full table and provenance in docs/dr-dabber-ble-notes.md.
+  const KNOWN=[
+    'e276967f-ea8a-478a-a92e-d78f5dd15dd5',                    // Puffco Lorax
+    '06caf9c0-74d3-454f-9be9-e30cd999c17a',                    // Puffco legacy
+    'f9a98c15-c651-4f34-b656-d100bf580000',                    // Puffco legacy alt
+    '0000fee7-0000-1000-8000-00805f9b34fb',                    // Dr.D Switch2, advertised
+    '000055e4-0000-1000-8000-00805f9b34fb',                    // Dr.D other device type
+    'f56598fa-3ffa-41a7-9726-3fc69baeca1d',                    // Dr.D Switch2 control
+    'e5c7a653-7e52-4b06-af32-960455084ae3',                    // Dr.D Switch2 OTA
+    '55535343-fe7d-4ae5-8fa9-9fafd205e455',                    // Dr.D SwitchGo (ISSC UART)
+    '5833ff01-9b8b-5191-6142-22a4536ef123',                    // Dr.D SwitchGo OTA
+    'device_information','battery_service',
+    '0000fe59-0000-1000-8000-00805f9b34fb'];                   // Nordic DFU
   const STORE='emberwatch.probe.uuids';
   try{ uuidBox.value=localStorage.getItem(STORE)||''; }catch{}
   uuidBox.addEventListener('change',()=>{ try{ localStorage.setItem(STORE,uuidBox.value); }catch{} });
@@ -8192,7 +8244,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r76',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r77',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches()},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();}};
 
