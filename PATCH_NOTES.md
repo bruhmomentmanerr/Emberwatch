@@ -1,12 +1,12 @@
-**r82 — the great keep** · 2026-09-01 · phase 5, world depth
+**r83 — lots off the lanes** · 2026-09-02 · phase 5, world depth
 
 ### Summary
 
-the keep IS the Great Hall — one square great tower whose ground floor is the walk-in hall, tower mass and four corner turrets rising off the same footprint. r81's separate hall block is gone; so is the cylinder keep. Avenue monuments walked out to the verge: they are 6.0 across the street and sat 2.0 off the centre line, which put 22 of them in the carriageway
+compiler lots slide along their row instead of being dropped when their one fixed spot is dirty, which made it affordable to test them against the authored road grid as well as the compiler's own lanes. Buildings standing on a carriageway: 8 -> 0, at a cost of four facade parcels. Fawwk entry corrected — Kaya Extracts / Kaya Farms is a confirmed hand-washed live rosin house; the drop itself is still unlisted
 
 ### In the code
 
-- 1.12 MB (−801 bytes on r81).
+- 1.13 MB (+1,944 bytes on r82).
 - No functions added or removed.
 
 ### Play it

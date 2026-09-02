@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r82 the great keep</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r83 lots off the lanes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5611,14 +5611,24 @@ function compilerLotTouchesRoad(x,z,w,d,ry,gap=COMPILER_ROAD_GAP){
     const minX=Math.min(road.x1,road.x2)-half,maxX=Math.max(road.x1,road.x2)+half,minZ=Math.min(road.z1,road.z2)-half,maxZ=Math.max(road.z1,road.z2)+half;
     return x+halfX>minX&&x-halfX<maxX&&z+halfZ>minZ&&z-halfZ<maxZ;
   }))return true;
-  // Deliberately NOT tested against the authored grid in ROAD_RECTS. Eight
-  // compiler houses do overlap the z=124 lane by a metre or two of facade, and
-  // adding that test removes them — but it also removes 14 to 24 other parcels,
-  // because compiler lots front onto streets by design and the compiler drops a
-  // lot it cannot place rather than shifting it. Trading 14 buildings out of the
-  // city to fix 8 facade overlaps is the worse deal. Fix it by teaching
-  // compilerLot to slide along its row instead, then turn the test back on.
-  return false;
+  // CITY_PLAN.roads is only the compiler's own lanes. The authored grid — the
+  // cardinal avenues, the +-42 and +-124 lines, the boulevards — lives in
+  // ROAD_RECTS, and nothing here consulted it, so compiler houses stood on the
+  // z=124 lane. streetPlan() runs before the compiler, so the real network is
+  // already there to test against.
+  //
+  // Probes are inset to 28% of the footprint rather than the full corners: a
+  // compiler lot fronts onto a street by design, and testing the corners
+  // rejects legitimate frontage. This catches a house standing IN the lane and
+  // leaves one that merely faces it. Safe to enable now that compilerLot slides
+  // along its row instead of dropping a lot it cannot place at the first try.
+  // Centre only. Inset corner probes at 28% were tried and cost six parcels
+  // for a net of two obstructions removed — a compiler lot fronts onto a
+  // street by design, so anything wider than the centre point starts
+  // rejecting legitimate frontage. A house whose centre sits in the
+  // carriageway is unambiguously in the road; a corner that clips the kerb
+  // is a facade overlap and not worth a building.
+  return onRoad(x,z,0);
 }
 function compilerLotClear(x,z,r,w,d,ry){
   if(compilerLotTouchesRoad(x,z,w,d,ry))return false;
@@ -5683,7 +5693,7 @@ function compilerCourt(spec){
 }
 function compilerLot(district,row,index,count){
   const span=row.end-row.start,t=(index+.5)/count,along=row.start+span*t;
-  const x=row.axis==='x'?along:row.at,z=row.axis==='x'?row.at:along;
+  let x=row.axis==='x'?along:row.at,z=row.axis==='x'?row.at:along;
   // Archetype used to be a fixed index%length rotation, so every seed put
   // the same shop/tavern/rowhouse pattern in the same slots along a row —
   // only the palette and dimensions actually varied. Drawing it from the
@@ -5691,7 +5701,23 @@ function compilerLot(district,row,index,count){
   // somewhere else in the row, not just repaint it.
   const archetypes=row.archetypes||['rowhouse'],archetype=pick(archetypes);
   const width=archetype==='barracks'?10.2:archetype==='archive'?8.3:7.4+(worldRandom()>.58?1.1:0),depth=archetype==='workshop'?8.6:7.1+(worldRandom()>.66?.9:0),stories=archetype==='archive'?3:archetype==='barracks'?2:(archetype==='rowhouse'&&worldRandom()>.36?2:1),palette=district.theme==='archive'?['wall2','stone','wall']:district.theme==='works'?['brick','wall','stone']:district.theme==='market'?['brick','wall','wall2']:district.theme==='citadel'?['stone','wall2','wall']:['wall','brick','wall2'],key=palette[(index+Math.floor(worldRandom()*palette.length))%palette.length],radius=Math.max(width,depth)*.56;
-  if(!compilerLotClear(x,z,radius,width,depth,row.ry))return null;
+  // A lot used to be a single pass/fail at one fixed point in its row: if the
+  // spot was dirty it returned null and that building simply never existed.
+  // That is why switching the road test on cost 14-24 of the 100 parcels — not
+  // because those lots could not fit, but because nothing tried anywhere else.
+  // Nudge along the row before giving up. A slide only ever happens where the
+  // lot would otherwise have been dropped, so a row with no conflict places
+  // exactly where it always did and that part of the city is unchanged.
+  // Lots are built in row order and compilerLotClear tests colliders, so a lot
+  // sliding into its neighbour is rejected the same as any other blocked spot.
+  let placed=false;
+  for(const nudge of [0,1.2,-1.2,2.4,-2.4,3.6,-3.6,4.8,-4.8,6.4,-6.4,8,-8,9.6,-9.6,11.2,-11.2,13,-13]){
+    const shifted=along+nudge;
+    if(shifted<row.start+width*.5||shifted>row.end-width*.5)continue;
+    const nx=row.axis==='x'?shifted:row.at, nz=row.axis==='x'?row.at:shifted;
+    if(compilerLotClear(nx,nz,radius,width,depth,row.ry)){ x=nx; z=nz; placed=true; break; }
+  }
+  if(!placed)return null;
   const id=district.id+':lot-'+row.id+'-'+index,lot={id,districtId:district.id,row:row.id,index,x,z,w:width,d:depth,ry:row.ry,archetype,stories,key,accent:district.accent};
   compilerArchetype(archetype,lot);
   const building={id:id+':building',districtId:district.id,parcelId:id,archetype,stories,footprint:{x,z,w:width,d:depth,ry:row.ry},access:'facade',tags:[district.theme,archetype]},frontX=Math.sin(row.ry),frontZ=Math.cos(row.ry),streetDistance=depth*.5+.9;
@@ -7608,7 +7634,7 @@ const STRAIN_REFERENCE_LIBRARY={
   // listed cross; "Mega Bite" and "Fawwk" return nothing in public breeder or
   // retailer records, so the aroma and terpene rows below are inferred from the
   // Red Hots half rather than read off a COA. `match` says so on the panel.
-  'fawwk':{match:'Grower-supplied — half the lineage is undocumented',lineage:'Mega Bite × Red Hots — Kaya Extracts, live rosin. Red Hots is Apple Fritter × Indiana Bubblegum (Lupos CannaSeed). No public listing found for Mega Bite, or for this cross.',terpenes:['limonene','caryophyllene','myrcene'],aromas:['candied apple','bubblegum','warm spice','sweet earth'],effects:['relaxed','euphoric','happy'],note:'Live rosin. The Red Hots side carries Apple Fritter’s sweet fruit-candy over Indiana Bubblegum, finishing spicy on the exhale. The Mega Bite side is undocumented, so treat everything here below the lineage as inference rather than lab record.'},
+  'fawwk':{match:'Brand and one parent confirmed; the drop itself is not listed',lineage:'Mega Bite × Red Hots — Kaya Extracts (also trading as Kaya Farms), hand-washed live rosin. Red Hots is Apple Fritter × Indiana Bubblegum, from Lupos CannaSeed. Mega Bite and this cross return nothing in breeder or dispensary listings, so the drop is recent or regional.',terpenes:['limonene','caryophyllene','myrcene'],aromas:['candied apple','bubblegum','warm spice','sweet earth'],effects:['relaxed','euphoric','happy'],note:'Hand-washed live rosin from a house that presses a lot of it — Life Alert, Island Time, Kaya on Kaya are all theirs. The Red Hots side carries Apple Fritter’s sweet fruit-candy over Indiana Bubblegum and finishes spicy on the exhale. Mega Bite is undocumented, so the terpene and aroma rows here are read off the Red Hots half rather than a COA. Swap them for the label if you have it.'},
   // Vaneth house jars
   'strawberry cheesecake':{match:'Baker’s garden notes',lineage:'Chronic × White Widow × Cheese',terpenes:[],aromas:['strawberry','cheese','sweet earth'],effects:['relaxed','happy','euphoric'],note:'Berry sweetness and tangy cheese settle into a soft, earthy finish.'},
   'island time':{match:'Wandering trader’s notes',lineage:'Banana OG × (Cherry Pie × Tangie) × Guava Cooler 3',terpenes:['earthy','citrus','woody'],aromas:['tropical citrus','mango','pine'],effects:['uplifted','relaxed','creative'],note:'Tropical fruit drifts in first, then a piney, easygoing finish.'},
@@ -8473,7 +8499,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r82',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r83',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions};
 
