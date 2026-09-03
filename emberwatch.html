@@ -187,7 +187,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r83 lots off the lanes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r84 rooms, walls &amp; crowds</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5102,6 +5102,145 @@ function interiorBeams(x,z,w,d){[-d*.24,d*.24].forEach(offset=>aBox(w-.75,.16,.1
 // Pieces that rest on something already solid — a cloth over a table, a cap on
 // a plinth, a shelf above head height — stay bare on purpose.
 function interiorSolid(w,h,d,x,y,z,key,ry=0){ aBox(w,h,d,x,y,z,key,ry); addBoxCollider(x,z,w,d,ry); }
+// ---- interior dressing --------------------------------------------------
+// Every room was furnished from a fixed hand-written list, sized for the 20x16
+// boxes they used to be. The Great Hall is now 34x28 and those same six pieces
+// read as an empty chapel. Worse, two rooms of the same kind got byte-identical
+// contents, so nowhere felt like anywhere in particular.
+//
+// This adds a prop vocabulary and a dressing pass that scales with the room and
+// varies between rooms. The seed comes from the room's own name, so a given
+// room is dressed the same on every load and every seed, but no two rooms match.
+function roomRandom(seed){ let h=seed>>>0;
+  return ()=>{ h=Math.imul(h^(h>>>15),2246822507)>>>0; h=Math.imul(h^(h>>>13),3266489909)>>>0;
+    return ((h^(h>>>16))>>>0)/4294967296; }; }
+function nameSeed(name){ let h=2166136261;
+  for(let i=0;i<name.length;i++){ h^=name.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>0; }
+
+function interiorBarrel(x,z,tall){ const h=tall?1.15:.86;
+  aCyl(.34,.4,h,8,x,h/2,z,'wood'); aCyl(.36,.36,.06,8,x,h,z,'dark'); addCollider(x,z,.44); }
+function interiorCrate(x,z,rnd){ const sz=.62+rnd()*.34, ry=rnd()*.7;
+  aBox(sz,sz,sz,x,sz/2,z,'wood',ry);
+  if(rnd()<.42){ const t=sz*.76; aBox(t,t,t,x,sz+t/2,z,'wood',ry+.4); }
+  addCollider(x,z,sz*.72); }
+function interiorSack(x,z,rnd){ const h=.5+rnd()*.26;
+  aCyl(.3,.2,h,6,x,h/2,z,'cloth'); addCollider(x,z,.34); }
+function interiorStool(x,z){ aCyl(.19,.23,.48,6,x,.24,z,'wood'); aCyl(.26,.26,.07,8,x,.51,z,'wood'); addCollider(x,z,.28); }
+function interiorBench(x,z,len,ry){
+  aBox(len,.14,.44,x,.46,z,'wood',ry);
+  for(const side of[-1,1]) aBox(.16,.46,.4,x+Math.cos(ry)*side*(len*.4),.23,z-Math.sin(ry)*side*(len*.4),'wood',ry);
+  addBoxCollider(x,z,len,.44,ry); }
+function interiorRack(x,z,ry){
+  for(const y of[.28,1.66]) aBox(1.9,.12,.3,x,y,z,'wood',ry);
+  for(const side of[-1,1]) aBox(.14,1.75,.3,x+Math.cos(ry)*side*.88,.88,z-Math.sin(ry)*side*.88,'wood',ry);
+  for(let i=-1;i<=1;i++) aBox(.09,1.25,.09,x+Math.cos(ry)*i*.5,.95,z-Math.sin(ry)*i*.5,'stone',ry);
+  addBoxCollider(x,z,1.9,.34,ry); }
+function interiorChest(x,z,ry){
+  aBox(1.1,.58,.62,x,.29,z,'wood',ry); aBox(1.14,.16,.66,x,.64,z,'dark',ry);
+  aBox(.2,.16,.1,x,.5,z+.34,'amber',ry); addBoxCollider(x,z,1.1,.62,ry); }
+function interiorCask(x,z){ aCyl(.46,.5,1.05,8,x,.53,z,'wood'); aCyl(.3,.3,.08,8,x,1.07,z,'dark'); addCollider(x,z,.56); }
+function interiorTrestle(x,z,len,ry){
+  aBox(len,.16,1.25,x,.86,z,'wood',ry);
+  for(const side of[-1,1]) aBox(.24,.84,1.05,x+Math.cos(ry)*side*(len*.42),.42,z-Math.sin(ry)*side*(len*.42),'wood',ry);
+  addBoxCollider(x,z,len,1.25,ry); }
+function interiorThrone(x,z,ry){
+  aBox(1.5,.5,1.3,x,.25,z,'stone',ry); aBox(1.3,1.9,.3,x-Math.sin(ry)*.5,1.35,z-Math.cos(ry)*.5,'wood',ry);
+  aBox(1.35,.18,1.1,x,.58,z,'cloth',ry);
+  for(const side of[-1,1]) aBox(.2,1.1,.2,x+Math.cos(ry)*side*.65,.9,z-Math.sin(ry)*side*.65,'wood',ry);
+  addBoxCollider(x,z,1.5,1.3,ry); }
+
+function dressInterior(name,x,z,w,d,kind){
+  const rnd=roomRandom(nameSeed(name));
+  const hw=w*.5-1.3, hd=d*.5-1.3;
+  // The doorway and a lane in from it stay clear, or the room advertises
+  // "enter" and then refuses to let you through its own furniture.
+  // Pad defaults small: the first pass used 0.8 everywhere and the props kept
+  // rejecting each other — benches blocked by the trestle they belong to, the
+  // throne blocked by the dais it is supposed to stand on. A great hall came
+  // out with twelve colliders in nine hundred square units.
+  const free=(px,pz,pad=.5)=>{
+    if(Math.abs(px-x)<2.7 && (pz-z)>hd-5.5) return false;
+    if(Math.abs(px-x)>hw||Math.abs(pz-z)>hd) return false;
+    return !colliderBlocked(px,pz,pad);
+  };
+  const put=(fn,px,pz,pad,...rest)=>{ if(!free(px,pz,pad))return 0; fn(px,pz,...rest); return 1; };
+  let placed=0;
+  const area=w*d;
+
+  // --- the middle of the room, by what the room is for --------------------
+  if(kind==='royal'){
+    // A great hall is a hall: long trestles down its length with benches either
+    // side, and the high seat at the far end facing the door. The benches are
+    // placed first so the trestle does not veto its own seating.
+    const runs=w>26?2:1, len=Math.min(d*.46,10.5);
+    for(let i=0;i<runs;i++){
+      const px=runs===1?x:x+(i?1:-1)*w*.2;
+      placed+=put(interiorBench,px-1.75,z+1.2,.3,len*.9,Math.PI/2);
+      placed+=put(interiorBench,px+1.75,z+1.2,.3,len*.9,Math.PI/2);
+      placed+=put(interiorTrestle,px,z+1.2,.3,len,Math.PI/2);
+    }
+    // The throne belongs on the dais, so it is placed rather than tested.
+    interiorThrone(x,z-hd+3.4,Math.PI); placed++;
+    for(const side of[-1,1]){
+      placed+=put(interiorCask,x+side*(hw-1),z+hd-5.5,.45);
+      placed+=put(interiorRack,x+side*(hw-.9),z-2.5,.45,Math.PI/2);
+    }
+  }else if(kind==='tavern'){
+    const tables=Math.max(3,Math.round(area/85));
+    for(let i=0;i<tables;i++){
+      const px=x+(rnd()*2-1)*hw*.66, pz=z+(rnd()*2-1)*hd*.52;
+      if(!put(interiorTable,px,pz,.55,2.1+rnd()*.7,1.15))continue;
+      placed++;
+      for(const a of[.4,Math.PI+.4]) placed+=put(interiorStool,px+Math.cos(a)*1.55,pz+Math.sin(a)*1.55,.3);
+    }
+    for(let i=0;i<4;i++) placed+=put(interiorCask,x-hw+.7+i*1.2,z-hd+.8,.45);
+  }else if(kind==='archive'){
+    placed+=put(interiorTable,x,z+1.4,.55,3.2,1.5);
+    for(const side of[-1,1]) placed+=put(interiorStool,x+side*2.3,z+1.4,.3);
+    for(let i=0;i<4;i++) placed+=put(interiorChest,x-hw+1.4+i*2.7,z-hd+1.1,.45,0);
+  }else{
+    placed+=put(interiorTable,x,z+1.1,.55,2.8,1.3);
+    for(const a of[.5,Math.PI+.5]) placed+=put(interiorStool,x+Math.cos(a)*1.75,z+1.1+Math.sin(a)*1.75,.3);
+    for(let i=0;i<3;i++) placed+=put(interiorBarrel,x-hw+.7+i*1.05,z-hd+.7,.4,rnd()<.5);
+  }
+
+  // --- along the walls, skipping the front where the door is --------------
+  // Tries far more often than it succeeds, which is the point: the wall is
+  // already carrying shelves, banners and hearths from the room's own
+  // character pass, and this fills whatever is genuinely still empty.
+  const attempts=Math.round(Math.min(46,area/13));
+  for(let i=0;i<attempts;i++){
+    const side=Math.floor(rnd()*3);
+    let px,pz,ry;
+    if(side===0){ px=x+(rnd()*2-1)*hw; pz=z-hd+rnd()*.5; ry=0; }
+    else { const s=side===1?-1:1; px=x+s*(hw-rnd()*.5); pz=z+(rnd()*2-1)*hd; ry=Math.PI/2; }
+    const roll=rnd();
+    if(roll<.26)       placed+=put(interiorBarrel,px,pz,.42,rnd()<.45);
+    else if(roll<.48)  placed+=put(interiorCrate,px,pz,.42,rnd);
+    else if(roll<.62)  placed+=put(interiorSack,px,pz,.36,rnd);
+    else if(roll<.76)  placed+=put(interiorChest,px,pz,.5,ry);
+    else if(roll<.9)   placed+=put(interiorRack,px,pz,.5,ry);
+    else               placed+=put(interiorCask,px,pz,.45);
+  }
+
+  // --- a little clutter loose on the floor --------------------------------
+  const loose=Math.round(Math.min(9,area/110));
+  for(let i=0;i<loose;i++){
+    const px=x+(rnd()*2-1)*hw*.8, pz=z+(rnd()*2-1)*hd*.8;
+    placed+=rnd()<.5?put(interiorCrate,px,pz,.6,rnd):put(interiorBarrel,px,pz,.6,rnd()<.4);
+  }
+
+  // --- light, so the new corners are not pitch dark -----------------------
+  const lamps=w>24?3:1;
+  for(let i=0;i<lamps;i++){
+    const px=lamps===1?x:x+(i-1)*w*.31, pz=z-hd+1.1;
+    put(interiorGlow,px,pz,.4,kind==='royal'?'arcane':'amber',kind==='royal'?0xa78cff:0xffb060);
+  }
+  if(w>24)for(const side of[-1,1])
+    put(interiorGlow,x+side*(hw-.6),z+2,.4,kind==='royal'?'arcane':'amber',kind==='royal'?0xa78cff:0xffb060);
+  return placed;
+}
 function furnishInterior(name,x,z,w,d,kind){
   interiorBeams(x,z,w,d);
   if(name==='The Cinder and Keg'){
@@ -5140,6 +5279,9 @@ function furnishInterior(name,x,z,w,d,kind){
   }else{
     interiorRug(x,z+1,w*.36,d*.42,'dark');interiorTable(x,z+1.2,3.2,1.35);interiorGlow(x,z-1.9,kind==='royal'?'arcane':'amber',kind==='royal'?0xa78cff:0xffb060);
   }
+  // The hand-authored pieces above set each room's character. This fills the
+  // rest of the floor, scaled to the room and seeded off its name.
+  dressInterior(name,x,z,w,d,kind);
 }
 // Every carriageway is recorded as it is drawn. Roads carry no colliders — a
 // street has to stay walkable — so `colliderBlocked` cannot stop anything from
@@ -5170,15 +5312,50 @@ const KERB_QUEUE=[];
 // clipped against a slightly larger disc and laid as the two stretches either
 // side, so the courtyard stays a courtyard. Straight segments only, which is
 // all the inner-city plan uses.
+// Roads were laid with no knowledge of the walls. Four of the inner grid lines
+// run z=-216 to 216, and the mid wall sits at radius 240, so they punch through
+// stone at z=+-205 and simply stop against it. Several infill roads do the same.
+// A gate is a road crossing a wall on purpose; everything else is a road that
+// should have stopped short of it.
+const WALL_RINGS=[{r:CITY_RADIUS,gates:MID_GATE_DEG},{r:OUTER_CITY_R,gates:OUTER_GATE_DEG}];
+function throughWall(x,z){
+  const rad=Math.hypot(x,z);
+  const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
+  for(const ring of WALL_RINGS){
+    if(Math.abs(rad-ring.r)>5.5)continue;
+    // Arc distance rather than degrees, so a gate is the same real width at
+    // radius 240 as it is at 560.
+    const atGate=ring.gates.some(g=>{ let dd=Math.abs(deg-g); dd=Math.min(dd,360-dd);
+      return dd*Math.PI/180*rad<12; });
+    if(!atGate)return true;
+  }
+  return false;
+}
+// Walks a road and lays only the stretches that are not inside a wall, so a
+// street stops at the masonry and picks up on the far side instead of ending
+// in it.
+function layRoad(x1,z1,x2,z2,w,lift=0,kerb=false){
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz); if(len<1)return;
+  const ux=dx/len,uz=dz/len,STEP=1.5;
+  let runStart=null;
+  const flush=(from,to)=>{ if(to-from>3.5)roadBetween(x1+ux*from,z1+uz*from,x1+ux*to,z1+uz*to,w,lift,kerb); };
+  for(let t=0;t<=len+STEP*.5;t+=STEP){
+    const at=Math.min(t,len);
+    const open=at<=len&&!throughWall(x1+ux*at,z1+uz*at);
+    if(open){ if(runStart===null)runStart=at; continue; }
+    if(runStart!==null){ flush(runStart,at-STEP); runStart=null; }
+  }
+  if(runStart!==null)flush(runStart,len);
+}
 const CITADEL_CLEAR=54;
 function avenueClearOfCitadel(x1,z1,x2,z2,w){
   const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz); if(!len)return;
   const ux=dx/len,uz=dz/len;
   const b=x1*ux+z1*uz, c=x1*x1+z1*z1-CITADEL_CLEAR*CITADEL_CLEAR, disc=b*b-c;
-  if(disc<=0){ roadBetween(x1,z1,x2,z2,w); return; }      // misses the citadel
+  if(disc<=0){ layRoad(x1,z1,x2,z2,w); return; }          // misses the citadel
   const root=Math.sqrt(disc), enter=-b-root, exit=-b+root;
-  if(enter>1) roadBetween(x1,z1,x1+ux*Math.min(enter,len),z1+uz*Math.min(enter,len),w);
-  if(exit<len-1){ const t=Math.max(exit,0); roadBetween(x1+ux*t,z1+uz*t,x2,z2,w); }
+  if(enter>1) layRoad(x1,z1,x1+ux*Math.min(enter,len),z1+uz*Math.min(enter,len),w);
+  if(exit<len-1){ const t=Math.max(exit,0); layRoad(x1+ux*t,z1+uz*t,x2,z2,w); }
 }
 // onRoad, but ignoring one segment — a kerb must not be cancelled by the very
 // road it belongs to.
@@ -5295,7 +5472,7 @@ function northGateWard(){
   [-108,-96,-84,-72,-60,-48,-36,-24,24,36,48,60,72,84,96,108].forEach((x,index)=>{
     cityHouse(x,220,8.6,8,1+(index%4===0?2:1),palette[index%palette.length],Math.PI,index%5===0?'arcane':'amber');
   });
-  roadBetween(-118,210,-18,210,5.4); roadBetween(18,210,118,210,5.4);
+  layRoad(-118,210,-18,210,5.4); layRoad(18,210,118,210,5.4);
   [-64,64].forEach((x,index)=>{ wardCourt(x,209,16,13); cityLantern(x-6,212,index===0); cityLantern(x+6,212,index!==0); });
 }
 function gateApproaches(){
@@ -5314,9 +5491,9 @@ function streetPlan(){
   avenueClearOfCitadel(0,-CITY_RADIUS,0,CITY_RADIUS,10); avenueClearOfCitadel(-CITY_RADIUS,0,CITY_RADIUS,0,10);
   [-124,-42,42,124].forEach(x=>avenueClearOfCitadel(x,-216,x,216,4.6));
   [-124,-42,42,124].forEach(z=>avenueClearOfCitadel(-216,z,216,z,4.6));
-  [[-218,-140,-28,-140],[28,-140,218,-140],[-218,140,-28,140],[28,140,218,140],[-142,-218,-142,-30],[142,-218,142,-30],[-142,30,-142,218],[142,30,142,218]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
+  [[-218,-140,-28,-140],[28,-140,218,-140],[-218,140,-28,140],[28,140,218,140],[-142,-218,-142,-30],[142,-218,142,-30],[-142,30,-142,218],[142,30,142,218]].forEach(road=>layRoad(road[0],road[1],road[2],road[3],5.4));
   // Inner boulevard: a readable boundary route joining the four city gates.
-  [[-170,-210,170,-210],[-170,210,170,210],[-210,-170,-210,170],[210,-170,210,170]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5.4));
+  [[-170,-210,170,-210],[-170,210,170,210],[-210,-170,-210,170],[210,-170,210,170]].forEach(road=>layRoad(road[0],road[1],road[2],road[3],5.4));
   registerRing(56.5,7); const citadelLane=new THREE.Mesh(tileFlatUV(new THREE.RingGeometry(53,60,96).rotateX(-Math.PI/2),6),MATS.cobble); citadelLane.position.y=.055; citadelLane.receiveShadow=true; scene.add(citadelLane);
   const marketLane=new THREE.Mesh(tileFlatUV(new THREE.CircleGeometry(31,48).rotateX(-Math.PI/2),6,0,MARKET_Z),MATS.cobble); marketLane.position.set(0,.06,MARKET_Z); marketLane.receiveShadow=true; scene.add(marketLane);
 }
@@ -5734,7 +5911,7 @@ function stageCompilerRoads(){
 }
 function compileDistrict(spec){
   useWorldStream('compiler:'+spec.id);const district={id:spec.id,name:spec.name,theme:spec.theme,parcelIds:[],buildingIds:[],anchorIds:[],roadIds:[]};CITY_PLAN.districts.push(district);
-  (spec.roads||[]).forEach((road,index)=>{roadBetween(...road);district.roadIds.push(spec.id+':road-'+index);});compilerCourt(spec);
+  (spec.roads||[]).forEach((road,index)=>{layRoad(...road);district.roadIds.push(spec.id+':road-'+index);});compilerCourt(spec);
   (spec.frontages||[]).forEach((row,rowIndex)=>{const length=Math.abs(row.end-row.start),count=Math.max(2,Math.floor(length/13));const compiled={...row,id:rowIndex};for(let index=0;index<count;index++)compilerLot(district,compiled,index,count);});
 }
 function auditCityPlan(){
@@ -5939,6 +6116,67 @@ function auditGateApproaches(force){
     longestGap:results.length?Math.max.apply(null,results.map(r=>r.longestGap)):0};
   return GATE_APPROACH_AUDIT;
 }
+// ---- resident flow recorder --------------------------------------------
+// Pile-ups only appear after minutes of play, and they cannot be reproduced in
+// a headless harness at all: the world is driven by requestAnimationFrame, and
+// a window that is never displayed never fires one, so residents sit frozen and
+// nothing to do with movement can be observed. The game therefore records its
+// own evidence. Press K in play to copy a report of everyone who has stopped
+// moving and everyone standing on top of somebody else.
+const FLOW={last:0};
+function sampleResidentFlow(t){
+  if(t-FLOW.last<1.5)return;
+  const step=t-FLOW.last; FLOW.last=t;
+  for(const npc of villagers){
+    const x=npc.g.position.x, z=npc.g.position.z;
+    const hadX=typeof npc.flowX==='number'?npc.flowX:x, hadZ=typeof npc.flowZ==='number'?npc.flowZ:z;
+    // 0.12 over a 1.5s sample is well under the slowest walk speed, so this
+    // only trips on genuinely stationary residents, not slow ones.
+    npc.stalled=Math.hypot(x-hadX,z-hadZ)<0.12?(npc.stalled||0)+step:0;
+    npc.flowX=x; npc.flowZ=z;
+  }
+}
+function residentFlowReport(stallSeconds=12,clusterRadius=3.5){
+  const pos=n=>[n.g.position.x,n.g.position.z];
+  const stalled=villagers.filter(n=>(n.stalled||0)>stallSeconds).map(n=>({
+    name:n.name, district:n.district,
+    x:+n.g.position.x.toFixed(1), z:+n.g.position.z.toFixed(1),
+    stalledFor:Math.round(n.stalled),
+    atStop:!!n.atStop, navPending:!!n.navPending, hasPath:!!n.path,
+    pathIndex:n.pathIndex, goalIndex:n.goalIndex,
+    pauseLeft:+(n.pauseLeft||0).toFixed(1),
+    onCarriageway:onRoad(n.g.position.x,n.g.position.z,0)
+  })).sort((a,b)=>b.stalledFor-a.stalledFor);
+  const clusters=[], taken=new Set();
+  for(let i=0;i<villagers.length;i++){
+    if(taken.has(i))continue;
+    const a=pos(villagers[i]), group=[i];
+    for(let j=i+1;j<villagers.length;j++){
+      if(taken.has(j))continue;
+      const b=pos(villagers[j]);
+      if(Math.hypot(a[0]-b[0],a[1]-b[1])<clusterRadius)group.push(j);
+    }
+    if(group.length>=3){
+      group.forEach(g=>taken.add(g));
+      clusters.push({ at:[+a[0].toFixed(0),+a[1].toFixed(0)], count:group.length,
+        onCarriageway:onRoad(a[0],a[1],0),
+        who:group.slice(0,8).map(g=>villagers[g].name),
+        stalledSeconds:group.slice(0,8).map(g=>Math.round(villagers[g].stalled||0)) });
+    }
+  }
+  clusters.sort((a,b)=>b.count-a.count);
+  return { residents:villagers.length, player:[+player.x.toFixed(1),+player.z.toFixed(1)],
+           stalledOver:stallSeconds+'s', stalledCount:stalled.length,
+           clusterCount:clusters.length, clusters:clusters.slice(0,12), stalled:stalled.slice(0,20) };
+}
+addEventListener('keydown',event=>{
+  if(event.key!=='k'&&event.key!=='K')return;
+  if(typeof anyOverlayOpen==='function'&&anyOverlayOpen())return;
+  const report=JSON.stringify(residentFlowReport(),null,1);
+  console.log(report);
+  const done=()=>{ try{ showGameToast('Resident flow copied — '+residentFlowReport().clusterCount+' pile-up(s).'); }catch(e){} };
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(report).then(done,done); else done();
+});
 function auditVanethGeometry(){
   const finiteCollider=colliders.every(c=>Number.isFinite(c.x)&&Number.isFinite(c.z)&&Number.isFinite(c.r)&&c.r>0);
   const finiteDoor=interiorDoors.every(d=>Number.isFinite(d.x)&&Number.isFinite(d.z)&&Number.isFinite(d.insideX)&&Number.isFinite(d.insideZ));
@@ -6162,7 +6400,10 @@ function outerWards(){
   const paved=new Set(), nodes=new Set();
   const pave=(t,i,j)=>{ const k=t+i+','+j; if(paved.has(k))return; paved.add(k);
     const A=warp(i,j), B=(t==='H')?warp(i+1,j):warp(i,j+1);
-    roadBetween(A[0],A[1],B[0],B[1],STREET,0,true);
+    // Through layRoad, not roadBetween: the ward grid runs out to radius 562
+    // in places and the outer wall is at 560, so these were the largest single
+    // source of streets ending in masonry.
+    layRoad(A[0],A[1],B[0],B[1],STREET,0,true);
     nodes.add(i+','+j); nodes.add(t==='H'?(i+1)+','+j:i+','+(j+1)); };
   for(const c of live){ pave('H',c.i,c.j); pave('H',c.i,c.j+1); pave('V',c.i,c.j); pave('V',c.i+1,c.j); }
   // Segments are rectangles butted end to end, so where two meet at anything
@@ -7246,6 +7487,27 @@ function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-
 // blocked() synchronously during startup, before this point in the file has
 // executed, so a const declared here would still be in its temporal dead
 // zone at that first call and throw.
+// Residents check each other every frame now, and 208 of them squared is 43k
+// distance tests per frame. One cell lookup instead: rebuilt once per frame,
+// queried by the nine cells around a point.
+const NPC_CELL=2.6, npcGrid=new Map();
+function npcCellKey(x,z){ return ((x/NPC_CELL)|0)+','+((z/NPC_CELL)|0); }
+function rebuildNpcGrid(){
+  npcGrid.clear();
+  for(const npc of villagers){
+    const key=npcCellKey(npc.g.position.x,npc.g.position.z);
+    let bucket=npcGrid.get(key); if(!bucket){ bucket=[]; npcGrid.set(key,bucket); }
+    bucket.push(npc);
+  }
+}
+function npcNeighbours(x,z){
+  const out=[], cx=(x/NPC_CELL)|0, cz=(z/NPC_CELL)|0;
+  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){
+    const bucket=npcGrid.get((cx+i)+','+(cz+j));
+    if(bucket)for(const npc of bucket)out.push(npc);
+  }
+  return out;
+}
 function npcBlocked(x,z){ for(const npc of villagers){ const dx=x-npc.g.position.x,dz=z-npc.g.position.z,reach=.42+CONFIG.playerRadius; if(dx*dx+dz*dz<reach*reach)return true; } return false; }
 function blocked(x,z){ return colliderBlocked(x,z)||npcBlocked(x,z); }
 const lim=M*0.47;
@@ -7506,7 +7768,7 @@ function npcObstructed(npc,x,z){
     if(dist<reach&&ahead(dx,dz,dist))return true; }
   return false;
 }
-function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue();
+function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid();
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
@@ -7558,6 +7820,28 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue();
       }
     }else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
     const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
+    // The existing unstick only fires when a resident is trying to move and
+    // finds someone in the way. A resident that has arrived at its stop and is
+    // idling never runs it at all, so two who converge on the same stop stand
+    // inside one another for good — which is what the market pile-ups actually
+    // were, not a pathing failure. Push apart every frame regardless of what
+    // anyone is doing, gently enough that it reads as shuffling for room.
+    {
+      let sx=0,sz=0,crowd=0;
+      for(const other of npcNeighbours(x,z)){
+        if(other===npc)continue;
+        const ox=x-other.g.position.x, oz=z-other.g.position.z, od=Math.hypot(ox,oz);
+        if(od<1.2&&od>1e-4){ const weight=(1.2-od)/1.2; sx+=ox/od*weight; sz+=oz/od*weight; crowd++; }
+      }
+      if(crowd){
+        const len=Math.hypot(sx,sz);
+        if(len>1e-4){
+          const push=Math.min(1.4*dt,.05);
+          const px=x+sx/len*push, pz=z+sz/len*push;
+          if(npcPathClear(x,z,px,pz)){ x=px; z=pz; }
+        }
+      }
+    }
     npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
   let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
   let worldInteraction=null,worldDistance=Infinity;for(const entry of WORLD_INTERACTIONS){if(entry.interior?(activeInterior?.name!==entry.interior):!!activeInterior)continue;const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz;if(d<entry.r*entry.r&&d<worldDistance){worldDistance=d;worldInteraction=entry;}}
@@ -8499,9 +8783,9 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r83',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r84',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
-window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions};
+window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
@@ -8518,7 +8802,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt); sampleResidentFlow(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
