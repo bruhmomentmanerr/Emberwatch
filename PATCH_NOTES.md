@@ -1,14 +1,13 @@
-**r85 — one city** · 2026-09-04 · phase 5, world depth
+**r86 — streets on earth** · 2026-09-04 · phase 5, world depth
 
 ### Summary
 
-**the generated greater city is gone.** outerWards() laid 2,460 buildings on a warped grid out to radius 540 and almost every placement fault this project chased came from it. Vaneth is one walled city inside radius 240 with wilderness beyond. The Chronicle is removed, as is the saved-position restore and the ?spawn debug hook. Dead generators deleted outright.
+the city stands on earth, not pavement: cityFloor() used to lay the whole disc in the same cobble as the roads one shade darker, so no street read as a street. Second phantom wall removed from the road clipper, which had been cutting a four unit hole out of every gate approach
 
 ### In the code
 
-- 1.08 MB (−66,192 bytes on r84).
-- 4 functions added: `ruinedRing`, `updateWisps`, `wilderness`, `wisps`.
-- 63 functions removed: `addReferenceLine`, `archiveKeywords`, `archiveList`, `archiveNoteSummary`, `archivePlainText`, `archiveReferenceFrom`, `archiveValue`, `canonicalStrainName`, `chooseArchiveMatch`, `chronicleEntries`, `chronicleRecord`, `cleanArchiveValue`, `cleanStrainText`, `clearLookupPreview`, `copyWorldSeed`, `currentStrain`, `ensureGrowArchive`, `forestRing`, `forgeNewVaneth`, `growArchiveMatches`, `growEntriesFromCsv`, `growReferenceFrom`, `hideStrainSuggestions`, `loadChronicle`, `loadGrowArchive`, `loadStrainJournal`, `localArchiveMatches`, `makeReferenceCard`, `makeReferenceNotes`, `makeStrainRecord`, `mergeArchiveMatches`, `openSettings`, `outerCity`, `outerWall`, `outerWards`, `parseArchiveCsv`, `productLabel`, `queueStrainArchiveSearch`, `recordStrainSession`, `referenceForStrain`, and 23 more.
+- 1.08 MB (+1,018 bytes on r85).
+- No functions added or removed.
 
 ### Play it
 

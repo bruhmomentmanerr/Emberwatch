@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r85 one city</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r86 streets on earth</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4822,9 +4822,10 @@ const TX={ground:makeTex(0x27301d,{pattern:'ground',density:.06,jitter:10,repeat
   wall:makeTex(0x706556,{pattern:'stone',density:.04,jitter:12}),wall2:makeTex(0x5d596b,{pattern:'stone',density:.04,jitter:12}),
   brick:makeTex(0x6a4239,{pattern:'brick',density:.03,jitter:10}),roof:makeTex(0x67343b,{pattern:'roof',density:.03,jitter:10}),
   slate:makeTex(0x3d4057,{pattern:'slate',density:.03,jitter:10}),stone:makeTex(0x5c5865,{pattern:'stone',density:.03,jitter:11}),
-  cobble:makeTex(0x48424d,{pattern:'cobble',density:.025,jitter:8}),city:makeTex(0x24232b,{pattern:'cobble',density:.018,jitter:6}),wood:makeTex(0x4d3824,{pattern:'wood',density:.03,jitter:10}),cloth:makeTex(0x633e55,{pattern:'cloth',density:.03,jitter:8}),dark:makeTex(0x1b1922,{density:.03,jitter:7})};
+  cobble:makeTex(0x48424d,{pattern:'cobble',density:.025,jitter:8}),city:makeTex(0x24232b,{pattern:'cobble',density:.018,jitter:6}),
+  dirt:makeTex(0x3a3128,{pattern:'ground',density:.05,jitter:9,repeat:[26,26]}),wood:makeTex(0x4d3824,{pattern:'wood',density:.03,jitter:10}),cloth:makeTex(0x633e55,{pattern:'cloth',density:.03,jitter:8}),dark:makeTex(0x1b1922,{density:.03,jitter:7})};
 const MATS={ wall:sm(TX.wall), wall2:sm(TX.wall2), brick:sm(TX.brick), roof:sm(TX.roof), slate:sm(TX.slate), stone:sm(TX.stone),
-  cobble:sm(TX.cobble), city:sm(TX.city), wood:sm(TX.wood), cloth:sm(TX.cloth), dark:sm(TX.dark), foliage:new THREE.MeshStandardMaterial({color:0x3f7140,roughness:1,flatShading:true}), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
+  cobble:sm(TX.cobble), city:sm(TX.city), dirt:sm(TX.dirt), wood:sm(TX.wood), cloth:sm(TX.cloth), dark:sm(TX.dark), foliage:new THREE.MeshStandardMaterial({color:0x3f7140,roughness:1,flatShading:true}), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
 // Hundreds of road rectangles meet at the same elevation. World-coordinate
 // paving UVs keep their pattern aligned; a slight polygon offset prevents the
 // shared edges from flickering while the roads remain a solid depth surface.
@@ -4925,9 +4926,13 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(M,M).rotateX(-Math.PI/2), sm
 // just above it) makes the paved layer win everywhere without moving anything.
 ground.material.polygonOffset=true; ground.material.polygonOffsetFactor=2; ground.material.polygonOffsetUnits=4;
 function cityFloor(){
-  // The city is continuous hardscape: there should never be a green void
-  // between districts and the wall. Main roads sit just above this pavement.
-  const geometry=tileFlatUV(new THREE.CircleGeometry(OUTER_CITY_R-3,160).rotateX(-Math.PI/2),7);const floor=new THREE.Mesh(geometry,MATS.city); floor.position.y=.012; floor.receiveShadow=true; scene.add(floor);
+  // Packed earth, not pavement. The city used to be continuous hardscape in a
+  // cobble texture one shade off the roads, so every street dissolved into the
+  // ground beside it and the whole place read as one enormous paved yard with
+  // buildings standing on it. Paving now means a street; everything else is
+  // dirt, which is also what a medieval city between its streets actually was.
+  const geometry=tileFlatUV(new THREE.CircleGeometry(OUTER_CITY_R-3,160).rotateX(-Math.PI/2),7);
+  const floor=new THREE.Mesh(geometry,MATS.dirt); floor.position.y=.012; floor.receiveShadow=true; scene.add(floor);
 }
 function groundH(){ return 0; }
 
@@ -5323,7 +5328,11 @@ const KERB_QUEUE=[];
 // stone at z=+-205 and simply stop against it. Several infill roads do the same.
 // A gate is a road crossing a wall on purpose; everything else is a road that
 // should have stopped short of it.
-const WALL_RINGS=[{r:CITY_RADIUS,gates:MID_GATE_DEG},{r:OUTER_CITY_R,gates:OUTER_GATE_DEG}];
+// One wall. OUTER_CITY_R is no longer a second ring of masonry, just a marker
+// a little past the city edge — but it was still listed here with the old
+// outer-gate bearings, so the layer clipped a four unit hole out of every
+// gate approach at radius 254 for failing to be an outer gate.
+const WALL_RINGS=[{r:CITY_RADIUS,gates:MID_GATE_DEG}];
 function throughWall(x,z){
   const rad=Math.hypot(x,z);
   const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
@@ -6048,9 +6057,13 @@ function wilderness(){
   // inside outerWards. They belong to the city, not to the greater city that
   // no longer exists, so they moved here rather than dying with it.
   useWorldStream('ring-road'); ringRoad(MID_WALL_R+20,7);
-  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180;
-    layRoad(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),
-            Math.cos(a)*(MID_WALL_R+46),Math.sin(a)*(MID_WALL_R+46),10,0,true); });
+  // Recorded as they are laid so auditGateApproaches keeps working. It used to
+  // watch the outer gates of a wall that no longer exists, and was quietly
+  // reporting on an empty list.
+  GATE_AVENUES.length=0;
+  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, r0=MID_WALL_R-14, r1=MID_WALL_R+46;
+    layRoad(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(a)*r1,Math.sin(a)*r1,10,0,true);
+    GATE_AVENUES.push({deg:g,r0,r1}); });
   useWorldStream('wild-ring');   ruinedRing(CITY_RADIUS+72);
   useWorldStream('wild-stones'); stones(232,232);
   useWorldStream('wild-pond');   pond(-238,224);
@@ -6173,7 +6186,10 @@ function auditGateApproaches(force){
   const results=GATE_AVENUES.map(av=>{
     const a=av.deg*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
     let paved=0,total=0,longest=0,gap=0;
-    for(let r=av.r0;r<=OUTER_CITY_R+20;r+=2){ total++;
+    // Sampled inside the ends rather than exactly on them: a road's first and
+    // last sample sit on its endpoint, which reads as unpaved and reported a
+    // healthy gate as 92% paved.
+    for(let r=av.r0+3;r<=av.r1-3;r+=2){ total++;
       if(onRoad(ca*r,sa*r)){paved++;gap=0;} else {gap+=2;if(gap>longest)longest=gap;} }
     return {deg:av.deg,paved:total?+(paved/total).toFixed(3):0,longestGap:longest};
   });
@@ -8423,7 +8439,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r85',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r86',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
