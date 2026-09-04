@@ -97,7 +97,7 @@
   #gameTitle .t,#loader .g{font-family:Georgia,'Times New Roman',serif;letter-spacing:7px;color:var(--vaneth-pale);text-shadow:0 2px 0 #070607,0 0 18px rgba(116,159,192,.22)}
   #gameTitle .u{color:#b5a78b}.btn,#gear,#puffBtn,#strainBtn{border-color:rgba(157,139,107,.52);background:linear-gradient(145deg,rgba(40,37,34,.94),rgba(14,13,14,.93));color:#e4dac6;box-shadow:inset 0 1px rgba(255,255,255,.07),0 5px 20px rgba(0,0,0,.46)}
   #gear:hover,#puffBtn:hover,#strainBtn:hover,.btn:hover{background:linear-gradient(145deg,rgba(68,58,48,.96),rgba(24,21,20,.97));border-color:rgba(206,174,119,.68)}
-  #settings,#puffPanel,#strainPanel,#dialoguePanel,#chroniclePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
+  #settings,#puffPanel,#strainPanel,#dialoguePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
   #settings,#puffPanel,#strainPanel{width:min(340px,calc(100vw - 24px))}#settings{width:min(306px,calc(100vw - 24px));padding-top:36px}.panel-close{position:absolute;right:10px;top:9px;width:25px;height:25px;border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;cursor:pointer;font-size:15px;line-height:1}.pbtn:disabled,.ppreset:disabled{opacity:.48;cursor:wait;transform:none;filter:saturate(.5)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(213,181,115,.92);outline-offset:2px}
   #settings h4,.puff-section,.strain-label,#dialogueTopic{font-family:Georgia,'Times New Roman',serif;color:#cdb58a;letter-spacing:1.45px}
   #puffHead,#strainHead,#dialogueHead{background:linear-gradient(90deg,rgba(30,29,28,.98),rgba(55,45,37,.98),rgba(23,22,21,.98));border-bottom-color:rgba(172,143,96,.37);color:var(--vaneth-pale);font-family:Georgia,'Times New Roman',serif}
@@ -107,7 +107,6 @@
   #wayfinder{position:fixed;top:18px;left:18px;z-index:14;width:min(250px,calc(100vw - 36px));padding:11px 12px 10px;border:1px solid rgba(147,127,94,.65);border-radius:7px;background:linear-gradient(135deg,rgba(25,24,23,.9),rgba(9,9,10,.86));box-shadow:0 11px 32px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.07);color:var(--vaneth-pale);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:auto}
   #sessionRamble{position:fixed;left:50%;bottom:72px;z-index:15;display:none;width:min(480px,calc(100vw - 34px));transform:translateX(-50%);padding:11px 14px 12px;border:1px solid rgba(199,151,94,.62);border-radius:8px;background:linear-gradient(135deg,rgba(35,26,22,.94),rgba(12,15,14,.93));box-shadow:0 14px 36px rgba(0,0,0,.56),inset 0 1px rgba(255,245,220,.07);color:#efe0c3;pointer-events:none}.session-ramble-top{display:flex;align-items:center;gap:7px;margin-bottom:5px;color:#d4ae78;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:1.25px;text-transform:uppercase}.session-ramble-top span:last-child{margin-left:auto;color:#9bb5aa;font:10px 'Trebuchet MS',sans-serif;letter-spacing:.4px;text-transform:none}.session-ramble-line{font:13px/1.42 Georgia,'Times New Roman',serif;text-shadow:0 1px #050403}
   .wayfinder-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:1.35px;color:#cbb488}.wayfinder-top span:last-child{color:#8eb7c6;font-family:'Trebuchet MS',sans-serif;letter-spacing:.8px}.wayfinder-ward{display:block;margin-top:4px;font:700 15px Georgia,'Times New Roman',serif;color:#f0e5ca}.wayfinder-goal{display:block;margin-top:3px;color:#c6baa3;font-size:10px;line-height:1.35}.wayfinder-row{display:flex;align-items:center;gap:7px;margin-top:8px;border-top:1px solid rgba(189,161,114,.18);padding-top:7px;color:#a7c8d0;font-size:10px}.wayfinder-arrow{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1px solid rgba(117,183,207,.42);border-radius:50%;color:#9bd5e8;font-size:11px;transition:transform .18s linear}.wayfinder-open{margin-left:auto;border:0;background:transparent;color:#d7bc8a;font:700 9px Georgia,'Times New Roman',serif;letter-spacing:.8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-  #chroniclePanel{position:fixed;left:50%;top:50%;z-index:32;display:none;width:min(500px,calc(100vw - 28px));max-height:min(620px,calc(100vh - 34px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(154,127,87,.76);border-radius:7px;background:linear-gradient(110deg,rgba(33,29,25,.99),rgba(15,14,14,.995));box-shadow:0 28px 80px rgba(0,0,0,.78),inset 0 0 0 2px rgba(0,0,0,.38);color:#eadfc9}#chroniclePanel.open{display:block}.chronicle-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:9px;padding:13px 15px;background:linear-gradient(90deg,rgba(43,36,29,.99),rgba(20,19,18,.99));border-bottom:1px solid rgba(184,148,93,.34)}.chronicle-head strong{flex:1;font:700 17px Georgia,'Times New Roman',serif;letter-spacing:1px}.chronicle-head button{border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;padding:4px 8px;cursor:pointer}.chronicle-body{padding:16px}.chronicle-intro{color:#c5b79d;font-size:11px;line-height:1.5}.chronicle-section{margin:16px 0 6px;color:#cdb58a;font:700 10px Georgia,'Times New Roman',serif;letter-spacing:1.35px;text-transform:uppercase}.chronicle-list{display:grid;grid-template-columns:1fr;gap:7px}.chronicle-entry{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid rgba(180,149,102,.2);border-radius:6px;background:rgba(255,255,255,.035)}.chronicle-entry i{display:inline-flex;flex:0 0 17px;width:17px;height:17px;align-items:center;justify-content:center;border-radius:50%;border:1px solid rgba(126,213,184,.7);font-size:9px;font-style:normal;color:#c6f0d9}.chronicle-entry b{display:block;font:700 13px Georgia,'Times New Roman',serif;color:#eee1c8}.chronicle-entry small{display:block;margin-top:2px;color:#bcb097;font-size:10px;line-height:1.35}.chronicle-empty{padding:9px 0;color:#928978;font-size:10px;font-style:italic}.chronicle-foot{margin-top:14px;padding-top:11px;border-top:1px solid rgba(184,148,93,.2);color:#8faebb;font-size:10px;line-height:1.45}
   @media(max-width:620px){#wayfinder{top:10px;left:10px;width:205px;padding:8px 10px}.wayfinder-goal{display:none}.wayfinder-row{margin-top:5px;padding-top:5px}#gameTitle{top:12px;left:auto;right:11px;width:auto;text-align:right}#gameTitle .t{font-size:17px;letter-spacing:3px}#gameTitle .u{font-size:8px;letter-spacing:2px}.touch #wayfinder{top:10px;left:10px}.touch #puffBtn{left:12px;bottom:218px}.touch #strainBtn{left:12px;bottom:170px}.touch #gear{right:12px;bottom:12px}.touch #settings{right:12px;bottom:62px}.touch #puffPanel,.touch #strainPanel{left:12px;bottom:268px;max-height:calc(100vh - 286px)}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
 </style>
@@ -116,7 +115,7 @@
 <div id="app"></div>
 <div id="cross"></div>
 <div id="gameTitle"><span class="t">Emberwatch</span><span class="u">the black city of Vaneth</span></div>
-<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · C chronicle · P device · J strains · E interact</div>
+<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact</div>
 <div id="interactHint"><kbd>E</kbd><span></span></div>
 <div id="gameToast" role="status" aria-live="polite"></div>
 <aside id="sessionRamble" aria-hidden="true" aria-label="Shared smoke session">
@@ -124,13 +123,9 @@
   <div id="sessionRambleLine" class="session-ramble-line"></div>
 </aside>
 <aside id="wayfinder" aria-live="off" aria-label="Current district">
-  <div class="wayfinder-top"><span>VANETH</span><button id="chronicleBtn" class="wayfinder-open" type="button">chronicle · C</button></div>
+  <div class="wayfinder-top"><span>VANETH</span></div>
   <b id="wayfinderWard" class="wayfinder-ward">Outer Gate</b>
 </aside>
-<section id="chroniclePanel" role="dialog" aria-modal="true" aria-labelledby="chronicleTitle" aria-hidden="true">
-  <div class="chronicle-head"><span>✧</span><strong id="chronicleTitle">The Vaneth Chronicle</strong><button id="chronicleClose" type="button" aria-label="Close chronicle">×</button></div>
-  <div class="chronicle-body"><p class="chronicle-intro">A private record of the places, people, and small details that have become part of your Vaneth. It is memory, not a list of obligations.</p><div id="chronicleEntries"></div><p class="chronicle-foot">Nothing here needs completing. The chronicle grows when you wander, enter a room, speak with someone, or pause at something worth noticing.</p></div>
-</section>
 <section id="dialoguePanel" role="dialog" aria-modal="true" aria-labelledby="dialogueName" aria-describedby="dialogueLines" aria-hidden="true">
   <div id="dialogueHead"><span class="rune">✦</span><div class="who"><strong id="dialogueName">A resident of Vaneth</strong><small id="dialoguePlace">Vaneth</small></div><button id="dialogueClose" type="button" aria-label="End conversation">×</button></div>
   <div id="dialogueBody"><div id="dialogueTopic">A quiet conversation</div><div id="dialogueLines" aria-live="polite" aria-atomic="true"></div><div id="dialogueChoices"></div></div>
@@ -187,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r84 rooms, walls &amp; crowds</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r85 one city</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4738,7 +4733,7 @@ if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.<br>Open this fi
 try {
 
 const CONFIG = {
-  mapSize: 1500, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
+  mapSize: 900, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
   eyeHeight: 1.7, playerRadius: 0.5, mouseSens: 0.0022, fov: 75,
   fogDensity: 0.007, renderScale: 0.45,
   colors: { nightFog:0x140b22, nightGround:0x161320, nightHemi:0x5a4bd6, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
@@ -4911,7 +4906,10 @@ const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 // Vaneth is now concentric: the authored city keeps its original coordinates and
 // becomes the inner two rings, and a much larger outer city wraps it. Gates are
 // deliberately offset between rings so there is no straight run to the centre.
-const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=560, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
+// OUTER_CITY_R used to be a second wall at 560 with a ward ring between. It is
+// now just past the city wall, so anything still measuring against it (ward
+// naming, the wall-aware road layer, the tree line) reads the real edge.
+const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=CITY_RADIUS+14, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
 const OUTER_GATE_DEG=[45,135,225,315], MID_GATE_DEG=[0,90,180,270];
 // The gate approaches are wider than a ward street so the hierarchy reads from
 // the gate, and sit fractionally proud of ward paving so the side streets they
@@ -5044,8 +5042,6 @@ function ruins(cx,cz){ for(let i=0;i<10;i++){ const x=cx+rand(-16,16),z=cz+rand(
 function pond(cx,cz){ const w=new THREE.Mesh(new THREE.CircleGeometry(13,36).rotateX(-Math.PI/2), new THREE.MeshStandardMaterial({color:0x16324f,emissive:0x0c2440,emissiveIntensity:0.4,transparent:true,opacity:0.85,roughness:0.3})); w.position.set(cx,0.08,cz); scene.add(w);
   for(let i=0;i<24;i++){ const a=rand(0,6.28),r=rand(13,15),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r; aCyl(0.05,0.08,rand(1,2),4,x,0.8,z,'wood'); } }
 function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
-function forestRing(){ for(let i=0;i<240;i++){ const a=rand(0,6.28),r=rand(CITY_RADIUS+9,M*0.47),x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(2,3.4);
-  aCyl(0.14,0.24,h,5,x,h/2,z,'wood'); for(let j=0;j<3;j++) aCone((1.1-j*0.28),(1-j*0.15),6,x,h*0.55+j*0.7,z,'slate'); if(worldRandom()<0.4) addCollider(x,z,0.5); } }
 function mountains(){ for(let i=0;i<14;i++){ let a=i/14*6.28+0.3; const r=M*0.45; let x=Math.cos(a)*r,z=Math.sin(a)*r; const h=rand(40,78),mr=rand(30,50);
   // The gate tracks now run out through this ring to the wilderness landmarks,
   // and two of the four ran straight into a cone — the road ended in a
@@ -5138,16 +5134,24 @@ function interiorRack(x,z,ry){
   addBoxCollider(x,z,1.9,.34,ry); }
 function interiorChest(x,z,ry){
   aBox(1.1,.58,.62,x,.29,z,'wood',ry); aBox(1.14,.16,.66,x,.64,z,'dark',ry);
-  aBox(.2,.16,.1,x,.5,z+.34,'amber',ry); addBoxCollider(x,z,1.1,.62,ry); }
+  // The lock has to travel round with the chest. Offsetting it in world z
+  // meant that on a wall chest, which is rotated a quarter turn, the lock
+  // floated off the side instead of sitting on the front.
+  aBox(.2,.16,.1,x+Math.sin(ry)*.34,.5,z+Math.cos(ry)*.34,'amber',ry);
+  addBoxCollider(x,z,1.1,.62,ry); }
 function interiorCask(x,z){ aCyl(.46,.5,1.05,8,x,.53,z,'wood'); aCyl(.3,.3,.08,8,x,1.07,z,'dark'); addCollider(x,z,.56); }
 function interiorTrestle(x,z,len,ry){
   aBox(len,.16,1.25,x,.86,z,'wood',ry);
   for(const side of[-1,1]) aBox(.24,.84,1.05,x+Math.cos(ry)*side*(len*.42),.42,z-Math.sin(ry)*side*(len*.42),'wood',ry);
   addBoxCollider(x,z,len,1.25,ry); }
-function interiorThrone(x,z,ry){
-  aBox(1.5,.5,1.3,x,.25,z,'stone',ry); aBox(1.3,1.9,.3,x-Math.sin(ry)*.5,1.35,z-Math.cos(ry)*.5,'wood',ry);
-  aBox(1.35,.18,1.1,x,.58,z,'cloth',ry);
-  for(const side of[-1,1]) aBox(.2,1.1,.2,x+Math.cos(ry)*side*.65,.9,z-Math.sin(ry)*side*.65,'wood',ry);
+// `base` lifts the whole seat onto whatever it stands on. Without it the
+// throne was placed at floor level on top of a 0.6-high dais, so its seat sat
+// below the stone and only the arms and back showed above it.
+function interiorThrone(x,z,ry,base=0){
+  aBox(1.5,.5,1.3,x,base+.25,z,'stone',ry);
+  aBox(1.3,1.9,.3,x-Math.sin(ry)*.5,base+1.35,z-Math.cos(ry)*.5,'wood',ry);
+  aBox(1.35,.18,1.1,x,base+.58,z,'cloth',ry);
+  for(const side of[-1,1]) aBox(.2,1.1,.2,x+Math.cos(ry)*side*.65,base+.9,z-Math.sin(ry)*side*.65,'wood',ry);
   addBoxCollider(x,z,1.5,1.3,ry); }
 
 function dressInterior(name,x,z,w,d,kind){
@@ -5181,7 +5185,9 @@ function dressInterior(name,x,z,w,d,kind){
       placed+=put(interiorTrestle,px,z+1.2,.3,len,Math.PI/2);
     }
     // The throne belongs on the dais, so it is placed rather than tested.
-    interiorThrone(x,z-hd+3.4,Math.PI); placed++;
+    // ry=0 faces +z, which is where the door is. It was Math.PI, that is,
+    // turned to face the back wall. Lifted 0.6 to stand on the dais.
+    interiorThrone(x,z-hd+3.4,0,.6); placed++;
     for(const side of[-1,1]){
       placed+=put(interiorCask,x+side*(hw-1),z+hd-5.5,.45);
       placed+=put(interiorRack,x+side*(hw-.9),z-2.5,.45,Math.PI/2);
@@ -5972,7 +5978,7 @@ function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
 // so the forest does not meet the fields along a line someone obviously drew.
 function forestEdgeAt(a){ return OUTER_CITY_R+34+Math.sin(a*3.1)*15+Math.sin(a*7.3+1.7)*9; }
 function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.49;
-  while(trees.length<5200&&tries++<90000){
+  while(trees.length<4200&&tries++<90000){
   const a=rand(0,Math.PI*2),edge=forestEdgeAt(a);
   // Sample the band around this bearing's own edge rather than the whole map.
   // A power-skew toward `lo` was tried first and made it worse: it starved the
@@ -5992,7 +5998,69 @@ function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.
   // full-grown trees that were simply cut off at a radius.
   const maturity=Math.max(.55,Math.min(1,depth/70));
   trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
-function outerCity(){useWorldStream('outer-graveyard');graveyard(-660,-400);useWorldStream('outer-ruins');ruins(660,-386);useWorldStream('outer-pond');pond(-664,400);useWorldStream('outer-stones');stones(662,392);useWorldStream('outer-forest');denseForest();useWorldStream('outer-mountains');mountains();}
+// What is left outside the wall. The old greater city stood here and the
+// forest has taken it back; a broken ring of its wall still shows through the
+// trees, which is both a nicer thing to walk out to than an empty field and an
+// honest account of what used to be generated out there.
+function ruinedRing(radius){
+  const segments=34;
+  for(let i=0;i<segments;i++){
+    const a=(i/segments)*Math.PI*2;
+    // Two thirds of it has fallen. What stands is broken to different heights.
+    if(worldRandom()<.62)continue;
+    const x=Math.cos(a)*radius, z=Math.sin(a)*radius, h=rand(1.6,5.4), w=rand(5,13);
+    aBox(w,h,2.2,x,h/2,z,'stone',-a);
+    wallColl(x-Math.sin(-a)*w*.4,z-Math.cos(-a)*w*.4,x+Math.sin(-a)*w*.4,z+Math.cos(-a)*w*.4,1.2);
+    if(worldRandom()<.4){ const rh=rand(.4,1.1);
+      aBox(rand(1.4,3),rh,rand(1.4,3),x+Math.cos(a)*rand(-4,4),rh/2,z+Math.sin(a)*rand(-4,4),'stone',rand(0,3.1)); }
+    if(worldRandom()<.22){ const th=rand(7,11);
+      aCyl(2.1,2.6,th,7,x,th/2,z,'stone'); aCone(3.1,2.4,7,x,th+1.2,z,'slate'); addCollider(x,z,2.4); }
+  }
+}
+// Cold lights that drift between the trees. Emissive geometry on the shared
+// batch rather than real lights: forty of them would cost more than the city.
+let wispField=null;
+function wisps(){
+  const count=54, positions=new Float32Array(count*3);
+  wispField={ drift:[] };
+  for(let i=0;i<count;i++){
+    const a=rand(0,Math.PI*2), r=rand(OUTER_CITY_R+26,M*.45);
+    positions[i*3]=Math.cos(a)*r; positions[i*3+1]=rand(1.2,3.4); positions[i*3+2]=Math.sin(a)*r;
+    wispField.drift.push({ a, r, y:positions[i*3+1], speed:rand(.02,.07)*(worldRandom()<.5?-1:1), phase:rand(0,6.28) });
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  wispField.points=new THREE.Points(geometry,new THREE.PointsMaterial({
+    color:0x9fe8d6,size:.62,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending,fog:true}));
+  scene.add(wispField.points);
+}
+function updateWisps(t){
+  if(!wispField)return;
+  const position=wispField.points.geometry.attributes.position;
+  wispField.drift.forEach((w,i)=>{
+    const a=w.a+t*w.speed*.14;
+    position.setXYZ(i,Math.cos(a)*w.r,w.y+Math.sin(t*.6+w.phase)*.5,Math.sin(a)*w.r);
+  });
+  position.needsUpdate=true;
+}
+function wilderness(){
+  // The ring boulevard, the gate approaches and the kerb emit all used to live
+  // inside outerWards. They belong to the city, not to the greater city that
+  // no longer exists, so they moved here rather than dying with it.
+  useWorldStream('ring-road'); ringRoad(MID_WALL_R+20,7);
+  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180;
+    layRoad(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),
+            Math.cos(a)*(MID_WALL_R+46),Math.sin(a)*(MID_WALL_R+46),10,0,true); });
+  useWorldStream('wild-ring');   ruinedRing(CITY_RADIUS+72);
+  useWorldStream('wild-stones'); stones(232,232);
+  useWorldStream('wild-pond');   pond(-238,224);
+  useWorldStream('wild-graves'); graveyard(-228,-236);
+  useWorldStream('wild-ruins');  ruins(236,-228);
+  useWorldStream('wild-forest'); denseForest();
+  useWorldStream('wild-wisps');  wisps();
+  useWorldStream('wild-peaks');  mountains();
+  return { built:0, squares:0, yards:0 };
+}
 const ravens=[];
 // Street dressing was placed from hand-authored coordinate lists written for a
 // much smaller city, and nothing ever checked it against the road network:
@@ -6284,38 +6352,6 @@ function housePorch(x,z,w,d,ry,accent){
       aCyl(.07,.07,1.3,5,px+si*.9,.9,pz+co*.9,'wood',ry+Math.PI/2); addCollider(px,pz,.95); } }
 }
 function ringRoad(radius,width){ registerRing(radius,width); const road=new THREE.Mesh(tileFlatUV(new THREE.RingGeometry(radius-width/2,radius+width/2,120).rotateX(-Math.PI/2),6),MATS.cobble); road.position.y=.05; road.receiveShadow=true; scene.add(road); }
-function outerWall(){
-  const R=OUTER_CITY_R,H=13,seg=224;
-  // Gate opening and tower placement now come from ONE number. They used to be
-  // independent — the wall skipped 2.4° (about 23 units of arc either side at
-  // this radius) while the towers stood at a hardcoded ±7, so every gate had a
-  // 16-unit hole between each tower and the end of the wall. That is the
-  // "towers that don't connect to the gate walls".
-  const GATE_HALF_DEG=1.5, gateHalf=GATE_HALF_DEG*Math.PI/180*R;
-  const atGate=deg=>OUTER_GATE_DEG.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<GATE_HALF_DEG;});
-  for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;
-    if(atGate(deg))continue;
-    const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.4,ry=Math.atan2(x1-x0,z1-z0);
-    aBox(2.3,H,len,mx,H/2,mz,'stone',ry); aBox(2.8,1,len,mx,H+.5,mz,'stone',ry);
-    if(i%7===0){ aCyl(2.5,2.9,H+5,8,mx,(H+5)/2,mz,'stone'); aCone(3.5,3.8,8,mx,H+7,mz,'slate'); addCollider(mx,mz,2.6); }
-    wallColl(x0,z0,x1,z1,1.5); }
-  OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180,px=Math.cos(a)*R,pz=Math.sin(a)*R,tan=a+Math.PI/2;
-    // Towers stand exactly where the curtain stops, so the wall reads as
-    // continuous masonry that thickens into a gatehouse.
-    const ox=Math.cos(tan)*gateHalf,oz=Math.sin(tan)*gateHalf,ry=Math.atan2(Math.cos(tan),Math.sin(tan));
-    [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([tx,tz])=>{ aCyl(3.2,3.6,H+8,8,tx,(H+8)/2,tz,'stone'); aCone(4.4,4.6,8,tx,H+10,tz,'slate');
-      for(let f=0;f<8;f+=2){ const ang=(f/8)*Math.PI*2; aBox(1.1,1.3,1.1,tx+Math.cos(ang)*3.4,H+8.6,tz+Math.sin(ang)*3.4,'stone'); }
-      addCollider(tx,tz,3.3); });
-    // Masonry bridging the two towers turns the gap into an actual gateway.
-    const span=gateHalf*2;
-    aBox(2.6,H-8.5,span,px,8.5+(H-8.5)/2,pz,'stone',ry);
-    aBox(3.1,.7,span+2.4,px,H+.45,pz,'stone',ry);
-    crenelRun(px-ox,pz-oz,px+ox,pz+oz,H+.8,3.0);
-    for(let i=-2;i<=2;i++){ const t=i/2.4; aBox(1.0,.85,1.4,px+ox*t+Math.cos(a)*1.3,8.1,pz+oz*t+Math.sin(a)*1.3,'stone',ry); }
-    for(let i=-3;i<=3;i++){ const t=i/3.4; aBox(.18,1.5,.18,px+ox*t,7.3,pz+oz*t,'dark'); }
-    aBox(2.6,.26,.8,px,H-1.1,pz+0,'amber',ry);
-    torch(px+ox*.62,pz+oz*.62,0xffa64d,1.9,20); torch(px-ox*.62,pz-oz*.62,0xffa64d,1.9,20); });
-}
 // ============================================================
 //  ORGANIC WARDS
 //  The outer city used to be a polar lattice: buildings on concentric rings at
@@ -6351,203 +6387,6 @@ function frontageClear(x,z,w,d,ry){
     if(colliderBlocked(x+co*a+si*b, z-si*a+co*b, .8))return false;
   }
   return true;
-}
-function outerWards(){
-  // STREET/VERGE replace r67's 7.5 road + 4.2 bare verge. That gave 15.9 units
-  // of open ground between facing house fronts against ~8-unit-wide houses, so
-  // the "streets" read as an airfield with buildings parked round the edge. A
-  // street is made by enclosure: the carriageway is now 6.6 with a 2.3 kerb
-  // either side, which is just wide enough to hold the porch clutter (the
-  // handcart reaches d*.5+1.5 plus its own radius) without it spilling into
-  // the road. Front-to-front drops 15.9 -> 11.2.
-  const BLOCK=58, STREET=5.8, VERGE=1.7, FRONT=STREET*.5+VERGE, FILL=.86;
-  const palettes=[['wall','brick','wall2'],['brick','wall','stone'],['wall2','stone','wall'],['wall','wall2','brick']];
-  // Per-node hash rather than the sequential stream: a cell's shape must not
-  // depend on how many cells were generated before it.
-  const nodeRand=(i,j,salt)=>{ let h=(WORLD_SEED^Math.imul(i|0,374761393)^Math.imul(j|0,668265263)^Math.imul(salt,1274126177))>>>0;
-    h=Math.imul(h^(h>>>13),1274126177)>>>0; return ((h^(h>>>16))>>>0)/4294967296; };
-  // The old 40% displacement made neighboring streets lurch by more than a
-  // house width. It looked less like an old city than a broken road mesh.
-  // Eighteen percent keeps irregular blocks and imperfect sight-lines while
-  // preserving a legible street hierarchy and square-ish intersections.
-  const warp=(i,j)=>[i*BLOCK+(nodeRand(i,j,1)-.5)*BLOCK*.18, j*BLOCK+(nodeRand(i,j,2)-.5)*BLOCK*.18];
-  const clearOfGates=(x,z)=>{
-    const deg=(Math.atan2(z,x)*180/Math.PI+360)%360, r=Math.hypot(x,z);
-    const near=(list,width)=>list.some(g=>{let dd=Math.abs(deg-g);dd=Math.min(dd,360-dd);return dd<width/Math.max(1,r/57.3);});
-    return !near(OUTER_GATE_DEG,17)&&!near(MID_GATE_DEG,15);
-  };
-  const cellOf=(i,j)=>{ const c00=warp(i,j),c10=warp(i+1,j),c11=warp(i+1,j+1),c01=warp(i,j+1);
-    return {c:[c00,c10,c11,c01], x:(c00[0]+c10[0]+c11[0]+c01[0])/4, z:(c00[1]+c10[1]+c11[1]+c01[1])/4}; };
-
-  // ---- pass 1: which blocks exist ----------------------------------------
-  const span=Math.ceil(OUTER_WARD_R1/BLOCK)+1, live=[];
-  for(let i=-span;i<=span;i++)for(let j=-span;j<=span;j++){
-    const q=cellOf(i,j), r=Math.hypot(q.x,q.z);
-    if(r<OUTER_WARD_R0||r>OUTER_WARD_R1)continue;
-    if(!clearOfGates(q.x,q.z))continue;
-    live.push({i,j,q});
-  }
-
-  // ---- pass 2: pave every edge that borders a block -----------------------
-  // r67 paved only each cell's north and west edge, on the assumption that
-  // "neighbours supply the other two". That assumption fails wherever the
-  // neighbour does not exist — the inner and outer rim of the ward ring, and
-  // the gate exclusion wedges — and it failed silently, because the houses
-  // were still built facing a street that was never drawn. Measured on r67:
-  // 42 of 244 junctions were dead ends and only 68% of blocks were enclosed
-  // by paving. Keying the edge itself and paving it from either side fixes
-  // both without drawing anything twice.
-  const paved=new Set(), nodes=new Set();
-  const pave=(t,i,j)=>{ const k=t+i+','+j; if(paved.has(k))return; paved.add(k);
-    const A=warp(i,j), B=(t==='H')?warp(i+1,j):warp(i,j+1);
-    // Through layRoad, not roadBetween: the ward grid runs out to radius 562
-    // in places and the outer wall is at 560, so these were the largest single
-    // source of streets ending in masonry.
-    layRoad(A[0],A[1],B[0],B[1],STREET,0,true);
-    nodes.add(i+','+j); nodes.add(t==='H'?(i+1)+','+j:i+','+(j+1)); };
-  for(const c of live){ pave('H',c.i,c.j); pave('H',c.i,c.j+1); pave('V',c.i,c.j); pave('V',c.i+1,c.j); }
-  // Segments are rectangles butted end to end, so where two meet at anything
-  // other than a straight line the outside of the turn is left as a notch of
-  // bare ground. A disc at each node fills the corner and makes a junction
-  // read as a junction. Goes through the merge batcher, not its own mesh.
-  for(const k of nodes){ const ij=k.split(','), p=warp(+ij[0],+ij[1]);
-    aCyl(STREET*.66,STREET*.66,.16,10,p[0],.07,p[1],'cobble'); }
-
-  // The ring boulevard and the gate approaches used to be drawn at the very
-  // end of this function, i.e. after the houses. Roads carry no colliders, so
-  // nothing stopped a terrace being built across a road that did not exist
-  // yet — and once ROAD_RECTS existed it showed up as buildings standing on
-  // the carriageway. Every road now goes down before anything is built on it.
-  ringRoad(MID_WALL_R+20,7);
-  MID_GATE_DEG.forEach(g=>{const a=g*Math.PI/180;roadBetween(Math.cos(a)*(MID_WALL_R-14),Math.sin(a)*(MID_WALL_R-14),Math.cos(a)*(MID_WALL_R+40),Math.sin(a)*(MID_WALL_R+40),10,0,true);});
-  // r74 paved each outer gate for 60 units and stopped. Pass 2 draws streets
-  // from surviving blocks and clearOfGates deletes the blocks along the
-  // approach, so deleting them deleted the street with them — measured on r74
-  // the four gate bearings were 18-21% paved between the outer wall and the
-  // ring boulevard, against 77-89% on the mid-gate bearings. You walked in
-  // through the gate you spawn at and the road ran out under your feet. Each
-  // approach is now one avenue from the boulevard to open ground beyond the
-  // wall, laid before pass 3 so the terraces keep off it.
-  GATE_AVENUES.length=0;
-  OUTER_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
-    const r0=MID_WALL_R+14, r1=OUTER_CITY_R+26;
-    roadBetween(ca*r0,sa*r0,ca*r1,sa*r1,AVENUE,AVENUE_LIFT,true);
-    GATE_AVENUES.push({deg:g,r0,r1});
-    // A 34-unit gate corridor with an 11-unit road down it is still a field
-    // with a stripe on it. Lamp posts down both verges give the avenue edges
-    // and turn it into something you can follow from the gate. The heads use
-    // the emissive amber material, so an unlit post still reads as a light at
-    // distance; only the pair standing inside the gate carries a PointLight,
-    // because 96 more of those would cost more than the whole ward.
-    for(let r=r0+13;r<r1-9;r+=27){ const off=AVENUE*.5+2.0;
-      for(const side of[-1,1]){ const px=ca*r-sa*side*off, pz=sa*r+ca*side*off;
-        if(colliderBlocked(px,pz,.9)||onRoad(px,pz,.4))continue;
-        cityLantern(px,pz,Math.abs(r-(OUTER_CITY_R-18))<15); } } });
-
-  // The avenue stopped 26 units past the wall, in a field. With the forest now
-  // held off the paving that stop became a clean rectangle of nothing, which
-  // is worse than the ragged version — a road only reads as a road if it is
-  // going somewhere. Every wilderness landmark already sits roughly off one
-  // gate bearing, so each avenue now leaves as a country track that narrows as
-  // it goes, 9.5 at the wall down to 4.4, and bends to the landmark on its
-  // bearing. denseForest and plantLife both test onRoad and both run after
-  // outerWards, so the trees part for the track without being told to.
-  const GATE_DESTINATIONS=[[662,392],[-664,400],[-660,-400],[660,-386]];  // stones, pond, graveyard, ruins
-  OUTER_GATE_DEG.forEach((g,gi)=>{ const a=g*Math.PI/180, ca=Math.cos(a), sa=Math.sin(a);
-    const sx=ca*(OUTER_CITY_R+26), sz=sa*(OUTER_CITY_R+26);              // where the avenue ends
-    const bx=ca*(OUTER_CITY_R+96), bz=sa*(OUTER_CITY_R+96);              // leave the gate straight first
-    const dest=GATE_DESTINATIONS[gi], dr=Math.hypot(dest[0],dest[1]);
-    const ex=dest[0]/dr*(dr-36), ez=dest[1]/dr*(dr-36);                  // stop short of the landmark
-    const N=7; let px=sx, pz=sz;
-    for(let k=1;k<=N;k++){ const t=k/N, u=1-t;
-      const qx=u*u*sx+2*u*t*bx+t*t*ex, qz=u*u*sz+2*u*t*bz+t*t*ez;
-      const w=9.5+(4.4-9.5)*(t-1/N)/(1-1/N);
-      // Butted rectangles of differing width leave a notch on the outside of
-      // every bend, the same failure pass 2 fixes at its junctions. Same cure.
-      aCyl(w*.62,w*.62,.16,10,px,.07+AVENUE_LIFT,pz,'cobble');
-      roadBetween(px,pz,qx,qz,w,AVENUE_LIFT);
-      px=qx; pz=qz; }
-    aCyl(3.6,3.6,.16,10,px,.07+AVENUE_LIFT,pz,'cobble'); });                // arrival, not a cut end
-
-  // Every carriageway in the greater city is now registered, so the kerbs can
-  // finally be laid knowing what they must stop short of.
-  emitKerbs();
-
-  // ---- pass 3: block contents --------------------------------------------
-  let built=0,squares=0,landmarks=0,yards=0;
-  for(const cell of live){
-    const i=cell.i, j=cell.j, cx=cell.q.x, cz=cell.q.z, corners=cell.q.c;
-    const roll=nodeRand(i,j,3),sector=Math.floor(((Math.atan2(cz,cx)+Math.PI)/(Math.PI*2))*4)%4;
-    if(roll<.11){ // a square: the thing that makes a quarter recognisable
-      squares++;
-      const plaza=new THREE.Mesh(tileFlatUV(new THREE.CircleGeometry(BLOCK*.30,28).rotateX(-Math.PI/2),6,cx,cz),MATS.cobble);
-      plaza.position.set(cx,.07,cz); plaza.receiveShadow=true; scene.add(plaza);
-      // Each outer quarter keeps its own civic landmark. Repeated generic wells
-      // made a huge city feel like one copied block no matter how dense it was.
-      if(sector===0){aCyl(1.45,1.7,.85,10,cx,.43,cz,'stone');aCyl(.16,.22,4.4,8,cx,2.65,cz,'stone');aBox(1.15,1.15,1.15,cx,5.0,cz,'arcane',Math.PI/4);addCollider(cx,cz,1.7);}
-      else if(sector===1){aCyl(.42,.58,5.6,7,cx,2.8,cz,'wood');aCone(3.3,4.2,7,cx,6.1,cz,'foliage');aCone(2.4,3.1,7,cx,8.4,cz,'foliage');addCollider(cx,cz,.8);}
-      else if(sector===2){aCyl(1.5,1.8,1.25,10,cx,.63,cz,'brick');aBox(1.1,.32,1.1,cx,1.38,cz,'amber');for(const side of[-1,1])aCyl(.09,.12,3.2,5,cx+side*2.3,1.6,cz,'wood');addCollider(cx,cz,1.8);}
-      else{aCyl(1.5,1.7,1.2,10,cx,.6,cz,'stone');aCyl(1.2,1.2,.25,10,cx,1.25,cz,'dark');aCone(2.2,1.5,6,cx,3.1,cz,'slate');addCollider(cx,cz,1.7);}
-      for(let s=0;s<4;s++){ const a=s/4*Math.PI*2+roll*6.28,px=cx+Math.cos(a)*BLOCK*.22,pz=cz+Math.sin(a)*BLOCK*.22;
-        // A square's paving is not a carriageway, but the streets that bound it
-        // are, and a stall pitched across one blocks the whole lane.
-        if(colliderBlocked(px,pz,1.6)||onRoad(px,pz,1.5))continue;
-        aBox(3.0,.26,2.0,px,2.25,pz,'cloth',a); for(const t of[-1,1])aCyl(.09,.09,2.2,5,px+Math.cos(a+Math.PI/2)*t*1.3,1.1,pz+Math.sin(a+Math.PI/2)*t*1.3,'wood');
-        aBox(2.4,.7,1.3,px,.35,pz,'wood',a); addCollider(px,pz,1.3); }
-      cityLantern(cx+BLOCK*.24,cz,true); cityLantern(cx-BLOCK*.24,cz,true);
-      continue;
-    }
-    const palette=palettes[sector];
-    if(roll>.93){ // a landmark tower, visible over the rooftops for orientation
-      landmarks++; spire(cx,cz,17+nodeRand(i,j,5)*9);
-    }
-    // Terraced frontage down the inside of each edge.
-    for(let e=0;e<4;e++){
-      const A=corners[e],B=corners[(e+1)%4];
-      const len=Math.hypot(B[0]-A[0],B[1]-A[1]); if(len<12)continue;
-      const ux=(B[0]-A[0])/len,uz=(B[1]-A[1])/len;
-      // r67 took the inward direction from the edge midpoint to the block
-      // centroid, which on a warped quad is not perpendicular to the edge.
-      // The houses inherited that error twice over: the setback varied with
-      // the skew, and atan2 of the same vector left each house off-parallel
-      // to the street it fronts by a median 8 degrees and up to 35. Rows of
-      // houses each cocked at a slightly different angle is most of why the
-      // wards looked wrong. Use the edge's own normal; the centroid picks the
-      // sign and nothing else.
-      let nx=-uz,nz=ux;
-      if(nx*(cx-A[0])+nz*(cz-A[1])<0){ nx=-nx; nz=-nz; }
-      const ry=Math.atan2(-nx,-nz);                                            // square to the street
-      let t=3.0;
-      while(t<len-3.0){
-        const w=7.2+nodeRand(i*97+e,Math.round(t),6)*2.6;
-        if(t+w>len-3.0)break;
-        const depth=6.6+nodeRand(i*11+e,Math.round(t),12)*2.0;
-        // FRONT is the clear gap from the street's centre line to the façade,
-        // so the house centre has to sit half its own depth beyond that. r67
-        // offset the centre by one flat INSET instead, which put the façade of
-        // a 7.6-deep house 1.8 units from the centre line — the terrace was
-        // standing in the carriageway, not beside it, and what looked like a
-        // wide empty road was the road plus both pavements plus the houses.
-        const off=FRONT+depth*.5;
-        const px=A[0]+ux*(t+w/2)+nx*off, pz=A[1]+uz*(t+w/2)+nz*off;
-        // Roads carry no colliders, so frontageClear cannot see them; without
-        // the explicit test a terrace runs straight over the gate approaches
-        // and the ring boulevard where they cut through a block.
-        if(nodeRand(i*31+e,Math.round(t),7)<FILL && Math.hypot(px,pz)<OUTER_WARD_R1
-           && !onRoad(px,pz,Math.max(w,depth)*.5+.6) && frontageClear(px,pz,w,depth,ry)){
-          const stories=1+(nodeRand(i*13+e,Math.round(t),8)<.45?1:0)+(nodeRand(i*7+e,Math.round(t),9)<.13?1:0);
-          const key=palette[Math.floor(nodeRand(i*5+e,Math.round(t),10)*palette.length)%palette.length];
-          const accent=nodeRand(i*3+e,Math.round(t),11)<.18?'arcane':'amber';
-          wardHouse(px,pz,w,depth,stories,key,ry,accent);
-          housePorch(px,pz,w,depth,ry,accent);
-          built++;
-          t+=w+0.35;                                    // terraced: near-touching
-        } else t+=w*.42;                                // a yard or side alley
-      }
-    }
-    yards+=blockYard(cx,cz,BLOCK,s=>nodeRand(i,j,20+s));
-  }
-  return {built,squares,landmarks,yards};
 }
 // A large block with ~12 units of frontage round the rim leaves a broad
 // void down the middle. On bare city hardscape that reads as a car park seen
@@ -6775,11 +6614,20 @@ LMSG.textContent='raising the citadel…'; useWorldStream('citadel');citadel();
 LMSG.textContent='building the districts…'; useWorldStream('districts');plannedDistricts();useWorldStream('market');marketDistrict();
 LMSG.textContent='opening the wall houses…'; useWorldStream('perimeter-wards');perimeterWards();
 LMSG.textContent='fortifying the city…'; useWorldStream('city-wall');citadelWall();
-LMSG.textContent='raising the greater city…'; useWorldStream('outer-wards');const outerBuilt=outerWards();
-LMSG.textContent='closing the outer wall…'; useWorldStream('outer-wall');outerWall();
-LMSG.textContent='sowing the outer wards…'; outerCity();
+// The greater city is gone. outerWards() laid 2,460 buildings on a warped
+// grid out to radius 540, and almost every placement fault this project spent
+// revisions chasing — roads through walls, buildings in lanes, props on the
+// carriageway, streets that read as noise — came from geometry generated out
+// there with no knowledge of what the authored passes had already built.
+// Vaneth is now one walled city inside CITY_RADIUS with wilderness beyond it,
+// which is both a better place and about a quarter of the geometry.
+LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
 LMSG.textContent='breaking the long avenues…'; useWorldStream('avenue-breaks');avenueBreaks();
 LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
+// Every carriageway in the world is registered by this point, so the kerbs can
+// be laid knowing what they have to stop short of. This used to run at the end
+// of outerWards, which no longer exists.
+emitKerbs();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 // The compiler performs an early access pass, but hand-authored infill is
 // assembled afterwards and can obstruct a previously safe doorstep. Resolve
@@ -7273,10 +7121,10 @@ useWorldStream('outer-residents');
   // part of why the paths read as wrong. Put them on the actual carriageways
   // instead. The wards are 4.1x the inner city's area but held about a third of
   // its population density, so the count rises with the placement fix.
-  const wanted=150;
+  const wanted=104;
   const lanes=ROAD_RECTS.filter(seg=>{
     const mx=seg.x1+seg.ux*seg.len*.5, mz=seg.z1+seg.uz*seg.len*.5, r=Math.hypot(mx,mz);
-    return seg.len>22 && r>OUTER_WARD_R0-16 && r<OUTER_WARD_R1+16;
+    return seg.len>22 && r>58 && r<CITY_RADIUS-8;
   }).sort((a,b)=>b.len-a.len);          // arterials populated before alleys
   const used=new Set();
   let placed=0;
@@ -7292,6 +7140,12 @@ useWorldStream('outer-residents');
     const route=[];
     for(let k=0;k<=3;k++){ const d=a+(b-a)*(k/3); route.push([seg.x1+seg.ux*d+nx, seg.z1+seg.uz*d+nz]); }
     if(colliderBlocked(route[0][0],route[0][1],.7))continue;
+    // Residents carry no colliders, so colliderBlocked cannot see one another
+    // and two could be seated on the same stretch of lane standing inside each
+    // other from the moment the world loads. The runtime separation would push
+    // them apart eventually, but starting a city already in a pile-up is not
+    // something to leave for the physics to tidy.
+    if(villagers.some(other=>Math.hypot(other.g.position.x-route[0][0],other.g.position.z-route[0][1])<3.4))continue;
     const [hx,hz]=route[0];
     let name=OUTER_FIRST[(placed*7)%OUTER_FIRST.length]+' '+OUTER_LAST[(placed*5)%OUTER_LAST.length];
     if(used.has(name))name+=' the Younger';
@@ -7385,7 +7239,9 @@ skyDome.renderOrder=-1; skyDome.frustumCulled=false; scene.add(skyDome);
 // ============================================================
 // Arrival moved to the outer wall's north-east gate. Facing is set toward the
 // centre so the first thing you see is city, not wilderness.
-const SPAWN_A=OUTER_GATE_DEG[0]*Math.PI/180, SPAWN_R=OUTER_CITY_R+17;
+// The north gate of the city wall, looking in. Was the outer gate of a wall
+// that no longer exists.
+const SPAWN_A=90*Math.PI/180, SPAWN_R=CITY_RADIUS+26;
 // Camera forward is (-sin yaw, -cos yaw), so facing the centre from the spawn
 // point needs atan2(+X,+Z). It was negated, which spawned you looking out at
 // the wilderness with the gate behind you.
@@ -7400,27 +7256,16 @@ function canRestoreSavedPosition(save){
   return !!(save&&worldSeedFromSave(save)===WORLD_SEED&&worldLayoutFromSave(save)===WORLD_LAYOUT_VERSION&&Number.isFinite(save.x)&&Number.isFinite(save.z)&&Math.abs(save.x)<M*.47&&Math.abs(save.z)<M*.47&&!blocked(save.x,save.z));
 }
 const savedGameState=loadGameState();
-const restoreSavedPosition=canRestoreSavedPosition(savedGameState);
-if(restoreSavedPosition){
-  player.x=savedGameState.x; player.z=savedGameState.z; yaw=Number.isFinite(savedGameState.yaw)?savedGameState.yaw:yaw; pitch=Number.isFinite(savedGameState.pitch)?Math.max(-1.3,Math.min(1.3,savedGameState.pitch)):pitch;
-}
-// Screenshot/playtest hook: `?spawn=x,z,yaw` starts a temporary session at a
-// known walkable point without touching the player's save. It makes visual
-// regression checks reproducible across a city too large to automate by
-// tapping movement keys one frame at a time.
-const debugSpawn=String(new URLSearchParams(location.search).get('spawn')||'').split(',').map(Number);
-if(debugSpawn.length>=2&&debugSpawn.slice(0,2).every(Number.isFinite)&&Math.abs(debugSpawn[0])<M*.47&&Math.abs(debugSpawn[1])<M*.47&&!blocked(debugSpawn[0],debugSpawn[1])){player.x=debugSpawn[0];player.z=debugSpawn[1];if(Number.isFinite(debugSpawn[2]))yaw=debugSpawn[2];}
-const restoredInterior=restoreSavedPosition&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
+const restoredInterior=false&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
 function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,interior:activeInterior?.name||null}));}catch{}}
 let nextGameSaveAt=0;
 addEventListener('beforeunload',saveGameState);addEventListener('pagehide',saveGameState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveGameState();});
 const keys={}; function typing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.isContentEditable)); }
 addEventListener('keydown',e=>{ if(typing())return;
-  if(e.code==='Escape'){if(dialogueOpen)closeDialogue();else if(chroniclePanel.classList.contains('open'))toggleChronicle(false);else if(strainPanel.classList.contains('open'))toggleStrains(false);else if(puffPanel.classList.contains('open'))togglePuff(false);else if(settingsEl.classList.contains('open'))openSettings(false);return;}
+  if(e.code==='Escape'){if(dialogueOpen)closeDialogue();else if(strainPanel.classList.contains('open'))toggleStrains(false);else if(puffPanel.classList.contains('open'))togglePuff(false);else if(settingsEl.classList.contains('open'))openSettings(false);return;}
   if(anyOverlayOpen())return;
   if(dialogueOpen)return;
   if(e.code==='KeyM'){ e.preventDefault(); openSettings(); return; }
-  if(e.code==='KeyC'){ e.preventDefault(); toggleChronicle(); return; }
   if(e.code==='KeyP'){ e.preventDefault(); togglePuff(); return; }
   if(e.code==='KeyJ'){ e.preventDefault(); toggleStrains(); return; }
   if(e.code==='KeyE'&&!e.repeat){ shareSmoke(); return; }
@@ -7557,28 +7402,23 @@ const WARD_ATMOSPHERE={
   'Westmarch':'Foxglove water and dark pines soften the western edge of Vaneth.',
   'Southmoor':'Low fog follows the southbound tracks between scattered holdings.'
 };
-const CHRONICLE_KEY='emberwatch.vaneth-chronicle.v1';
-function loadChronicle(){try{const value=JSON.parse(localStorage.getItem(CHRONICLE_KEY)||'{}');return value&&typeof value==='object'?{places:value.places&&typeof value.places==='object'?value.places:{},people:value.people&&typeof value.people==='object'?value.people:{},observations:value.observations&&typeof value.observations==='object'?value.observations:{}}:{places:{},people:{},observations:{}};}catch{return{places:{},people:{},observations:{}};}}
-let chronicleState=loadChronicle();
-function saveChronicle(){try{localStorage.setItem(CHRONICLE_KEY,JSON.stringify(chronicleState));}catch{}}
-function chronicleRecord(section,key,title,detail){if(!chronicleState[section])chronicleState[section]={};const now=Date.now(),existing=chronicleState[section][key];chronicleState[section][key]={title:String(title||key).slice(0,80),detail:String(detail||'').slice(0,240),firstSeen:existing?.firstSeen||now,lastSeen:now,visits:Math.min(999,(Number(existing?.visits)||0)+1)};saveChronicle();if(document.getElementById('chroniclePanel')?.classList.contains('open'))renderChronicle();}
-function chronicleEntries(section){return Object.values(chronicleState[section]||{}).sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0)).slice(0,18);}
-function renderChronicle(){const root=document.getElementById('chronicleEntries');if(!root)return;root.replaceChildren();const sections=[['Places remembered','places','⌂'],['People met','people','◇'],['Things noticed','observations','✦']];for(const[label,key,rune]of sections){const heading=document.createElement('h3');heading.className='chronicle-section';heading.textContent=label;root.append(heading);const entries=chronicleEntries(key);if(!entries.length){const empty=document.createElement('p');empty.className='chronicle-empty';empty.textContent=key==='people'?'No conversations have settled into memory yet.':'The page is still quiet.';root.append(empty);continue;}const list=document.createElement('div');list.className='chronicle-list';for(const entry of entries){const article=document.createElement('article');article.className='chronicle-entry';const mark=document.createElement('i');mark.textContent=rune;const words=document.createElement('div'),title=document.createElement('b'),detail=document.createElement('small');title.textContent=entry.title;detail.textContent=entry.detail+(entry.visits>1?' · remembered '+entry.visits+' times':'');words.append(title,detail);article.append(mark,words);list.append(article);}root.append(list);}}
 const wayfinderWard=document.getElementById('wayfinderWard');
 function wardAt(x,z){
   const r=Math.hypot(x,z),deg=(Math.atan2(z,x)*180/Math.PI+360)%360;
   if(r<62)return'Citadel Ward';
   if(Math.hypot(x,z-MARKET_Z)<42)return'Cinder Market';
   if(r<MID_WALL_R){ if(z>154)return'North Ward';if(z<-154)return'South Road';if(x<-158)return'West Wall';if(x>158)return'East Wall';if(z<-54)return'Lower Vaneth';return'Old Vaneth'; }
-  if(r>OUTER_CITY_R-16)return'Outer Gate';
-  // Outer city is read by compass sector so the sprawl still tells you roughly
-  // where you are without handing you a map.
-  if(deg<45||deg>=315)return'Eastreach';
-  if(deg<135)return'Highfields';
-  if(deg<225)return'Westmarch';
-  return'Southmoor';
+  if(r<MID_WALL_R+30)return'The Gates';
+  // Beyond the wall there is no sprawl any more, only the wilds and what the
+  // old greater city left behind. Named by compass so you still know roughly
+  // where you are without being handed a map.
+  if(r<CITY_RADIUS+96)return'Underwall';
+  if(deg<45||deg>=315)return'The Eastern Wilds';
+  if(deg<135)return'The Northern Wilds';
+  if(deg<225)return'The Western Wilds';
+  return'The Southern Wilds';
 }
-function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;chronicleRecord('places','ward:'+ward,ward,WARD_ATMOSPHERE[ward]||'A part of Vaneth given shape by the walk through it.');if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
+function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
 const VANETH_CONVERSATION={
   'Market Ward':{place:'the Market Ward',city:'The market tells the truth before the council does. Watch which stallholders stop talking when a bell rings.',roots:'I stay because every road comes through here eventually. A person learns a city by listening to what it needs.'},
   'Citadel Ward':{place:'the Citadel Ward',city:'Up here, every promise echoes twice: once in the hall and once in the barracks. Keep the second echo in mind.',roots:'Someone has to remember that a wall is for sheltering people, not merely keeping people out.'},
@@ -7687,7 +7527,7 @@ function livingLeadFor(npc){const profile=livingProfile(npc);return VANETH_LANDM
 let livingDialogueReturnFocus=null;
 function writeDialogue(npc,topic,words,choices){if(!npc)return;const profile=livingProfile(npc);dialogueName.textContent=npc.name;dialoguePlace.textContent=profile.role+' · '+(npc.district||'Vaneth');dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));dialoguePanel.scrollTop=0;requestAnimationFrame(()=>dialogueChoices.querySelector('button:not(.leave)')?.focus());}
 function closeDialogue(){if(!dialogueOpen)return;const restore=livingDialogueReturnFocus;livingDialogueReturnFocus=null;if(activeDialogueNpc){activeDialogueNpc.talking=false;anchorNpcRoute(activeDialogueNpc);}dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();requestAnimationFrame(()=>{if(restore?.isConnected&&!anyOverlayOpen())restore.focus();});}
-function openDialogue(npc){if(!npc)return;livingDialogueReturnFocus=document.activeElement;livingNoteVisit(npc);chronicleRecord('people',livingNpcKey(npc),npc.name,(livingProfile(npc).role||'resident')+' · '+(npc.district||'Vaneth'));const spot=talkSpotFor(npc);npc.talking=true;npc.talkX=spot.x;npc.talkZ=spot.z;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
+function openDialogue(npc){if(!npc)return;livingDialogueReturnFocus=document.activeElement;livingNoteVisit(npc);const spot=talkSpotFor(npc);npc.talking=true;npc.talkX=spot.x;npc.talkZ=spot.z;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
 function livingGreeting(npc){const memory=livingMemoryFor(npc),strain=currentStrain(),profile=livingProfile(npc),shared=memory.shared.find(item=>item&&item.name===memory.lastSharedName&&item.count>0);let opener;if(memory.visits<=1)opener=npc.name+' gives you a moment of their attention. “'+npc.line+'”';else if(shared){const echo=shared.playerImpression?' You told me “'+shared.playerImpression+'.”':shared.impression?' I still remember the '+shared.impression+'.':'';opener=npc.name+' notices you before you speak. “You came through with '+shared.name+' '+shared.count+' '+(shared.count===1?'time':'times')+'.'+echo+'”';}else opener=npc.name+' looks up with the ease of someone who remembers your face. “Back through '+conversationFor(npc).place+' again? Good. It suits you.”';// Open on what they are visibly busy with, so approaching someone mid-round
   // reads as interrupting a person rather than triggering a menu.
   const activity=npcActivity(npc);
@@ -7858,214 +7698,14 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
 function interiorRoomAt(px,pz){for(const door of interiorDoors){if(px>door.cx-door.w/2&&px<door.cx+door.w/2&&pz>door.cz-door.d/2&&pz<door.cz+door.d/2)return door;}return null;}
 function syncActiveInterior(){
   const room=interiorRoomAt(player.x,player.z); if(room===activeInterior)return;
-  if(room){activeInterior=room;chronicleRecord('places','interior:'+room.name,room.name,room.purpose||'A room with its own small routine.');showGameToast('You enter '+room.name+' — '+(room.purpose||'a room with its own small routine')+'.');}
+  if(room){activeInterior=room;showGameToast('You enter '+room.name+' — '+(room.purpose||'a room with its own small routine')+'.');}
   else{activeInterior=null;showGameToast('You step back out into Vaneth.');}
   saveGameState();
 }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){chronicleRecord('observations',nearestWorldInteraction.id,nearestWorldInteraction.title,nearestWorldInteraction.text);showGameToast(nearestWorldInteraction.text);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){showGameToast(nearestWorldInteraction.text);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
-const chroniclePanel=document.getElementById('chroniclePanel');
-function anyOverlayOpen(){return dialogueOpen||chroniclePanel.classList.contains('open')||settingsEl.classList.contains('open')||strainPanel.classList.contains('open')||puffPanel.classList.contains('open');}
-function toggleChronicle(o){const open=o===undefined?!chroniclePanel.classList.contains('open'):!!o;chroniclePanel.classList.toggle('open',open);chroniclePanel.setAttribute('aria-hidden',String(!open));if(open){if(dialogueOpen)closeDialogue();openSettings(false);togglePuff(false);toggleStrains(false);document.exitPointerLock?.();clearPressedKeys();renderChronicle();requestAnimationFrame(()=>document.getElementById('chronicleClose').focus());}else requestAnimationFrame(()=>document.getElementById('chronicleBtn').focus());}
-document.getElementById('chronicleBtn').addEventListener('click',()=>toggleChronicle());document.getElementById('chronicleClose').addEventListener('click',()=>toggleChronicle(false));
-chroniclePanel.addEventListener('keydown',event=>{if(event.key==='Tab'&&chroniclePanel.classList.contains('open')){event.preventDefault();document.getElementById('chronicleClose').focus();}});
-function openSettings(o){ const open=o===undefined?!settingsEl.classList.contains('open'):!!o;settingsEl.classList.toggle('open',open);settingsEl.setAttribute('aria-hidden',String(!open));if(open){if(dialogueOpen)closeDialogue();togglePuff(false);toggleStrains(false);document.exitPointerLock?.();clearPressedKeys();requestAnimationFrame(()=>document.getElementById('settingsClose').focus());} }
-document.getElementById('gear').addEventListener('click',()=>openSettings());
-document.getElementById('settingsClose').addEventListener('click',()=>openSettings(false));
-function returnToNorthGate(){closeDialogue();activeInterior=null;player.x=SPAWN_X;player.z=SPAWN_Z;player.y=0;player.vy=0;player.onGround=true;yaw=SPAWN_YAW;pitch=-.02;clearPressedKeys();saveGameState();showGameToast('You return to the outer gate.');}
-document.getElementById('unstuckBtn').addEventListener('click',returnToNorthGate);
-const worldSeedText=document.getElementById('worldSeedText');
-worldSeedText.textContent=String(WORLD_SEED);
-async function copyWorldSeed(){
-  const text=String(WORLD_SEED);
-  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);showGameToast('Vaneth seed copied.');return;}}catch{}
-  const field=document.createElement('textarea');field.value=text;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';document.body.append(field);field.select();
-  try{if(document.execCommand('copy'))showGameToast('Vaneth seed copied.');else showGameToast('Seed: '+text);}catch{showGameToast('Seed: '+text);}finally{field.remove();}
-}
-function forgeNewVaneth(){
-  if(!confirm('Forge a new Vaneth? Its façades, wilds, and residents will be regenerated; the planned roads and landmarks stay put. You will return to the North Gate. Your strains and Peak settings stay saved.'))return;
-  let next=newWorldSeed();if(next===WORLD_SEED)next=(next+1)>>>0;
-  if(!persistWorldSeed(next)){showGameToast('This browser would not save a new world seed.');return;}
-  location.reload();
-}
-document.getElementById('worldSeedCopy').addEventListener('click',copyWorldSeed);
-document.getElementById('worldSeedReset').addEventListener('click',forgeNewVaneth);
-
-// ---- personal, browser-local strain journal ----
-const STRAIN_STORAGE_KEY='emberwatch.personal-strains.v1';
-function cleanStrainText(value,max){ return String(value||'').trim().slice(0,max); }
-function strainKey(name){ return cleanStrainText(name,64).toLocaleLowerCase().replace(/\s+/g,' '); }
-const KNOWN_STRAIN_NAMES={'moroccan peach':'Moroccan Peaches','gg4':'Gorilla Glue','gg#4':'Gorilla Glue','gorilla glue #4':'Gorilla Glue','gsc':'Girl Scout Cookies','girl scout cookie':'Girl Scout Cookies','mac1':'MAC','mac 1':'MAC','miracle alien cookies':'MAC','dosidos':'Do-Si-Dos','do si dos':'Do-Si-Dos','super lemon':'Super Lemon Haze'};
-function canonicalStrainName(name){const clean=cleanStrainText(name,64);return KNOWN_STRAIN_NAMES[strainKey(clean)]||clean;}
-// A small set of Vaneth's own fictional house strains, plus a much larger
-// offline reference of well-known real strains. The offline set exists so
-// autocomplete and NPC conversation have real aroma/effect notes to draw on
-// even without a network connection — previously only 5 strains had any
-// local reference data, so almost every real strain fell back to residents
-// saying "I don't know this jar yet."
-const STRAIN_REFERENCE_LIBRARY={
-  // Solventless-era jars. 90µ cold cure is hash rosin: pressed from ice-water
-  // hash collected on a 90-micron screen, then cured cold into a batter. If
-  // the wash came off fresh-frozen material it is also live rosin — the two
-  // labels describe different things (starting material vs screen and cure),
-  // which is why the form list now separates them instead of forcing a choice.
-  'free mac':{match:'Breeder and lab records',lineage:'MAC1 (Miracle Alien Cookies, bred by Capulator) × FreeWorld Chem — FreeWorld Genetics',terpenes:['limonene','caryophyllene','linalool','myrcene','pinene'],aromas:['sweet citrus','pepper','cream','floral'],effects:['energetic','euphoric','happy','relaxed'],note:'MAC’s creamy citrus carried over a peppery base. Reported as energising and mood-lifting rather than sedating, and it usually tests high — commonly 19–25%.'},
-  'cherry zoap':{match:'Breeder records',lineage:'Zoap (Pink Guava #16 × Rainbow Sherbet) × Cherry Garcia — LIT Farms / Growers Choice',terpenes:['myrcene','limonene','caryophyllene'],aromas:['fresh cherry','creamy soap-funk','sweet citrus','earthy herb'],effects:['euphoric','uplifted','creative','relaxed'],note:'An even 50/50 hybrid. Bright cherry over Zoap’s unmistakable creamy, soapy funk; starts as a euphoric head lift and settles into calm without knocking you out.'},
-  'fizz':{match:'Partial records — several unrelated Fizz cuts exist',lineage:'Most often Bloom Seed Co: Sherb Cake × Strawberry Guava (Permanent Marker in the line). Other breeders sell unrelated “Fizz” crosses.',terpenes:['limonene','terpinolene','caryophyllene','pinene'],aromas:['citrus sparkle','sweet berry-guava','cake','light gas'],effects:['energetic','uplifted','happy'],note:'Limonene-led and noticeably energising, higher-THC than average. Well regarded as a washer, so it turns up often as rosin. Note the name is reused by several breeders — if your jar does not match, it is probably a different Fizz.'},
-  // Grower-supplied. Searched for this one: Red Hots is documented, the rest
-  // is not. Apple Fritter x Indiana Bubblegum (Lupos CannaSeed) is a real,
-  // listed cross; "Mega Bite" and "Fawwk" return nothing in public breeder or
-  // retailer records, so the aroma and terpene rows below are inferred from the
-  // Red Hots half rather than read off a COA. `match` says so on the panel.
-  'fawwk':{match:'Brand and one parent confirmed; the drop itself is not listed',lineage:'Mega Bite × Red Hots — Kaya Extracts (also trading as Kaya Farms), hand-washed live rosin. Red Hots is Apple Fritter × Indiana Bubblegum, from Lupos CannaSeed. Mega Bite and this cross return nothing in breeder or dispensary listings, so the drop is recent or regional.',terpenes:['limonene','caryophyllene','myrcene'],aromas:['candied apple','bubblegum','warm spice','sweet earth'],effects:['relaxed','euphoric','happy'],note:'Hand-washed live rosin from a house that presses a lot of it — Life Alert, Island Time, Kaya on Kaya are all theirs. The Red Hots side carries Apple Fritter’s sweet fruit-candy over Indiana Bubblegum and finishes spicy on the exhale. Mega Bite is undocumented, so the terpene and aroma rows here are read off the Red Hots half rather than a COA. Swap them for the label if you have it.'},
-  // Vaneth house jars
-  'strawberry cheesecake':{match:'Baker’s garden notes',lineage:'Chronic × White Widow × Cheese',terpenes:[],aromas:['strawberry','cheese','sweet earth'],effects:['relaxed','happy','euphoric'],note:'Berry sweetness and tangy cheese settle into a soft, earthy finish.'},
-  'island time':{match:'Wandering trader’s notes',lineage:'Banana OG × (Cherry Pie × Tangie) × Guava Cooler 3',terpenes:['earthy','citrus','woody'],aromas:['tropical citrus','mango','pine'],effects:['uplifted','relaxed','creative'],note:'Tropical fruit drifts in first, then a piney, easygoing finish.'},
-  'honey banana coffee':{match:'Orchard keeper’s notes',lineage:'Strawberry Banana × Honey Boo Boo',terpenes:['earthy','citrus','peppery'],aromas:['honey','banana','sweet fruit'],effects:['giggly','happy','relaxed'],note:'Honeyed banana sweetness with a darker, roasted edge from the name it carries.'},
-  'orange push pop':{match:'Citadel apothecary notes',lineage:'Orange Cookies × Triangle Kush',terpenes:['peppery','citrus','earthy'],aromas:['orange','vanilla','citrus cream'],effects:['tingly','relaxed','giggly'],note:'A bright, creamy jar with a little earth beneath the fruit.'},
-  'moroccan peaches':{match:'Peach-house ledger',lineage:'Spanish Barbara × Lemon Tree Skorange',terpenes:['citrus','peppery','earthy'],aromas:['peach','apricot','citrus','funky gas'],effects:['energetic','focused','creative'],note:'Sun-warm peach and tart citrus lead, with a small funky gas bite at the end.'},
-  // classic and heirloom cuts
-  'og kush':{match:'Cinder Market apothecary notes',lineage:'lineage debated, likely Chemdawg/Hindu Kush lines',terpenes:['myrcene','limonene','caryophyllene'],aromas:['pine','lemon','fuel'],effects:['relaxed','euphoric','happy'],note:'The old standard: piney fuel up front, a heavy, contented weight after.'},
-  'northern lights':{match:'Old garden ledger',lineage:'Afghani × Thai landrace lines',terpenes:['myrcene','caryophyllene','pinene'],aromas:['sweet pine','earthy spice','faint citrus'],effects:['relaxed','sleepy','calm'],note:'A slow, resinous cut that settles into the couch before it settles into conversation.'},
-  'white widow':{match:'Northwatch quartermaster’s notes',lineage:'Brazilian sativa × South Indian indica',terpenes:['myrcene','pinene','caryophyllene'],aromas:['earthy','woody','faint spice'],effects:['euphoric','uplifted','talkative'],note:'Frosty and blunt, with an energy that arrives before it mellows.'},
-  'durban poison':{match:'Wandering trader’s notes',lineage:'South African landrace',terpenes:['terpinolene','myrcene'],aromas:['sweet anise','pine','black licorice'],effects:['energetic','focused','uplifted'],note:'A clean, sweet-sharp sativa that keeps the head clear and the pace up.'},
-  'jack herer':{match:'Eastwall scribe’s footnote',lineage:'Haze × (Northern Lights #5 × Shiva Skunk)',terpenes:['terpinolene','pinene','caryophyllene'],aromas:['pine','spice','citrus'],effects:['creative','uplifted','focused'],note:'Bright and piney, the kind of jar that makes a blank page feel less blank.'},
-  'ak-47':{match:'Southgate traveler’s notes',lineage:'Colombian × Mexican × Thai × Afghani',terpenes:['myrcene','limonene','caryophyllene'],aromas:['earthy','floral','sour'],effects:['relaxed','happy','talkative'],note:'A long, easy hum despite the name — more porch conversation than static.'},
-  // diesel and fuel lines
-  'sour diesel':{match:'West Works grower’s tally',lineage:'Chemdawg × Super Skunk (disputed)',terpenes:['caryophyllene','myrcene','limonene'],aromas:['diesel','citrus','skunk'],effects:['energetic','uplifted','focused'],note:'Sharp fuel up front, sweeter citrus trailing after — a jar that argues with sleep.'},
-  'chemdawg':{match:'West Works grower’s tally',lineage:'origin debated, foundational diesel line',terpenes:['caryophyllene','myrcene','limonene'],aromas:['diesel','earthy','pungent'],effects:['relaxed','euphoric','cerebral'],note:'Heavy, resinous fuel notes with a slow-building, thoughtful lift.'},
-  'gorilla glue':{match:'West Works grower’s tally',lineage:'Chem’s Sister × Sour Dubb × Chocolate Diesel',terpenes:['caryophyllene','limonene','myrcene'],aromas:['earthy','pungent','pine'],effects:['relaxed','happy','sleepy'],note:'Sticky and heavy-handed, the kind of jar that makes plans for you.'},
-  // dessert and cookie hybrids
-  'girl scout cookies':{match:'Cinder Market apothecary notes',lineage:'OG Kush × Durban Poison (widely cited)',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet earth','mint','cherry'],effects:['relaxed','euphoric','happy'],note:'A sugary front porch over a dense, earthy foundation.'},
-  'wedding cake':{match:'Cinder Market apothecary notes',lineage:'Triangle Kush × Animal Mints',terpenes:['limonene','caryophyllene','linalool'],aromas:['vanilla','sweet dough','peppery earth'],effects:['relaxed','happy','calm'],note:'Rich and tangy, like something cooling on a windowsill.'},
-  'gelato':{match:'Cinder Market apothecary notes',lineage:'Sunset Sherbet × Thin Mint GSC',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet cream','citrus','berry'],effects:['euphoric','relaxed','giggly'],note:'Dessert-sweet and smooth, with a lazy, contented tail.'},
-  'biscotti':{match:'Cinder Market apothecary notes',lineage:'Gelato #25 × South Florida OG',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet nutty','earthy','faint diesel'],effects:['relaxed','happy','calm'],note:'A cookie-jar sweetness with a peppery, grounding finish.'},
-  'ice cream cake':{match:'Cinder Market apothecary notes',lineage:'Wedding Cake × Gelato #33',terpenes:['limonene','linalool','caryophyllene'],aromas:['sweet cream','vanilla','earthy'],effects:['relaxed','sleepy','calm'],note:'Rich and custardy, best saved for the end of the night.'},
-  'cereal milk':{match:'Cinder Market apothecary notes',lineage:'Snowman × Y Life',terpenes:['limonene','linalool'],aromas:['sweet cream','fruity','vanilla'],effects:['happy','relaxed','giggly'],note:'Tastes almost exactly like the name promises, in the best way.'},
-  'apple fritter':{match:'Cinder Market apothecary notes',lineage:'Sour Apple × Animal Cookies',terpenes:['caryophyllene','limonene'],aromas:['baked apple','cinnamon','earthy'],effects:['happy','relaxed','creative'],note:'Warm baked-fruit sweetness with a doughy, grounding edge.'},
-  'kush mints':{match:'Cinder Market apothecary notes',lineage:'Bubba Kush × Animal Mints',terpenes:['caryophyllene','limonene','humulene'],aromas:['mint','earthy','sweet gas'],effects:['relaxed','euphoric','calm'],note:'Cool mint over a heavy kush base — a jar that slows a room down gently.'},
-  'gushers':{match:'Cinder Market apothecary notes',lineage:'Gelato #41 × Triangle Kush',terpenes:['limonene','caryophyllene'],aromas:['tropical fruit','sweet candy','earthy'],effects:['relaxed','happy','giggly'],note:'Candy-sweet fruit with a gentle, easy landing.'},
-  'animal cookies':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Fire OG',terpenes:['caryophyllene','limonene','humulene'],aromas:['sweet earth','nutty','spice'],effects:['relaxed','euphoric','sleepy'],note:'Dense and sweet, a slow slide toward the end of the evening.'},
-  'sunset sherbet':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Pink Panties',terpenes:['limonene','caryophyllene'],aromas:['sweet citrus','berry','earthy'],effects:['relaxed','happy','calm'],note:'Bright citrus-berry sweetness over a soft, easy body.'},
-  'jealousy':{match:'Cinder Market apothecary notes',lineage:'Gelato #41 × Sherbet Bx1',terpenes:['limonene','caryophyllene'],aromas:['sweet citrus','gas','candy'],effects:['euphoric','relaxed','happy'],note:'Sweet and gassy in equal measure — a jar that lives up to the name.'},
-  'lemon cherry gelato':{match:'Cinder Market apothecary notes',lineage:'Lemon Cherry Kush × Gelato lines',terpenes:['limonene','caryophyllene'],aromas:['lemon','cherry','sweet cream'],effects:['euphoric','happy','relaxed'],note:'Tart cherry and lemon over a soft, dessert-toned finish.'},
-  'peanut butter breath':{match:'Cinder Market apothecary notes',lineage:'Do-Si-Dos × Mendo Breath',terpenes:['caryophyllene','limonene'],aromas:['nutty','earthy','sweet gas'],effects:['relaxed','calm','sleepy'],note:'Nutty and dense, the kind of jar that ends the night gently.'},
-  'slurricane':{match:'Cinder Market apothecary notes',lineage:'Do-Si-Dos × Purple Punch',terpenes:['caryophyllene','limonene'],aromas:['grape candy','vanilla','earthy'],effects:['relaxed','sleepy','happy'],note:'Sweet and heavy, built for the last hour of the evening.'},
-  // fruit-forward hybrids
-  'zkittlez':{match:'Peach-house ledger',lineage:'Grape Ape × Grapefruit (disputed)',terpenes:['caryophyllene','limonene','humulene'],aromas:['candy grape','tropical fruit','berry'],effects:['relaxed','happy','giggly'],note:'Sweet and candy-forward, the kind of jar that gets passed around fast.'},
-  'runtz':{match:'Peach-house ledger',lineage:'Zkittlez × Gelato',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet fruit','candy','gas'],effects:['euphoric','relaxed','giggly'],note:'Candy-shop sweetness with a gassy undercurrent that keeps it honest.'},
-  'grape ape':{match:'Peach-house ledger',lineage:'Mendocino Purps × Skunk × Afghani',terpenes:['myrcene','pinene'],aromas:['grape','berry','earthy'],effects:['relaxed','calm','sleepy'],note:'Deep grape sweetness that settles heavy and slow.'},
-  'blueberry':{match:'Peach-house ledger',lineage:'Afghani × Thai landrace lines',terpenes:['myrcene','pinene','caryophyllene'],aromas:['blueberry','sweet earth','berry'],effects:['relaxed','happy','calm'],note:'A classic fruit-forward indica jar, sweet down to the last pull.'},
-  'strawberry cough':{match:'Peach-house ledger',lineage:'Strawberry Fields × Haze',terpenes:['myrcene','pinene','terpinolene'],aromas:['strawberry','sweet hay','citrus'],effects:['uplifted','talkative','energetic'],note:'Bright berry sweetness with a clear-headed, chatty lift.'},
-  'purple punch':{match:'Peach-house ledger',lineage:'Larry OG × Granddaddy Purple',terpenes:['caryophyllene','limonene'],aromas:['grape candy','blueberry muffin','sweet'],effects:['relaxed','sleepy','happy'],note:'Dessert-grape sweetness that leans toward an easy, early bedtime.'},
-  'forbidden fruit':{match:'Peach-house ledger',lineage:'Cherry Pie × Tangie',terpenes:['limonene','myrcene','caryophyllene'],aromas:['citrus','cherry','tropical'],effects:['relaxed','happy','calm'],note:'Tart cherry and citrus over a mellow, unhurried body.'},
-  'cherry pie':{match:'Peach-house ledger',lineage:'Granddaddy Purple × Durban Poison',terpenes:['caryophyllene','limonene','pinene'],aromas:['cherry','sweet earth','tart'],effects:['relaxed','happy','euphoric'],note:'Sweet-tart cherry up front, settling into a calm, easy warmth.'},
-  'tangie':{match:'Peach-house ledger',lineage:'California Orange × Skunk Hybrid',terpenes:['limonene','myrcene'],aromas:['orange','citrus','sweet'],effects:['uplifted','energetic','creative'],note:'Fresh-squeezed citrus that keeps the head bright and moving.'},
-  'mimosa':{match:'Peach-house ledger',lineage:'Purple Punch × Clementine',terpenes:['limonene','myrcene'],aromas:['orange','citrus','tropical'],effects:['uplifted','happy','energetic'],note:'A brunch-bright citrus jar that leans toward daytime energy.'},
-  'papaya':{match:'Peach-house ledger',lineage:'Citral #13 × Ice #2',terpenes:['myrcene','caryophyllene'],aromas:['tropical fruit','sweet earth','papaya'],effects:['relaxed','happy','calm'],note:'Soft tropical sweetness over a quietly heavy base.'},
-  // kush and indica-leaning
-  'bubba kush':{match:'Northwatch quartermaster’s notes',lineage:'pre-98 Bubba × Kush hybrid, exact lineage unconfirmed',terpenes:['caryophyllene','myrcene','limonene'],aromas:['coffee','earthy','sweet hash'],effects:['relaxed','sleepy','calm'],note:'Dark, coffee-toned kush weight that settles a room quickly.'},
-  'master kush':{match:'Northwatch quartermaster’s notes',lineage:'Hindu Kush × Skunk #1',terpenes:['myrcene','caryophyllene'],aromas:['earthy','citrus','spice'],effects:['relaxed','calm','happy'],note:'A quiet, hash-toned kush without much drama in the jar.'},
-  'granddaddy purple':{match:'Peach-house ledger',lineage:'Purple Urkle × Big Bud',terpenes:['myrcene','caryophyllene','pinene'],aromas:['grape','berry','sweet earth'],effects:['relaxed','sleepy','happy'],note:'Deep grape and berry over a classic, heavy purple-strain weight.'},
-  'do-si-dos':{match:'Cinder Market apothecary notes',lineage:'Girl Scout Cookies × Face Off OG',terpenes:['limonene','caryophyllene','linalool'],aromas:['sweet earth','floral','mint'],effects:['relaxed','euphoric','sleepy'],note:'Sweet and floral at first, then a slow, heavy settle.'},
-  'headband':{match:'Northwatch quartermaster’s notes',lineage:'OG Kush × Sour Diesel',terpenes:['caryophyllene','limonene','myrcene'],aromas:['diesel','lemon','earthy'],effects:['relaxed','euphoric','focused'],note:'Named for the pressure it leaves behind the eyes — sharp, then calm.'},
-  'larry og':{match:'Northwatch quartermaster’s notes',lineage:'OG Kush × Lemon Thai × Old World Paki Kush',terpenes:['limonene','myrcene','caryophyllene'],aromas:['lemon','pine','earthy'],effects:['relaxed','happy','calm'],note:'Citrus-forward OG with a soft, unhurried landing.'},
-  // sativa-leaning, citrus, and other classics
-  'pineapple express':{match:'Peach-house ledger',lineage:'Trainwreck × Hawaiian',terpenes:['myrcene','limonene','pinene'],aromas:['pineapple','pine','tropical'],effects:['uplifted','energetic','happy'],note:'Sweet tropical fruit that keeps the pace up rather than slowing it down.'},
-  'trainwreck':{match:'West Works grower’s tally',lineage:'Mexican × Thai × Afghani',terpenes:['terpinolene','pinene','myrcene'],aromas:['lemon','pine','spice'],effects:['energetic','euphoric','creative'],note:'A fast, piney sativa that arrives before you finish the first pull.'},
-  'green crack':{match:'West Works grower’s tally',lineage:'Skunk #1 phenotype (disputed origin)',terpenes:['myrcene','limonene'],aromas:['citrus','mango','sweet earth'],effects:['energetic','focused','uplifted'],note:'Sharp citrus energy — a jar better suited to daylight than dusk.'},
-  'super lemon haze':{match:'Eastwall scribe’s footnote',lineage:'Lemon Skunk × Super Silver Haze',terpenes:['limonene','terpinolene'],aromas:['lemon','citrus','sweet'],effects:['uplifted','energetic','creative'],note:'Sour lemon brightness with a clear, chatty lift.'},
-  'amnesia haze':{match:'Eastwall scribe’s footnote',lineage:'Jamaican × Hawaiian × Cambodian × Afghani lines',terpenes:['terpinolene','myrcene','limonene'],aromas:['citrus','earthy','spice'],effects:['euphoric','energetic','creative'],note:'A rambling, cerebral haze that rewards a slow afternoon.'},
-  'maui wowie':{match:'Peach-house ledger',lineage:'Hawaiian landrace lines',terpenes:['limonene','pinene'],aromas:['tropical fruit','pineapple','earthy'],effects:['uplifted','happy','energetic'],note:'Island-bright and easygoing, built for an unhurried afternoon.'},
-  'purple haze':{match:'Peach-house ledger',lineage:'Purple Thai × Haze lines',terpenes:['myrcene','terpinolene'],aromas:['berry','earthy','sweet spice'],effects:['euphoric','creative','uplifted'],note:'A dreamy, berry-toned haze that keeps thoughts loose and moving.'},
-  'mac':{match:'Eastwall scribe’s footnote',lineage:'Alien Cookies × (Miracle 15 × Columbian)',terpenes:['limonene','caryophyllene','pinene'],aromas:['citrus','earthy','sweet gas'],effects:['euphoric','uplifted','relaxed'],note:'A well-balanced jar: bright up front, settled and even after.'}
-};
-function referenceForStrain(name){ const reference=STRAIN_REFERENCE_LIBRARY[strainKey(canonicalStrainName(name))];return reference?{...reference,terpenes:[...reference.terpenes],aromas:[...reference.aromas],effects:[...reference.effects]}:null; }
-function archiveList(value,max=4){return String(value||'').replace(/[\[\]'\"]/g,'').split(/[,;|/]/).map(part=>cleanStrainText(part,44)).filter(part=>part&&part.toUpperCase()!=='NULL'&&part.length<=44).slice(0,max);}
-function storedArchiveReference(raw){if(!raw||typeof raw!=='object')return null;const match=cleanStrainText(raw.match,64),lineage=cleanStrainText(raw.lineage,140),keeper=cleanStrainText(raw.keeper,100),origin=cleanStrainText(raw.origin,100),note=cleanStrainText(raw.note,220),terpenes=archiveList(raw.terpenes),aromas=archiveList(raw.aromas),effects=archiveList(raw.effects);if(!match&&!lineage&&!keeper&&!origin&&!note&&!terpenes.length&&!aromas.length&&!effects.length)return null;return {match:match||'Archive keeper’s notes',lineage,keeper,origin,terpenes,aromas,effects,note:note||'Copied into the Vaneth smoke ledger.'};}
-function strainNpcCue(strain){ const reference=strain&&strain.reference;if(!reference)return '';const aroma=reference.aromas.slice(0,2).join(' + '),effect=reference.effects.slice(0,2).join(', ');return aroma?' · smells like '+aroma+(effect?' · often feels '+effect:''):''; }
-const INITIAL_WAX_STOCK=[
-  {name:'Strawberry Cheesecake',form:'live resin badder'},
-  {name:'Island Time',form:'live resin badder'},
-  {name:'Honey Banana Coffee',form:'hash rosin'},
-  {name:'Orange Push Pop',form:'hash rosin'},
-  {name:'Moroccan Peaches',form:'hash rosin'}
-];
-const SMOKE_TEMP_DEFAULT=475,SMOKE_SECONDS_DEFAULT=40;
-function smokeSessionTemp(value){if(value==null||String(value).trim()==='')return SMOKE_TEMP_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(302,Math.min(599,numeric)):SMOKE_TEMP_DEFAULT;}
-function smokeSessionSeconds(value){if(value==null||String(value).trim()==='')return SMOKE_SECONDS_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(15,Math.min(120,numeric)):SMOKE_SECONDS_DEFAULT;}
-function makeStrainRecord(raw){raw=raw||{};const name=canonicalStrainName(raw.name);return {id:cleanStrainText(raw.id,96),name,form:cleanStrainText(raw.form,64)||'unspecified',terpenes:cleanStrainText(raw.terpenes,120),notes:cleanStrainText(raw.notes,360),createdAt:cleanStrainText(raw.createdAt,40),uses:Array.isArray(raw.uses)?raw.uses.filter(value=>typeof value==='string').slice(-100):[],sessionF:smokeSessionTemp(raw.sessionF),sessionSeconds:smokeSessionSeconds(raw.sessionSeconds),reference:referenceForStrain(name)||storedArchiveReference(raw.reference)};}
-function loadStrainJournal(){ try{ const saved=JSON.parse(localStorage.getItem(STRAIN_STORAGE_KEY)||'{}'),rawRecords=Array.isArray(saved.records)?saved.records:[],records=[],mergedInto=new Map;for(const raw of rawRecords){const record=makeStrainRecord(raw);if(!record.id||!record.name)continue;const prior=records.find(item=>strainKey(item.name)===strainKey(record.name));if(prior){mergedInto.set(record.id,prior.id);prior.uses=[...prior.uses,...record.uses].sort().slice(-100);if(prior.form==='unspecified'&&record.form!=='unspecified')prior.form=record.form;if(!prior.terpenes)prior.terpenes=record.terpenes;if(!prior.notes)prior.notes=record.notes;}else records.push(record);}const requestedId=typeof saved.currentId==='string'?saved.currentId:null,current=records.find(record=>record.id===(mergedInto.get(requestedId)||requestedId))||null;return {currentId:current?current.id:null,seededWaxStock:saved.seededWaxStock===true,records}; }catch{return {currentId:null,seededWaxStock:false,records:[]};} }
-let strainJournal=loadStrainJournal();
-const STRAIN_ARCHIVE_SEARCH='https://api.loyal9.app/v1/search?q=';
-// Rich smoke notes are fetched on demand from the MIT-licensed Grow Data catalog, then kept only as short tags.
-const GROW_ARCHIVE_URL='https://raw.githubusercontent.com/Loyal9-Elements/grow_data/main/Resources/csv/ALL_data.csv';
-const GROW_ARCHIVE_STORAGE='emberwatch.grow-smoke-archive.v1';
-const strainNameInput=document.getElementById('strainName'),strainSuggestions=document.getElementById('strainSuggestions'),strainLookupPreview=document.getElementById('strainLookupPreview'),strainTopNotes=document.getElementById('strainTerpenes');
-const archiveSearchCache=new Map();
-let archiveLookupTimer=0,archiveLookupToken=0,pendingArchiveMatch=null,growArchivePromise=null,autoLookupNote='';
-let growArchive=loadGrowArchive();
-function archiveValue(entry,keys){for(const key of keys){const value=entry&&entry[key];if(Array.isArray(value)&&value.length)return value.join(', ');if(typeof value==='string'&&value.trim())return value;}return '';}
-function smokeNoteCount(reference){return reference?(reference.terpenes.length+reference.aromas.length+reference.effects.length):0;}
-function archiveReferenceFrom(entry){const lineage=cleanStrainText(archiveValue(entry,['lineage','genetics','crosses','parents']),140),keeper=cleanStrainText(archiveValue(entry,['breeder_name','seed_bank','bank_name']),100),origin=cleanStrainText(archiveValue(entry,['origin','origin_country','origin_region','location']),100),terpenes=archiveList(archiveValue(entry,['terpenes','flavors','flavor'])),aromas=archiveList(archiveValue(entry,['flavors','flavor','terpenes'])),effects=archiveList(archiveValue(entry,['effects'])),reference=storedArchiveReference({match:'Archive keeper’s notes',lineage,keeper,origin:origin||'the traveling seed archive',terpenes,aromas,effects,note:keeper?'A passing seed keeper recorded this one.':'A passing seed keeper left a short entry.'});return smokeNoteCount(reference)>=2?reference:null;}
-function cleanArchiveValue(value,max=160){const clean=cleanStrainText(value,max);return clean.toUpperCase()==='NULL'?'':clean;}
-function parseArchiveCsv(text){const rows=[],row=[];let field='',quoted=false;for(let index=0;index<text.length;index++){const char=text[index];if(char==='"'){if(quoted&&text[index+1]==='"'){field+='"';index++;}else quoted=!quoted;}else if(char===','&&!quoted){row.push(field);field='';}else if((char==='\n'||char==='\r')&&!quoted){if(char==='\r'&&text[index+1]==='\n')index++;row.push(field);field='';if(row.length>1)rows.push(row.splice(0));}else field+=char;}if(field||row.length){row.push(field);rows.push(row);}return rows;}
-function archivePlainText(value){return String(value||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/\s+/g,' ').trim().toLocaleLowerCase();}
-const SMOKE_FLAVOR_WORDS=['citrus','lemon','lime','orange','grapefruit','berry','blueberry','strawberry','raspberry','grape','apple','peach','apricot','pineapple','mango','tropical','banana','cherry','vanilla','cream','cheese','earthy','pine','herbal','spice','pepper','diesel','gas','skunk','sweet','floral','lavender','mint','coffee','chocolate','honey','nutty'];
-const SMOKE_EFFECT_WORDS=['relaxed','happy','euphoric','uplifted','energetic','creative','focused','giggly','sleepy','calm','tingly','cerebral','talkative','sociable','hungry'];
-const SMOKE_TERP_WORDS=['myrcene','limonene','caryophyllene','pinene','linalool','humulene','terpinolene','ocimene','farnesene','bisabolol'];
-function archiveKeywords(text,words,max=5){return words.filter(word=>new RegExp('\\b'+word.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')+'\\b','i').test(text)).slice(0,max);}
-function growEntriesFromCsv(text){const rows=parseArchiveCsv(text),head=rows.shift()||[],at=name=>head.indexOf(name),read=(row,name,max)=>cleanArchiveValue(row[at(name)],max);return rows.map(row=>{const notes=archivePlainText(read(row,'info',2400)+' '+read(row,'more_info',2400));return {name:canonicalStrainName(read(row,'strain',64)),aromas:archiveKeywords(notes,SMOKE_FLAVOR_WORDS),effects:archiveKeywords(notes,SMOKE_EFFECT_WORDS),terpenes:archiveKeywords(notes,SMOKE_TERP_WORDS)};}).filter(entry=>entry.name);}
-function storedGrowEntry(raw){if(!raw||typeof raw!=='object')return null;const entry={name:canonicalStrainName(raw.name),aromas:archiveList(raw.aromas,5),effects:archiveList(raw.effects,5),terpenes:archiveList(raw.terpenes,5)};return entry.name?entry:null;}
-function loadGrowArchive(){try{const saved=JSON.parse(localStorage.getItem(GROW_ARCHIVE_STORAGE)||'[]');return Array.isArray(saved)?saved.map(storedGrowEntry).filter(Boolean):[];}catch{return [];}}
-function saveGrowArchive(){try{localStorage.setItem(GROW_ARCHIVE_STORAGE,JSON.stringify(growArchive));}catch{}}
-async function ensureGrowArchive(){if(growArchive.length)return growArchive;if(!growArchivePromise)growArchivePromise=fetch(GROW_ARCHIVE_URL,{mode:'cors'}).then(response=>{if(!response.ok)throw new Error('catalog unavailable');return response.text();}).then(text=>{growArchive=growEntriesFromCsv(text);saveGrowArchive();return growArchive;}).catch(()=>{growArchivePromise=null;return [];});return growArchivePromise;}
-function growReferenceFrom(entry){return storedArchiveReference({match:'Garden ledger notes',origin:'an old garden ledger',terpenes:entry.terpenes,aromas:entry.aromas,effects:entry.effects,note:'A fuller smoke note was carried into Vaneth from an old garden ledger.'});}
-// A suggestion's detail line should show what makes it worth picking — its
-// actual aroma/effect words — rather than only where the data came from.
-function referencePreview(reference){if(!reference)return '';return [reference.aromas?.slice(0,2).join(', '),reference.effects?.slice(0,2).join(', ')].filter(Boolean).join(' · ');}
-function growArchiveMatches(query){const key=strainKey(query),ranked=growArchive.filter(entry=>strainKey(entry.name).includes(key)&&(entry.aromas.length+entry.effects.length+entry.terpenes.length>=2)).sort((a,b)=>Number(strainKey(b.name).startsWith(key))-Number(strainKey(a.name).startsWith(key)));return ranked.slice(0,8).map(entry=>{const reference=growReferenceFrom(entry);return {name:entry.name,reference,detail:referencePreview(reference)||'smell, taste, or effect notes found'};});}
-function localArchiveMatches(query){const search=strainKey(query),found=[],seen=new Set(),add=(name,reference,fallback)=>{const clean=canonicalStrainName(name),key=strainKey(clean);if(!clean||seen.has(key)||!key.includes(search))return;seen.add(key);const preview=referencePreview(reference);found.push({name:clean,reference,detail:preview?preview+' · '+fallback:fallback});};for(const record of strainJournal.records)add(record.name,record.reference,'already in your smoke ledger');for(const stock of INITIAL_WAX_STOCK)add(stock.name,referenceForStrain(stock.name),'already in Vaneth’s notes');Object.keys(STRAIN_REFERENCE_LIBRARY).forEach(name=>add(name,referenceForStrain(name),'already in Vaneth’s notes'));return found.slice(0,6);}
-function hideStrainSuggestions(){strainSuggestions.classList.remove('show');strainSuggestions.replaceChildren();}
-function archiveNoteSummary(reference){if(!reference)return '';const parts=[];if(reference.aromas?.length)parts.push('taste: '+reference.aromas.slice(0,3).join(', '));if(reference.terpenes?.length)parts.push('scent: '+reference.terpenes.slice(0,3).join(', '));if(reference.effects?.length)parts.push('common tale: '+reference.effects.slice(0,3).join(', '));return parts.join(' · ').slice(0,120);}
-function clearLookupPreview(){strainLookupPreview.replaceChildren();if(strainTopNotes.value===autoLookupNote)strainTopNotes.value='';autoLookupNote='';}
-function setLookupPreview(reference){strainLookupPreview.replaceChildren();if(!reference)return;const card=makeReferenceNotes(reference,true);if(card)strainLookupPreview.append(card);const summary=archiveNoteSummary(reference);if(summary&&(!strainTopNotes.value||strainTopNotes.value===autoLookupNote)){strainTopNotes.value=summary;autoLookupNote=summary;}}
-function chooseArchiveMatch(match){strainNameInput.value=canonicalStrainName(match.name);const reference=match.reference||referenceForStrain(match.name);pendingArchiveMatch={name:strainNameInput.value,reference};setLookupPreview(reference);hideStrainSuggestions();strainNameInput.focus();}
-function showStrainSuggestions(matches,note){strainSuggestions.replaceChildren();if(note){const message=document.createElement('div');message.className='strain-suggest-note';message.textContent=note;strainSuggestions.append(message);}for(const match of matches){const button=document.createElement('button'),detail=document.createElement('small');button.type='button';button.className='strain-suggestion';button.setAttribute('role','option');button.textContent=match.name;detail.textContent=match.detail;button.append(detail);button.onclick=()=>chooseArchiveMatch(match);strainSuggestions.append(button);}if(matches.length||note)strainSuggestions.classList.add('show');else hideStrainSuggestions();}
-function mergeArchiveMatches(local,remote){const merged=[],seen=new Set();for(const match of [...local,...remote]){const key=strainKey(match.name);if(!key||seen.has(key))continue;seen.add(key);merged.push(match);}return merged.slice(0,7);}
-async function searchStrainArchive(query,token){let rows=archiveSearchCache.get(query)||[];try{if(!archiveSearchCache.has(query)){const response=await fetch(STRAIN_ARCHIVE_SEARCH+encodeURIComponent(query),{mode:'cors'});if(!response.ok)throw new Error('archive unavailable');const body=await response.json();rows=Array.isArray(body&&body.data)?body.data:[];archiveSearchCache.set(query,rows);}}catch{}await ensureGrowArchive();if(token!==archiveLookupToken)return;const local=localArchiveMatches(query),garden=growArchiveMatches(query),remote=rows.map(entry=>{const reference=archiveReferenceFrom(entry);return {name:canonicalStrainName(archiveValue(entry,['strain_name','name'])),reference,detail:reference?(referencePreview(reference)||'smell, taste, or effect notes found'):'name found — add your own smoke notes'};}).filter(match=>match.name),matches=mergeArchiveMatches(local,[...garden,...remote]),exact=matches.find(match=>strainKey(match.name)===strainKey(query)&&match.reference);if(exact){chooseArchiveMatch(exact);return;}showStrainSuggestions(matches,matches.length?'':'Nothing close was found. You can still write it in by hand.');}
-function queueStrainArchiveSearch(){const query=cleanStrainText(strainNameInput.value,64);pendingArchiveMatch=null;clearLookupPreview();clearTimeout(archiveLookupTimer);const token=++archiveLookupToken;if(query.length<2){hideStrainSuggestions();return;}const local=localArchiveMatches(query),exact=local.find(match=>strainKey(match.name)===strainKey(query)&&match.reference);if(exact){chooseArchiveMatch(exact);return;}showStrainSuggestions(local,'Looking through the seed archive…');archiveLookupTimer=setTimeout(()=>searchStrainArchive(query,token),360);}
-strainNameInput.addEventListener('input',queueStrainArchiveSearch);
-strainNameInput.addEventListener('focus',()=>{const isChosen=pendingArchiveMatch&&strainKey(pendingArchiveMatch.name)===strainKey(strainNameInput.value);if(!isChosen&&strainNameInput.value.trim().length>=2)queueStrainArchiveSearch();});
-strainNameInput.addEventListener('keydown',event=>{if(event.key==='Escape')hideStrainSuggestions();});
-strainNameInput.addEventListener('blur',()=>setTimeout(hideStrainSuggestions,140));
-document.addEventListener('pointerdown',event=>{if(!event.target.closest('.strain-name-wrap'))hideStrainSuggestions();});
-function saveStrainJournal(){ try{localStorage.setItem(STRAIN_STORAGE_KEY,JSON.stringify(strainJournal));}catch{} }
-function currentStrain(){ const strain=strainJournal.records.find(record=>record.id===strainJournal.currentId); if(!strain&&strainJournal.currentId){strainJournal.currentId=null;saveStrainJournal();} return strain||null; }
-function productLabel(record){ return [record.form==='unspecified'?'form not set':record.form,record.terpenes].filter(Boolean).join(' · '); }
-function strainDate(value){ const date=new Date(value); return Number.isNaN(date.getTime())?'':date.toLocaleDateString(); }
-function seedWaxStock(){ if(strainJournal.seededWaxStock)return; const known=new Set(strainJournal.records.map(record=>strainKey(record.name))); INITIAL_WAX_STOCK.forEach((stock,index)=>{const key=strainKey(stock.name);if(!known.has(key))strainJournal.records.push(makeStrainRecord({id:'starter-wax-'+index+'-'+Date.now().toString(36),name:stock.name,form:stock.form,terpenes:'',notes:'',createdAt:new Date().toISOString(),uses:[]}));});strainJournal.seededWaxStock=true;saveStrainJournal();}
-function addReferenceLine(container,label,value){if(!value)return;const line=document.createElement('p'),title=document.createElement('b');title.textContent=label+': ';line.append(title,document.createTextNode(value));container.append(line);}
-function makeReferenceNotes(reference,open=false){if(!reference)return null;const details=document.createElement('details'),summary=document.createElement('summary');details.className='strain-reference';details.open=open;summary.textContent='Smoke notes · '+reference.match;details.append(summary);addReferenceLine(details,'Grown from',reference.lineage);addReferenceLine(details,'Kept by',reference.keeper);addReferenceLine(details,'Found in',reference.origin);addReferenceLine(details,'Smoke scent',reference.terpenes.length?reference.terpenes.join(' · '):'follow the scent of the jar');addReferenceLine(details,'Nose & flavor',reference.aromas.join(' · '));addReferenceLine(details,'Common tale',reference.effects.join(' · '));addReferenceLine(details,'Keeper’s note',reference.note);return details;}
-function makeReferenceCard(record){return makeReferenceNotes(record.reference,record.id===strainJournal.currentId);}
-function renderStrainSession(current){const section=document.getElementById('strainSession'),target=document.getElementById('strainSessionF'),seconds=document.getElementById('strainSessionSeconds'),button=document.getElementById('strainSmoke'),note=document.getElementById('strainSessionNote');section.hidden=!current;if(!current)return;const targetF=smokeSessionTemp(current.sessionF),duration=smokeSessionSeconds(current.sessionSeconds);current.sessionF=targetF;current.sessionSeconds=duration;if(document.activeElement!==target)target.value=targetF;if(document.activeElement!==seconds)seconds.value=duration;button.textContent='Smoke: '+current.name+' · '+targetF+'°F';note.textContent='Saves '+targetF+'°F for '+duration+' seconds to '+current.name+'. It changes the Peak only after you press Smoke.';}
-function renderStrainJournal(){ const current=currentStrain(),currentName=document.getElementById('strainCurrent'),currentMeta=document.getElementById('strainCurrentMeta'),list=document.getElementById('strainList'); currentName.textContent=current?current.name:'nothing selected'; currentMeta.textContent=current?productLabel(current)+' · '+current.uses.length+' heat cycles logged':strainJournal.records.length+' saved products · choose one when you begin a session.';renderStrainSession(current); list.replaceChildren(); if(!strainJournal.records.length){ const empty=document.createElement('div');empty.className='strain-empty';empty.textContent='Your private journal is empty. Add what you are using to keep it here.';list.append(empty);return; } for(const record of strainJournal.records){ const card=document.createElement('div'),detail=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small'),actions=document.createElement('div'),select=document.createElement('button'),remove=document.createElement('button'); card.className='strain-card'+(record.id===strainJournal.currentId?' active':''); name.textContent=record.name; const parts=[productLabel(record),record.uses.length+' heat '+(record.uses.length===1?'cycle':'cycles')];if(record.uses.length)parts.push('last '+strainDate(record.uses[record.uses.length-1]));if(record.notes)parts.push(record.notes);meta.textContent=parts.filter(Boolean).join(' · '); detail.append(name,meta);actions.className='strain-actions';select.textContent=record.id===strainJournal.currentId?'current':'use now';select.disabled=record.id===strainJournal.currentId;select.onclick=()=>{strainJournal.currentId=record.id;saveStrainJournal();renderStrainJournal();showGameToast(record.name+' is now your current strain.');};remove.className='remove';remove.textContent='remove';remove.onclick=()=>{if(!confirm('Remove '+record.name+' from your private strain journal?'))return;strainJournal.records=strainJournal.records.filter(item=>item.id!==record.id);if(strainJournal.currentId===record.id)strainJournal.currentId=null;saveStrainJournal();renderStrainJournal();};actions.append(select,remove);card.append(detail,actions);const reference=makeReferenceCard(record);if(reference)card.append(reference);list.append(card); } }
-function recordStrainSession(strainId=null){ const current=strainId?strainJournal.records.find(record=>record.id===strainId):currentStrain();if(!current)return;current.uses.push(new Date().toISOString());current.uses=current.uses.slice(-100);saveStrainJournal();renderStrainJournal(); }
-const strainPanel=document.getElementById('strainPanel');
-function toggleStrains(o){ const open=o===undefined?!strainPanel.classList.contains('open'):!!o;strainPanel.classList.toggle('open',open);strainPanel.setAttribute('aria-hidden',String(!open));if(open){if(dialogueOpen)closeDialogue();openSettings(false);togglePuff(false);document.exitPointerLock?.();clearPressedKeys();renderStrainJournal();requestAnimationFrame(()=>document.getElementById('strainClose').focus());} }
-document.getElementById('strainBtn').addEventListener('click',()=>toggleStrains());
-document.getElementById('strainClose').addEventListener('click',()=>toggleStrains(false));
-document.getElementById('strainForm').addEventListener('submit',event=>{event.preventDefault();const name=canonicalStrainName(strainNameInput.value);if(!name)return;const form=document.getElementById('strainFormType').value,terpenes=cleanStrainText(document.getElementById('strainTerpenes').value,120),notes=cleanStrainText(document.getElementById('strainNotes').value,360),selectedReference=pendingArchiveMatch&&strainKey(pendingArchiveMatch.name)===strainKey(name)?pendingArchiveMatch.reference:null,existing=strainJournal.records.find(record=>strainKey(record.name)===strainKey(name));if(existing){existing.form=form==='unspecified'?existing.form:form;existing.terpenes=terpenes||existing.terpenes;existing.notes=notes||existing.notes;existing.reference=referenceForStrain(existing.name)||selectedReference||existing.reference;strainJournal.currentId=existing.id;showGameToast(existing.name+' selected—its existing strain stats stay together.');}else{const id=(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)),record=makeStrainRecord({id,name,form,terpenes,notes,reference:selectedReference,createdAt:new Date().toISOString(),uses:[]});strainJournal.records.unshift(record);strainJournal.currentId=id;showGameToast(name+' saved as your current strain.');}pendingArchiveMatch=null;hideStrainSuggestions();saveStrainJournal();event.target.reset();clearLookupPreview();renderStrainJournal();});
-function saveCurrentSmokeRecipe(){const current=currentStrain();if(!current)return null;current.sessionF=smokeSessionTemp(document.getElementById('strainSessionF').value);current.sessionSeconds=smokeSessionSeconds(document.getElementById('strainSessionSeconds').value);saveStrainJournal();renderStrainSession(current);return current;}
-document.getElementById('strainSessionF').addEventListener('change',saveCurrentSmokeRecipe);
-document.getElementById('strainSessionSeconds').addEventListener('change',saveCurrentSmokeRecipe);
-document.getElementById('strainSmoke').addEventListener('click',async()=>{const current=saveCurrentSmokeRecipe();if(!current)return;const bridge=globalThis.emberwatchPeakSession;if(!bridge?.beginStrainSession){showGameToast('Peak controls are still loading. Try again in a moment.');return;}const button=document.getElementById('strainSmoke');button.disabled=true;button.textContent='Preparing '+current.name+'…';try{await bridge.beginStrainSession({strainId:current.id,strainName:current.name,targetF:current.sessionF,seconds:current.sessionSeconds,npcKey:nearestVillager?livingNpcKey(nearestVillager):null});toggleStrains(false);}catch(error){showGameToast(error?.message||'The Peak session did not start.');}finally{button.disabled=false;renderStrainSession(currentStrain());}});
-seedWaxStock();
-saveStrainJournal();
-renderStrainJournal();
-
-// ---- Puffco native Web Bluetooth panel ----
+function anyOverlayOpen(){return dialogueOpen||settingsEl.classList.contains('open')||strainPanel.classList.contains('open')||puffPanel.classList.contains('open');}
 const puffPanel=document.getElementById('puffPanel');
 function togglePuff(o){ const open=o===undefined?!puffPanel.classList.contains('open'):!!o;puffPanel.classList.toggle('open',open);puffPanel.setAttribute('aria-hidden',String(!open));if(open){if(dialogueOpen)closeDialogue();toggleStrains(false);openSettings(false);document.exitPointerLock?.();clearPressedKeys();document.dispatchEvent(new Event('emberwatch:puff-panel-open'));requestAnimationFrame(()=>document.getElementById('puffClose').focus());} }
 document.getElementById('puffBtn').addEventListener('click',()=>togglePuff());
@@ -8783,7 +8423,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r84',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},chronicle:{places:Object.keys(chronicleState.places).length,people:Object.keys(chronicleState.people).length,observations:Object.keys(chronicleState.observations).length},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r85',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
@@ -8802,7 +8442,7 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
   bob+=moving&&player.onGround?dt*9:0;
-  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt); sampleResidentFlow(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
+  camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt); sampleResidentFlow(t); updateWisps(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});

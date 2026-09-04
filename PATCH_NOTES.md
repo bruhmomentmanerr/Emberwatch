@@ -1,15 +1,14 @@
-**r84 — rooms walls crowds** · 2026-09-03 · phase 5, world depth
-
-In its own panel header: *r84 rooms, walls & crowds*.
+**r85 — one city** · 2026-09-04 · phase 5, world depth
 
 ### Summary
 
-interior dressing: a prop vocabulary and a pass that scales with the room and seeds off its name (the Great Hall went 12 -> 58 colliders); continuous NPC separation, since the old unstick only ran while a resident was walking and never for one standing at its stop; a wall-aware road layer, roads through walls 232 -> 0; K copies a resident flow report
+**the generated greater city is gone.** outerWards() laid 2,460 buildings on a warped grid out to radius 540 and almost every placement fault this project chased came from it. Vaneth is one walled city inside radius 240 with wilderness beyond. The Chronicle is removed, as is the saved-position restore and the ?spawn debug hook. Dead generators deleted outright.
 
 ### In the code
 
-- 1.14 MB (+14,618 bytes on r83).
-- 20 functions added: `dressInterior`, `interiorBarrel`, `interiorBench`, `interiorCask`, `interiorChest`, `interiorCrate`, `interiorRack`, `interiorSack`, `interiorStool`, `interiorThrone`, `interiorTrestle`, `layRoad`, `nameSeed`, `npcCellKey`, `npcNeighbours`, `rebuildNpcGrid`, `residentFlowReport`, `roomRandom`, `sampleResidentFlow`, `throughWall`.
+- 1.08 MB (−66,192 bytes on r84).
+- 4 functions added: `ruinedRing`, `updateWisps`, `wilderness`, `wisps`.
+- 63 functions removed: `addReferenceLine`, `archiveKeywords`, `archiveList`, `archiveNoteSummary`, `archivePlainText`, `archiveReferenceFrom`, `archiveValue`, `canonicalStrainName`, `chooseArchiveMatch`, `chronicleEntries`, `chronicleRecord`, `cleanArchiveValue`, `cleanStrainText`, `clearLookupPreview`, `copyWorldSeed`, `currentStrain`, `ensureGrowArchive`, `forestRing`, `forgeNewVaneth`, `growArchiveMatches`, `growEntriesFromCsv`, `growReferenceFrom`, `hideStrainSuggestions`, `loadChronicle`, `loadGrowArchive`, `loadStrainJournal`, `localArchiveMatches`, `makeReferenceCard`, `makeReferenceNotes`, `makeStrainRecord`, `mergeArchiveMatches`, `openSettings`, `outerCity`, `outerWall`, `outerWards`, `parseArchiveCsv`, `productLabel`, `queueStrainArchiveSearch`, `recordStrainSession`, `referenceForStrain`, and 23 more.
 
 ### Play it
 
