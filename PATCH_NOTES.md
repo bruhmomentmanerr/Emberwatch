@@ -1,13 +1,14 @@
-**r88 — the south road** · 2026-09-04 · phase 5, world depth
+**r93 — people use the streets** · 2026-09-05 · phase 5, world depth
 
 ### Summary
 
-**r85 had deleted the settings and strain block whole.** The Chronicle removal took the two hundred lines around it as well, so openSettings, toggleStrains, currentStrain and the smoke-session helpers were undefined: every conversation threw on the first line of the greeting and left an empty panel with the markup's placeholder name, and because dialogueOpen was then stuck true, M, J and P did nothing either. Restored, with a runtime test that opens each panel and holds a conversation. Also: the south gate had a twenty-unit tavern built across it, so the south road ran under a floor and stopped at a back wall; wardRoof laid a second eaves course over the one wardHouse already laid and stacked two pitches on houses too narrow for one, which is what read as "more than one roof"; the wilderness ruins took their height and their centre height from separate rolls and floated; the mountains were plain six-sided cones and read as pyramids. Roads on the carriageway 73 -> 28, and 26 of the 28 are furniture inside buildings. The Windows key no longer snaps the camera
+residents use the streets. The nav grid treated every walkable cell as identical, so a resident crossing a ward took the shortest line over the dirt and the streets stayed empty. Paving is the cheap surface now (1 against 3 for open ground) and string-pulling may no longer shortcut off it. The ward grid was also drawn at 4.6 and 5.4 wide in streets whose building lines are eighteen apart — a ribbon of cobble with a wide dirt verge, which is where people were walking; no lane is narrower than 7. Residents on paving 76% -> 85%. The app icon was a white circle: make-ico's downscale un-premultiplied with an extra factor of n in it, which is at least 4x on every size and saturated everything.
 
 ### In the code
 
-- 1.13 MB (+57,472 bytes on r86).
-- 57 functions added: `addReferenceLine`, `archiveKeywords`, `archiveList`, `archiveNoteSummary`, `archivePlainText`, `archiveReferenceFrom`, `archiveValue`, `canonicalStrainName`, `chooseArchiveMatch`, `cleanArchiveValue`, `cleanStrainText`, `clearLookupPreview`, `coneAt`, `copyWorldSeed`, `currentStrain`, `ensureGrowArchive`, `footprintOnRoad`, `forgeNewVaneth`, `gateApproachRoads`, `growArchiveMatches`, `growEntriesFromCsv`, `growReferenceFrom`, `hideStrainSuggestions`, `loadGrowArchive`, `loadStrainJournal`, `localArchiveMatches`, `makeReferenceCard`, `makeReferenceNotes`, `makeStrainRecord`, `mergeArchiveMatches`, `openSettings`, `parseArchiveCsv`, `productLabel`, `queueStrainArchiveSearch`, `recordStrainSession`, `referenceForStrain`, `referencePreview`, `renderStrainJournal`, `renderStrainSession`, `returnToNorthGate`, and 17 more.
+- 1.13 MB (−1,260 bytes on r88).
+- 9 functions added: `aRoof`, `bearingFromPlayer`, `buildVillagerLod`, `cullLights`, `landmarkDoorstep`, `lodVillagers`, `pavedShortcutOk`, `restampShadows`, `throughBuilding`.
+- 29 functions removed: `askSharedFeeling`, `blockDistrict`, `cityBlock`, `cityWall`, `denseCityWards`, `footprintOnRoad`, `groundH`, `infillDistricts`, `legacyAskAboutVaneth`, `legacyAskSmokeMemory`, `legacyAskWhyTheyStay`, `legacyCloseDialogue`, `legacyOfferFromJar`, `legacyOpenDialogue`, `legacyReleaseSocialSmoke`, `legacyShareDialogueSmoke`, `legacyShowDialogueGreeting`, `legacySitWithNpc`, `legacyWriteDialogue`, `livingJarWords`, `livingLandmark`, `northGateWard`, `npcActivityPhrase`, `outerRingRoute`, `routePoint`, `slideOffRoad`, `strainImpression`, `strainNpcCue`, `wardCourt`.
 
 ### Play it
 

@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r88 the south road opens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r93 people use the streets</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4744,6 +4744,12 @@ scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new 
 const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,1100); camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+// Measured at r90: 37.2ms a frame with the map rebuilding, 18.4ms without it.
+// autoUpdate off means Three renders the map only when asked, and the only
+// thing in Vaneth that casts a moving shadow is a door leaf.
+renderer.shadowMap.autoUpdate=false;
+renderer.shadowMap.needsUpdate=true;
+function restampShadows(){ renderer.shadowMap.needsUpdate=true; }
 if('outputEncoding' in renderer)renderer.outputEncoding=THREE.sRGBEncoding;if(THREE.ACESFilmicToneMapping!==undefined)renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 document.getElementById('app').appendChild(renderer.domElement);
 let webglContextLost=false;
@@ -4863,6 +4869,66 @@ function tileRadialUV(g,radiusAvg,h){
   uv.needsUpdate=true;
 }
 function aBox(w,h,d,x,y,z,k,ry=0){ const g=new THREE.BoxGeometry(w,h,d); if(UV_TILED_KEYS.has(k)&&k!=='cobble')tileBoxUV(g,w,h,d); if(ry)g.rotateY(ry); g.translate(x,y,z);if(k==='cobble')tileFlatUV(g,6); collect(k,g); }
+// A pyramid is not a roof.
+//
+// Every house in Vaneth was capped with a four-sided cone, which is a square
+// pyramid. On a square footprint that is fine. On the rectangles houses are
+// actually built on it is wrong twice over: the cone is sized off max(w,d), so
+// it either hangs metres past the narrow walls or leaves the long ones bare,
+// and it comes to a point where a roof has a ridge. Two of those on one house —
+// which is what the tiered variant did — read as a roof dropped on a roof.
+//
+// Cones were reached for because aBox cannot tilt, so a flat slab could never
+// be pitched. The answer is not a different primitive from the box/cone/cylinder
+// set, it is a roof made out of its own triangles: four eaves corners, a ridge
+// of the right length, and eight faces. Same shape for hip and gable — a gable
+// is just a hip whose ridge runs the whole way to the ends.
+function aRoof(w,d,rh,x,y,z,k,ry=0,gable=false,over=.45){
+  const hw=w*.5+over, hd=d*.5+over, longZ=d>=w;
+  // Hip: the ridge stops short by the short half-span, so the ends slope in at
+  // the same pitch as the sides. Gable: it runs to the eaves and the ends close
+  // vertically.
+  const rz=longZ?(gable?hd:Math.max(0,hd-hw)):0;
+  const rx=longZ?0:(gable?hw:Math.max(0,hw-hd));
+  const A=[-hw,0,-hd],B=[hw,0,-hd],C=[hw,0,hd],D=[-hw,0,hd];
+  const p=[-rx,rh,-rz],q=[rx,rh,rz];
+  const tris=longZ
+    ? [[A,D,q],[A,q,p],[B,p,q],[B,q,C],[A,p,B],[D,C,q]]
+    : [[A,B,q],[A,q,p],[D,p,q],[D,q,C],[A,p,D],[B,C,q]];
+  // Close the underside. Without it the overhang is an open shell and, looking
+  // up at the eaves from the street, you see straight through the roof to the
+  // sky along the whole run of the house.
+  tris.push([A,B,C],[A,C,D]);
+  const pos=[],nor=[],uv=[],idx=[];
+  for(const t of tris){
+    const ux=t[1][0]-t[0][0],uy=t[1][1]-t[0][1],uz=t[1][2]-t[0][2];
+    const vx=t[2][0]-t[0][0],vy=t[2][1]-t[0][1],vz=t[2][2]-t[0][2];
+    let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+    const len=Math.hypot(nx,ny,nz)||1; nx/=len; ny/=len; nz/=len;
+    // Wind every face outward from the roof's own centre rather than reasoning
+    // about vertex order per case: three of the eight would be inside out.
+    const cx=(t[0][0]+t[1][0]+t[2][0])/3, cy=(t[0][1]+t[1][1]+t[2][1])/3, cz=(t[0][2]+t[1][2]+t[2][2])/3;
+    const flip=(cx*nx+(cy-rh/3)*ny+cz*nz)<0;
+    if(flip){ nx=-nx; ny=-ny; nz=-nz; }
+    const order=flip?[t[0],t[2],t[1]]:t;
+    // Courses run along the eaves and stack up the slope, so the texture reads
+    // as tiling on a roof instead of smearing across it.
+    let tx=-nz,tz=nx; const tl=Math.hypot(tx,tz)||1; tx/=tl; tz/=tl;
+    const sx=-tz*ny, sy=tz*nx-tx*nz, sz=tx*ny;
+    for(const v of order){
+      const base=pos.length/3;
+      pos.push(v[0],v[1],v[2]); nor.push(nx,ny,nz);
+      uv.push((v[0]*tx+v[2]*tz)/TEX_TILE, (v[0]*sx+v[1]*sy+v[2]*sz)/TEX_TILE);
+      idx.push(base);
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  g.setIndex(idx);
+  if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g);
+}
 function aCone(r,h,s,x,y,z,k,ry=0){ const g=new THREE.ConeGeometry(r,h,s); if(UV_TILED_KEYS.has(k))tileRadialUV(g,r*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
 function aCyl(rt,rb,h,s,x,y,z,k,ry=0){ const g=new THREE.CylinderGeometry(rt,rb,h,s); if(UV_TILED_KEYS.has(k)&&k!=='cobble')tileRadialUV(g,(rt+rb)*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z);if(k==='cobble')tileFlatUV(g,6); collect(k,g); }
 function mergeAll(){ for(const k in bins){ const source=bins[k],merged=THREE.BufferGeometryUtils.mergeBufferGeometries(source,false); source.forEach(geometry=>geometry.dispose()); delete bins[k]; if(!merged)continue;
@@ -4911,7 +4977,7 @@ const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 // now just past the city wall, so anything still measuring against it (ward
 // naming, the wall-aware road layer, the tree line) reads the real edge.
 const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=CITY_RADIUS+14, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
-const OUTER_GATE_DEG=[45,135,225,315], MID_GATE_DEG=[0,90,180,270];
+const MID_GATE_DEG=[0,90,180,270];
 // The gate approaches are wider than a ward street so the hierarchy reads from
 // the gate, and sit fractionally proud of ward paving so the side streets they
 // cross show as junctions rather than z-fighting into them. Recorded as they
@@ -4934,7 +5000,6 @@ function cityFloor(){
   const geometry=tileFlatUV(new THREE.CircleGeometry(OUTER_CITY_R-3,160).rotateX(-Math.PI/2),7);
   const floor=new THREE.Mesh(geometry,MATS.dirt); floor.position.y=.012; floor.receiveShadow=true; scene.add(floor);
 }
-function groundH(){ return 0; }
 
 // ---------- animated bits ----------
 const lights=[], crystals=[]; let fireParticles,fpN=90,fpV=[],fireLight;
@@ -4954,10 +5019,10 @@ function facadeWindows(x,z,w,d,h,ry){ const stories=Math.max(1,Math.round(h/2.6)
   const co=Math.cos(ry),si=Math.sin(ry);
   for(let s=0;s<stories;s++){ const wy=1.4+s*2.6; if(wy>h-0.7)break;
     for(let c=0;c<cols;c++){ if(worldRandom()<0.18) continue; const ox=-w/2+w/(cols+1)*(c+1);
-      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co-oz*si, wz=z+ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } } }
+      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co+oz*si, wz=z-ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } } }
 function building(x,z,w,d,stories,key,ry){ const h=stories*2.6;
   aBox(w,h,d,x,h/2,z,key,ry);
-  if(worldRandom()<0.5) aBox(w*1.06,0.5,d*1.06,x,h+0.25,z,'slate',ry); else aCone(Math.max(w,d)*0.72,2.2,4,x,h+1.1,z,'roof',ry+Math.PI/4);
+  aRoof(w,d,Math.max(1.5,Math.min(w,d)*0.32),x,h,z,'roof',ry,worldRandom()<0.45,0.5);
   facadeWindows(x,z,w,d,h,ry); addCollider(x,z,Math.max(w,d)*0.58); }
 function spire(x,z,h){ const rb=1.5,rt=1.1,faces=6;
   aCyl(rt,rb,h,faces,x,h/2,z,'stone'); aCone(1.95,4,faces,x,h+2,z,'slate');
@@ -4990,9 +5055,9 @@ function keep(){ const R=24,H=8;
 
 function cathedral(x,z,ry){ const w=12,d=22,h=12; aBox(w,h,d,x,h/2,z,'wall',ry);
   aCone(Math.max(w,d)*0.5,6,4,x,h+3,z,'slate',ry+Math.PI/4);
-  const co=Math.cos(ry),si=Math.sin(ry); for(let i=0;i<5;i++){ const oz=-d/2+3+i*4; [w/2+0.05,-w/2-0.05].forEach(ox=>{ const wx=x+ox*co-oz*si,wz=z+ox*si+oz*co; aBox(0.06,3.2,1.0,wx,3.2,wz,'arcane',ry); }); }
+  const co=Math.cos(ry),si=Math.sin(ry); for(let i=0;i<5;i++){ const oz=-d/2+3+i*4; [w/2+0.05,-w/2-0.05].forEach(ox=>{ const wx=x+ox*co+oz*si,wz=z-ox*si+oz*co; aBox(0.06,3.2,1.0,wx,3.2,wz,'arcane',ry); }); }
   // twin front spires
-  [[-w*0.4],[w*0.4]].forEach(o=>{ const wx=x+o[0]*co-(d/2)*si, wz=z+o[0]*si+(d/2)*co; aCyl(1,1.2,h+6,6,wx,(h+6)/2,wz,'stone'); aCone(1.6,4,6,wx,h+6+2,wz,'slate'); });
+  [[-w*0.4],[w*0.4]].forEach(o=>{ const wx=x+o[0]*co+(d/2)*si, wz=z-o[0]*si+(d/2)*co; aCyl(1,1.2,h+6,6,wx,(h+6)/2,wz,'stone'); aCone(1.6,4,6,wx,h+6+2,wz,'slate'); });
   addCollider(x,z,Math.max(w,d)*0.55); }
 
 function streets(){
@@ -5025,20 +5090,6 @@ function town(){
        else building(x,z,rand(4.5,7),rand(4,6),1+(worldRandom()*3|0),pick(mats),ry); } }
 }
 
-function cityWall(){ const R=CITY_RADIUS,H=10,seg=112;
-  const isGate=deg=>[0,90,180,270].some(g=>{ let dd=Math.abs(deg-g); dd=Math.min(dd,360-dd); return dd<3.2; });
-  for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2, a1=(i+1)/seg*Math.PI*2; const deg=((a0+Math.PI/seg)*180/Math.PI)%360;
-    if(isGate(deg)) continue;
-    const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R;
-    const mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+0.4,ry=Math.atan2(x1-x0,z1-z0);
-    aBox(2,H,len,mx,H/2,mz,'stone',ry); aBox(2.4,1,len,mx,H+0.5,mz,'stone',ry);   // wall + parapet
-    if(i%6===0){ aCyl(2,2.3,H+4,8,mx,(H+4)/2,mz,'stone'); aCone(2.8,3,8,mx,H+4+1.5,mz,'slate'); addCollider(mx,mz,2); }
-    wallColl(x0,z0,x1,z1,1.4); }
-  // gate towers + braziers at the 4 cardinal gates
-  [[R,0],[0,R],[-R,0],[0,-R]].forEach(g=>{ const px=g[0],pz=g[1]; const tan=Math.atan2(pz,px)+Math.PI/2;
-    const ox=Math.cos(tan)*5,oz=Math.sin(tan)*5;
-    [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(t=>{ aCyl(2.2,2.5,H+6,8,t[0],(H+6)/2,t[1],'stone'); aCone(3,4,8,t[0],H+6+2,t[1],'slate'); for(let s=1;s<4;s++) aBox(0.5,0.9,0.14,t[0],s*3.5,t[1]+2.2,'window'); addCollider(t[0],t[1],2.3); });
-    torch(px+ox*0.55,pz+oz*0.55,0xffa64d,1.8,18); torch(px-ox*0.55,pz-oz*0.55,0xffa64d,1.8,18); }); }
 
 // ---------- wilds (beyond the wall) ----------
 function graveyard(cx,cz){ for(let i=0;i<40;i++){ const x=cx+rand(-14,14), z=cz+rand(-14,14); aBox(0.7,rand(1,1.6),0.18,x,0.7,z,'stone',rand(-0.3,0.3)); }
@@ -5148,7 +5199,67 @@ function interiorShelf(x,z,w=3.2,axis='x'){
   else{aBox(wide,3.55,.14,x,1.78,z-w*.5+.07,'wood');aBox(wide,3.55,.14,x,1.78,z+w*.5-.07,'wood');wallColl(x,z-w*.5+.2,x,z+w*.5-.2,.32);}
 }
 function interiorBanner(x,z,key='cloth'){aBox(.11,4.15,.11,x,2.08,z,'wood');aBox(1.05,1.48,.055,x,3.05,z,key);}
-function interiorHearth(x,z,w=3.5){aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'stone');aBox(w*.5,.18,.12,x,.76,z+.2,'amber');aBox(.72,.34,.15,x,.98,z+.19,'amber');addCollider(x,z+.13,w*.5);}
+const hearthFires=[];
+// Vaneth lights 83 point lights, and a forward renderer walks every one of them
+// in every lit fragment — including the lantern four wards away whose falloff
+// distance ends long before it reaches you. Keep the nearest LIGHT_BUDGET lit
+// and switch the rest off.
+//
+// The count is held at exactly LIGHT_BUDGET rather than "whatever is in range",
+// because Three compiles a separate shader program per light-count combination:
+// a count that drifts frame to frame recompiles the whole material set over and
+// over. A fixed count compiles once.
+// Tiers, not a single budget. Keeping a fixed count meant that standing at the
+// north gate — where the nearest lantern is 120 units away and its falloff ends
+// at 12 — Vaneth still lit fourteen lights that could not reach you. Snapping to
+// one of a few fixed sizes keeps the recompile count down to one program per
+// tier while letting the wilderness run on none at all.
+const LIGHT_TIERS=[0,5,14];
+let lightCullAt=-1;
+function cullLights(t){
+  if(t-lightCullAt<.25)return;                   // four times a second is plenty
+  lightCullAt=t;
+  const ranked=lights.map(entry=>{
+    const light=entry.light;
+    const d=Math.hypot(light.position.x-player.x,light.position.z-player.z);
+    // reach is the light's own falloff distance; 0 means infinite
+    const reach=light.distance||1e9;
+    return {entry,d,useful:d<reach+4};
+  }).sort((a,b)=>a.d-b.d);
+  const wanted=ranked.filter(row=>row.useful).length;
+  const tier=LIGHT_TIERS.find(size=>size>=wanted)??LIGHT_TIERS[LIGHT_TIERS.length-1];
+  ranked.forEach((row,index)=>{ row.entry.light.visible=index<tier; });
+}
+function interiorHearth(x,z,w=3.5){
+  aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'dark');
+  // The mouth used to be two flat slabs of the emissive amber, which read as a
+  // glowing white brick rather than a fire. A shallow ember bed with logs laid
+  // over it puts something solid between you and the glow, so the light comes
+  // out from between the wood the way it does in a grate.
+  aBox(w*.46,.1,.3,x,.6,z+.2,'amber');
+  aBox(w*.5,.2,.2,x,.72,z+.13,'wood',.06);
+  aBox(w*.42,.2,.2,x,.72,z+.3,'wood',-.09);
+  aBox(w*.3,.2,.2,x+w*.06,.9,z+.21,'wood',.18);
+  aBox(.3,.14,.12,x-w*.1,.86,z+.2,'amber');
+  const fx=x, fz=z+.24, spread=w*.2;
+  const light=new THREE.PointLight(0xff6a1e,0.95,11); light.position.set(fx,0.95,fz); scene.add(light);
+  const count=24, positions=new Float32Array(count*3), rise=[];
+  for(let i=0;i<count;i++){
+    positions[i*3]=fx+rand(-spread,spread);
+    positions[i*3+1]=.55+rand(0,1.15);
+    positions[i*3+2]=fz+rand(-.12,.12);
+    rise.push(rand(.45,1.25));
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  const plume=new THREE.Points(geometry,new THREE.PointsMaterial({
+    color:0xff5a12,size:.14,transparent:true,opacity:.55,depthWrite:false,
+    blending:THREE.AdditiveBlending,fog:true}));
+  scene.add(plume);
+  hearthFires.push({light,plume,rise,base:0.95,phase:rand(0,6),x:fx,z:fz,spread});
+  lights.push({light,base:0.95,phase:0,fire:true});
+  addCollider(x,z+.13,w*.5);
+}
 function interiorGlow(x,z,key='amber',color=0xffb060){aCyl(.055,.075,1.8,5,x,.9,z,'wood');aBox(.29,.29,.29,x,1.92,z,key);const light=new THREE.PointLight(color,.52,8);light.position.set(x,2.02,z);scene.add(light);lights.push({light,base:.52,phase:rand(0,6)});addCollider(x,z,.28);}
 function interiorBeams(x,z,w,d){[-d*.24,d*.24].forEach(offset=>aBox(w-.75,.16,.18,x,6.1,z+offset,'wood'));[-w*.28,w*.28].forEach(offset=>aBox(.18,.16,d-.75,x+offset,6.1,z,'wood'));}
 // interiorTable, interiorShelf, interiorHearth and interiorGlow all give
@@ -5405,18 +5516,52 @@ function throughWall(x,z){
 // Walks a road and lays only the stretches that are not inside a wall, so a
 // street stops at the masonry and picks up on the far side instead of ending
 // in it.
+// No lane in Vaneth is narrower than seven. The ward grid was drawn at 4.6 and
+// 5.4, which in a street whose building lines are eighteen apart leaves most of
+// the ground unpaved — a thin ribbon of cobble with a wide dirt verge either
+// side, which is where residents were walking and where the screenshots showed
+// them. Widening the carriageway is the fix for both at once: the street reads
+// as a street, and the cheap surface under the pathfinder covers it.
+const LANE_MIN=7;
 function layRoad(x1,z1,x2,z2,w,lift=0,kerb=false){
+  w=Math.max(w,LANE_MIN);
   const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz); if(len<1)return;
   const ux=dx/len,uz=dz/len,STEP=1.5;
   let runStart=null;
   const flush=(from,to)=>{ if(to-from>3.5)roadBetween(x1+ux*from,z1+uz*from,x1+ux*to,z1+uz*to,w,lift,kerb); };
   for(let t=0;t<=len+STEP*.5;t+=STEP){
     const at=Math.min(t,len);
-    const open=at<=len&&!throughWall(x1+ux*at,z1+uz*at);
+    const px=x1+ux*at, pz=z1+uz*at;
+    const open=at<=len&&!throughWall(px,pz)&&!throughBuilding(px,pz,w*.5);
     if(open){ if(runStart===null)runStart=at; continue; }
     if(runStart!==null){ flush(runStart,at-STEP); runStart=null; }
   }
   if(runStart!==null)flush(runStart,len);
+}
+// The walk-in landmarks are authored at fixed coordinates, and so is
+// everything inside them. Four of them had a ward grid line running straight
+// through the building — the Moon Archive had one down its long axis — because
+// streetPlan draws the grid from wall to wall and knew nothing about them.
+// A street does not run through a hall; it stops at it, or goes round. layRoad
+// already lays only the stretches that are not inside a wall, so the same walk
+// keeps it off an authored lot. Kept as data, before any road exists, because
+// the buildings themselves are not raised until much later.
+const LANDMARK_LOTS=[
+  {x:38,z:114,w:22,d:17},        // The Cinder and Keg
+  {x:-42,z:-220,w:20,d:16},      // The Southgate Rest
+  {x:220,z:42,w:20,d:16},        // The Eastwall Scriptorium
+  {x:-220,z:-42,w:20,d:16},      // The Westwall Refuge
+  {x:-86,z:-44,w:20,d:16},       // The Moon Archive
+  {x:-126,z:88,w:20,d:16},       // The Northwatch Guild
+  {x:138,z:-18,w:20,d:16},       // The Gilded Finch
+  {x:-39,z:112,w:15,d:11}        // the market house opposite the Cinder and Keg
+];
+// A doorstep needs paving in front of it, so the lot is only closed to a road
+// that would cross the building itself, not to one that runs past its face.
+function throughBuilding(x,z,pad=0){
+  for(const lot of LANDMARK_LOTS)
+    if(Math.abs(x-lot.x)<lot.w*.5+.6+pad&&Math.abs(z-lot.z)<lot.d*.5+.6+pad)return true;
+  return false;
 }
 const CITADEL_CLEAR=54;
 function avenueClearOfCitadel(x1,z1,x2,z2,w){
@@ -5487,64 +5632,10 @@ function onRoad(x,z,pad=0){
 }
 function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),frontX=x+si*d*.5,frontZ=z+co*d*.5;
-  aBox(w,h,d,x,h/2,z,key,ry); aBox(w*1.08,.32,d*1.08,x,h+.16,z,'slate',ry); aCone(Math.max(w,d)*.76,2.6,4,x,h+1.55,z,'roof',ry+Math.PI/4);
+  aBox(w,h,d,x,h/2,z,key,ry); aRoof(w,d,2.5,x,h,z,'roof',ry,(w+z)%2<1,.55);
   facadeWindows(x,z,w,d,h,ry); aBox(1.15,2.05,.16,frontX,1.02,frontZ,'wood',ry); aBox(1.9,.18,.7,frontX,2.27,frontZ,accent,ry); aBox(1.6,.14,.72,frontX,2.45,frontZ,'dark',ry);
   if(stories>1){ const bx=frontX-si*.42,bz=frontZ-co*.42; aBox(w*.46,.14,.68,bx,h*.57,bz,'wood',ry); aBox(.1,.75,.1,bx-si*w*.21,h*.57+.38,bz,'wood',ry); aBox(.1,.75,.1,bx+si*w*.21,h*.57+.38,bz,'wood',ry); }
   addBoxCollider(x,z,w,d,ry);
-}
-function blockDistrict(cx,cz,cols,rows,gapX,gapZ,kind,turn=0){
-  const palette=kind==='merchant'?['wall','brick','wall2']:kind==='scholar'?['wall2','stone','wall']:['brick','wall','wall2'];
-  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){ const x=cx+(c-(cols-1)/2)*gapX,z=cz+(r-(rows-1)/2)*gapZ,rawSeed=c*7+r*11+Math.round(cx+cz),seed=((rawSeed%5)+5)%5,w=6+(seed%3),d=5+((seed+1)%2),stories=1+(seed%3); cityHouse(x,z,w,d,stories,palette[(c+r)%palette.length],turn,seed===0?'arcane':'amber'); }
-}
-function wardCourt(x,z,w,d){
-  // Courtyards turn the remaining ward gaps into places rather than lawns.
-  const court=new THREE.Mesh(tileFlatUV(new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2),6,x,z),MATS.cobble); court.position.set(x,.058,z); court.receiveShadow=true; scene.add(court);
-  aBox(w*.42,.14,.56,x,.69,z-d*.26,'wood'); aBox(.16,.72,.16,x-w*.19,.4,z-d*.26,'wood'); aBox(.16,.72,.16,x+w*.19,.4,z-d*.26,'wood');
-  aBox(.5,.42,.5,x,.26,z+d*.22,'stone'); aCone(.32,.7,5,x,.79,z+d*.22,'foliage');
-  addCollider(x,z-d*.26,Math.max(.7,w*.21)); addCollider(x,z+d*.22,.45);
-}
-function cityBlock(cx,cz,w,d,kind='residential'){
-  const palette=kind==='merchant'?['brick','wall','wall2']:kind==='scholar'?['wall2','stone','wall']:['wall','brick','wall2'];
-  const house=(x,z,turn,index,inner=false)=>{const key=palette[index%palette.length],stories=1+(index%3===0?1:0),wide=(inner?6.8:8)+(index%2),deep=(inner?5.8:7)+(index%3===0?1:0);cityHouse(x,z,wide,deep,stories,key,turn,index%5===0?'arcane':'amber');};
-  // Outer façades read as streets. A cross of narrow alleys and a second row
-  // of smaller buildings gives each ward a walkable Daggerfall-style interior.
-  roadBetween(cx,cz-d*.5+7,cx,cz+d*.5-7,2.35); roadBetween(cx-w*.5+7,cz,cx+w*.5-7,cz,2.35);
-  [-w*.22,w*.22].forEach((offset,index)=>{house(cx+offset,cz-d*.5+5,Math.PI,index);house(cx+offset,cz+d*.5-5,0,index+2);});
-  [-d*.18,d*.18].forEach((offset,index)=>{house(cx-w*.5+5,cz+offset,-Math.PI/2,index+4);house(cx+w*.5-5,cz+offset,Math.PI/2,index+6);});
-  [[-w*.19,-d*.17,Math.PI], [w*.19,-d*.17,Math.PI], [-w*.19,d*.17,0], [w*.19,d*.17,0]].forEach((lot,index)=>house(cx+lot[0],cz+lot[1],lot[2],index+8,true));
-  wardCourt(cx,cz,11,11);
-}
-function denseCityWards(){
-  const cells=[-165,-83,0,83,165];
-  for(let zi=0;zi<cells.length;zi++)for(let xi=0;xi<cells.length;xi++){
-    const x=cells[xi],z=cells[zi],radius=Math.hypot(x,z),marketDistance=Math.hypot(x,z-MARKET_Z);
-    if(radius>215||radius<90||marketDistance<78)continue;
-    // Civic landmarks own their blocks; all other viable blocks become wards.
-    if((Math.abs(x)===83&&z===-83)||(x===83&&z===83)||(x===-83&&z===83)||(x===165&&z===0))continue;
-    const type=(xi+zi)%4===0?'merchant':(xi*3+zi)%5===0?'scholar':'residential'; cityBlock(x,z,62,62,type);
-  }
-  // Three inner wards complete the citadel approaches without crowding its gates.
-  [[-83,0,'merchant'],[83,0,'scholar'],[0,-83,'residential']].forEach(block=>cityBlock(block[0],block[1],50,50,block[2]));
-  // Narrow homes resolve the small landmark gaps without sealing off routes.
-  [[-61,-78,'wall',0],[61,-78,'brick',0],[-62,72,'wall2',0],[55,72,'wall',0],[-86,-123,'brick',0],[87,-123,'wall2',0]].forEach((lot,index)=>cityHouse(lot[0],lot[1],9,8,1+(index%3===0?1:0),lot[2],lot[3],index%2?'amber':'arcane'));
-}
-function northGateWard(){
-  // The player arrives through the north gate. This is a real entrance ward:
-  // tightly spaced facades frame the approach instead of leaving a bare plaza.
-  const palette=['wall2','brick','wall','stone'];
-  const approachRows=[187,199];
-  const fronts=[-43,-32,-21,21,32,43];
-  approachRows.forEach((z,row)=>fronts.forEach((x,index)=>{
-    const towardAvenue=x<0?Math.PI/2:-Math.PI/2;
-    cityHouse(x,z,7.8,7,1+((row+index)%3===0?1:0),palette[(row+index)%palette.length],towardAvenue,(row+index)%5===0?'arcane':'amber');
-  }));
-  // A northern wall-street closes the last open strip while keeping the gate
-  // road obvious and open. The gaps are deliberate narrow side alleys.
-  [-108,-96,-84,-72,-60,-48,-36,-24,24,36,48,60,72,84,96,108].forEach((x,index)=>{
-    cityHouse(x,220,8.6,8,1+(index%4===0?2:1),palette[index%palette.length],Math.PI,index%5===0?'arcane':'amber');
-  });
-  layRoad(-118,210,-18,210,5.4); layRoad(18,210,118,210,5.4);
-  [-64,64].forEach((x,index)=>{ wardCourt(x,209,16,13); cityLantern(x-6,212,index===0); cityLantern(x+6,212,index!==0); });
 }
 function gateApproaches(){
   // Lit landmarks make each gate and the edge boulevard visible from a ward.
@@ -5607,12 +5698,12 @@ function castleRange(x,z,w,d,ry,kind){
   // two-storey town houses that used to sit inside the walls.
   const h=kind==='chapel'?9.5:7.4,co=Math.cos(ry),si=Math.sin(ry);
   aBox(w,h,d,x,h/2,z,'stone',ry);
-  aBox(w*1.06,.5,d*1.06,x,h+.25,z,'slate',ry);
-  aCone(Math.max(w,d)*.66,kind==='chapel'?5:3.6,4,x,h+(kind==='chapel'?2.9:2.3),z,'roof',ry+Math.PI/4);
+  aBox(w*1.04,.4,d*1.04,x,h+.2,z,'slate',ry);                               // corbel course
+  aRoof(w,d,kind==='chapel'?5:3.6,x,h+.4,z,'roof',ry,kind==='chapel',.7);
   for(let t=-1;t<=1;t++){ const ox=t*w*.33;
-    for(const side of[-1,1]){ const bx=x+ox*co-side*(d*.5+.3)*si,bz=z+ox*si+side*(d*.5+.3)*co;
+    for(const side of[-1,1]){ const bx=x+ox*co+side*(d*.5+.3)*si,bz=z-ox*si+side*(d*.5+.3)*co;
       aBox(.85,h*.84,1.0,bx,h*.42,bz,'stone',ry);
-      const wx=x+ox*co-side*(d*.5+.06)*si,wz=z+ox*si+side*(d*.5+.06)*co;
+      const wx=x+ox*co+side*(d*.5+.06)*si,wz=z-ox*si+side*(d*.5+.06)*co;
       aBox(.5,2.3,.12,wx,h*.56,wz,'arcane',ry); } }
   if(kind==='chapel'){ aCyl(.9,1.1,5.5,6,x,h+5.2,z,'stone'); aCone(1.5,3.4,6,x,h+9.6,z,'slate'); }
   addBoxCollider(x,z,w,d,ry);
@@ -5718,6 +5809,7 @@ function buildInteriorDoorLeaves(door,doorW,kind){
   // One collider is enough: the flanking jamb runs already reach to within a
   // narrow slot at the centre, which is exactly the gap people walked through.
   door.collider=addCollider(door.doorX,door.doorZ,.9);
+  door.collider.door=true;
   door.openAmount=0;
 }
 function updateInteriorDoors(dt){
@@ -5731,40 +5823,28 @@ function updateInteriorDoors(dt){
     door.openAmount+=(want-door.openAmount)*Math.min(1,dt*5.5);
     if(Math.abs(door.openAmount-want)<.01)door.openAmount=want;
     const angle=door.openAmount*DOOR_SWING;
-    for(const leaf of door.leaves)leaf.hinge.rotation.y=leaf.side*angle;
+    // Only when it actually moved: restamping unconditionally would rebuild the
+    // shadow map every frame again, which is the thing this is here to stop.
+    if(angle!==door.lastAngle){
+      for(const leaf of door.leaves)leaf.hinge.rotation.y=leaf.side*angle;
+      door.lastAngle=angle;
+      restampShadows();
+    }
     // Stand the blocker down once there is genuinely room to walk through.
     if(door.collider)door.collider.open=door.openAmount>.42;
   }
 }
-// onRoad tests a single point. A building is not a point: a 20x16 hall can
-// clear its own centre and still have a third of its floor lying in the
-// carriageway, which is how five walk-in interiors ended up with their tables
-// and hearths standing in a street. Probe the whole footprint on a 3x3 grid.
-function footprintOnRoad(x,z,w,d,ry=0,pad=0){
-  const co=Math.cos(ry),si=Math.sin(ry);
-  for(let u=-1;u<=1;u++)for(let v=-1;v<=1;v++){
-    const lx=u*(w*.5+pad), lz=v*(d*.5+pad);
-    if(onRoad(x+lx*co+lz*si, z-lx*si+lz*co, 0))return true;
-  }
-  return false;
+// The scriptorium lane ran east, stopped dead at the Scriptorium's side wall,
+// and left you to walk round the building to find the way in. Every walk-in
+// landmark gets a paved doorstep running out from its own door instead, so the
+// entrance reads as the entrance from down the street. Laid as real paving so
+// the prop passes keep off it, skipped where something already stands.
+function landmarkDoorstep(x,front){
+  const from=front+1.0, to=front+6.2;
+  for(let t=from;t<=to;t+=1.6)if(colliderBlocked(x,t,2.6))return;
+  layRoad(x,from,x,to,5);
 }
-// Walks the whole building to the nearest spot where none of it is on paving.
-// Returns the original position when nothing within reach is clear, so a caller
-// that must build somewhere still can.
-function slideOffRoad(x,z,w,d,ry=0,reach=16){
-  if(!footprintOnRoad(x,z,w,d,ry))return[x,z];
-  for(let step=1.5;step<=reach;step+=1.5)
-    for(let i=0;i<16;i++){
-      const a=i/16*Math.PI*2,nx=x+Math.cos(a)*step,nz=z+Math.sin(a)*step;
-      if(!footprintOnRoad(nx,nz,w,d,ry))return[nx,nz];
-    }
-  return[x,z];
-}
-function interiorHouse(name,x,z,w,d,kind,capped=true){
-  // The keep's hall is the one building that may not move: it is built into the
-  // citadel and the courtyard is authored around it.
-  if(kind!=='royal'){ const spot=slideOffRoad(x,z,w,d,0); x=spot[0]; z=spot[1]; }
-  const h=7,front=z+d/2,doorW=3;
+function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doorW=3;
   // The royal hall is built against the foot of the keep, so it takes the
   // keep's stone rather than the tan house wall — two different materials
   // meeting at the join read as two buildings parked together, which is
@@ -5779,7 +5859,7 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){
   // roof void and the sky from inside, in all nine rooms. The leaves are 2.35
   // tall, so the wall picks up again just above them.
   const DOOR_H=2.5; aBox(doorW,h-DOOR_H,.42,x,DOOR_H+(h-DOOR_H)/2,front,WK);
-  aBox(w-.6,.08,d-.6,x,.045,z,'cobble'); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark');
+  aBox(w-.6,.16,d-.6,x,.16,z,'cobble'); landmarkDoorstep(x,front); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark');
   // The keep carries its own tower above this storey, so it asks for no cottage
   // roof — the cone is sized off max(w,d) and on a 34-wide hall it would spread
   // twenty-five units into the bailey.
@@ -5810,18 +5890,6 @@ function marketDistrict(){
     for(let out=0;out<8&&onRoad(sx,sz,2.4);out++){ const rr=20+ (out+1)*1.6; sx=Math.cos(a)*rr; sz=MARKET_Z+Math.sin(a)*rr; }
     if(onRoad(sx,sz,2.4))continue; aBox(4,.28,2.8,sx,2.35,sz,'wood',a); aCone(2.65,1.15,4,sx,3.1,sz,i%3?'roof':'slate',a+Math.PI/4); aCyl(.1,.1,2.3,4,sx-1.35,1.15,sz-1,'wood'); aCyl(.1,.1,2.3,4,sx+1.35,1.15,sz+1,'wood'); addCollider(sx,sz,1.55); }
   interiorHouse('The Cinder and Keg',38,MARKET_Z+6,22,17,'tavern'); cityHouse(-39,MARKET_Z+4,15,11,2,'brick',0,'amber');
-}
-function infillDistricts(){
-  // Smaller ward lanes break the large fields into neighborhoods and give the
-  // player routes beyond the cardinal avenues.
-  [[-218,-140,-30,-140], [30,-140,218,-140], [-218,135,-30,135], [30,135,218,135], [-142,-218,-142,-34], [142,-218,142,-34], [-142,34,-142,218], [142,34,142,218], [-218,-66,-62,-66], [62,-66,218,-66], [-218,66,-62,66], [62,66,218,66]].forEach(road=>roadBetween(road[0],road[1],road[2],road[3],5));
-  blockDistrict(-170,-166,3,3,14,16,'residential',.08); blockDistrict(170,-166,3,3,14,16,'residential',-.08);
-  blockDistrict(-53,-165,3,3,13,16,'merchant'); blockDistrict(53,-165,3,3,13,16,'scholar');
-  blockDistrict(-53,157,3,3,13,16,'merchant'); blockDistrict(53,157,3,3,13,16,'residential');
-  // Keep the east-west gate approaches open; the older blocks here overlapped
-  // the established wards and produced sealed-looking stone lots.
-  [[-70,-52,8,7,2,'brick',.2], [70,-52,8,7,2,'wall2',-.2], [-70,54,8,7,2,'wall',-.2], [70,54,8,7,2,'brick',.2], [-63,112,8,7,2,'wall2',0], [63,112,8,7,2,'wall',0], [-112,-48,8,7,2,'brick',Math.PI/2], [112,-48,8,7,2,'wall2',-Math.PI/2]].forEach(house=>cityHouse(...house));
-  [[-32,-101,24,20],[32,-101,24,20],[-32,76,24,18],[32,76,24,18],[-92,77,18,16],[92,77,18,16],[-94,-77,18,16],[94,-77,18,16]].forEach(court=>wardCourt(...court));
 }
 function perimeterWards(){
   // A proper wall street fills the perimeter without erasing the boulevards.
@@ -5949,7 +6017,24 @@ function compilerCourt(spec){
   // furniture cannot: a bench and a district's noticeboard were standing in the
   // carriageway in six wards. The paving stays where it is; everything that
   // stands on it moves to the part of the court nothing drives through.
-  {const spot=offRoad(x,z,2.6,9); if(spot){x=spot[0];z=spot[1];}}
+  // The furniture is not one point. It stands at the court's centre, at z+/-d/4
+  // for the noticeboard and the bench, and at +/-w*0.31 for the flanking stones.
+  // Nudging on the centre alone left the noticeboard in the road; nudging on the
+  // noticeboard alone pushed the bench into a different one. Move the group only
+  // to somewhere every piece of it is clear, and if there is no such place on the
+  // square, lay the paving and build nothing on it.
+  {
+    const anchors=[[0,0],[0,d*.25],[0,-d*.25],[-w*.31,0],[w*.31,0]];
+    const clearHere=(cx,cz)=>!anchors.some(o=>onRoad(cx+o[0],cz+o[1],1.9));
+    let placed=clearHere(x,z)?[x,z]:null;
+    for(let step=1.4;!placed&&step<=20;step+=1.4)
+      for(let i=0;i<16&&!placed;i++){
+        const angle=i/16*Math.PI*2,nx=x+Math.cos(angle)*step,nz=z+Math.sin(angle)*step;
+        if(clearHere(nx,nz))placed=[nx,nz];
+      }
+    if(!placed)return;
+    x=placed[0]; z=placed[1];
+  }
   aBox(w*.48,.13,.5,x,.68,z-d*.25,'wood');aBox(.14,.7,.14,x-w*.22,.38,z-d*.25,'wood');aBox(.14,.7,.14,x+w*.22,.38,z-d*.25,'wood');aBox(.48,.38,.48,x,.24,z+d*.22,'stone');
   // r69 gave every compiled ward the same bench-and-stone court. The city was
   // denser, but its public spaces were interchangeable. Keep the shared civic
@@ -6291,6 +6376,7 @@ function auditRoadObstructions(limit=24){
     const reach=c.box?Math.hypot(c.hw,c.hd):c.r;
     if(reach<.3)continue;                       // pebbles and blades of grass
     if(c.wall)continue;                         // gates are walls crossing roads
+    if(c.door)continue;                         // a door opens onto the street by design
     if(onRoad(c.x,c.z,0)) inRoad.push({x:+c.x.toFixed(1),z:+c.z.toFixed(1),reach:+reach.toFixed(2),box:!!c.box});
     else if(onRoad(c.x,c.z,reach)) intruding.push({x:+c.x.toFixed(1),z:+c.z.toFixed(1),reach:+reach.toFixed(2),box:!!c.box});
   }
@@ -6421,21 +6507,16 @@ function auditVanethGeometry(){
 // and tiering instead of from geometry types that cannot exist here.
 function wardRoof(kind,x,z,w,d,h,ry,key){
   const span=Math.max(w,d);
-  if(kind===0){ aCone(span*.74,2.2,4,x,h+1.3,z,'roof',ry+Math.PI/4); return; }                   // broad pyramid, flat face forward
-  if(kind===1){ aCone(span*.66,3.1,4,x,h+1.75,z,'roof',ry); return; }                            // steeper, corner forward
-  // A six-sided hip. The radius has to be solved for the flat-to-flat width,
-  // not guessed: a hexagon of radius r is 2r across its corners, so .8 put a
-  // 60% overhang on every house and neighbouring roofs grew into each other.
-  // wardHouse already lays the eaves course; laying a second one here is what
-  // made these read as two roofs stacked on one building.
-  if(kind===2){ aCone(span*.54,1.5,6,x,h+1.05,z,'roof',ry); return; }
-  // A lantern stage on a hip roof, which is a real form but only on a wide
-  // building. On a narrow terrace house the upper pitch has nothing to stand on
-  // and reads as a roof dropped on a roof, so small footprints get one pitch.
-  if(span<9.5){ aCone(span*.74,2.4,4,x,h+1.4,z,'roof',ry+Math.PI/4); return; }
-  aCone(span*.74,1.6,4,x,h+1.0,z,'roof',ry+Math.PI/4);
-  aBox(span*.34,.22,span*.34,x,h+1.85,z,'slate',ry);                                             // the deck it stands on
-  aCone(span*.30,1.5,4,x,h+2.7,z,'roof',ry+Math.PI/4);
+  if(kind===0){ aRoof(w,d,2.2,x,h,z,'roof',ry,false,.5); return; }          // hip
+  if(kind===1){ aRoof(w,d,3.1,x,h,z,'roof',ry,true,.42); return; }          // steep gable, gable ends to the street
+  if(kind===2){ aRoof(w,d,1.55,x,h,z,'roof',ry,false,.75); return; }        // shallow hip, deep eaves
+  // A lantern stage is a real form, but only on a footprint wide enough to
+  // carry one. On a narrow terrace house the upper pitch has nothing to stand
+  // on and reads as a roof dropped on a roof.
+  if(span<10.5){ aRoof(w,d,2.7,x,h,z,'roof',ry,true,.45); return; }         // steep gable
+  aRoof(w,d,1.7,x,h,z,'roof',ry,false,.5);
+  aBox(w*.3,1.0,d*.3,x,h+2.2,z,key,ry);                                     // the lantern itself
+  aRoof(w*.3,d*.3,1.0,x,h+2.7,z,'roof',ry,false,.3);
 }
 function wardHouse(x,z,w,d,stories,key,ry,accent){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),front=d*.5+.05;
@@ -6444,7 +6525,9 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
   // Upper floor overhanging the street, the classic crooked medieval look.
   const jetty=stories>1&&seed%5<2;
   if(jetty)aBox(w*1.06,2.5,d+.7,x,h-1.25,z,key,ry);
-  aBox(w*1.05,.26,d*1.05,x,h+.13,z,'slate',ry);
+  // The flat slate slab that used to sit here, 5% proud of the walls with a
+  // pitched roof above it, is exactly the band that read as a second roof in
+  // every screenshot. The roof carries its own overhang now.
   wardRoof(roofKind,x,z,w,d,h,ry,key);
   aBox(1.0,1.9,.14,x+si*front,.95,z+co*front,'wood',ry);
   aBox(1.5,.16,.5,x+si*front,2.12,z+co*front,accent,ry);
@@ -6808,7 +6891,9 @@ LMSG.textContent='lighting the streets…'; makeVanethLively();
 // audit. Unresolvable facade-only anchors are removed rather than advertised.
 CITY_PLAN.finalAnchorRepair=repairCityPlanAnchors();
 CITY_PLAN.audit={...auditCityPlan(),...CITY_PLAN.finalAnchorRepair};
-const vanethGeometry=auditVanethGeometry();
+auditVanethGeometry();
+// The map is drawn once, now that there is a city to draw it from.
+restampShadows();
 mergeAll();
 buildCityAtmosphere();
 
@@ -6820,7 +6905,14 @@ buildCityAtmosphere();
 //  grid plus A*, so they route around obstacles instead of stalling on them.
 // ============================================================
 const NAV_CELL=4, NAV_HALF=Math.ceil(M/2/NAV_CELL), NAV_N=NAV_HALF*2, NAV_TOTAL=NAV_N*NAV_N;
-const NAV_OPEN=1, NAV_NEAR_WALL=3;   // mild: see budget note in navFindPath
+// Paved, unpaved, and unpaved-against-a-wall. NAV_ROAD stays at 1 so the
+// Euclidean heuristic is still admissible against the cheapest possible step.
+const NAV_ROAD=1, NAV_OPEN=3, NAV_NEAR_WALL=5;
+// Raising the off-road cost without touching the heuristic would weaken it by
+// the same factor and blow the 9,000-node budget on long crossings. Weighting
+// h costs optimality — a resident's walk may be a few metres longer than the
+// true best — and buys back the expansion count. Nobody is grading their route.
+const NAV_H_WEIGHT=2.0;
 const navCost=new Uint8Array(NAV_TOTAL);
 const navIndex=(ci,cj)=>ci*NAV_N+cj;
 const navToWorld=ci=>(ci-NAV_HALF)*NAV_CELL+NAV_CELL*.5;
@@ -6831,14 +6923,18 @@ function buildNavGrid(){
     for(let cj=0;cj<NAV_N;cj++){ const z=navToWorld(cj);
       // Slightly wider than a body so a path never threads a gap that the
       // runtime collision check would then refuse to let them walk through.
-      navCost[navIndex(ci,cj)]=colliderBlocked(x,z,.62)?0:NAV_OPEN; } }
+      navCost[navIndex(ci,cj)]=colliderBlocked(x,z,.62)?0:(onRoad(x,z,0)?NAV_ROAD:NAV_OPEN); } }
   const pass=navCost.slice();
   for(let ci=1;ci<NAV_N-1;ci++)for(let cj=1;cj<NAV_N-1;cj++){ const k=navIndex(ci,cj);
     if(!pass[k])continue;
     // Diagonals included: a cell touching only the corner of a building was
     // treated as open street, which is precisely where residents were clipping.
     if(!pass[k-NAV_N]||!pass[k+NAV_N]||!pass[k-1]||!pass[k+1]
-      ||!pass[k-NAV_N-1]||!pass[k-NAV_N+1]||!pass[k+NAV_N-1]||!pass[k+NAV_N+1])navCost[k]=NAV_NEAR_WALL; }
+      ||!pass[k-NAV_N-1]||!pass[k-NAV_N+1]||!pass[k+NAV_N-1]||!pass[k+NAV_N+1])
+      // A road running past a building is still a road. Bump it rather than
+      // flattening it to the same cost as dirt beside the same wall, or a lane
+      // between two terraces becomes as expensive as the yard behind them.
+      navCost[k]=navCost[k]===NAV_ROAD?NAV_ROAD+1:NAV_NEAR_WALL; }
 }
 // Reused across searches; a stamp avoids clearing 140k entries every call.
 const navG=new Float32Array(NAV_TOTAL),navFrom=new Int32Array(NAV_TOTAL),navStamp=new Uint32Array(NAV_TOTAL);
@@ -6871,6 +6967,17 @@ const NAV_DIRS=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1
 // near-wall cost of 9 did exactly that: requests failed en masse, residents sat
 // in backoff with no path, and the whole population froze after ~90 seconds.
 // Keep the near-wall penalty mild and leave real headroom here.
+// Two points both on paving may only be joined directly if the whole line
+// between them is paving too — that is the difference between following a
+// street round a corner and cutting the corner across somebody's yard. A leg
+// with either end off the road is left alone, because that is a doorstep.
+function pavedShortcutOk(x1,z1,x2,z2){
+  if(!onRoad(x1,z1,0)||!onRoad(x2,z2,0))return true;
+  const steps=Math.max(1,Math.ceil(Math.hypot(x2-x1,z2-z1)/2));
+  for(let i=1;i<steps;i++){ const f=i/steps;
+    if(!onRoad(x1+(x2-x1)*f,z1+(z2-z1)*f,0))return false; }
+  return true;
+}
 function navFindPath(sx,sz,gx,gz,budget=9000){
   const start=navNearestOpen(worldToNav(sx),worldToNav(sz)),goal=navNearestOpen(worldToNav(gx),worldToNav(gz));
   if(start<0||goal<0)return null;
@@ -6892,7 +6999,7 @@ function navFindPath(sx,sz,gx,gz,budget=9000){
       const ng=g+step*cost;
       if(navStamp[k]===navRun&&navG[k]<=ng)continue;
       navStamp[k]=navRun; navG[k]=ng; navFrom[k]=cur;
-      navHeapPush(k,ng+Math.hypot(ni-gi,nj-gj));
+      navHeapPush(k,ng+Math.hypot(ni-gi,nj-gj)*NAV_H_WEIGHT);
     }
   }
   if(!found)return null;
@@ -6909,7 +7016,9 @@ function navFindPath(sx,sz,gx,gz,budget=9000){
     // the corner of a building — the resident walks into a wall, the movement
     // check then refuses it, and they re-plan and wander off. Requiring real
     // shoulder room to take the shortcut keeps them off the masonry.
-    if(!npcPathClear(points[anchor][0],points[anchor][1],points[i][0],points[i][1],.95)){ smooth.push(points[i-1]); anchor=i-1; } }
+    const straight=npcPathClear(points[anchor][0],points[anchor][1],points[i][0],points[i][1],.95)
+      && pavedShortcutOk(points[anchor][0],points[anchor][1],points[i][0],points[i][1]);
+    if(!straight){ smooth.push(points[i-1]); anchor=i-1; } }
   smooth.push(points[points.length-1]);
   return smooth.slice(1);
 }
@@ -7076,11 +7185,6 @@ function npcActivity(npc){
   if(!errand)return null;
   return {verb:errand.verb,line:errand.line,travelling:!npc.atStop};
 }
-function npcActivityPhrase(npc){
-  const activity=npcActivity(npc);
-  if(!activity)return '';
-  return activity.travelling?'on their way to '+activity.verb.replace(/^(\w+ing)\b/,'$1'):activity.verb;
-}
 const INTERIOR_HOST_ACTIVITY=Object.freeze({
   'Barkeep Varn':{x:38,z:112.5,doing:'keeping the bar'},
   'Archivist Lysa':{x:-86,z:-46.5,doing:'reading the old shelves'},
@@ -7137,6 +7241,66 @@ function mergeTinted(parent){
   one.castShadow=false; one.receiveShadow=true;
   parent.add(one);
 }
+// 1,002 of the city's 1,155 meshes were residents: a merged body, a merged
+// head, and four limb pivots that have to stay separate so they can swing. Six
+// draw calls each, at any distance, for a figure that is four pixels tall at the
+// other end of a ward.
+//
+// So every resident also gets a single-mesh version of themselves, baked in a
+// neutral pose at build time and hidden until they are far enough away that a
+// swinging arm is smaller than a pixel. Near residents keep all six parts; the
+// rest cost one call each.
+function buildVillagerLod(parent){
+  // Called before the group is positioned or turned, so world space is already
+  // the group's local space and the baked matrices need no correction.
+  parent.updateMatrixWorld(true);
+  const geoms=[];
+  parent.traverse(o=>{
+    if(!o.isMesh||!o.material)return;
+    const m=o.material;
+    // A carried lantern keeps its glow and its own mesh at every distance.
+    if(m.emissive&&m.emissiveIntensity>0&&(m.emissive.r||m.emissive.g||m.emissive.b))return;
+    if(!m.color)return;
+    // The body and the head have already been merged and are non-indexed;
+    // toNonIndexed warns rather than no-ops when handed one of those.
+    const raw=o.geometry.clone();
+    const g=(raw.index?raw.toNonIndexed():raw).applyMatrix4(o.matrixWorld);
+    for(const name of Object.keys(g.attributes))
+      if(name!=='position'&&name!=='normal'&&name!=='color')g.deleteAttribute(name);
+    if(!g.attributes.normal)g.computeVertexNormals();
+    if(!g.attributes.color){
+      const c=m.color,n=g.attributes.position.count,col=new Float32Array(n*3);
+      for(let i=0;i<n;i++){ col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b; }
+      g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    }
+    geoms.push(g);
+  });
+  if(!geoms.length)return null;
+  const merged=THREE.BufferGeometryUtils.mergeBufferGeometries(geoms,false);
+  geoms.forEach(g=>g.dispose());
+  if(!merged)return null;
+  const mesh=new THREE.Mesh(merged,NPC_MERGED_MAT);
+  mesh.castShadow=false; mesh.receiveShadow=true; mesh.visible=false;
+  parent.add(mesh);
+  return mesh;
+}
+// Two thresholds, not one: a resident walking the boundary would otherwise flip
+// between six meshes and one every time the cadence came round.
+const NPC_LOD_FAR=46, NPC_LOD_NEAR=41;
+let npcLodAt=-1;
+function lodVillagers(t){
+  if(t-npcLodAt<.2)return;
+  npcLodAt=t;
+  for(const npc of villagers){
+    if(!npc.lod)continue;
+    const dx=npc.g.position.x-player.x,dz=npc.g.position.z-player.z,d=Math.hypot(dx,dz);
+    const far=npc.isFar?d>NPC_LOD_NEAR:d>NPC_LOD_FAR;
+    if(far===npc.isFar)continue;
+    npc.isFar=far;
+    npc.lod.visible=far;
+    for(const part of npc.lodHide)part.visible=!far;
+  }
+}
 function villager(name,x,z,robe,line,route=[],districtOverride){
   // Snap the resident and every patrol stop onto walkable ground first. These
   // coordinates were authored against a much smaller city and a good number
@@ -7187,11 +7351,13 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // alone — they rotate independently every frame, so they cannot be merged
   // into anything.
   mergeTinted(headPivot); mergeTinted(g);
+  const lodHide=g.children.slice(), lodMesh=buildVillagerLod(g);
   g.position.set(x,0,z);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(g);
   let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082),routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
   // One errand per stop on their round, so every waypoint is somewhere they
   // are going *for* a reason rather than an anonymous coordinate.
   const created=villagers[villagers.length-1];
+  created.lod=lodMesh; created.lodHide=lodHide; created.isFar=false;
   created.errands=errandsFor(created,Math.max(1,created.routeLoop.length));
 }
 const vanethRoutes={
@@ -7279,11 +7445,6 @@ vanethPassers.forEach(resident=>villager(...resident));
 const OUTER_FIRST=['Aldo','Bryn','Cass','Dorn','Elsa','Fen','Gula','Hest','Ivo','Joss','Kell','Lira','Mabon','Nessa','Orin','Pell','Quill','Rook','Sable','Tamsin','Ulric','Vess','Wenna','Yarrow','Bex','Corr','Dell','Esme','Fain','Greta','Hollis','Isolde','Jarek','Kirra','Lowen','Merrit','Nyle','Oswin','Perrin','Rilla','Sten','Thea','Vurn','Wren'];
 const OUTER_LAST=['of the Low Road','Ashfoot','Barrowgate','Cinderhand','Dunmire','Emberly','Fairweather','Greenlatch','Hobbs','Ironwright','Kettle','Longshaw','Marrowick','Netherby','Oakhollow','Pryor','Quarrier','Redfern','Stonebrook','Thatcher','Underwood','Varlow','Westhill','Yardley'];
 const OUTER_LINES=['The outer wards keep their own hours.','You can walk this ring all evening and never see the same lane twice.','Nobody comes out this far unless they mean to.','Half the city never bothers to learn our street names.','Mind the turns — they do not run straight out here.','The wall keeps the wind off, mostly.','It is a long walk to the citadel from here. Pace yourself.','Out here we hear the news last and mind it least.'];
-function outerRingRoute(radius,startAngle,span,steps){
-  const points=[];
-  for(let i=0;i<=steps;i++){ const a=startAngle+span*(i/steps); points.push([Math.cos(a)*radius,Math.sin(a)*radius]); }
-  return points;
-}
 function outerDistrictFor(deg){ if(deg<45||deg>=315)return'East Ward'; if(deg<135)return'North Ward'; if(deg<225)return'West Ward'; return'South Ward'; }
 useWorldStream('outer-residents');
 (()=>{
@@ -7563,14 +7724,13 @@ const interactHint=document.getElementById('interactHint'),mobileInteractBtn=doc
 function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
 
 // ---------- Wayfinder: a lightweight reason to inhabit the city ----------
-const WAYFINDER_KEY='emberwatch.vaneth-wayfinder.v2';
 const VANETH_LANDMARKS=[
   {id:'north-gate',name:'North Gate',x:0,z:218,radius:18,detail:'The lantern road from the wilds.'},
   {id:'cinder-market',name:'Cinder Market',x:0,z:108,radius:25,detail:'The city’s warmest and loudest square.'},
   {id:'great-hall',name:'The Great Hall',x:0,z:-20,radius:22,detail:'The citadel’s guarded heart.'},
   {id:'moon-archive',name:'Moon Archive',x:-86,z:-44,radius:16,detail:'A quiet house of old questions.'},
   {id:'eastwall',name:'Eastwall Scriptorium',x:220,z:42,radius:16,detail:'The ledger house by the eastern wall.'},
-  {id:'foxglove-pond',name:'Foxglove Pond',x:-295,z:178,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
+  {id:'foxglove-pond',name:'Foxglove Pond',x:-238,z:224,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
 ];
 // The landmark ledger, discovery toasts, distance readout and objective arrow
 // are gone: they turned wandering the city into a checklist. VANETH_LANDMARKS
@@ -7623,23 +7783,10 @@ function clearPressedKeys(){for(const key of Object.keys(keys))delete keys[key];
 function conversationFor(npc){return VANETH_CONVERSATION[npc?.district]||VANETH_CONVERSATION['Old Vaneth'];}
 function nameIndex(name,count){return [...String(name||'')].reduce((total,char)=>total+char.charCodeAt(0),0)%count;}
 function dialogueChoice(label,action,leave=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(leave)button.className='leave';button.addEventListener('click',action);dialogueChoices.append(button);}
-function legacyWriteDialogue(npc,topic,words,choices){if(!npc)return;dialogueName.textContent=npc.name;dialoguePlace.textContent=(npc.district||'Vaneth')+' · resident';dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));}
 function npcPathClear(x1,z1,x2,z2,extra=.22){const distance=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.ceil(distance/1.1));for(let step=1;step<=steps;step++){const blend=step/steps;if(colliderBlocked(x1+(x2-x1)*blend,z1+(z2-z1)*blend,extra))return false;}return true;}
 function talkSpotFor(npc){const fromX=npc.g.position.x,fromZ=npc.g.position.z,base=Math.atan2(player.z-fromZ,player.x-fromX);for(let index=0;index<10;index++){const angle=base+Math.PI+(index?((index%2?-1:1)*Math.ceil(index/2)*.44):0),x=player.x+Math.cos(angle)*2.15,z=player.z+Math.sin(angle)*2.15;if(!colliderBlocked(x,z,.26)&&npcPathClear(fromX,fromZ,x,z))return{x,z};}return{x:fromX,z:fromZ};}
 function anchorNpcRoute(npc){npc.path=null;npc.pathIndex=0;const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});if(best<0){npc.route=[[x,z]];npc.routeProgress=0;npc.pauseLeft=2.4;npc.routeRetryIn=2.4;return;}const ordered=loop.slice(best).concat(loop.slice(0,best));npc.route=[[x,z],...ordered];npc.routeProgress=0;npc.routeRetryIn=0;// Linger a good while after a conversation instead of turning on their heel.
   npc.pauseLeft=3.5+((npc.phase*9)%2.5);}
-function legacyCloseDialogue(){if(!dialogueOpen)return; if(activeDialogueNpc){activeDialogueNpc.talking=false;anchorNpcRoute(activeDialogueNpc);} dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();}
-function legacyOpenDialogue(npc){if(!npc)return;const spot=talkSpotFor(npc);npc.talking=true;npc.talkX=spot.x;npc.talkZ=spot.z;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();requestAnimationFrame(()=>dialogueClose.focus());}
-function legacyShowDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Offer '+strain.name+' from your jar',action:()=>shareDialogueSmoke(npc,strain)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};writeDialogue(npc,'A conversation in '+conversationFor(npc).place,npc.name+' looks you over for a moment.\n\n“'+npc.line+'”',[{label:'Ask about this part of Vaneth',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacyAskAboutVaneth(npc){const lore=conversationFor(npc);writeDialogue(npc,'Talking of Vaneth','You: “What should I know about this place?”\n\n'+npc.name+': “'+lore.city+'”',[{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacyAskWhyTheyStay(npc){const lore=conversationFor(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'];const answer=personal[nameIndex(npc.name,personal.length)]+' '+lore.roots;writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+answer+'”',[{label:'Ask about the ward again',action:()=>askAboutVaneth(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the first question',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacyOfferFromJar(npc){const strain=currentStrain();if(strain){shareDialogueSmoke(npc,strain);return;}writeDialogue(npc,'An empty offer','You reach for your jar, then remember it is empty.\n\n'+npc.name+' gives a small, understanding nod. “No shame in that. Come back when you have something you want to talk over.”',[{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacyReleaseSocialSmoke(npc){const cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false}));cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0));scene.add(cloud);socialSmoke.push({mesh:cloud,life:2.2});}
-function strainImpression(strain){const reference=strain.reference||{},aromas=reference.aromas||[],effects=reference.effects||[],scent=aromas[nameIndex(strain.name,Math.max(1,aromas.length))]||'',effect=effects[nameIndex(strain.name+'mood',Math.max(1,effects.length))]||'';let mood='unhurried';if(/energetic|uplifted|creative|focused|cerebral/i.test(effect))mood='bright and awake';else if(/sleepy|relaxed|calm/i.test(effect))mood='soft around the edges';else if(/giggly|talkative|sociable|happy/i.test(effect))mood='easier to share';else if(/euphoric|tingly/i.test(effect))mood='a little lighter than before';return{scent,mood};}
-function legacyShareDialogueSmoke(npc,strain){releaseSocialSmoke(npc);const impression=strainImpression(strain),gesture=['takes the jar with both hands and gives it a thoughtful turn','rests an elbow against the nearest rail and accepts it without hurry','watches the ember for a beat before taking the jar','gives you a small, surprised smile and accepts'][nameIndex(npc.name+strain.name,4)],reply=['“Thank you. I needed a minute that did not belong to anyone else.”','“That is kind of you. The city has been loud all evening.”','“You can tell a lot about a person by whether they offer the jar first.”','“Ah. I was hoping someone would make the night less sharp.”'][nameIndex(strain.name+npc.name,4)];writeDialogue(npc,'A shared ember','You offer '+strain.name+'. '+npc.name+' '+gesture+'. The two of you stand together while a thin thread of smoke unravels into the night.\n\n'+npc.name+': “'+reply+'”',[{label:'Ask how it sits with them',action:()=>askSharedFeeling(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Talk about Vaneth instead',action:()=>askAboutVaneth(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function askSharedFeeling(npc,strain){const impression=strainImpression(strain),scent=impression.scent?' I catch a little '+impression.scent+' in it.':'',reply=['It lands '+impression.mood+' for me. Not every evening needs a lesson attached to it.','It makes the world feel '+impression.mood+'. That is enough tonight.','I like that it arrives '+impression.mood+', then leaves room for a person to think.'][nameIndex(npc.name,3)];writeDialogue(npc,'An honest answer','You: “How does it sit with you?”\n\n'+npc.name+': “'+reply+scent+'”',[{label:'Ask what it reminds them of',action:()=>askSmokeMemory(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacyAskSmokeMemory(npc,strain){const memory=['a kitchen window left open against rain','someone laughing under a market awning','the first quiet minute after a difficult watch','a road fire after the rest of the camp has gone to sleep'][nameIndex(npc.name+strain.name,4)];writeDialogue(npc,'A small memory','You: “What does it remind you of?”\n\n'+npc.name+' watches the smoke climb. “Not a specific thing. More like '+memory+'. The kind of memory you do not know you miss until it comes back.”',[{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function legacySitWithNpc(npc,strain){const place=conversationFor(npc).place,ending=['For a while neither of you says anything. Somewhere beyond the roofs, a cart creaks and a lantern bell taps in the wind.','The city keeps moving around you. '+npc.name+' gives a small nod, as if that silence answered a question.','You pass the jar back and watch the last of the smoke thin above '+place+'. It is enough to be there for a minute.'][nameIndex(npc.name+strain.name+'quiet',3)];writeDialogue(npc,'A little quiet',ending,[{label:'Keep talking',action:showDialogueGreeting},{label:'Ask about Vaneth',action:()=>askAboutVaneth(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 dialogueClose.addEventListener('click',closeDialogue);
 
 // ---------- Living conversations: role, memory, and a real shared-jar flow ----------
@@ -7706,14 +7853,29 @@ function livingNoteVisit(npc){const memory=livingMemoryFor(npc);memory.visits=Ma
 function livingNoteShare(npc,strain,impression=''){const memory=livingMemoryFor(npc),id=String(strain?.id||strain?.name||'unknown'),name=String(strain?.name||'your jar'),found=memory.shared.find(item=>item&&item.id===id),entry=found||{id,name,count:0,lastAt:0,impression:''};entry.count=Math.min(99,(Number(entry.count)||0)+1);entry.lastAt=Date.now();if(impression)entry.impression=impression.slice(0,120);if(!found)memory.shared.push(entry);memory.shared=memory.shared.slice(-12);memory.lastSharedName=name;saveLivingNpcMemory();return entry;}
 function livingNotePlayerImpression(npc,strain,impression){const memory=livingMemoryFor(npc),id=String(strain?.id||strain?.name||'unknown'),name=String(strain?.name||'your jar');let entry=memory.shared.find(item=>item&&item.id===id);if(!entry){entry={id,name,count:0,lastAt:0,impression:''};memory.shared.push(entry);}entry.playerImpression=impression.slice(0,120);memory.shared=memory.shared.slice(-12);memory.lastPlayerImpression=impression.slice(0,120);saveLivingNpcMemory();}
 function livingList(values){const clean=[...new Set((values||[]).map(value=>String(value||'').replace(/^(taste|scent|notes?|effects?)\s*:\s*/i,'').trim()).filter(Boolean))].slice(0,3);if(!clean.length)return'';if(clean.length===1)return clean[0];if(clean.length===2)return clean[0]+' and '+clean[1];return clean.slice(0,-1).join(', ')+', and '+clean[clean.length-1];}
-function livingJarWords(value){return String(value||'').split(/[·,;|/]+/).map(word=>word.replace(/^(taste|scent|notes?|effects?)\s*:\s*/i,'').trim()).filter(word=>word&&word.length<42);}
 function livingClassifyJarWords(value,assumeScent=false){const aromas=[],effects=[],notes=[];for(const raw of String(value||'').split(/[·,;|/]+/)){const part=raw.trim();if(!part)continue;const match=part.match(/^([^:]{1,24}):\s*(.+)$/),label=(match?.[1]||'').toLowerCase(),word=(match?.[2]||part).trim();if(!word||word.length>=80)continue;if(/^(common tale|effect|effects|feeling|feelings|mood|moods)$/i.test(label))effects.push(word);else if(/^(taste|flavor|flavour|scent|smell|aroma|aromas|terpene|terpenes)$/i.test(label)||(!match&&assumeScent))aromas.push(word);else notes.push(word);}return{aromas,effects,notes};}
 function livingStrainContext(strain){const reference=strain?.reference||{},jarScent=livingClassifyJarWords(strain?.terpenes,true),jarNotes=livingClassifyJarWords(strain?.notes,false),aromas=[...new Set([...(Array.isArray(reference.aromas)?reference.aromas:[]),...jarScent.aromas,...jarNotes.aromas])].filter(Boolean).slice(0,5),effects=[...new Set([...(Array.isArray(reference.effects)?reference.effects:[]),...jarScent.effects,...jarNotes.effects])].filter(Boolean).slice(0,5),form=String(strain?.form||'').replace(/-/g,' ').trim();return{name:String(strain?.name||'your jar'),form:form&&form!=='unspecified'?form:'',aromas,effects,notes:[...jarScent.notes,...jarNotes.notes].slice(0,4),note:String(reference.note||''),uses:Array.isArray(strain?.uses)?strain.uses.length:0};}
 function livingMood(context){const notes=context.effects.join(' ').toLowerCase();if(/energetic|uplifted|creative|focused|cerebral/.test(notes))return'it leaves the room a little brighter and more awake';if(/sleepy|relaxed|calm/.test(notes))return'it rounds off the hard edges of the evening';if(/giggly|talkative|sociable|happy/.test(notes))return'it makes conversation easier to pass back and forth';if(/euphoric|tingly/.test(notes))return'it makes the night feel a shade lighter without trying too hard';return'it gives the moment a little more room to breathe';}
-function livingLandmark(id){return VANETH_LANDMARKS.find(place=>place.id===id)||null;}
 // No discovery state to consult any more — a resident simply names the place
 // their profile cares about, or falls back to one picked from their name so
 // different people still recommend different corners of the city.
+// Asking a resident for a direction used to call pointWayfinderAt() and read
+// wayfinderState.discovered. Neither has existed since the objective arrow and
+// the discovery ledger were removed — the panel is a "you are here" label now —
+// so the option threw a ReferenceError every time it was clicked, which left the
+// dialogue frozen on the previous line. A local does not hand you a map marker
+// anyway: they give you a bearing and a rough idea of how far, and you go look.
+const COMPASS = ['north','north-east','east','south-east','south','south-west','west','north-west'];
+function bearingFromPlayer(place){
+  const dx = place.x - player.x, dz = place.z - player.z, dist = Math.hypot(dx, dz);
+  const deg = ((Math.atan2(dx, dz) * 180 / Math.PI) + 360) % 360;   // +Z is north, +X is east
+  const how = dist < 26 ? 'You are all but standing in it'
+    : dist < 70  ? 'It is two streets off'
+    : dist < 150 ? 'A fair walk, but you will not need to ask twice'
+    : dist < 240 ? 'Most of the way across the city'
+    : 'Out past the wall, so take a lantern';
+  return { dir: COMPASS[Math.round(deg / 45) % 8], dist, how };
+}
 function livingLeadFor(npc){const profile=livingProfile(npc);return VANETH_LANDMARKS.find(place=>place.id===profile.leadId)||VANETH_LANDMARKS[nameIndex(npc?.name||'resident',VANETH_LANDMARKS.length)]||null;}
 let livingDialogueReturnFocus=null;
 function writeDialogue(npc,topic,words,choices){if(!npc)return;const profile=livingProfile(npc);dialogueName.textContent=npc.name;dialoguePlace.textContent=profile.role+' · '+(npc.district||'Vaneth');dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));dialoguePanel.scrollTop=0;requestAnimationFrame(()=>dialogueChoices.querySelector('button:not(.leave)')?.focus());}
@@ -7746,7 +7908,7 @@ function askAboutErrand(npc){
 function askAboutWork(npc){const profile=livingProfile(npc),lore=conversationFor(npc);writeDialogue(npc,'The work at hand','You: “What has you occupied tonight?”\n\n'+npc.name+': “'+profile.work+' '+lore.roots+'”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askAboutVaneth(npc){const lore=conversationFor(npc),profile=livingProfile(npc);writeDialogue(npc,'A thing that changed','You: “What has changed around here?”\n\n'+npc.name+': “'+profile.news+' '+lore.city+'”',[{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askWhyTheyStay(npc){const lore=conversationFor(npc),profile=livingProfile(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'][nameIndex(npc.name,3)];writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+personal+' '+lore.roots+' I still think about '+profile.memory+'.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function askForDirection(npc){const profile=livingProfile(npc),lead=livingLeadFor(npc);if(!lead){writeDialogue(npc,'No map needed','You: “Where should I go from here?”\n\n'+npc.name+' smiles. “You have already found the places most people spend a lifetime missing. Wander where the lamps look warm.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}pointWayfinderAt(lead);const known=wayfinderState.discovered.includes(lead.id),hint=known?'You know the way already, but '+npc.name+' traces it with a finger in the air.':'Your wayfinder takes the lead.';writeDialogue(npc,'A local direction','You: “Where should I go from here?”\n\n'+npc.name+': “Try '+lead.name+'. '+(profile.leadId===lead.id?'It has a way of making the city make sense.':'It is the next place I would send a person who wants to understand Vaneth.')+'”\n\n'+hint,[{label:'Ask why that place matters',action:()=>askLandmarkStory(npc,lead)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function askForDirection(npc){const profile=livingProfile(npc),lead=livingLeadFor(npc);if(!lead){writeDialogue(npc,'No map needed','You: “Where should I go from here?”\n\n'+npc.name+' smiles. “You have already found the places most people spend a lifetime missing. Wander where the lamps look warm.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const bearing=bearingFromPlayer(lead),hint=npc.name+' points '+bearing.dir+'. “'+bearing.how+'.”';writeDialogue(npc,'A local direction','You: “Where should I go from here?”\n\n'+npc.name+': “Try '+lead.name+'. '+(profile.leadId===lead.id?'It has a way of making the city make sense.':'It is the next place I would send a person who wants to understand Vaneth.')+'”\n\n'+hint,[{label:'Ask why that place matters',action:()=>askLandmarkStory(npc,lead)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askLandmarkStory(npc,lead){const profile=livingProfile(npc),stories=['It is where I go when I need to remember the city is made of people, not stone.','I have watched strangers arrive there as strangers and leave with a name to carry.','Every district has a place that tells the truth about it. For me, that is this one.'];writeDialogue(npc,'Why that place matters','You: “Why '+lead.name+'?”\n\n'+npc.name+': “'+stories[nameIndex(npc.name+lead.id,stories.length)]+' It brings back '+profile.memory+'.”',[{label:'Keep the direction',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 async function beginDialogueSmokeSession(npc,strain){const bridge=globalThis.emberwatchPeakSession,recipeF=smokeSessionTemp(strain.sessionF),recipeSeconds=smokeSessionSeconds(strain.sessionSeconds);if(!bridge){writeDialogue(npc,'The Peak is not ready','The control deck is still waking up. Give it a moment, then try again.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const status=bridge.status();if(!status.connected){writeDialogue(npc,'A quiet preparation',npc.name+' glances toward the dark glass. “Connect your Peak first. We have time.”',[{label:'Open Peak controls',action:()=>{closeDialogue();togglePuff(true);}},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(!status.lorax){writeDialogue(npc,'A different kind of Peak','This Peak does not expose the custom session controls Emberwatch needs for a shared smoke.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(status.busy||status.active){writeDialogue(npc,'Already underway',npc.name+' listens for the little machine. “Let the cycle already in motion have its time.”',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}try{await bridge.beginStrainSession({strainId:strain.id,strainName:strain.name,targetF:recipeF,seconds:recipeSeconds,npcKey:livingNpcKey(npc)});closeDialogue();}catch(error){writeDialogue(npc,'The moment pauses','The Peak did not begin the session: '+String(error?.message||error),[{label:'Try again',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}}
 function offerFromJar(npc){const strain=currentStrain();if(!strain){writeDialogue(npc,'An empty offer','You reach for your jar, then remember it is empty.\n\n'+npc.name+' gives a small, understanding nod. “No shame in that. Come back when you have something you want to talk over.”',[{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const context=livingStrainContext(strain),memory=livingMemoryFor(npc),shared=memory.shared.find(item=>item&&item.id===String(strain.id||strain.name)),hasShared=!!(shared&&shared.count>0),vessel=context.form?'a '+context.form:'an unmarked jar',remembered=hasShared?' “I remember this one,” '+npc.name+' says, softer than before.'+(shared.playerImpression?' “You told me '+shared.playerImpression+' last time.”':''):' '+npc.name+' studies the offered jar, then looks back to you.';writeDialogue(npc,'The offered jar','You loosen the lid of '+context.name+'. It is '+vessel+'—something you brought with you, not a sales pitch.'+remembered+'\n\n'+npc.name+': “'+livingProfile(npc).smoke+'”',[{label:'Smoke '+context.name+' together · '+smokeSessionTemp(strain.sessionF)+'°F',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Let them take a quiet pull',action:()=>shareDialogueSmoke(npc,strain)},{label:'Ask what they are looking for in it',action:()=>askSmokeInvitation(npc,strain)},{label:'Keep the lid on for now',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
@@ -7774,7 +7936,6 @@ function askSmokeMemory(npc,strain){const context=livingStrainContext(strain),pr
 function askSmokePairing(npc,strain){const lead=livingLeadFor(npc);const destination=lead?lead.name:conversationFor(npc).place;writeDialogue(npc,'Who would understand it','You: “Who else might enjoy this?”\n\n'+npc.name+' smiles. “Take that kind of moment to '+destination+'. Do not announce it. Just find someone who looks like they have been carrying too much of the day.”',[{label:lead?'Keep '+destination+' on the wayfinder':'Return to the shared moment',action:lead?()=>askForDirection(npc):()=>showSharedMoment(npc,strain)},{label:'Ask what it reminds them of',action:()=>askSmokeMemory(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function sitWithNpc(npc,strain){const place=conversationFor(npc).place,context=livingStrainContext(strain),ending=['For a while neither of you says anything. Somewhere beyond the roofs, a cart creaks and a lantern bell taps in the wind.','The city keeps moving around you. '+npc.name+' gives a small nod, as if that silence answered a question.','You pass the jar back and watch the last of the smoke thin above '+place+'. It is enough to be there for a minute.'][nameIndex(npc.name+context.name+' quiet',3)];writeDialogue(npc,'A little quiet',ending,[{label:'Keep talking',action:showDialogueGreeting},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 dialoguePanel.addEventListener('keydown',event=>{if(event.key!=='Tab'||!dialogueOpen)return;const focusable=[...dialoguePanel.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled])')].filter(element=>element.offsetParent!==null);if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}});
-function routePoint(npc){const route=npc.route,length=route.length,progress=(npc.routeProgress%length+length)%length,index=Math.floor(progress),next=(index+1)%length,blend=progress-index,ease=blend*blend*(3-2*blend),from=route[index],to=route[next];return {x:from[0]+(to[0]-from[0])*ease,z:from[1]+(to[1]-from[1])*ease};}
 // Patrol movement only ever checked world geometry, so a resident on their
 // route would walk straight through the player or through each other. This
 // mirrors the player's own npcBlocked check, minus the NPC being tested.
@@ -7850,7 +8011,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
         }
       }
     }else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
-    const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
+    const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts&&!npc.isFar){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
     // The existing unstick only fires when a resident is trying to move and
     // finds someone in the way. A resident that has arrived at its stop and is
     // idling never runs it at all, so two who converge on the same stop stand
@@ -8016,7 +8177,6 @@ const STRAIN_REFERENCE_LIBRARY={
 function referenceForStrain(name){ const reference=STRAIN_REFERENCE_LIBRARY[strainKey(canonicalStrainName(name))];return reference?{...reference,terpenes:[...reference.terpenes],aromas:[...reference.aromas],effects:[...reference.effects]}:null; }
 function archiveList(value,max=4){return String(value||'').replace(/[\[\]'\"]/g,'').split(/[,;|/]/).map(part=>cleanStrainText(part,44)).filter(part=>part&&part.toUpperCase()!=='NULL'&&part.length<=44).slice(0,max);}
 function storedArchiveReference(raw){if(!raw||typeof raw!=='object')return null;const match=cleanStrainText(raw.match,64),lineage=cleanStrainText(raw.lineage,140),keeper=cleanStrainText(raw.keeper,100),origin=cleanStrainText(raw.origin,100),note=cleanStrainText(raw.note,220),terpenes=archiveList(raw.terpenes),aromas=archiveList(raw.aromas),effects=archiveList(raw.effects);if(!match&&!lineage&&!keeper&&!origin&&!note&&!terpenes.length&&!aromas.length&&!effects.length)return null;return {match:match||'Archive keeper’s notes',lineage,keeper,origin,terpenes,aromas,effects,note:note||'Copied into the Vaneth smoke ledger.'};}
-function strainNpcCue(strain){ const reference=strain&&strain.reference;if(!reference)return '';const aroma=reference.aromas.slice(0,2).join(' + '),effect=reference.effects.slice(0,2).join(', ');return aroma?' · smells like '+aroma+(effect?' · often feels '+effect:''):''; }
 const INITIAL_WAX_STOCK=[
   {name:'Strawberry Cheesecake',form:'live resin badder'},
   {name:'Island Time',form:'live resin badder'},
@@ -8815,12 +8975,19 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r88',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r93',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,villagers,look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
-function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
+// Starts full so the very first frame always draws: a hidden window gets rAF
+// rarely, and with an empty budget the smoke test sampled the renderer before
+// anything had been rendered and reported zero draw calls.
+const FRAME_CAP=60; let frameBudget=1;
+function loop(){ requestAnimationFrame(loop);
+  frameBudget+=clock.getDelta();
+  if(frameBudget<1/FRAME_CAP-0.0005)return;
+  const dt=Math.min(frameBudget,0.05),t=clock.elapsedTime; frameBudget=0;
   let f=0,r=0;
   if(keys['KeyW']||keys['ArrowUp'])f+=1; if(keys['KeyS']||keys['ArrowDown'])f-=1; if(keys['KeyD']||keys['ArrowRight'])r+=1; if(keys['KeyA']||keys['ArrowLeft'])r-=1;
   const uiOpen=anyOverlayOpen(); if(!uiOpen&&(stickVec.x||stickVec.y)){ f+=-stickVec.y; r+=stickVec.x; } if(uiOpen){f=0;r=0;}
@@ -8843,7 +9010,22 @@ function loop(){ requestAnimationFrame(loop); const dt=Math.min(clock.getDelta()
   for(let i=socialSmoke.length-1;i>=0;i--){ const puff=socialSmoke[i]; puff.life-=dt; puff.mesh.position.y+=dt*.55; puff.mesh.scale.multiplyScalar(1+dt*.6); puff.mesh.material.opacity=Math.max(0,puff.life*.22); if(puff.life<=0){ scene.remove(puff.mesh); puff.mesh.geometry.dispose(); puff.mesh.material.dispose(); socialSmoke.splice(i,1); } }
   if(fireParticles){ const fp=fireParticles.geometry.attributes.position; for(let i=0;i<fpN;i++){ let y=fp.getY(i)+fpV[i]*60*dt; if(y>3.2)y=1; fp.setY(i,y); } fp.needsUpdate=true; if(fireLight) fireLight.intensity=2.4+Math.sin(t*12)*0.4; }
   crystals.forEach(c=>{ c.mesh.position.y=c.base+Math.sin(t*1.5+c.phase)*0.2; c.mesh.rotation.y+=dt*0.5; c.light.intensity=1.2+Math.sin(t*2+c.phase)*0.4; });
-  lights.forEach(l=>{ l.light.intensity=l.base+Math.sin(t*8+l.phase)*0.22; });
+  lights.forEach(l=>{ if(!l.fire)l.light.intensity=l.base+Math.sin(t*8+l.phase)*0.22; });
+  cullLights(t);
+  lodVillagers(t);
+  for(const fire of hearthFires){
+    const position=fire.plume.geometry.attributes.position;
+    for(let i=0;i<fire.rise.length;i++){
+      let y=position.getY(i)+fire.rise[i]*dt;
+      if(y>1.95){ y=.55;
+        position.setX(i,fire.x+(Math.random()*2-1)*fire.spread);
+        position.setZ(i,fire.z+(Math.random()*2-1)*.12); }
+      position.setY(i,y);
+    }
+    position.needsUpdate=true;
+    // Two frequencies: the slow breath of the fire and the fast snap of it.
+    fire.light.intensity=fire.base+Math.sin(t*7+fire.phase)*.22+Math.sin(t*23+fire.phase*2)*.09;
+  }
   moonDisc.lookAt(camera.position); moon2.lookAt(camera.position);
   // Sky and stars ride with the camera so the dome never goes off-centre and
   // the starfield keeps a constant apparent distance across the larger map.
