@@ -1,14 +1,13 @@
-**r93 — people use the streets** · 2026-09-05 · phase 5, world depth
+**r94 — outgrew its wall** · 2026-09-05 · phase 5, world depth
 
 ### Summary
 
-residents use the streets. The nav grid treated every walkable cell as identical, so a resident crossing a ward took the shortest line over the dirt and the streets stayed empty. Paving is the cheap surface now (1 against 3 for open ground) and string-pulling may no longer shortcut off it. The ward grid was also drawn at 4.6 and 5.4 wide in streets whose building lines are eighteen apart — a ribbon of cobble with a wide dirt verge, which is where people were walking; no lane is narrower than 7. Residents on paving 76% -> 85%. The app icon was a white circle: make-ico's downscale un-premultiplied with an extra factor of n in it, which is at least 4x on every size and saturated everything.
+**Vaneth outgrew its wall.** r85 deleted a generated outer city because it was laid on a warped grid that knew nothing of the authored passes. The lesson was not "keep the city small", it was "one street plan, one set of rules" — so the city grows the way a real one does. The wall at 240 stays exactly where it is with everything inside it untouched and becomes the *old* wall; new quarters go up outside it, on the same compiler, behind a new wall at 380. Three ring streets, four diagonal avenues, the gate roads run the whole way through. Map 900 -> 1500, wilderness pushed out past the new wall. 162 residents -> 326.
 
 ### In the code
 
-- 1.13 MB (−1,260 bytes on r88).
-- 9 functions added: `aRoof`, `bearingFromPlayer`, `buildVillagerLod`, `cullLights`, `landmarkDoorstep`, `lodVillagers`, `pavedShortcutOk`, `restampShadows`, `throughBuilding`.
-- 29 functions removed: `askSharedFeeling`, `blockDistrict`, `cityBlock`, `cityWall`, `denseCityWards`, `footprintOnRoad`, `groundH`, `infillDistricts`, `legacyAskAboutVaneth`, `legacyAskSmokeMemory`, `legacyAskWhyTheyStay`, `legacyCloseDialogue`, `legacyOfferFromJar`, `legacyOpenDialogue`, `legacyReleaseSocialSmoke`, `legacyShareDialogueSmoke`, `legacyShowDialogueGreeting`, `legacySitWithNpc`, `legacyWriteDialogue`, `livingJarWords`, `livingLandmark`, `northGateWard`, `npcActivityPhrase`, `outerRingRoute`, `routePoint`, `slideOffRoad`, `strainImpression`, `strainNpcCue`, `wardCourt`.
+- 1.13 MB (+1,400 bytes on r93).
+- No functions added or removed.
 
 ### Play it
 

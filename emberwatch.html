@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r93 people use the streets</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r94 the city outgrew its wall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4733,7 +4733,7 @@ if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.<br>Open this fi
 try {
 
 const CONFIG = {
-  mapSize: 900, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
+  mapSize: 1500, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
   eyeHeight: 1.7, playerRadius: 0.5, mouseSens: 0.0022, fov: 75,
   fogDensity: 0.007, renderScale: 0.45,
   colors: { nightFog:0x140b22, nightGround:0x161320, nightHemi:0x5a4bd6, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
@@ -4976,7 +4976,15 @@ const M=CONFIG.mapSize, CITY_RADIUS=240, MARKET_Z=108;
 // OUTER_CITY_R used to be a second wall at 560 with a ward ring between. It is
 // now just past the city wall, so anything still measuring against it (ward
 // naming, the wall-aware road layer, the tree line) reads the real edge.
-const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=CITY_RADIUS+14, OUTER_WARD_R0=272, OUTER_WARD_R1=540;
+// CITY_RADIUS is the old wall and the boundary of the old city; nothing inside
+// it has moved. OUTER_WALL_R is the new one. OUTER_CITY_R — the line everything
+// wild measures itself against — follows the new wall out.
+const OUTER_WALL_R=380;
+// The outward limit of anything built. innerInfill terraces up to this line, so
+// raising the wall raises the city with it rather than leaving a ring of field
+// inside the new masonry.
+const BUILD_EDGE_R=OUTER_WALL_R-10;
+const MID_WALL_R=CITY_RADIUS, OUTER_CITY_R=OUTER_WALL_R+14;
 const MID_GATE_DEG=[0,90,180,270];
 // The gate approaches are wider than a ward street so the hierarchy reads from
 // the gate, and sit fractionally proud of ward paving so the side streets they
@@ -5499,7 +5507,7 @@ const KERB_QUEUE=[];
 // a little past the city edge — but it was still listed here with the old
 // outer-gate bearings, so the layer clipped a four unit hole out of every
 // gate approach at radius 254 for failing to be an outer gate.
-const WALL_RINGS=[{r:CITY_RADIUS,gates:MID_GATE_DEG}];
+const WALL_RINGS=[{r:CITY_RADIUS,gates:MID_GATE_DEG},{r:OUTER_WALL_R,gates:MID_GATE_DEG}];
 function throughWall(x,z){
   const rad=Math.hypot(x,z);
   const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
@@ -6161,7 +6169,7 @@ function compileVanethCity(){
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild');interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');spire(-158,-12,20);spire(156,18,18);repairCityPlanAnchors();return auditCityPlan();
 }
 function plannedDistricts(){return compileVanethCity();}
-function citadelWall(){ const R=CITY_RADIUS,H=12,seg=160;
+function citadelWall(R=CITY_RADIUS,H=12){ const seg=Math.max(160,Math.round(R*.67));
   const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<3.3);
   for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;if(gateAt(deg))continue;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
@@ -6266,16 +6274,23 @@ function gateApproachRoads(){
   // watch the outer gates of a wall that no longer exists, and was quietly
   // reporting on an empty list.
   GATE_AVENUES.length=0;
-  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, r0=MID_WALL_R-14, r1=MID_WALL_R+46;
+  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, r0=MID_WALL_R-14, r1=OUTER_WALL_R+46;
     layRoad(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(a)*r1,Math.sin(a)*r1,10,0,true);
     GATE_AVENUES.push({deg:g,r0,r1}); });
+  // The quarters between the two walls: three ring streets and a diagonal
+  // avenue on each corner bearing, so a block is bounded on all four sides and
+  // nobody has to cross open ground to get from one to the next.
+  useWorldStream('outer-rings');
+  [272,316,354].forEach(r=>ringRoad(r,8));
+  [45,135,225,315].forEach(g=>{ const a=g*Math.PI/180, r0=CITY_RADIUS+16, r1=OUTER_WALL_R-8;
+    layRoad(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(a)*r1,Math.sin(a)*r1,8,0,true); });
 }
 function wilderness(){
-  useWorldStream('wild-ring');   ruinedRing(CITY_RADIUS+72);
-  useWorldStream('wild-stones'); stones(232,232);
-  useWorldStream('wild-pond');   pond(-238,224);
-  useWorldStream('wild-graves'); graveyard(-228,-236);
-  useWorldStream('wild-ruins');  ruins(236,-228);
+  useWorldStream('wild-ring');   ruinedRing(OUTER_WALL_R+82);
+  useWorldStream('wild-stones'); stones(330,330);
+  useWorldStream('wild-pond');   pond(-340,320);
+  useWorldStream('wild-graves'); graveyard(-326,-334);
+  useWorldStream('wild-ruins');  ruins(338,-326);
   useWorldStream('wild-forest'); denseForest();
   useWorldStream('wild-wisps');  wisps();
   useWorldStream('wild-peaks');  mountains();
@@ -6704,11 +6719,11 @@ function innerInfill(){
     const r=Math.hypot(x,z);
     // Inside the mid wall, clear of the wall itself; plus the dead ring beyond
     // it, which has been empty ground since r56.
-    return (r>66 && r<CITY_RADIUS-9) || (r>CITY_RADIUS+8 && r<OUTER_WARD_R0-6);
+    return (r>66 && r<CITY_RADIUS-9) || (r>CITY_RADIUS+8 && r<BUILD_EDGE_R-6);
   };
   const streets=ROAD_RECTS.filter(r=>{
     const mx=r.x1+r.ux*r.len*.5, mz=r.z1+r.uz*r.len*.5;
-    return Math.hypot(mx,mz)<=OUTER_WARD_R0+4 && r.len>=24;
+    return Math.hypot(mx,mz)<=BUILD_EDGE_R+4 && r.len>=24;
   });
   for(const road of streets){
     for(const side of[-1,1]){
@@ -6746,7 +6761,7 @@ function innerInfill(){
   // the dead ring between the two walls has ever had. Terrace it by walking
   // the circumference, converting each frontage width into an arc step.
   for(const ring of ROAD_RINGS){
-    if(ring.r>OUTER_WARD_R0+4)continue;
+    if(ring.r>BUILD_EDGE_R+4)continue;
     for(const side of[-1,1]){
       let ang=0;
       while(ang<Math.PI*2){
@@ -6864,6 +6879,7 @@ LMSG.textContent='raising the citadel…'; useWorldStream('citadel');citadel();
 LMSG.textContent='building the districts…'; useWorldStream('districts');plannedDistricts();useWorldStream('market');marketDistrict();
 LMSG.textContent='opening the wall houses…'; useWorldStream('perimeter-wards');perimeterWards();
 LMSG.textContent='fortifying the city…'; useWorldStream('city-wall');citadelWall();
+useWorldStream('outer-wall');citadelWall(OUTER_WALL_R,14);
 // The greater city is gone. outerWards() laid 2,460 buildings on a warped
 // grid out to radius 540, and almost every placement fault this project spent
 // revisions chasing — roads through walls, buildings in lanes, props on the
@@ -7455,10 +7471,10 @@ useWorldStream('outer-residents');
   // part of why the paths read as wrong. Put them on the actual carriageways
   // instead. The wards are 4.1x the inner city's area but held about a third of
   // its population density, so the count rises with the placement fix.
-  const wanted=104;
+  const wanted=268;
   const lanes=ROAD_RECTS.filter(seg=>{
     const mx=seg.x1+seg.ux*seg.len*.5, mz=seg.z1+seg.uz*seg.len*.5, r=Math.hypot(mx,mz);
-    return seg.len>22 && r>58 && r<CITY_RADIUS-8;
+    return seg.len>22 && r>58 && r<BUILD_EDGE_R-8;
   }).sort((a,b)=>b.len-a.len);          // arterials populated before alleys
   const used=new Set();
   let placed=0;
@@ -7575,7 +7591,7 @@ skyDome.renderOrder=-1; skyDome.frustumCulled=false; scene.add(skyDome);
 // centre so the first thing you see is city, not wilderness.
 // The north gate of the city wall, looking in. Was the outer gate of a wall
 // that no longer exists.
-const SPAWN_A=90*Math.PI/180, SPAWN_R=CITY_RADIUS+26;
+const SPAWN_A=90*Math.PI/180, SPAWN_R=OUTER_WALL_R+26;
 // Camera forward is (-sin yaw, -cos yaw), so facing the centre from the spawn
 // point needs atan2(+X,+Z). It was negated, which spawned you looking out at
 // the wilderness with the gate behind you.
@@ -7730,7 +7746,7 @@ const VANETH_LANDMARKS=[
   {id:'great-hall',name:'The Great Hall',x:0,z:-20,radius:22,detail:'The citadel’s guarded heart.'},
   {id:'moon-archive',name:'Moon Archive',x:-86,z:-44,radius:16,detail:'A quiet house of old questions.'},
   {id:'eastwall',name:'Eastwall Scriptorium',x:220,z:42,radius:16,detail:'The ledger house by the eastern wall.'},
-  {id:'foxglove-pond',name:'Foxglove Pond',x:-238,z:224,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
+  {id:'foxglove-pond',name:'Foxglove Pond',x:-340,z:320,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
 ];
 // The landmark ledger, discovery toasts, distance readout and objective arrow
 // are gone: they turned wandering the city into a checklist. VANETH_LANDMARKS
@@ -7760,10 +7776,19 @@ function wardAt(x,z){
   if(Math.hypot(x,z-MARKET_Z)<42)return'Cinder Market';
   if(r<MID_WALL_R){ if(z>154)return'North Ward';if(z<-154)return'South Road';if(x<-158)return'West Wall';if(x>158)return'East Wall';if(z<-54)return'Lower Vaneth';return'Old Vaneth'; }
   if(r<MID_WALL_R+30)return'The Gates';
-  // Beyond the wall there is no sprawl any more, only the wilds and what the
-  // old greater city left behind. Named by compass so you still know roughly
-  // where you are without being handed a map.
-  if(r<CITY_RADIUS+96)return'Underwall';
+  // Between the two walls: the ground Vaneth spread onto after it outgrew the
+  // old circuit, and still calls new after however many winters.
+  if(r<MID_WALL_R+64)return'Underwall';
+  if(r<OUTER_WALL_R-6){
+    if(deg<45||deg>=315)return'Eastreach';
+    if(deg<135)return'The New North';
+    if(deg<225)return'Westreach';
+    return'The Long Southing';
+  }
+  if(r<OUTER_WALL_R+26)return'The Outer Gates';
+  // Past the new wall there is no sprawl, only the wilds and what the old
+  // greater city left behind. Named by compass so you still know roughly where
+  // you are without being handed a map.
   if(deg<45||deg>=315)return'The Eastern Wilds';
   if(deg<135)return'The Northern Wilds';
   if(deg<225)return'The Western Wilds';
@@ -8975,7 +9000,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r93',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r94',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 window.EMBER={scene,camera,renderer,CONFIG,player,villagers,look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
