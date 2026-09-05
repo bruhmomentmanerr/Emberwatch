@@ -185,7 +185,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r98 word travels</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r99 the probe listens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -232,6 +232,7 @@
     </details>
     <details id="puffProbe"><summary>device probe</summary>
       <div class="pnote">Surveys any Bluetooth device: every service, every characteristic, its properties, and the current value of anything readable. It only reads — nothing is written to the device.</div>
+      <div class="pnote">After the survey it subscribes to everything that can notify and prints what arrives for <b>20 seconds</b>. Use the device while it listens — press a button, start a cycle, change a temperature — and its own traffic lands in the report. That is how a protocol gets read.</div>
       <div class="puff-section">Extra service UUIDs</div>
       <textarea id="probeUuids" spellcheck="false" placeholder="one per line — full uuid, or 4-digit shorthand like 180a" aria-label="Extra BLE service UUIDs to request"></textarea>
       <div class="pnote">Web Bluetooth hides any service that was not named before the chooser opened, so an unknown device shows nothing until its UUIDs are listed here. Read them off <b>chrome://bluetooth-internals</b> → Devices → Inspect. Saved between sessions.</div>
@@ -9394,6 +9395,38 @@ const PUFF=(function(){
         }
         say('');
       }
+      // ---- listen ----------------------------------------------------------
+      // Everything that can notify, for twenty seconds, timestamped. A device
+      // that opens with a handshake shows it here in the first second.
+      const listening=[];
+      for(const service of services){
+        let chars=[];
+        try{ chars=await service.getCharacteristics(); }catch{ continue; }
+        for(const ch of chars){
+          if(!ch.properties||!(ch.properties.notify||ch.properties.indicate))continue;
+          try{
+            await ch.startNotifications();
+            const started=performance.now();
+            ch.addEventListener('characteristicvaluechanged',event=>{
+              const bytes=new Uint8Array(event.target.value.buffer.slice(0));
+              say('  +'+((performance.now()-started)/1000).toFixed(2)+'s  '+ch.uuid.slice(0,8)+
+                  '  '+hex(bytes)+'   "'+ascii(bytes)+'"');
+            });
+            listening.push(ch);
+          }catch(error){ say('  (cannot subscribe to '+ch.uuid.slice(0,8)+': '+error.message+')'); }
+        }
+      }
+      if(listening.length){
+        say('LISTENING on '+listening.length+' characteristic(s) for 20s.');
+        say('Press a button on the device now — a startup exchange, a heat cycle,');
+        say('a temperature change. Whatever it sends will land below.');
+        say('');
+        status.textContent='listening for 20s — use the device now…';
+        await new Promise(resolve=>setTimeout(resolve,20000));
+        for(const ch of listening){ try{ await ch.stopNotifications(); }catch{} }
+        say('');
+        say('(listening finished)');
+      } else if(services.length) say('Nothing on this device can notify, so there is no traffic to watch.');
       status.textContent=services.length?('done — '+services.length+' service(s) found. Copy the report.'):'done — nothing visible. See the note in the report.';
     }catch(error){
       const message=String((error&&error.message)||error);
@@ -9461,7 +9494,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r98',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r99',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
