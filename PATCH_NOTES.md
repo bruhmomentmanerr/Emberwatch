@@ -1,13 +1,15 @@
-**r94 — outgrew its wall** · 2026-09-05 · phase 5, world depth
+**r95 — watches and ties** · 2026-09-05 · phase 5, world depth
+
+In its own panel header: *r95 watches, haunts and ties*.
 
 ### Summary
 
-**Vaneth outgrew its wall.** r85 deleted a generated outer city because it was laid on a warped grid that knew nothing of the authored passes. The lesson was not "keep the city small", it was "one street plan, one set of rules" — so the city grows the way a real one does. The wall at 240 stays exactly where it is with everything inside it untouched and becomes the *old* wall; new quarters go up outside it, on the same compiler, behind a new wall at 380. Three ring streets, four diagonal avenues, the gate roads run the whole way through. Map 900 -> 1500, wilderness pushed out past the new wall. 162 residents -> 326.
+watches, haunts and ties. Vaneth is permanently night — the aurora is the identity of the place — so the clock is the watch bell rather than the sun: four named watches of about three minutes that change where people are without touching the sky. Every resident has a home, a workplace drawn from their own ward's business, and one to three people they know, taken from their nearest neighbours so the graph is a neighbourhood and not a scatter. The bell turns and 56 of them cross more than twenty-five units of city to be somewhere else. A new dialogue topic asks after their people and answers with names, relations and bearings.
 
 ### In the code
 
-- 1.13 MB (+1,400 bytes on r93).
-- No functions added or removed.
+- 1.14 MB (+7,200 bytes on r94).
+- 6 functions added: `applyWatch`, `askAboutTies`, `assignLives`, `collectWorkplaces`, `loopNear`, `whereTheyWork`.
 
 ### Play it
 

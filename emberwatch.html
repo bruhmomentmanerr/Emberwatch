@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r94 the city outgrew its wall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r95 watches, haunts and ties</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5555,14 +5555,14 @@ function layRoad(x1,z1,x2,z2,w,lift=0,kerb=false){
 // keeps it off an authored lot. Kept as data, before any road exists, because
 // the buildings themselves are not raised until much later.
 const LANDMARK_LOTS=[
-  {x:38,z:114,w:22,d:17},        // The Cinder and Keg
-  {x:-42,z:-220,w:20,d:16},      // The Southgate Rest
-  {x:220,z:42,w:20,d:16},        // The Eastwall Scriptorium
-  {x:-220,z:-42,w:20,d:16},      // The Westwall Refuge
-  {x:-86,z:-44,w:20,d:16},       // The Moon Archive
-  {x:-126,z:88,w:20,d:16},       // The Northwatch Guild
-  {x:138,z:-18,w:20,d:16},       // The Gilded Finch
-  {x:-39,z:112,w:15,d:11}        // the market house opposite the Cinder and Keg
+  {x:38,z:114,w:22,d:17,name:'The Cinder and Keg'},
+  {x:-42,z:-220,w:20,d:16,name:'The Southgate Rest'},
+  {x:220,z:42,w:20,d:16,name:'the Eastwall Scriptorium'},
+  {x:-220,z:-42,w:20,d:16,name:'the Westwall Refuge'},
+  {x:-86,z:-44,w:20,d:16,name:'the Moon Archive'},
+  {x:-126,z:88,w:20,d:16,name:'the Northwatch Guild'},
+  {x:138,z:-18,w:20,d:16,name:'the Gilded Finch'},
+  {x:-39,z:112,w:15,d:11,name:'the market house'}
 ];
 // A doorstep needs paving in front of it, so the lot is only closed to a road
 // that would cross the building itself, not to one that runs past its face.
@@ -7752,7 +7752,7 @@ const VANETH_LANDMARKS=[
 // are gone: they turned wandering the city into a checklist. VANETH_LANDMARKS
 // survives purely as a place list residents can point at in conversation, and
 // the panel is now just a "you are here" label.
-let lastWayfinderAt=0,lastWardName='';
+let lastWayfinderAt=0,lastWardName='',lastWatchName='';
 const visitedWardAtmosphere=new Set();
 const WARD_ATMOSPHERE={
   'Citadel Ward':'The Great Hall gathers the city around it; ward lamps burn violet against the old stone.',
@@ -7794,7 +7794,8 @@ function wardAt(x,z){
   if(deg<225)return'The Western Wilds';
   return'The Southern Wilds';
 }
-function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
+function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);const watchName=currentWatch()?currentWatch().name:'';if(ward!==lastWardName||watchName!==lastWatchName){lastWatchName=watchName;wayfinderWard.textContent=ward+(watchName?' · '+watchName:'');}
+  if(ward!==lastWardName){lastWardName=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
 const VANETH_CONVERSATION={
   'Market Ward':{place:'the Market Ward',city:'The market tells the truth before the council does. Watch which stallholders stop talking when a bell rings.',roots:'I stay because every road comes through here eventually. A person learns a city by listening to what it needs.'},
   'Citadel Ward':{place:'the Citadel Ward',city:'Up here, every promise echoes twice: once in the hall and once in the barracks. Keep the second echo in mind.',roots:'Someone has to remember that a wall is for sheltering people, not merely keeping people out.'},
@@ -7911,7 +7912,7 @@ function livingGreeting(npc){const memory=livingMemoryFor(npc),strain=currentStr
   const activity=npcActivity(npc);
   const busy=activity?(activity.travelling?'\n\nThey are heading off to be '+activity.verb+', and slow down rather than stop.':'\n\nThey are '+activity.verb+', and keep half an eye on it while you talk.'):'';
   return opener+busy+'\n\n'+profile.work+(strain?' Your jar catches a little lantern light, but '+npc.name+' does not make a performance of it.':'');}
-function showDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Ask if they want to share '+strain.name,action:()=>offerFromJar(npc)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};const choices=[{label:'Ask what they are working on',action:()=>askAboutWork(npc)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}];
+function showDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Ask if they want to share '+strain.name,action:()=>offerFromJar(npc)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};const choices=[{label:'Ask what they are working on',action:()=>askAboutWork(npc)},{label:'Ask who they know here',action:()=>askAboutTies(npc)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}];
   // Only offered when they actually have an errand in hand, so the option
   // never appears for a stationary indoor host with nothing to report.
   if(npcActivity(npc))choices.unshift({label:'Ask what they are doing right now',action:()=>askAboutErrand(npc)});
@@ -7930,9 +7931,36 @@ function askAboutErrand(npc){
      {label:'Return to the conversation',action:showDialogueGreeting},
      {label:'Leave the conversation',action:closeDialogue,leave:true}]);
 }
-function askAboutWork(npc){const profile=livingProfile(npc),lore=conversationFor(npc);writeDialogue(npc,'The work at hand','You: “What has you occupied tonight?”\n\n'+npc.name+': “'+profile.work+' '+lore.roots+'”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function whereTheyWork(npc){ return npc.workName?' You will find me at '+npc.workName+' most watches.':''; }
+function askAboutWork(npc){const profile=livingProfile(npc),lore=conversationFor(npc);writeDialogue(npc,'The work at hand','You: “What has you occupied tonight?”\n\n'+npc.name+': “'+profile.work+' '+lore.roots+whereTheyWork(npc)+'”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askAboutVaneth(npc){const lore=conversationFor(npc),profile=livingProfile(npc);writeDialogue(npc,'A thing that changed','You: “What has changed around here?”\n\n'+npc.name+': “'+profile.news+' '+lore.city+'”',[{label:'Ask what keeps them here',action:()=>askWhyTheyStay(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askWhyTheyStay(npc){const lore=conversationFor(npc),profile=livingProfile(npc),personal=['Some people measure a life in coin. I measure mine in names remembered when the weather turns.','The city is difficult, but difficult places make room for useful people.','Every week I think of leaving. Every week someone gives me a reason to stay.'][nameIndex(npc.name,3)];writeDialogue(npc,'A quieter answer','You: “What keeps you in Vaneth?”\n\n'+npc.name+': “'+personal+' '+lore.roots+' I still think about '+profile.memory+'.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function askAboutTies(npc){
+  const ties=npc.ties||[];
+  if(!ties.length){
+    writeDialogue(npc,'Nobody in particular','You: “Who do you know around here?”\n\n'+npc.name+' thinks about it. “Faces, mostly. This end of the city keeps to itself and I have got used to it.”',
+      [{label:'Ask what they are working on',action:()=>askAboutWork(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);
+    return;
+  }
+  const lines=ties.map(tie=>{
+    const bearing=bearingFromPlayer(tie);
+    return tie.name+', '+tie.kind+' — '+bearing.dir+' of here. '+bearing.how+'.';
+  });
+  const first=ties[0];
+  writeDialogue(npc,'The people they keep',
+    'You: “Who do you know around here?”\n\n'+npc.name+': “'+
+    (ties.length===1?'Only the one worth naming.':'A few worth naming.')+'”\n\n'+lines.join('\n')+
+    '\n\n“'+(first.kind==='kin'?'We were raised on the same stair.':
+      first.kind==='a workmate'?'We keep the same hours, more or less.':
+      first.kind==='an old friend'?'Longer than either of us admits to.':
+      first.kind==='a neighbour'?'Two doors down, and it has never once been quiet.':
+      first.kind==='someone they owe'?'I will settle it. Do not ask me when.':
+      'They will settle it. I do not ask when.')+'”',
+    [{label:'Ask what they are working on',action:()=>askAboutWork(npc)},
+     {label:'Ask for a place worth finding',action:()=>askForDirection(npc)},
+     {label:'Return to the conversation',action:showDialogueGreeting},
+     {label:'Leave the conversation',action:closeDialogue,leave:true}]);
+}
 function askForDirection(npc){const profile=livingProfile(npc),lead=livingLeadFor(npc);if(!lead){writeDialogue(npc,'No map needed','You: “Where should I go from here?”\n\n'+npc.name+' smiles. “You have already found the places most people spend a lifetime missing. Wander where the lamps look warm.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const bearing=bearingFromPlayer(lead),hint=npc.name+' points '+bearing.dir+'. “'+bearing.how+'.”';writeDialogue(npc,'A local direction','You: “Where should I go from here?”\n\n'+npc.name+': “Try '+lead.name+'. '+(profile.leadId===lead.id?'It has a way of making the city make sense.':'It is the next place I would send a person who wants to understand Vaneth.')+'”\n\n'+hint,[{label:'Ask why that place matters',action:()=>askLandmarkStory(npc,lead)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askLandmarkStory(npc,lead){const profile=livingProfile(npc),stories=['It is where I go when I need to remember the city is made of people, not stone.','I have watched strangers arrive there as strangers and leave with a name to carry.','Every district has a place that tells the truth about it. For me, that is this one.'];writeDialogue(npc,'Why that place matters','You: “Why '+lead.name+'?”\n\n'+npc.name+': “'+stories[nameIndex(npc.name+lead.id,stories.length)]+' It brings back '+profile.memory+'.”',[{label:'Keep the direction',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 async function beginDialogueSmokeSession(npc,strain){const bridge=globalThis.emberwatchPeakSession,recipeF=smokeSessionTemp(strain.sessionF),recipeSeconds=smokeSessionSeconds(strain.sessionSeconds);if(!bridge){writeDialogue(npc,'The Peak is not ready','The control deck is still waking up. Give it a moment, then try again.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const status=bridge.status();if(!status.connected){writeDialogue(npc,'A quiet preparation',npc.name+' glances toward the dark glass. “Connect your Peak first. We have time.”',[{label:'Open Peak controls',action:()=>{closeDialogue();togglePuff(true);}},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(!status.lorax){writeDialogue(npc,'A different kind of Peak','This Peak does not expose the custom session controls Emberwatch needs for a shared smoke.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(status.busy||status.active){writeDialogue(npc,'Already underway',npc.name+' listens for the little machine. “Let the cycle already in motion have its time.”',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}try{await bridge.beginStrainSession({strainId:strain.id,strainName:strain.name,targetF:recipeF,seconds:recipeSeconds,npcKey:livingNpcKey(npc)});closeDialogue();}catch(error){writeDialogue(npc,'The moment pauses','The Peak did not begin the session: '+String(error?.message||error),[{label:'Try again',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}}
@@ -7985,7 +8013,112 @@ function npcObstructed(npc,x,z){
     if(dist<reach&&ahead(dx,dz,dist))return true; }
   return false;
 }
-function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid();
+const WATCHES=[
+  {id:'labour',name:'the Working Watch',note:'Forges lit, counters open, the city at its business.'},
+  {id:'market',name:'the Market Watch',note:'Everyone with something to sell is out saying so.'},
+  {id:'still', name:'the Still Hours', note:'Doors shut and lamps trimmed. The streets belong to whoever must be out in them.'},
+  {id:'ember', name:'the Ember Watch', note:'Kettles on, jars out, half the ward in the other half\'s houses.'}
+];
+const WATCH_SECONDS=170;
+let watchIndex=-1;
+const watchAt=t=>WATCHES[Math.floor(t/WATCH_SECONDS)%WATCHES.length];
+const currentWatch=()=>WATCHES[Math.max(0,watchIndex)];
+
+// Somewhere to work, per ward. Courts are a ward's public business; the market
+// and the walk-in landmarks are the rest of it.
+const WORKPLACES=[];
+function collectWorkplaces(){
+  WORKPLACES.length=0;
+  for(const spec of DISTRICT_SPECS) if(spec.court) WORKPLACES.push({x:spec.court[0],z:spec.court[1],name:spec.name});
+  WORKPLACES.push({x:0,z:MARKET_Z,name:'the Cinder Market'});
+  for(const lot of LANDMARK_LOTS) WORKPLACES.push({x:lot.x,z:lot.z+lot.d*.5+3,name:lot.name});
+}
+// A short round near a point, so a resident at a haunt paces it rather than
+// standing to attention on one tile.
+function loopNear(x,z,seed,spread=6,stops=3){
+  const out=[];
+  for(let i=0;i<stops;i++){
+    const a=seed*2.4+i*(Math.PI*2/stops), r=spread*(.55+((seed*7+i)%4)/6);
+    out.push(navPlace(x+Math.cos(a)*r,z+Math.sin(a)*r));
+  }
+  return out;
+}
+function assignLives(){
+  collectWorkplaces();
+  villagers.forEach((npc,index)=>{
+    const seed=nameIndex(npc.name,997)+index;
+    // Work: the nearest of the city's workplaces, so a resident's day happens
+    // in their own ward rather than across town.
+    let work=null,bestDistance=Infinity;
+    for(const place of WORKPLACES){
+      const d=Math.hypot(place.x-npc.homeX,place.z-npc.homeZ);
+      if(d<bestDistance){bestDistance=d;work=place;}
+    }
+    npc.workName=work?work.name:'';
+    npc.haunts={
+      home:loopNear(npc.homeX,npc.homeZ,seed,7),
+      // A working round covers ground: between the yard, the lane and whoever
+      // they have to see. The market watch spreads people around the square
+      // rather than stacking them all on the fire.
+      labour:work?loopNear(work.x,work.z,seed,17,4):null,
+      market:loopNear(0,MARKET_Z,seed,26,4),
+      still:loopNear(npc.homeX,npc.homeZ,seed+3,5),
+      ember:null                                  // filled once ties exist
+    };
+    npc.haunts.labour=npc.haunts.labour||npc.haunts.home;
+  });
+  // Ties. Neighbours first: the nearest few residents, which in a city laid out
+  // on streets means the people on your street.
+  const KINDS=['kin','a workmate','an old friend','a neighbour','someone they owe','someone who owes them'];
+  villagers.forEach((npc,index)=>{
+    const near=villagers
+      .filter(other=>other!==npc)
+      .map(other=>({other,d:Math.hypot(other.homeX-npc.homeX,other.homeZ-npc.homeZ)}))
+      .filter(row=>row.d<70)
+      .sort((a,b)=>a.d-b.d)
+      .slice(0,8);
+    const count=1+(nameIndex(npc.name,3));
+    npc.ties=[];
+    for(let i=0;i<count&&i<near.length;i++){
+      const pick=near[(nameIndex(npc.name,near.length)+i*3)%near.length].other;
+      if(npc.ties.some(tie=>tie.name===pick.name))continue;
+      npc.ties.push({name:pick.name,kind:KINDS[(nameIndex(npc.name+pick.name,KINDS.length))],x:pick.homeX,z:pick.homeZ});
+    }
+    // The ember watch is spent at somebody's house — theirs, or a tie's.
+    const host=npc.ties[0];
+    npc.haunts.ember=host?loopNear(host.x,host.z,nameIndex(npc.name,97),6):npc.haunts.home;
+  });
+}
+// Retasking 300+ residents at once would fire 300 path requests into a queue
+// that services seven a frame. That is fine — it drains in under a second — but
+// they are staggered by name anyway so the ward does not turn on its heel in
+// unison, which reads as choreography rather than a change of hours.
+function applyWatch(t,dt){
+  const idx=WATCHES.indexOf(watchAt(t));
+  if(idx!==watchIndex){
+    watchIndex=idx;
+    const watch=WATCHES[idx];
+    for(const npc of villagers) npc.watchDue=(nameIndex(npc.name,60)/60)*14;
+    if(t>2)showGameToast('The bell turns to '+watch.name+'. '+watch.note);
+  }
+  const watch=WATCHES[Math.max(0,watchIndex)];
+  for(const npc of villagers){
+    if(npc.watchDue===undefined||npc.watchDue<0)continue;
+    npc.watchDue-=dt;
+    if(npc.watchDue>0)continue;
+    npc.watchDue=-1;
+    if(npc.talking||!npc.haunts)continue;
+    const loop=npc.haunts[watch.id]||npc.haunts.home;
+    if(!loop||!loop.length)continue;
+    npc.routeLoop=loop.map(point=>[point[0],point[1]]);
+    npc.goalIndex=0; npc.errandIndex=0;
+    // errandsFor is indexed by stop count, so it has to be redrawn whenever the
+    // round changes or a resident reads an errand off the end of the old one.
+    npc.errands=errandsFor(npc,Math.max(1,npc.routeLoop.length));
+    anchorNpcRoute(npc);
+  }
+}
+function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid(); applyWatch(t,dt);
   for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
@@ -9000,9 +9133,13 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r94',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r95',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
-window.EMBER={scene,camera,renderer,CONFIG,player,villagers,look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
+// Every resident exists by now — the authored ones, the ward generator, and the
+// outer quarters. Homes, work and ties are drawn once, here, over the finished
+// population.
+LMSG.textContent='settling the wards…'; useWorldStream('lives'); assignLives();
+window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWatch(),watches:WATCHES,look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 // Starts full so the very first frame always draws: a hidden window gets rAF
