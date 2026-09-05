@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r96 the still hours</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r97 halls and households</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5562,7 +5562,14 @@ const LANDMARK_LOTS=[
   {x:-86,z:-44,w:20,d:16,name:'the Moon Archive'},
   {x:-126,z:88,w:20,d:16,name:'the Northwatch Guild'},
   {x:138,z:-18,w:20,d:16,name:'the Gilded Finch'},
-  {x:-39,z:112,w:15,d:11,name:'the market house'}
+  {x:-39,z:112,w:15,d:11,name:'the market house'},
+  // ---- the new quarters ----
+  {x:271.6,z:112.5,w:20,d:16,name:"the Lamplighters' Hall"},
+  {x:-112.5,z:271.6,w:22,d:17,name:'the Wayhouse'},
+  {x:-271.6,z:-112.5,w:20,d:16,name:'the Cold Assay'},
+  {x:112.5,z:-271.6,w:22,d:17,name:"the Drovers' Rest"},
+  {x:129.3,z:312.3,w:19,d:16,name:'the New Chapel'},
+  {x:-129.3,z:-312.3,w:20,d:16,name:"Ferrier's Yard"}
 ];
 // A doorstep needs paving in front of it, so the lot is only closed to a road
 // that would cross the building itself, not to one that runs past its face.
@@ -6357,6 +6364,14 @@ function lightTheRun(x1,z1,ux,uz,len,width,step){
   }
   return lit;
 }
+function newQuarterLandmarks(){
+  interiorHouse("The Lamplighters' Hall",271.6,112.5,20,16,'guild');
+  interiorHouse('The Wayhouse',-112.5,271.6,22,17,'tavern');
+  interiorHouse('The Cold Assay',-271.6,-112.5,20,16,'archive');
+  interiorHouse("The Drovers' Rest",112.5,-271.6,22,17,'tavern');
+  interiorHouse('The New Chapel',129.3,312.3,19,16,'chapel');
+  interiorHouse("Ferrier's Yard",-129.3,-312.3,20,16,'guild');
+}
 function outerQuarterDressing(){
   let lamps=0,wells=0,shrines=0;
   for(const seg of ROAD_RECTS){
@@ -6971,6 +6986,7 @@ useWorldStream('outer-wall');citadelWall(OUTER_WALL_R,14);
 // Vaneth is now one walled city inside CITY_RADIUS with wilderness beyond it,
 // which is both a better place and about a quarter of the geometry.
 LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
+LMSG.textContent='raising the new halls…'; useWorldStream('new-landmarks');newQuarterLandmarks();
 LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
 // The monuments walk themselves out to the verge, but they used to do it before
 // innerInfill laid its lanes, so a monument that had cleared every road in
@@ -7830,7 +7846,13 @@ const VANETH_LANDMARKS=[
   {id:'great-hall',name:'The Great Hall',x:0,z:-20,radius:22,detail:'The citadel’s guarded heart.'},
   {id:'moon-archive',name:'Moon Archive',x:-86,z:-44,radius:16,detail:'A quiet house of old questions.'},
   {id:'eastwall',name:'Eastwall Scriptorium',x:220,z:42,radius:16,detail:'The ledger house by the eastern wall.'},
-  {id:'foxglove-pond',name:'Foxglove Pond',x:-340,z:320,radius:20,detail:'A still pocket of forest beyond Vaneth.'}
+  {id:'foxglove-pond',name:'Foxglove Pond',x:-340,z:320,radius:20,detail:'A still pocket of forest beyond Vaneth.'},
+  {id:'lamplighters',name:"The Lamplighters' Hall",x:271.6,z:112.5,radius:16,detail:'Where the oil is measured out and the rounds are set.'},
+  {id:'wayhouse',name:'The Wayhouse',x:-112.5,z:271.6,radius:17,detail:'First roof inside the new wall, and it knows it.'},
+  {id:'cold-assay',name:'The Cold Assay',x:-271.6,z:-112.5,radius:16,detail:'They weigh things here that nobody will name.'},
+  {id:'drovers',name:"The Drovers' Rest",x:112.5,z:-271.6,radius:17,detail:'Straw on the floor and the south road at the door.'},
+  {id:'new-chapel',name:'The New Chapel',x:129.3,z:312.3,radius:16,detail:'Newer than the city it stands in, and it shows.'},
+  {id:'ferriers',name:"Ferrier's Yard",x:-129.3,z:-312.3,radius:16,detail:'Iron, hooves and an argument, most watches.'}
 ];
 // The landmark ledger, discovery toasts, distance readout and objective arrow
 // are gone: they turned wandering the city into a checklist. VANETH_LANDMARKS
@@ -8038,8 +8060,10 @@ function askAboutTies(npc){
       first.kind==='a workmate'?'We keep the same hours, more or less.':
       first.kind==='an old friend'?'Longer than either of us admits to.':
       first.kind==='a neighbour'?'Two doors down, and it has never once been quiet.':
+      first.kind==='a rival'?'We want the same things and there is one of each.':
       first.kind==='someone they owe'?'I will settle it. Do not ask me when.':
-      'They will settle it. I do not ask when.')+'”',
+      'They will settle it. I do not ask when.')+'”'+
+    (npc.household?'\n\nThey are one of the '+npc.household+'s. That is most of this doorway.':''),
     [{label:'Ask what they are working on',action:()=>askAboutWork(npc)},
      {label:'Ask for a place worth finding',action:()=>askForDirection(npc)},
      {label:'Return to the conversation',action:showDialogueGreeting},
@@ -8151,27 +8175,89 @@ function assignLives(){
     };
     npc.haunts.labour=npc.haunts.labour||npc.haunts.home;
   });
-  // Ties. Neighbours first: the nearest few residents, which in a city laid out
-  // on streets means the people on your street.
-  const KINDS=['kin','a workmate','an old friend','a neighbour','someone they owe','someone who owes them'];
-  villagers.forEach((npc,index)=>{
+  // ---- ties ----
+  const MIRROR={'kin':'kin','a workmate':'a workmate','an old friend':'an old friend',
+    'a neighbour':'a neighbour','a rival':'a rival',
+    'someone they owe':'someone who owes them','someone who owes them':'someone they owe'};
+  const KINDS=['a workmate','an old friend','a neighbour','a rival','someone they owe','someone who owes them'];
+  const MAX_TIES=4;
+  villagers.forEach(npc=>{npc.ties=[];});
+  const addTie=(a,b,kind)=>{
+    if(a===b||!a||!b)return;
+    if(a.ties.length>=MAX_TIES)return;
+    if(a.ties.some(tie=>tie.name===b.name))return;
+    a.ties.push({name:b.name,kind,x:b.homeX,z:b.homeZ});
+  };
+  const bind=(a,b,kind)=>{ addTie(a,b,kind); addTie(b,a,MIRROR[kind]||kind); };
+
+  // Households. Only the ward-generated residents are renamed: the authored ones
+  // carry names that are part of who they are, and "Mira of the Cinders" is not
+  // going to be re-christened because she lives near a Barrowgate.
+  const HOUSE_NAMES=['Ashdown','Bellwether','Cardew','Deverel','Elmshaw','Fenwick','Garrow',
+    'Halloway','Ingold','Jarrow','Keswick','Lambwright','Merrow','Nithsdale','Orrell','Padstow',
+    'Quarrier','Rushmoor','Salter','Thackeray','Underhill','Vance','Whitlow','Yarrowby','Ashgrove',
+    'Blackmoor','Cutbush','Dunwood','Ellery','Farthing','Goodliffe','Hartsmere','Islip','Kettleby',
+    'Ludlow','Marchant','Norbury','Oldacre','Penhale','Ravensworth','Stannard','Threlfall','Verrall',
+    'Wickham','Yelverton','Amblewick','Brocklehurst','Cheveley','Dashwood','Eastleigh'];
+  const generated=new Set(OUTER_LAST);
+  const canRename=npc=>{ const i=npc.name.indexOf(' '); return i>0&&generated.has(npc.name.slice(i+1)); };
+  const takenNames=new Set(villagers.map(npc=>npc.name));
+  let houseNameAt=0;
+  const housed=new Set();
+  let households=0;
+  for(const npc of villagers){
+    if(housed.has(npc))continue;
+    const mates=villagers.filter(other=>other!==npc&&!housed.has(other)
+      &&Math.abs(other.homeX-npc.homeX)<13&&Math.abs(other.homeZ-npc.homeZ)<13
+      &&Math.hypot(other.homeX-npc.homeX,other.homeZ-npc.homeZ)<13)
+      .slice(0,1+nameIndex(npc.name,2));
+    if(!mates.length)continue;
+    const home=[npc,...mates];
+    home.forEach(member=>housed.add(member));
+    households++;
+    // One name between them, and one household to the name.
+    if(home.some(canRename)&&houseNameAt<HOUSE_NAMES.length){
+      const surname=HOUSE_NAMES[houseNameAt++];
+      let renamed=0;
+      for(const member of home){
+        if(!canRename(member))continue;
+        const proposed=member.name.slice(0,member.name.indexOf(' '))+' '+surname;
+        // Two residents sharing a full name share a dialogue memory, which is a
+        // quieter bug than it sounds: you meet a stranger who remembers you.
+        if(takenNames.has(proposed))continue;
+        takenNames.delete(member.name);
+        member.name=proposed; takenNames.add(proposed);
+        member.household=surname; renamed++;
+      }
+      if(renamed<2)home.forEach(member=>{delete member.household;});
+    }
+    for(let i=0;i<home.length;i++)for(let j=i+1;j<home.length;j++)bind(home[i],home[j],'kin');
+  }
+
+  // Then the rest of the street. Nearest neighbours, because in a city laid out
+  // on streets that means the people you actually pass.
+  villagers.forEach(npc=>{
     const near=villagers
       .filter(other=>other!==npc)
       .map(other=>({other,d:Math.hypot(other.homeX-npc.homeX,other.homeZ-npc.homeZ)}))
       .filter(row=>row.d<70)
       .sort((a,b)=>a.d-b.d)
       .slice(0,8);
-    const count=1+(nameIndex(npc.name,3));
-    npc.ties=[];
-    for(let i=0;i<count&&i<near.length;i++){
+    if(!near.length)return;
+    const count=1+nameIndex(npc.name,3);
+    for(let i=0;i<count;i++){
       const pick=near[(nameIndex(npc.name,near.length)+i*3)%near.length].other;
-      if(npc.ties.some(tie=>tie.name===pick.name))continue;
-      npc.ties.push({name:pick.name,kind:KINDS[(nameIndex(npc.name+pick.name,KINDS.length))],x:pick.homeX,z:pick.homeZ});
+      bind(npc,pick,KINDS[nameIndex(npc.name+pick.name,KINDS.length)]);
     }
-    // The ember watch is spent at somebody's house — theirs, or a tie's.
-    const host=npc.ties[0];
+  });
+
+  // The ember watch is spent at somebody's house. Kin first — that is what the
+  // hour is for — and a rival's door is the one place nobody goes to sit.
+  villagers.forEach(npc=>{
+    const host=npc.ties.find(tie=>tie.kind==='kin')||npc.ties.find(tie=>tie.kind!=='a rival');
     npc.haunts.ember=host?loopNear(host.x,host.z,nameIndex(npc.name,97),6):npc.haunts.home;
   });
+  return {households};
 }
 // Retasking 300+ residents at once would fire 300 path requests into a queue
 // that services seven a frame. That is fine — it drains in under a second — but
@@ -9279,7 +9365,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r96',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r97',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
