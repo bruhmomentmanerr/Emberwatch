@@ -1,15 +1,13 @@
-**r95 — watches and ties** · 2026-09-05 · phase 5, world depth
-
-In its own panel header: *r95 watches, haunts and ties*.
+**r96 — the still hours** · 2026-09-05 · phase 5, world depth
 
 ### Summary
 
-watches, haunts and ties. Vaneth is permanently night — the aurora is the identity of the place — so the clock is the watch bell rather than the sun: four named watches of about three minutes that change where people are without touching the sky. Every resident has a home, a workplace drawn from their own ward's business, and one to three people they know, taken from their nearest neighbours so the graph is a neighbourhood and not a scatter. The bell turns and 56 of them cross more than twenty-five units of city to be somewhere else. A new dialogue topic asks after their people and answers with names, relations and bearings.
+the still hours empty the streets. When the bell turns to still, a resident who reaches their own door goes through it — 200 of 326 off the street, and the draw drops with them. Roughly a quarter never go in, always the same quarter by name, so the faces you learn to expect on a corner are still there at the worst hour. The ember watch is the other half: 137 residents stop and turn to face somebody off their own tie list. It is the only visible payoff of the relationship graph and it costs a pause and a facing. The new quarters were terraces and nothing else — every lamp, bench and planter in Vaneth comes off a hand-authored coordinate list written against the old circle, and none of them reach past 240. The outer dressing reads the street network instead: it walks every carriageway beyond the old wall and lights it, and puts a well or a shrine where a diagonal avenue meets a ring street. 274 lamps in the world now; the tier culling still lights eight. EMBER.setWatch(id) jumps the bell, because a watch is nearly three minutes and waiting one out is not a test
 
 ### In the code
 
-- 1.14 MB (+7,200 bytes on r94).
-- 6 functions added: `applyWatch`, `askAboutTies`, `assignLives`, `collectWorkplaces`, `loopNear`, `whereTheyWork`.
+- 1.15 MB (+6,798 bytes on r95).
+- 7 functions added: `lightTheRun`, `outerQuarterDressing`, `quarterShrine`, `quarterWell`, `showResident`, `updateMeetings`, `updateShelter`.
 
 ### Play it
 

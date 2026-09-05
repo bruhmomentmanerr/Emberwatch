@@ -182,7 +182,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r95 watches, haunts and ties</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r96 the still hours</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -6320,6 +6320,89 @@ function marketCart(x,z,ry=0){ const spot=offRoad(x,z,1.75); if(!spot)return; x=
   aBox(2.7,.44,1.45,x,.9,z,'wood',ry);aBox(3.05,.16,1.75,x,2.3,z,'cloth',ry);for(const side of[-1,1])aCyl(.33,.33,.15,8,x+Math.cos(ry)*side*1.05,.36,z-Math.sin(ry)*side*1.05,'stone',ry+Math.PI/2);aCyl(.08,.08,2.1,5,x-Math.sin(ry)*1.55,1.55,z-Math.cos(ry)*1.55,'wood',ry+Math.PI/2);addCollider(x,z,1.55);}
 function planter(x,z){ const spot=offRoad(x,z,.95); if(!spot)return; x=spot[0]; z=spot[1];
   aBox(1.45,.42,1.45,x,.21,z,'stone');aCone(.8,1.5,5,x,1.08,z,'foliage');aCone(.54,1.15,5,x,1.78,z,'foliage');addCollider(x,z,.8);}
+function quarterWell(x,z){
+  const spot=offRoad(x,z,2.2,10); if(!spot)return false; x=spot[0]; z=spot[1];
+  if(colliderBlocked(x,z,3.2))return false;
+  aCyl(2.3,2.5,.9,10,x,.45,z,'stone');
+  aCyl(1.9,1.9,.24,10,x,.98,z,'dark');
+  for(const side of[-1,1])aBox(.22,2.5,.22,x+side*1.9,1.25,z,'wood');
+  aBox(4.5,.26,.5,x,2.6,z,'wood');
+  aBox(.7,.7,.5,x,2.05,z,'wood');
+  addCollider(x,z,2.5);
+  // A lamp on the rim, so a well reads as somewhere people meet at night.
+  cityLantern(x+3.4,z+1.2,true);
+  return true;
+}
+function quarterShrine(x,z){
+  const spot=offRoad(x,z,2.4,10); if(!spot)return false; x=spot[0]; z=spot[1];
+  if(colliderBlocked(x,z,3))return false;
+  aBox(3.2,.42,3.2,x,.21,z,'stone');
+  aBox(1.5,2.6,1.2,x,1.5,z,'stone');
+  aRoof(2.1,1.8,1.1,x,2.8,z,'slate',0,false,.35);
+  aBox(.6,.7,.14,x,1.7,z+.66,'arcane');
+  addCollider(x,z,1.7);
+  shrineCrystal(x,z-2.2);
+  return true;
+}
+// Walks a straight carriageway and hangs a lamp on alternating verges.
+function lightTheRun(x1,z1,ux,uz,len,width,step){
+  let lit=0;
+  for(let t=14;t<len-14;t+=step){
+    const side=((lit%2)?1:-1), off=width*.5+1.7;
+    const px=x1+ux*t-uz*off*side, pz=z1+uz*t+ux*off*side;
+    const r=Math.hypot(px,pz);
+    if(r<CITY_RADIUS+6||r>BUILD_EDGE_R+4)continue;
+    if(colliderBlocked(px,pz,.9))continue;
+    cityLantern(px,pz,true); lit++;
+  }
+  return lit;
+}
+function outerQuarterDressing(){
+  let lamps=0,wells=0,shrines=0;
+  for(const seg of ROAD_RECTS){
+    if(seg.len<26)continue;
+    const mx=seg.x1+seg.ux*seg.len*.5, mz=seg.z1+seg.uz*seg.len*.5;
+    const r=Math.hypot(mx,mz);
+    if(r<CITY_RADIUS+4||r>BUILD_EDGE_R+10)continue;
+    lamps+=lightTheRun(seg.x1,seg.z1,seg.ux,seg.uz,seg.len,seg.w,30);
+  }
+  // The ring streets are circles, not rectangles, so they are walked by angle.
+  for(const ring of ROAD_RINGS){
+    if(ring.r<CITY_RADIUS+4||ring.r>BUILD_EDGE_R+10)continue;
+    const step=34/ring.r;
+    let index=0;
+    for(let a=0;a<Math.PI*2-1e-6;a+=step,index++){
+      const off=(index%2?1:-1)*(ring.w*.5+1.7), rr=ring.r+off;
+      const px=Math.cos(a)*rr, pz=Math.sin(a)*rr;
+      if(colliderBlocked(px,pz,.9))continue;
+      cityLantern(px,pz,true); lamps++;
+    }
+  }
+  // Where a diagonal avenue meets a ring street there is a crossing, and a
+  // crossing is where a city puts its well.
+  [45,135,225,315].forEach((deg,corner)=>{
+    const a=deg*Math.PI/180;
+    [272,316,354].forEach((r,band)=>{
+      const x=Math.cos(a)*r, z=Math.sin(a)*r;
+      if((corner+band)%3===0){ if(quarterShrine(x,z))shrines++; }
+      else if(quarterWell(x,z))wells++;
+    });
+  });
+  // Verge furniture along the ring boulevards, so the quarters have somewhere
+  // to sit and something to walk past.
+  for(let i=0;i<46;i++){
+    const a=(i/46)*Math.PI*2+.31, r=CITY_RADIUS+26+((i*37)%110);
+    const x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(i%3===0)planter(x,z);
+    else if(i%3===1)marketCart(x,z,a+Math.PI/2);
+    else{ const spot=offRoad(x,z,1.3,7); if(spot){
+      aBox(3,.16,.55,spot[0],.78,spot[1],'wood',i%2?Math.PI/2:0);
+      aBox(.16,.75,.16,spot[0]-1.05,.39,spot[1],'wood');
+      aBox(.16,.75,.16,spot[0]+1.05,.39,spot[1],'wood');
+      addCollider(spot[0],spot[1],1.55); } }
+  }
+  return {lamps,wells,shrines};
+}
 function cityClutter(){
   [[-18,94],[19,95],[-16,124],[17,124],[-43,111],[47,114],[-105,15],[105,15],[-85,-40],[88,-39],[-58,161],[59,161],[-18,-149],[18,-149]].forEach((spot,index)=>cityLantern(spot[0],spot[1],index%2===0));
   [[-12,91,0],[12,91,0],[-23,116,.5],[23,116,-.5],[-117,-18,Math.PI/2],[117,-18,-Math.PI/2],[-113,158,0],[113,158,0]].forEach(cart=>marketCart(cart[0],cart[1],cart[2]));
@@ -6900,6 +6983,7 @@ LMSG.textContent='breaking the long avenues…'; useWorldStream('avenue-breaks')
 // be laid knowing what they have to stop short of. This used to run at the end
 // of outerWards, which no longer exists.
 emitKerbs();
+LMSG.textContent='lighting the new quarters…'; useWorldStream('outer-dressing'); outerQuarterDressing();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 // The compiler performs an early access pass, but hand-authored infill is
 // assembled afterwards and can obstruct a previously safe doorstep. Resolve
@@ -8020,8 +8104,8 @@ const WATCHES=[
   {id:'ember', name:'the Ember Watch', note:'Kettles on, jars out, half the ward in the other half\'s houses.'}
 ];
 const WATCH_SECONDS=170;
-let watchIndex=-1;
-const watchAt=t=>WATCHES[Math.floor(t/WATCH_SECONDS)%WATCHES.length];
+let watchIndex=-1, watchOffset=0;
+const watchAt=t=>WATCHES[Math.floor((t+watchOffset)/WATCH_SECONDS)%WATCHES.length];
 const currentWatch=()=>WATCHES[Math.max(0,watchIndex)];
 
 // Somewhere to work, per ward. Courts are a ward's public business; the market
@@ -8118,8 +8202,62 @@ function applyWatch(t,dt){
     anchorNpcRoute(npc);
   }
 }
-function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid(); applyWatch(t,dt);
-  for(const npc of villagers){ const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
+// During the still hours most of Vaneth is behind a door, and the change in
+// the streets is the point: an empty lane at the turn of a watch says more
+// about a city being lived in than any amount of milling about does. Not
+// everyone goes in — a city with nobody out in it at night is a stage set, so
+// roughly a quarter of the population keeps the dark hours by name, always the
+// same quarter, so the ones you learn to expect on a corner are still there.
+const NIGHT_WORKER_SHARE=0.26;
+const keepsTheDark=npc=>(nameIndex(npc.name,100)/100)<NIGHT_WORKER_SHARE;
+function showResident(npc){ if(!npc.indoors)return; npc.indoors=false; npc.g.visible=true; }
+function updateShelter(){
+  const watch=currentWatch();
+  const still=watch&&watch.id==='still';
+  for(const npc of villagers){
+    // Anyone mid-conversation, or one of the named hosts who lives in the room
+    // they stand in, is left exactly where they are.
+    if(npc.talking||npc.activityAnchor||npc.sessionAnchor){ showResident(npc); continue; }
+    if(!still){ showResident(npc); continue; }
+    if(npc.indoors||keepsTheDark(npc))continue;
+    if(Math.hypot(npc.g.position.x-npc.homeX,npc.g.position.z-npc.homeZ)<6.5){
+      npc.indoors=true; npc.g.visible=false;
+    }
+  }
+}
+// The ember watch is the one people spend in each other's houses, and on the way
+// there they run into each other. Two residents who are on each other's list and
+// happen to be within a few paces stop and turn to talk. It is the only visible
+// payoff of the tie graph, and it costs a pause and a facing.
+function updateMeetings(dt){
+  const watch=currentWatch();
+  if(!watch||watch.id!=='ember'){
+    // The bell has turned; whatever they were saying to each other is finished.
+    // Left set, a resident keeps facing a friend who walked off an hour ago.
+    for(const npc of villagers)if(npc.meetingWith)npc.meetingWith=null;
+    return;
+  }
+  for(const npc of villagers){
+    if(npc.talking||npc.indoors||!npc.ties||!npc.ties.length)continue;
+    npc.meetCheck=(npc.meetCheck||0)-dt;
+    if(npc.meetCheck>0)continue;
+    npc.meetCheck=1.2;
+    for(const other of npcNeighbours(npc.g.position.x,npc.g.position.z)){
+      if(other===npc||other.talking||other.indoors)continue;
+      if(!npc.ties.some(tie=>tie.name===other.name))continue;
+      const dx=other.g.position.x-npc.g.position.x, dz=other.g.position.z-npc.g.position.z;
+      if(dx*dx+dz*dz>18)continue;
+      npc.meetingWith=other; other.meetingWith=npc;
+      const hold=5+((npc.phase*3)%4);
+      npc.pauseLeft=Math.max(npc.pauseLeft,hold);
+      other.pauseLeft=Math.max(other.pauseLeft,hold);
+      break;
+    }
+  }
+}
+function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid(); applyWatch(t,dt); updateShelter(); updateMeetings(dt);
+  for(const npc of villagers){ if(npc.indoors)continue;
+    const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
     else if(npc.route.length<=1&&npc.routeLoop?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
@@ -8192,7 +8330,15 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
         }
       }
     }
-    npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z; const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
+    npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z;
+    if(npc.meetingWith&&!movingNpc){
+      const mx=npc.meetingWith.g.position.x-x, mz=npc.meetingWith.g.position.z-z;
+      if(!npc.meetingWith.indoors&&mx*mx+mz*mz<30)npc.g.rotation.y=Math.atan2(mx,mz);
+      else npc.meetingWith=null;
+    }
+    // The player still wins the look: being turned to when you walk up is worth
+    // more than the conversation they were having with each other.
+    const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
   let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
   let worldInteraction=null,worldDistance=Infinity;for(const entry of WORLD_INTERACTIONS){if(entry.interior?(activeInterior?.name!==entry.interior):!!activeInterior)continue;const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz;if(d<entry.r*entry.r&&d<worldDistance){worldDistance=d;worldInteraction=entry;}}
   // Select the genuinely closest available action so a door, resident, or
@@ -9133,13 +9279,17 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r95',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r96',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
 // population.
 LMSG.textContent='settling the wards…'; useWorldStream('lives'); assignLives();
-window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWatch(),watches:WATCHES,look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
+window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWatch(),watches:WATCHES,
+  // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
+  // minutes long and waiting one out is not a test.
+  setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
+    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wards:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 // Starts full so the very first frame always draws: a hidden window gets rAF
