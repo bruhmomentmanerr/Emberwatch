@@ -99,6 +99,8 @@
   #gear:hover,#puffBtn:hover,#strainBtn:hover,.btn:hover{background:linear-gradient(145deg,rgba(68,58,48,.96),rgba(24,21,20,.97));border-color:rgba(206,174,119,.68)}
   #settings,#puffPanel,#strainPanel,#dialoguePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
   #settings,#puffPanel,#strainPanel{width:min(340px,calc(100vw - 24px))}#settings{width:min(306px,calc(100vw - 24px));padding-top:36px}.panel-close{position:absolute;right:10px;top:9px;width:25px;height:25px;border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;cursor:pointer;font-size:15px;line-height:1}.pbtn:disabled,.ppreset:disabled{opacity:.48;cursor:wait;transform:none;filter:saturate(.5)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(213,181,115,.92);outline-offset:2px}
+  .wayfinder-watch{display:block;margin-top:4px;font:10px 'Trebuchet MS',sans-serif;color:#b9a892;letter-spacing:.3px;line-height:1.45;max-width:230px}
+  .wayfinder-watch b{color:#e8d3ae;font-weight:600;letter-spacing:.6px}
   #settings h4,.puff-section,.strain-label,#dialogueTopic{font-family:Georgia,'Times New Roman',serif;color:#cdb58a;letter-spacing:1.45px}
   #puffHead,#strainHead,#dialogueHead{background:linear-gradient(90deg,rgba(30,29,28,.98),rgba(55,45,37,.98),rgba(23,22,21,.98));border-bottom-color:rgba(172,143,96,.37);color:var(--vaneth-pale);font-family:Georgia,'Times New Roman',serif}
   .pbtn{border-color:rgba(136,165,174,.44);background:linear-gradient(180deg,rgba(60,77,82,.4),rgba(19,27,30,.55));color:#e1e7e2}.pbtn:hover{background:linear-gradient(180deg,rgba(83,113,120,.53),rgba(28,41,44,.68))}.pbtn.heat{border-color:rgba(214,112,64,.69);background:linear-gradient(180deg,rgba(132,60,34,.6),rgba(57,22,17,.72));color:#ffe0c5}.pbtn.primary{border-color:rgba(150,190,160,.56);background:linear-gradient(180deg,rgba(48,87,63,.58),rgba(17,42,31,.68))}
@@ -125,6 +127,7 @@
 <aside id="wayfinder" aria-live="off" aria-label="Current district">
   <div class="wayfinder-top"><span>VANETH</span></div>
   <b id="wayfinderWard" class="wayfinder-ward">Outer Gate</b>
+  <small id="wayfinderWatch" class="wayfinder-watch"></small>
 </aside>
 <section id="dialoguePanel" role="dialog" aria-modal="true" aria-labelledby="dialogueName" aria-describedby="dialogueLines" aria-hidden="true">
   <div id="dialogueHead"><span class="rune">✦</span><div class="who"><strong id="dialogueName">A resident of Vaneth</strong><small id="dialoguePlace">Vaneth</small></div><button id="dialogueClose" type="button" aria-label="End conversation">×</button></div>
@@ -182,7 +185,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r97 halls and households</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r98 word travels</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -6176,11 +6179,18 @@ function compileVanethCity(){
   interiorHouse('The Northwatch Guild',-126,88,20,16,'guild');interiorHouse('The Gilded Finch',138,-18,20,16,'tavern');spire(-158,-12,20);spire(156,18,18);repairCityPlanAnchors();return auditCityPlan();
 }
 function plannedDistricts(){return compileVanethCity();}
+const GATE_HALF_WIDTH=13;                       // metres, not degrees
 function citadelWall(R=CITY_RADIUS,H=12){ const seg=Math.max(160,Math.round(R*.67));
-  const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<3.3);
+  const gateDeg=(GATE_HALF_WIDTH/R)*180/Math.PI;
+  const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<gateDeg);
   for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;if(gateAt(deg))continue;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
-  [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,ox=Math.cos(a)*6,oz=Math.sin(a)*6; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
+  [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,
+    jamb=GATE_HALF_WIDTH+2.6,ox=Math.cos(a)*jamb,oz=Math.sin(a)*jamb; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});const lintelLen=jamb*2+5.2, lintelRy=Math.atan2(ox,oz);
+    aBox(3.1,3.4,lintelLen,px,H+1.7,pz,'stone',lintelRy);
+    aBox(3.6,.9,lintelLen+1.4,px,H+3.85,pz,'stone',lintelRy);
+    for(let m=-2;m<=2;m++)aBox(1.5,1.5,1.6,px+Math.cos(a)*m*4.6,H+5.05,pz+Math.sin(a)*m*4.6,'stone',lintelRy);
+    torch(px+ox*.5,pz+oz*.5,0xffa64d,1.9,20);torch(px-ox*.5,pz-oz*.5,0xffa64d,1.9,20);});
 }
 // Where the trees stop, as a function of bearing. Wandered rather than circular
 // so the forest does not meet the fields along a line someone obviously drew.
@@ -7875,7 +7885,7 @@ const WARD_ATMOSPHERE={
   'Westmarch':'Foxglove water and dark pines soften the western edge of Vaneth.',
   'Southmoor':'Low fog follows the southbound tracks between scattered holdings.'
 };
-const wayfinderWard=document.getElementById('wayfinderWard');
+const wayfinderWard=document.getElementById('wayfinderWard'),wayfinderWatch=document.getElementById('wayfinderWatch');
 function wardAt(x,z){
   const r=Math.hypot(x,z),deg=(Math.atan2(z,x)*180/Math.PI+360)%360;
   if(r<62)return'Citadel Ward';
@@ -7891,7 +7901,9 @@ function wardAt(x,z){
     if(deg<225)return'Westreach';
     return'The Long Southing';
   }
-  if(r<OUTER_WALL_R+26)return'The Outer Gates';
+  // The approach counts as the gate. Standing on the gate road looking at the
+  // arch and being told you are in the wilds is not wrong so much as unhelpful.
+  if(r<OUTER_WALL_R+48)return'The Outer Gates';
   // Past the new wall there is no sprawl, only the wilds and what the old
   // greater city left behind. Named by compass so you still know roughly where
   // you are without being handed a map.
@@ -7900,8 +7912,15 @@ function wardAt(x,z){
   if(deg<225)return'The Western Wilds';
   return'The Southern Wilds';
 }
-function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);const watchName=currentWatch()?currentWatch().name:'';if(ward!==lastWardName||watchName!==lastWatchName){lastWatchName=watchName;wayfinderWard.textContent=ward+(watchName?' · '+watchName:'');}
-  if(ward!==lastWardName){lastWardName=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
+function updateWayfinder(t){if(t-lastWayfinderAt<.16)return;lastWayfinderAt=t;const ward=wardAt(player.x,player.z);
+  const watch=currentWatch();
+  if(watch&&watch.name!==lastWatchName){
+    lastWatchName=watch.name;
+    // Name the hour and say what it means. "The Working Watch" on its own tells
+    // somebody who has never been told there is a clock precisely nothing.
+    wayfinderWatch.innerHTML='<b>'+watch.name.replace(/^the /,'The ')+'</b><br>'+watch.note;
+  }
+  if(ward!==lastWardName){lastWardName=ward;wayfinderWard.textContent=ward;if(!visitedWardAtmosphere.has(ward)){visitedWardAtmosphere.add(ward);const description=WARD_ATMOSPHERE[ward];if(description)showGameToast(description);}}}
 const VANETH_CONVERSATION={
   'Market Ward':{place:'the Market Ward',city:'The market tells the truth before the council does. Watch which stallholders stop talking when a bell rings.',roots:'I stay because every road comes through here eventually. A person learns a city by listening to what it needs.'},
   'Citadel Ward':{place:'the Citadel Ward',city:'Up here, every promise echoes twice: once in the hall and once in the barracks. Keep the second echo in mind.',roots:'Someone has to remember that a wall is for sheltering people, not merely keeping people out.'},
@@ -8013,7 +8032,13 @@ let livingDialogueReturnFocus=null;
 function writeDialogue(npc,topic,words,choices){if(!npc)return;const profile=livingProfile(npc);dialogueName.textContent=npc.name;dialoguePlace.textContent=profile.role+' · '+(npc.district||'Vaneth');dialogueTopic.textContent=topic;dialogueLines.textContent=words;dialogueChoices.replaceChildren();choices.forEach(choice=>dialogueChoice(choice.label,choice.action,choice.leave));dialoguePanel.scrollTop=0;requestAnimationFrame(()=>dialogueChoices.querySelector('button:not(.leave)')?.focus());}
 function closeDialogue(){if(!dialogueOpen)return;const restore=livingDialogueReturnFocus;livingDialogueReturnFocus=null;if(activeDialogueNpc){activeDialogueNpc.talking=false;anchorNpcRoute(activeDialogueNpc);}dialogueOpen=false;activeDialogueNpc=null;dialoguePanel.classList.remove('open');dialoguePanel.setAttribute('aria-hidden','true');clearPressedKeys();requestAnimationFrame(()=>{if(restore?.isConnected&&!anyOverlayOpen())restore.focus();});}
 function openDialogue(npc){if(!npc)return;livingDialogueReturnFocus=document.activeElement;livingNoteVisit(npc);const spot=talkSpotFor(npc);npc.talking=true;npc.talkX=spot.x;npc.talkZ=spot.z;activeDialogueNpc=npc;dialogueOpen=true;dialoguePanel.classList.add('open');dialoguePanel.setAttribute('aria-hidden','false');document.exitPointerLock?.();clearPressedKeys();showDialogueGreeting();}
-function livingGreeting(npc){const memory=livingMemoryFor(npc),strain=currentStrain(),profile=livingProfile(npc),shared=memory.shared.find(item=>item&&item.name===memory.lastSharedName&&item.count>0);let opener;if(memory.visits<=1)opener=npc.name+' gives you a moment of their attention. “'+npc.line+'”';else if(shared){const echo=shared.playerImpression?' You told me “'+shared.playerImpression+'.”':shared.impression?' I still remember the '+shared.impression+'.':'';opener=npc.name+' notices you before you speak. “You came through with '+shared.name+' '+shared.count+' '+(shared.count===1?'time':'times')+'.'+echo+'”';}else opener=npc.name+' looks up with the ease of someone who remembers your face. “Back through '+conversationFor(npc).place+' again? Good. It suits you.”';// Open on what they are visibly busy with, so approaching someone mid-round
+function livingGreeting(npc){const memory=livingMemoryFor(npc),strain=currentStrain(),profile=livingProfile(npc),shared=memory.shared.find(item=>item&&item.name===memory.lastSharedName&&item.count>0);let opener;
+  if(npc.heardOf&&memory.visits<=1){
+    opener=npc.name+(npc.heardOf.sour
+      ?' has already made their mind up about you. “'+npc.heardOf.from+' has been talking. I hear you are good company.” It is not a compliment.'
+      :' knows your face before you give it. “'+npc.heardOf.from+' said you came through with '+npc.heardOf.strain+'. Word travels about that sort of thing.”');
+  }
+  else if(memory.visits<=1)opener=npc.name+' gives you a moment of their attention. “'+npc.line+'”';else if(shared){const echo=shared.playerImpression?' You told me “'+shared.playerImpression+'.”':shared.impression?' I still remember the '+shared.impression+'.':'';opener=npc.name+' notices you before you speak. “You came through with '+shared.name+' '+shared.count+' '+(shared.count===1?'time':'times')+'.'+echo+'”';}else opener=npc.name+' looks up with the ease of someone who remembers your face. “Back through '+conversationFor(npc).place+' again? Good. It suits you.”';// Open on what they are visibly busy with, so approaching someone mid-round
   // reads as interrupting a person rather than triggering a menu.
   const activity=npcActivity(npc);
   const busy=activity?(activity.travelling?'\n\nThey are heading off to be '+activity.verb+', and slow down rather than stop.':'\n\nThey are '+activity.verb+', and keep half an eye on it while you talk.'):'';
@@ -8072,10 +8097,51 @@ function askAboutTies(npc){
 function askForDirection(npc){const profile=livingProfile(npc),lead=livingLeadFor(npc);if(!lead){writeDialogue(npc,'No map needed','You: “Where should I go from here?”\n\n'+npc.name+' smiles. “You have already found the places most people spend a lifetime missing. Wander where the lamps look warm.”',[{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const bearing=bearingFromPlayer(lead),hint=npc.name+' points '+bearing.dir+'. “'+bearing.how+'.”';writeDialogue(npc,'A local direction','You: “Where should I go from here?”\n\n'+npc.name+': “Try '+lead.name+'. '+(profile.leadId===lead.id?'It has a way of making the city make sense.':'It is the next place I would send a person who wants to understand Vaneth.')+'”\n\n'+hint,[{label:'Ask why that place matters',action:()=>askLandmarkStory(npc,lead)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function askLandmarkStory(npc,lead){const profile=livingProfile(npc),stories=['It is where I go when I need to remember the city is made of people, not stone.','I have watched strangers arrive there as strangers and leave with a name to carry.','Every district has a place that tells the truth about it. For me, that is this one.'];writeDialogue(npc,'Why that place matters','You: “Why '+lead.name+'?”\n\n'+npc.name+': “'+stories[nameIndex(npc.name+lead.id,stories.length)]+' It brings back '+profile.memory+'.”',[{label:'Keep the direction',action:()=>askForDirection(npc)},{label:'Offer something from your jar',action:()=>offerFromJar(npc)},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 async function beginDialogueSmokeSession(npc,strain){const bridge=globalThis.emberwatchPeakSession,recipeF=smokeSessionTemp(strain.sessionF),recipeSeconds=smokeSessionSeconds(strain.sessionSeconds);if(!bridge){writeDialogue(npc,'The Peak is not ready','The control deck is still waking up. Give it a moment, then try again.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const status=bridge.status();if(!status.connected){writeDialogue(npc,'A quiet preparation',npc.name+' glances toward the dark glass. “Connect your Peak first. We have time.”',[{label:'Open Peak controls',action:()=>{closeDialogue();togglePuff(true);}},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(!status.lorax){writeDialogue(npc,'A different kind of Peak','This Peak does not expose the custom session controls Emberwatch needs for a shared smoke.',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}if(status.busy||status.active){writeDialogue(npc,'Already underway',npc.name+' listens for the little machine. “Let the cycle already in motion have its time.”',[{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}try{await bridge.beginStrainSession({strainId:strain.id,strainName:strain.name,targetF:recipeF,seconds:recipeSeconds,npcKey:livingNpcKey(npc)});closeDialogue();}catch(error){writeDialogue(npc,'The moment pauses','The Peak did not begin the session: '+String(error?.message||error),[{label:'Try again',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Return to the jar',action:()=>offerFromJar(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}}
-function offerFromJar(npc){const strain=currentStrain();if(!strain){writeDialogue(npc,'An empty offer','You reach for your jar, then remember it is empty.\n\n'+npc.name+' gives a small, understanding nod. “No shame in that. Come back when you have something you want to talk over.”',[{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const context=livingStrainContext(strain),memory=livingMemoryFor(npc),shared=memory.shared.find(item=>item&&item.id===String(strain.id||strain.name)),hasShared=!!(shared&&shared.count>0),vessel=context.form?'a '+context.form:'an unmarked jar',remembered=hasShared?' “I remember this one,” '+npc.name+' says, softer than before.'+(shared.playerImpression?' “You told me '+shared.playerImpression+' last time.”':''):' '+npc.name+' studies the offered jar, then looks back to you.';writeDialogue(npc,'The offered jar','You loosen the lid of '+context.name+'. It is '+vessel+'—something you brought with you, not a sales pitch.'+remembered+'\n\n'+npc.name+': “'+livingProfile(npc).smoke+'”',[{label:'Smoke '+context.name+' together · '+smokeSessionTemp(strain.sessionF)+'°F',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Let them take a quiet pull',action:()=>shareDialogueSmoke(npc,strain)},{label:'Ask what they are looking for in it',action:()=>askSmokeInvitation(npc,strain)},{label:'Keep the lid on for now',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
+function offerFromJar(npc){const strain=currentStrain();
+  // Somebody who has heard you were sharing with the person they cannot stand
+  // is not going to take the jar from you tonight.
+  if(strain&&npc.heardOf&&npc.heardOf.sour&&!npc.refusedOnce){
+    npc.refusedOnce=true;
+    writeDialogue(npc,'A refusal, politely',
+      'You offer '+strain.name+'.\n\n'+npc.name+' looks at the jar, and then at you.\n\n“'+
+      npc.heardOf.from+' has been telling people you two sat down together. I will pass, and you can tell them I said so.”'+
+      '\n\nThey do not move away. They just do not take it.',
+      [{label:'Ask who they know here',action:()=>askAboutTies(npc)},
+       {label:'Return to the conversation',action:showDialogueGreeting},
+       {label:'Leave the conversation',action:closeDialogue,leave:true}]);
+    return;
+  }
+  if(!strain){writeDialogue(npc,'An empty offer','You reach for your jar, then remember it is empty.\n\n'+npc.name+' gives a small, understanding nod. “No shame in that. Come back when you have something you want to talk over.”',[{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}},{label:'Return to the conversation',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);return;}const context=livingStrainContext(strain),memory=livingMemoryFor(npc),shared=memory.shared.find(item=>item&&item.id===String(strain.id||strain.name)),hasShared=!!(shared&&shared.count>0),vessel=context.form?'a '+context.form:'an unmarked jar',remembered=hasShared?' “I remember this one,” '+npc.name+' says, softer than before.'+(shared.playerImpression?' “You told me '+shared.playerImpression+' last time.”':''):' '+npc.name+' studies the offered jar, then looks back to you.';writeDialogue(npc,'The offered jar','You loosen the lid of '+context.name+'. It is '+vessel+'—something you brought with you, not a sales pitch.'+remembered+'\n\n'+npc.name+': “'+livingProfile(npc).smoke+'”',[{label:'Smoke '+context.name+' together · '+smokeSessionTemp(strain.sessionF)+'°F',action:()=>beginDialogueSmokeSession(npc,strain)},{label:'Let them take a quiet pull',action:()=>shareDialogueSmoke(npc,strain)},{label:'Ask what they are looking for in it',action:()=>askSmokeInvitation(npc,strain)},{label:'Keep the lid on for now',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 function releaseSocialSmoke(npc){while(socialSmoke.length>=8){const stale=socialSmoke.shift();scene.remove(stale.mesh);stale.mesh.geometry.dispose();stale.mesh.material.dispose();}const cloud=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshBasicMaterial({color:spellColor,transparent:true,opacity:.48,depthWrite:false}));cloud.position.copy(npc.g.position).add(new THREE.Vector3(0,1.7,0));scene.add(cloud);socialSmoke.push({mesh:cloud,life:2.2});}
 function askSmokeInvitation(npc,strain){const profile=livingProfile(npc),context=livingStrainContext(strain),uses=context.uses?' You have returned to it '+context.uses+' '+(context.uses===1?'time':'times')+'.':'';writeDialogue(npc,'Before the first pull',npc.name+' considers the jar without opening it.\n\n“'+profile.smoke+uses+' I am looking for a moment that feels honest, not an answer that needs defending.”',[{label:'Let them take a quiet pull',action:()=>shareDialogueSmoke(npc,strain)},{label:'Ask what they notice first',action:()=>askSmokeFirstImpression(npc,strain)},{label:'Keep the lid on for now',action:showDialogueGreeting},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
-function shareDialogueSmoke(npc,strain){const context=livingStrainContext(strain),gesture=['takes the jar with both hands and gives it a thoughtful turn','rests an elbow against the nearest rail and accepts it without hurry','watches the ember for a beat before taking the jar','gives you a small, surprised smile and accepts'][nameIndex(npc.name+strain.name,4)],entry=livingNoteShare(npc,strain,context.aromas[0]||'a quiet shared moment');releaseSocialSmoke(npc);showSharedMoment(npc,strain,entry,true,gesture);}
+// Word gets round. Sharing with somebody puts it into the mouths of the people
+// on their list, so the next door you knock on has already heard. Kept in the
+// session rather than the saved memory: it is gossip, and gossip goes stale.
+function spreadTheWord(npc,strain){
+  const name=strain&&strain.name?strain.name:'something of theirs';
+  const byName=new Map(villagers.map(other=>[other.name,other]));
+  let told=0;
+  for(const tie of npc.ties||[]){
+    const other=byName.get(tie.name);
+    if(!other||other===npc)continue;
+    // A rival hears about it and thinks less of you for it, which is its own
+    // kind of news.
+    other.heardOf={from:npc.name,strain:name,sour:tie.kind==='a rival'};
+    told++;
+  }
+  return told;
+}
+// How this resident feels about being offered your jar, given who you are to
+// them and who has been talking.
+function jarStanding(npc){
+  if(npc.heardOf&&npc.heardOf.sour)return'sour';
+  if(npc.heardOf)return'warm';
+  return'plain';
+}
+function shareDialogueSmoke(npc,strain){const context=livingStrainContext(strain),warm=jarStanding(npc)==='warm',
+  gesture=(warm
+    ? ['has the jar out of your hand before you have finished offering it','says the name of it back to you like they have been waiting all watch','clears a place to sit before they take it','nods once, as if this settles something']
+    : ['takes the jar with both hands and gives it a thoughtful turn','rests an elbow against the nearest rail and accepts it without hurry','watches the ember for a beat before taking the jar','gives you a small, surprised smile and accepts'])[nameIndex(npc.name+strain.name,4)],entry=livingNoteShare(npc,strain,context.aromas[0]||'a quiet shared moment');releaseSocialSmoke(npc);spreadTheWord(npc,strain);showSharedMoment(npc,strain,entry,true,gesture);}
 function showSharedMoment(npc,strain,entry=null,justShared=false,gesture=''){const context=livingStrainContext(strain),profile=livingProfile(npc),saved=entry||livingMemoryFor(npc).shared.find(item=>item&&item.id===String(strain.id||strain.name))||{count:0},returning=saved.count>1?' It is not the first time the two of you have shared it, and neither of you pretends that makes the moment less kind.':'',sceneText=justShared?'You offer '+context.name+'. '+npc.name+' '+gesture+'. The two of you stand together while a thin thread of smoke unravels into the night.':'The moment is still there between you: the city moving around it, the jar set within easy reach.';writeDialogue(npc,'A shared ember',sceneText+returning+'\n\n'+npc.name+': “Thank you. '+profile.smoke+'”',[{label:'Ask what arrives first',action:()=>askSmokeFirstImpression(npc,strain)},{label:'Ask how it changes the evening',action:()=>askSmokeFeeling(npc,strain)},{label:'Ask what it reminds them of',action:()=>askSmokeMemory(npc,strain)},{label:'Let the moment breathe',action:()=>sitWithNpc(npc,strain)},{label:'Leave the conversation',action:closeDialogue,leave:true}]);}
 // A peak-ready smoke moment stays out of the dialogue panel so the player can
 // keep moving and playing while a nearby resident talks with them.
@@ -8151,6 +8217,27 @@ function loopNear(x,z,seed,spread=6,stops=3){
   }
   return out;
 }
+// The street face of the nearest house: take the building whose collider is
+// closest to where they live, and walk out from its centre towards them until
+// the footprint ends. That is the wall they live behind, and the point in front
+// of it is their doorstep.
+function doorwayNear(x,z){
+  let best=null,bestD=Infinity;
+  for(const collider of colliders){
+    if(collider.wall||collider.door)continue;
+    const reach=collider.box?Math.hypot(collider.hw,collider.hd):collider.r;
+    // A house, not a bollard and not the keep.
+    if(reach<2.4||reach>16)continue;
+    const d=Math.hypot(collider.x-x,collider.z-z);
+    if(d<bestD&&d<24){bestD=d;best=collider;}
+  }
+  if(!best)return null;
+  const angle=Math.atan2(z-best.z,x-best.x);
+  const reach=(best.box?Math.hypot(best.hw,best.hd):best.r)+1.15;
+  const px=best.x+Math.cos(angle)*reach, pz=best.z+Math.sin(angle)*reach;
+  if(colliderBlocked(px,pz,.45))return null;
+  return [px,pz];
+}
 function assignLives(){
   collectWorkplaces();
   villagers.forEach((npc,index)=>{
@@ -8170,7 +8257,10 @@ function assignLives(){
       // rather than stacking them all on the fire.
       labour:work?loopNear(work.x,work.z,seed,17,4):null,
       market:loopNear(0,MARKET_Z,seed,26,4),
-      still:loopNear(npc.homeX,npc.homeZ,seed+3,5),
+      // The still hours are spent at a door, not on a doormat in the road.
+      still:(npc.doorway=doorwayNear(npc.homeX,npc.homeZ))
+        ?[npc.doorway.slice(),navPlace(npc.doorway[0],npc.doorway[1])]
+        :loopNear(npc.homeX,npc.homeZ,seed+3,5),
       ember:null                                  // filled once ties exist
     };
     npc.haunts.labour=npc.haunts.labour||npc.haunts.home;
@@ -8306,7 +8396,13 @@ function updateShelter(){
     if(npc.talking||npc.activityAnchor||npc.sessionAnchor){ showResident(npc); continue; }
     if(!still){ showResident(npc); continue; }
     if(npc.indoors||keepsTheDark(npc))continue;
-    if(Math.hypot(npc.g.position.x-npc.homeX,npc.g.position.z-npc.homeZ)<6.5){
+    // At their own door, not merely near their own address.
+    const spot=npc.doorway||[npc.homeX,npc.homeZ];
+    const reach=npc.doorway?2.4:6.5;
+    if(Math.hypot(npc.g.position.x-spot[0],npc.g.position.z-spot[1])<reach){
+      // Face the wall on the way in, so the last frame of them is a person at a
+      // door rather than a person facing the street who ceases to exist.
+      if(npc.doorway)npc.g.rotation.y=Math.atan2(spot[0]-npc.homeX,spot[1]-npc.homeZ);
       npc.indoors=true; npc.g.visible=false;
     }
   }
@@ -9365,7 +9461,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r97',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r98',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
