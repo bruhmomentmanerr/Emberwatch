@@ -185,7 +185,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r99 the probe listens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r100 four quarters</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -6601,10 +6601,13 @@ function auditVanethGeometry(){
   const indexedCollider=colliders.every(c=>collidersNearPoint(c.x,c.z).includes(c));
   const gateSpine=[[0,CITY_RADIUS+5],[0,218],[0,195],[0,170],[0,140],[0,124]];
   const northGateClear=gateSpine.every(([x,z])=>!colliderBlocked(x,z));
-  const doorsClear=interiorDoors.every(d=>!colliderBlocked(d.outsideX,d.outsideZ)&&!colliderBlocked(d.insideX,d.insideZ));
+  // Saying only "false" gives nobody anything to act on. Name them.
+  const blockedDoors=interiorDoors.filter(d=>colliderBlocked(d.outsideX,d.outsideZ)||colliderBlocked(d.insideX,d.insideZ))
+    .map(d=>(d.name||"unnamed")+" @"+d.outsideX.toFixed(0)+","+d.outsideZ.toFixed(0));
+  const doorsClear=!blockedDoors.length;
   const blockedAnchors=CITY_PLAN.anchors.filter(anchor=>colliderBlocked(anchor.x,anchor.z,.3));
   const gateApproaches=auditGateApproaches(true);
-  const report={finiteCollider,finiteDoor,indexedCollider,northGateClear,doorsClear,doors:interiorDoors.length,colliders:colliders.length,cells:colliderGrid.size,districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,anchors:CITY_PLAN.anchors.length,blockedAnchors:blockedAnchors.length,gateApproaches};
+  const report={finiteCollider,finiteDoor,indexedCollider,northGateClear,doorsClear,blockedDoors,doors:interiorDoors.length,colliders:colliders.length,cells:colliderGrid.size,districts:CITY_PLAN.districts.length,parcels:CITY_PLAN.parcels.length,anchors:CITY_PLAN.anchors.length,blockedAnchors:blockedAnchors.length,gateApproaches};
   if(!finiteCollider||!finiteDoor||!indexedCollider||!northGateClear||!doorsClear||interiorDoors.length<9||blockedAnchors.length||gateApproaches.broken)console.warn('Vaneth geometry audit: '+JSON.stringify(report));
   return report;
 }
@@ -6813,6 +6816,95 @@ function blockYard(cx,cz,block,rnd){
 //  zones, the carriageway list, and the same footprint probe the outer wards
 //  use, so it can only ever occupy ground that was empty.
 // ============================================================
+const QUARTERS=[
+  // storeys is the chance of a second floor; depth scales the plot. The New
+  // North stores grain and stands tall and narrow to do it; the Long Southing
+  // is the road trade, so it is low and runs deep for its yards.
+  {id:'newnorth', name:'The New North',     palette:['wall2','stone','wall2','stone'], accent:'amber',  storeys:.68, depth:1.20, trade:'granary'},
+  {id:'eastreach',name:'Eastreach',         palette:['brick','brick','wall','brick'],  accent:'amber',  storeys:.46, depth:0.94, trade:'shops'},
+  {id:'westreach',name:'Westreach',         palette:['dark','wall','dark','brick'],    accent:'arcane', storeys:.36, depth:1.06, trade:'forges'},
+  {id:'southing', name:'The Long Southing', palette:['wall','wall','stone','wall'],    accent:'amber',  storeys:.26, depth:1.32, trade:'yards'}
+];
+function quarterAt(x,z){
+  const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
+  if(deg<45||deg>=315)return QUARTERS[1];
+  if(deg<135)return QUARTERS[0];
+  if(deg<225)return QUARTERS[2];
+  return QUARTERS[3];
+}
+// What a trade leaves in front of its own door. Each one is a handful of boxes
+// against the building's own face, placed in its local frame, and each checks
+// the carriageway before it puts anything down — the street stays the street.
+function quarterTrade(kind,x,z,w,d,ry,accent){
+  const co=Math.cos(ry),si=Math.sin(ry);
+  // local (along the frontage, out from the face) -> world
+  const at=(along,out)=>[x+co*along+si*(d*.5+out), z-si*along+co*(d*.5+out)];
+  const clearOfDoors=(px,pz)=>!interiorDoors.some(door=>
+    Math.hypot(px-door.outsideX,pz-door.outsideZ)<5.2);
+  const free=(along,out,pad)=>{ const [px,pz]=at(along,out);
+    return !onRoad(px,pz,pad)&&!colliderBlocked(px,pz,pad)&&clearOfDoors(px,pz); };
+
+  if(kind==='granary'){
+    // A loading beam out of the gable with the tackle still hanging off it, and
+    // shutters where the upper windows would be.
+    const [bx,bz]=at(0,1.6);
+    aBox(.24,.24,3.4,bx,5.6,bz,'wood',ry);
+    const [hx,hz]=at(0,2.9);
+    aBox(.42,.5,.42,hx,5.15,hz,'wood',ry);
+    aBox(.08,1.5,.08,hx,4.6,hz,'wood',ry);
+    for(const side of[-1,1]){ const [sx,sz]=at(side*w*.26,.09);
+      aBox(1.05,1.25,.1,sx,4.05,sz,'wood',ry); }
+    return 0;
+  }
+  if(kind==='shops'){
+    // An awning on two posts, a sign on a bracket, and a board of goods.
+    if(!free(0,1.5,1.1))return 0;
+    const [ax,az]=at(0,1.15);
+    aBox(w*.74,.14,2.4,ax,2.72,az,'cloth',ry);
+    for(const side of[-1,1]){ const [px,pz]=at(side*w*.3,2.15);
+      aBox(.16,2.7,.16,px,1.35,pz,'wood',ry); }
+    const [gx,gz]=at(-w*.16,1.0);
+    aBox(w*.4,.14,1.15,gx,1.02,gz,'wood',ry);
+    aBox(.12,.95,.12,gx-co*w*.15,.5,gz+si*w*.15,'wood',ry);
+    aBox(.12,.95,.12,gx+co*w*.15,.5,gz-si*w*.15,'wood',ry);
+    for(let i=-1;i<=1;i++){ const [cx,cz]=at(-w*.16+i*.9,1.0);
+      aBox(.4,.34,.4,cx,1.26,cz,'wood',ry+i*.4); }
+    const [sx,sz]=at(w*.3,.75);
+    aBox(.1,.1,1.5,sx,3.05,sz,'wood',ry);
+    aBox(1.0,.62,.1,sx,2.5,sz,accent,ry);
+    addCollider(gx,gz,1.1);
+    return 1;
+  }
+  if(kind==='forges'){
+    // The chimney is the point: a brick stack up the side with the fire showing
+    // at its foot, so a street of forges reads as one from the far end.
+    const [cx,cz]=at(w*.38,-.35);
+    aBox(1.15,7.4,1.15,cx,3.7,cz,'brick',ry);
+    aBox(1.45,.5,1.45,cx,7.6,cz,'stone',ry);
+    if(free(w*.38,1.5,.9)){
+      const [fx,fz]=at(w*.38,1.35);
+      aBox(1.5,.7,1.2,fx,.35,fz,'stone',ry);
+      aBox(.9,.3,.6,fx,.78,fz,'amber',ry);
+      addCollider(fx,fz,.95);
+      return 1;
+    }
+    return 0;
+  }
+  // yards: a rail fence across the frontage with a trough behind it
+  const span=w*.44;
+  if(!free(0,2.6,1.2)||!free(-span,2.6,.9)||!free(span,2.6,.9))return 0;
+  for(let i=-2;i<=2;i++){ const [px,pz]=at(i*span*.5,2.6);
+    aBox(.16,1.05,.16,px,.52,pz,'wood',ry); }
+  const [rx,rz]=at(0,2.6);
+  aBox(span*2,.12,.1,rx,.86,rz,'wood',ry);
+  aBox(span*2,.12,.1,rx,.5,rz,'wood',ry);
+  const [tx,tz]=at(-w*.2,1.5);
+  aBox(1.9,.55,.85,tx,.28,tz,'wood',ry);
+  aBox(1.7,.12,.7,tx,.5,tz,'dark',ry);
+  addCollider(tx,tz,1.05);
+  addCollider(rx,rz,.5);
+  return 2;
+}
 function innerInfill(){
   const VERGE=2.6, FILL=.86;
   let built=0, yards=0;
@@ -6824,6 +6916,11 @@ function innerInfill(){
       if(dx*dx+dz*dz<rr*rr)return true; }
     return false;
   };
+  // Every walk-in landmark's doorstep, kept clear whatever else happens.
+  const inADoorway=(x,z,extra)=>interiorDoors.some(door=>{
+    const dx=x-door.outsideX, dz=z-door.outsideZ, reach=6.5+extra;
+    return dx*dx+dz*dz<reach*reach;
+  });
   const inBuildableRing=(x,z)=>{
     const r=Math.hypot(x,z);
     // Inside the mid wall, clear of the wall itself; plus the dead ring beyond
@@ -6852,13 +6949,25 @@ function innerInfill(){
           // corners where two authored streets meet would otherwise be built
           // straight across.
           && !onRoad(px,pz,Math.max(w,depth)*.5+.7)
+          && !inADoorway(px,pz,Math.max(w,depth)*.5)
           && frontageClear(px,pz,w,depth,ry);
         if(ok){
-          const stories=1+(worldRandom()<.52?1:0)+(worldRandom()<.20?1:0);
-          const key=['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
-          const accent=worldRandom()<.18?'arcane':'amber';
+          const outside=Math.hypot(px,pz)>CITY_RADIUS;
+          const quarter=outside?quarterAt(px,pz):null;
+          const stories=quarter
+            ?1+(worldRandom()<quarter.storeys?1:0)+(worldRandom()<quarter.storeys*.36?1:0)
+            :1+(worldRandom()<.52?1:0)+(worldRandom()<.20?1:0);
+          const key=quarter
+            ?quarter.palette[Math.floor(worldRandom()*quarter.palette.length)]
+            :['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
+          const accent=quarter
+            ?(worldRandom()<.14?'arcane':quarter.accent)
+            :(worldRandom()<.18?'arcane':'amber');
           wardHouse(px,pz,w,depth,stories,key,ry,accent);
           housePorch(px,pz,w,depth,ry,accent);
+          // A third of them carry their trade out into the street. All of them
+          // would read as a theme park; none of them reads as terraces.
+          if(quarter&&worldRandom()<.34)quarterTrade(quarter.trade,px,pz,w,depth,ry,accent);
           built++;
           t+=w+0.35;                                           // terraced
         } else t+=w*.42;
@@ -6886,6 +6995,7 @@ function innerInfill(){
           && inBuildableRing(px,pz)
           && !excluded(px,pz,Math.max(w,depth)*.5)
           && !onRoad(px,pz,Math.max(w,depth)*.5+.7)
+          && !inADoorway(px,pz,Math.max(w,depth)*.5)
           && frontageClear(px,pz,w,depth,ry);
         if(ok){
           const stories=1+(worldRandom()<.48?1:0)+(worldRandom()<.16?1:0);
@@ -7880,11 +7990,21 @@ const WARD_ATMOSPHERE={
   'East Wall':'Loose pages worry at the archive doors while violet motes hang over the scriptorium lane.',
   'Lower Vaneth':'The lower streets narrow into workshops, kitchens, and old doors polished by generations of hands.',
   'Old Vaneth':'Here the streets turn on older foundations and every courtyard seems to remember another name.',
-  'Outer Gate':'Beyond the outer wall, Vaneth’s lamps thin into fields, ruins, and deep forest.',
-  'Eastreach':'Broken towers and wind-bent roofs watch the eastern road.',
-  'Highfields':'The high fields breathe open and cold beneath the city wall.',
-  'Westmarch':'Foxglove water and dark pines soften the western edge of Vaneth.',
-  'Southmoor':'Low fog follows the southbound tracks between scattered holdings.'
+  // Everything below the line is ground the city has stood on since r94, plus
+  // three keys — Outer Gate, Highfields, Westmarch, Southmoor — that named wards
+  // wardAt has not returned for several revisions. Most of Vaneth was walking
+  // into a ward and being told nothing.
+  'The Gates':'The gate towers throw their shadow across the whole street; everything here is either arriving or leaving.',
+  'Underwall':'The old wall runs along the end of every lane, and the houses built against it are younger than the stone by centuries.',
+  'The New North':'Grain lofts stand tall and narrow with their loading beams still out, and the whole quarter smells of dust and rope.',
+  'Eastreach':'Awnings, sign boards and a counter at every second door — the eastern road brings custom and Eastreach sells to it.',
+  'Westreach':'Chimneys the length of the street and a red mouth at the foot of each one. You hear Westreach before you reach it.',
+  'The Long Southing':'Fences, troughs and yards deep enough to turn a cart in. The southbound trade stables here rather than in the city.',
+  'The Outer Gates':'The new wall is raw and unweathered and the road runs straight out of it into the dark.',
+  'The Northern Wilds':'Past the last lamp the trees close in, and the aurora has nothing left to light but them.',
+  'The Eastern Wilds':'Standing stones and a long silence east of the wall, where the old road gave up.',
+  'The Western Wilds':'Foxglove water and dark pines soften the western edge of Vaneth.',
+  'The Southern Wilds':'Low fog follows the southbound tracks between scattered holdings and a graveyard nobody tends.'
 };
 const wayfinderWard=document.getElementById('wayfinderWard'),wayfinderWatch=document.getElementById('wayfinderWatch');
 function wardAt(x,z){
@@ -9494,7 +9614,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r99',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r100',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
