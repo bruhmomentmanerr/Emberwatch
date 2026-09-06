@@ -1,15 +1,13 @@
-**r105 — the whole protocol** · 2026-09-06 · phase 5, world depth
-
-In its own panel header: *r105 the whole Switch protocol*.
+**r106 — honest diagnostics** · 2026-09-06 · phase 5, world depth
 
 ### Summary
 
-the whole Switch 2 protocol. All thirteen notification handlers and all thirteen command builders read out of the vendor bundle: the target temperature lives in a3, statistics in a2, custom profile points in aa/ab, and a write is always its read plus 0x10. Which exposed a real bug — the b9 frame is the entire settings block, and Emberwatch had been sending a body frozen from one capture, writing that evening's light mode, brightness, auto-shut-off, haptics and temperature unit over the owner's own every time a preset was pressed. It builds from the live state frame now. The panel names every frame type instead of shouting UNEXPECTED, and the raw-write preview names the opcode — b8 is a four-byte factory reset one nibble from b9.
+the diagnostics stopped lying. outerWards() was removed back at r85 but the three fields it fed were left wired to a stub returning hardcoded zeros, so diagnostics().city reported outerBuildings:0, outerSquares:0 and outerYardDetails:0 — three numbers naming a system that no longer exists, which read as "the outer city is empty" to anything trusting them. EMBER.wards pointed at the same stub. wilderness() now counts what each pass actually leaves: 8 features, 1,096 colliders (forest 840, graveyard 130, ruined ring 84). EMBER.wards is now EMBER.wilderness. Also new: tools/check-parse.js and tools/audit-dom.js, which cross-checks markup ids against script lookups in both directions — the audit that would have caught r85's dead settings panel. And PROJECT.md, the single-file rundown of the whole project.
 
 ### In the code
 
-- 1.20 MB (+4,820 bytes on r104).
-- 1 function added: `customPoints`.
+- 1.20 MB (+529 bytes on r105).
+- No functions added or removed.
 
 ### Play it
 
