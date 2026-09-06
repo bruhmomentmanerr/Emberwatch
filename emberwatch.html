@@ -185,7 +185,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r100 four quarters</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r101 the switch speaks</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -229,6 +229,17 @@
     <details id="puffAdv"><summary>connection details</summary>
       <div class="pnote">No UUID is needed. Emberwatch checks the known Peak Pro control services automatically after you select your device.</div>
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button></div>
+    </details>
+    <details id="switchPanel"><summary>Dr. Dabber Switch 2</summary>
+      <div class="pnote">Read-only. Emberwatch listens to the Switch and never writes to it: the notification frame has been decoded from a real capture, the command encoding has not, and inventing bytes to send a heater is not a thing to do. Frame decode in <b>docs/dr-dabber-switch2-frames.md</b>.</div>
+      <div class="prow" style="margin-top:8px"><button class="pbtn" id="swConnect">◈ Connect a Switch 2</button><button class="pbtn" id="swDisconnect" style="flex:none">✕</button></div>
+      <div id="swNote" class="pnote"></div>
+      <div class="puff-section">Device</div>
+      <div id="swInfo" class="pnote">not connected</div>
+      <div class="puff-section">Live</div>
+      <div class="prow"><span class="pnote" style="flex:1">heat</span><b id="swTemp">—</b></div>
+      <div class="prow"><span class="pnote" style="flex:1">session</span><b id="swState">—</b></div>
+      <div id="swFrame" class="pnote" style="font-family:ui-monospace,Consolas,monospace;word-break:break-all"></div>
     </details>
     <details id="puffProbe"><summary>device probe</summary>
       <div class="pnote">Surveys any Bluetooth device: every service, every characteristic, its properties, and the current value of anything readable. It only reads — nothing is written to the device.</div>
@@ -9371,7 +9382,16 @@ const PUFF=(function(){
       await navigator.clipboard.writeText(report); setNote('Status copied to clipboard — also shown below.');
     }catch{ box.focus(); box.select(); setNote('Clipboard blocked. The status is selected below — press Ctrl+C.'); }};
   globalThis.emberwatchPeakSession={
-    status:()=>({connected:PUFF.connected,lorax:PUFF.protocol==='Lorax',busy:deviceBusy,active:activeHeat(lastState)||heatStartedInGame}),
+    status:()=>{
+      const peak={connected:PUFF.connected,lorax:PUFF.protocol==='Lorax',busy:deviceBusy,
+                  active:activeHeat(lastState)||heatStartedInGame};
+      if(peak.connected)return peak;
+      // No Peak. If a Switch is listening, it answers instead — the variants
+      // only ever ask "is a device running a cycle", and it is.
+      const sw=globalThis.emberwatchSwitchSession&&globalThis.emberwatchSwitchSession.status();
+      if(sw&&sw.connected)return {connected:true,lorax:false,busy:false,active:sw.active,device:'switch2'};
+      return peak;
+    },
     async beginStrainSession(detail){if(deviceBusy)throw new Error('Peak controls are already applying another action.');try{const result=await deviceAction('preparing '+String(detail?.strainName||'strain')+'…',()=>startHeatCycle({smoke:detail||{}}));if(result===ACTION_CANCELLED)throw new Error('Peak control action was cancelled.');return result;}catch(error){setNote('⚠ '+String(error?.message||error));throw error;}}
   };
   document.addEventListener('emberwatch:puff-panel-open',()=>{if(PUFF.connected)scheduleRefresh(0);});
@@ -9421,6 +9441,107 @@ const PUFF=(function(){
   });
   document.getElementById('btcCancel').addEventListener('click',()=>{ dismiss(); bridge.cancel(); });
   addEventListener('keydown',event=>{ if(open&&event.key==='Escape'){ dismiss(); bridge.cancel(); } });
+})();
+
+// ---- Dr. Dabber Switch 2 -------------------------------------------------
+// A read-only bridge. The device notifies a fixed twenty-byte frame on the demo
+// service roughly twice a second; byte 7 is 0xaa for exactly the length of a
+// heat cycle and byte 11 is the heat, which is identifiable because it goes on
+// climbing with a decreasing slope for three seconds after byte 7 clears — that
+// is thermal lag in a heater that has just switched off, and nothing else in
+// the frame behaves like it. Provenance and the full table are in
+// docs/dr-dabber-switch2-frames.md.
+//
+// Note the service: the device answers on 0000fee7, the *demo* service. The
+// primary control service the vendor app declares (f56598fa) did not enumerate
+// at all on firmware V2.0.0.
+(function(){
+  const connectBtn=document.getElementById('swConnect'); if(!connectBtn)return;
+  const disconnectBtn=document.getElementById('swDisconnect'),
+        note=document.getElementById('swNote'), info=document.getElementById('swInfo'),
+        tempEl=document.getElementById('swTemp'), stateEl=document.getElementById('swState'),
+        frameEl=document.getElementById('swFrame');
+  const DEMO='0000fee7-0000-1000-8000-00805f9b34fb',
+        NOTIFY='0000fec2-0000-1000-8000-00805f9b34fb',
+        INFO='0000180a-0000-1000-8000-00805f9b34fb';
+  const INFO_CHARS=[['00002a24-0000-1000-8000-00805f9b34fb','model'],
+                    ['00002a27-0000-1000-8000-00805f9b34fb','hardware'],
+                    ['00002a28-0000-1000-8000-00805f9b34fb','firmware'],
+                    ['00002a29-0000-1000-8000-00805f9b34fb','maker']];
+  const FRAME_LEN=20, START=0xa9, SESSION=7, HEAT=11, STATE=3, PARAM=13;
+  let device=null, live=false, lastFrame=null, lastAt=0;
+  const say=t=>{ note.textContent=t; };
+  const hex=b=>[...b].map(v=>v.toString(16).padStart(2,'0')).join(' ');
+
+  function decode(bytes){
+    // Length and both markers, or it is not one of ours and nothing is read
+    // out of it — a partial notification would otherwise be reported as a
+    // temperature of whatever happened to be in byte 11.
+    if(bytes.length!==FRAME_LEN||bytes[0]!==START||bytes[FRAME_LEN-1]!==START)return null;
+    return { heat:bytes[HEAT], running:bytes[SESSION]===0xaa,
+             state:bytes[STATE], param:bytes[PARAM], raw:bytes };
+  }
+  function paint(reading){
+    if(!reading){ tempEl.textContent='—'; stateEl.textContent='—'; return; }
+    // Units are not settled — 75 to 201 over ten seconds of heating is a low
+    // dab in Celsius and does not reach one in Fahrenheit — so the number is
+    // shown as the device sends it rather than converted into a lie.
+    tempEl.textContent=reading.heat+'  (0x'+reading.heat.toString(16)+')';
+    stateEl.textContent=reading.running
+      ?'running · param '+reading.param
+      :'idle · state '+reading.state;
+    frameEl.textContent=hex(reading.raw);
+  }
+  async function connect(){
+    try{
+      say('opening the chooser…');
+      device=await navigator.bluetooth.requestDevice({
+        filters:[{services:[DEMO]}], optionalServices:[INFO,DEMO]});
+      device.addEventListener('gattserverdisconnected',dropped);
+      say('connecting…');
+      const server=await device.gatt.connect();
+      let described=device.name||'a Switch 2';
+      try{
+        const svc=await server.getPrimaryService(INFO);
+        const parts=[];
+        for(const [uuid,label] of INFO_CHARS){
+          try{ const ch=await svc.getCharacteristic(uuid);
+            parts.push(label+' '+new TextDecoder().decode(await ch.readValue())); }catch{}
+        }
+        if(parts.length)described=(device.name?device.name+' — ':'')+parts.join(' · ');
+      }catch{}
+      info.textContent=described;
+      const demo=await server.getPrimaryService(DEMO);
+      const ch=await demo.getCharacteristic(NOTIFY);
+      await ch.startNotifications();
+      ch.addEventListener('characteristicvaluechanged',event=>{
+        const reading=decode(new Uint8Array(event.target.value.buffer.slice(0)));
+        if(!reading)return;
+        lastFrame=reading; lastAt=Date.now(); live=true; paint(reading);
+      });
+      live=true;
+      say('listening. Nothing is written to the device.');
+    }catch(error){
+      const message=String((error&&error.message)||error);
+      say(/cancel|User denied|No device selected/i.test(message)?'cancelled.':'could not connect: '+message);
+      live=false;
+    }
+  }
+  function dropped(){ live=false; lastFrame=null; info.textContent='not connected'; paint(null); say('the Switch disconnected.'); }
+  connectBtn.addEventListener('click',connect);
+  disconnectBtn.addEventListener('click',()=>{ try{ device&&device.gatt.connected&&device.gatt.disconnect(); }catch{} dropped(); });
+
+  // The same session signals the Puffco bridge publishes, so Ember Hour opens
+  // its arches and Heatline moves its fog on a Switch without either of them
+  // knowing which device is attached. Stale after four seconds of silence: the
+  // device notifies twice a second, so a gap that long means it has gone.
+  globalThis.emberwatchSwitchSession={
+    status(){
+      const fresh=live&&lastFrame&&(Date.now()-lastAt)<4000;
+      return { connected:!!fresh, active:!!(fresh&&lastFrame.running), busy:false,
+               heat:fresh?lastFrame.heat:null };
+    }
+  };
 })();
 
 // ---- BLE device probe ----------------------------------------------------
@@ -9614,7 +9735,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r100',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r101',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished

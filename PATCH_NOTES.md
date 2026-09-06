@@ -1,13 +1,13 @@
-**r100 — four quarters** · 2026-09-05 · phase 5, world depth
+**r101 — the switch speaks** · 2026-09-06 · phase 5, world depth
 
 ### Summary
 
-four quarters, not one repeated four times. innerInfill drew every terrace beyond the old wall from one palette of four materials and one range of heights, so the New North, Eastreach, Westreach and the Long Southing were the same street going round a circle. Each has its own palette, its own height and depth, and a trade it leaves out in the street: loading beams and shutters on the grain lofts, awnings and sign boards and a counter in Eastreach, a chimney with a red mouth at its foot the length of Westreach, and fences and troughs for the Southing's yards. A third of the terraces carry it — all of them would read as a theme park. WARD_ATMOSPHERE had four keys naming wards wardAt has not returned since r94 and was missing eleven that it does, so most of the city was walked into in silence. And the audit now names the doors it finds blocked rather than reporting false: a terrace had gone up across the Drovers' Rest doorstep, because the infill checked carriageways and other buildings but never asked whether it was standing in a doorway.
+**a second device.** A real Switch 2 capture came back from the listening probe and the frame decoded: twenty bytes, a9 either end, 0x14 for the length, byte 7 is 0xaa for exactly the length of a heat cycle and byte 11 is the heat — identifiable because it goes on climbing with a decreasing slope for three seconds after byte 7 clears, which is thermal lag in a heater that has just switched off and nothing else in the frame does it. Note the device answers on the *demo* service, 0000fee7; the primary control service the vendor app declares did not enumerate at all on firmware V2.0.0. Emberwatch reads it and does not write to it. The command encoding is still unobserved and inventing bytes to send a heater is not a thing to do. The Switch publishes the same session signals the Puffco bridge does, so Ember Hour opens its arches and Heatline moves its fog on a Switch without either of them knowing which device is attached.
 
 ### In the code
 
-- 1.16 MB (+6,528 bytes on r99).
-- 2 functions added: `quarterAt`, `quarterTrade`.
+- 1.17 MB (+6,842 bytes on r100).
+- 3 functions added: `decode`, `dropped`, `paint`.
 
 ### Play it
 
