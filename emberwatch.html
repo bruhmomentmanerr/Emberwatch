@@ -208,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r103 a bench in the panel</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r104 ramparts, and the vendor map</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -6243,11 +6243,90 @@ function compileVanethCity(){
 }
 function plannedDistricts(){return compileVanethCity();}
 const GATE_HALF_WIDTH=13;                       // metres, not degrees
+// Every walkable surface that is not the ground. Kept small and analytic rather
+// than sampled: two annuli and eight flights of steps answer in a few
+// comparisons, which matters because this runs on the player every frame.
+const WALL_WALKS=[], WALL_STAIRS=[];
+// A rampart walk is only a walk if it is unbroken; the gates break it, which is
+// why every arc gets its own stair rather than one per wall.
+function walkAt(x,z){
+  const rad=Math.hypot(x,z);
+  for(const walk of WALL_WALKS){
+    if(rad<walk.r-walk.inner||rad>walk.r+walk.outer)continue;
+    const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
+    const gateDeg=(GATE_HALF_WIDTH/walk.r)*180/Math.PI;
+    if(MID_GATE_DEG.some(g=>{let d=Math.abs(deg-g);d=Math.min(d,360-d);return d<gateDeg;}))continue;
+    return walk.top;
+  }
+  return null;
+}
+function stairAt(x,z){
+  for(const stair of WALL_STAIRS){
+    const dx=x-stair.x1, dz=z-stair.z1;
+    const along=dx*stair.ux+dz*stair.uz;
+    if(along<-.4||along>stair.len+.4)continue;
+    const across=dx*-stair.uz+dz*stair.ux;
+    if(Math.abs(across)>stair.half)continue;
+    // Stepped rather than ramped, so the climb reads as stairs from the side
+    // and the player rises in the same increments the geometry does.
+    const step=Math.min(stair.steps-1,Math.max(0,Math.floor(along/stair.len*stair.steps)));
+    return stair.top*((step+1)/stair.steps);
+  }
+  return null;
+}
+function surfaceAt(x,z){
+  const a=walkAt(x,z), b=stairAt(x,z);
+  return Math.max(0, a===null?0:a, b===null?0:b);
+}
 function citadelWall(R=CITY_RADIUS,H=12){ const seg=Math.max(160,Math.round(R*.67));
   const gateDeg=(GATE_HALF_WIDTH/R)*180/Math.PI;
   const gateAt=deg=>[0,90,180,270].some(g=>Math.min(Math.abs(deg-g),360-Math.abs(deg-g))<gateDeg);
   for(let i=0;i<seg;i++){ const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;if(gateAt(deg))continue;
     const x0=Math.cos(a0)*R,z0=Math.sin(a0)*R,x1=Math.cos(a1)*R,z1=Math.sin(a1)*R,mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0); aBox(2.1,H,len,mx,H/2,mz,'stone',ry); aBox(2.55,.9,len,mx,H+.45,mz,'stone',ry); if(i%8===0){aCyl(2.25,2.55,H+5,8,mx,(H+5)/2,mz,'stone');aCone(3.2,3.6,8,mx,H+6.8,mz,'slate');addCollider(mx,mz,2.4);} wallColl(x0,z0,x1,z1,1.4); }
+  // A rampart is not a wall with a line drawn on top: it is a walkway wide
+  // enough to stand on with something at the outer edge to stand behind. The
+  // ledge is corbelled off the inside face, which is how these were built and
+  // also the only place there is room for one.
+  const WALK_TOP=H+0.9, LEDGE=4.4;
+  for(let i=0;i<seg;i++){
+    const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2,deg=((a0+Math.PI/seg)*180/Math.PI)%360;
+    if(gateAt(deg))continue;
+    const x0=Math.cos(a0)*(R-LEDGE*.5),z0=Math.sin(a0)*(R-LEDGE*.5),
+          x1=Math.cos(a1)*(R-LEDGE*.5),z1=Math.sin(a1)*(R-LEDGE*.5),
+          mx=(x0+x1)/2,mz=(z0+z1)/2,len=Math.hypot(x1-x0,z1-z0)+.35,ry=Math.atan2(x1-x0,z1-z0);
+    aBox(LEDGE,.55,len,mx,WALK_TOP-.28,mz,'stone',ry);
+    // corbels under it, so the ledge is carried rather than floating
+    if(i%3===0)aBox(.7,.7,.7,mx,WALK_TOP-1.1,mz,'stone',ry);
+    // and merlons along the outer lip, gapped for the embrasures
+    if(i%2===0){
+      const ox=Math.cos(a0+Math.PI/seg)*(R+.55),oz=Math.sin(a0+Math.PI/seg)*(R+.55);
+      aBox(.75,1.15,len*.6,ox,WALK_TOP+.58,oz,'stone',ry);
+    }
+  }
+  WALL_WALKS.push({r:R,inner:LEDGE,outer:.18,top:WALK_TOP});
+  // One flight per arc. The gates cut the circuit into four, so a single stair
+  // would leave three quarters of the wall unreachable.
+  [45,135,225,315].forEach(deg=>{
+    const a=deg*Math.PI/180, rad=R-LEDGE-2.4;
+    const run=Math.max(20,WALK_TOP*1.7), sweep=run/rad;
+    const x1=Math.cos(a-sweep/2)*rad, z1=Math.sin(a-sweep/2)*rad;
+    const x2=Math.cos(a+sweep/2)*rad, z2=Math.sin(a+sweep/2)*rad;
+    const len=Math.hypot(x2-x1,z2-z1), ux=(x2-x1)/len, uz=(z2-z1)/len, ry=Math.atan2(ux,uz);
+    const steps=Math.max(9,Math.round(WALK_TOP/1.35));
+    for(let n=0;n<steps;n++){
+      const t=(n+.5)/steps, h=WALK_TOP*((n+1)/steps);
+      aBox(2.6,h,len/steps+.12,x1+ux*len*t,h/2,z1+uz*len*t,'stone',ry);
+    }
+    WALL_STAIRS.push({x1,z1,ux,uz,len,half:1.4,top:WALK_TOP,steps});
+    // The landing: a slab from the head of the flight out to the ledge, so you
+    // arrive on the middle of the walkway rather than on its lip. One step of
+    // constant height is exactly what stairAt already understands.
+    const outX=Math.cos(a), outZ=Math.sin(a);
+    const back=2.2, reach=LEDGE+3.4+back;
+    const hx=x1+ux*len-outX*back, hz=z1+uz*len-outZ*back;
+    aBox(7.0,.5,reach,hx+outX*reach*.5,WALK_TOP-.25,hz+outZ*reach*.5,'stone',Math.atan2(outX,outZ));
+    WALL_STAIRS.push({x1:hx,z1:hz,ux:outX,uz:outZ,len:reach,half:3.5,top:WALK_TOP,steps:1});
+  });
   [[R,0],[0,R],[-R,0],[0,-R]].forEach(([px,pz])=>{const a=Math.atan2(pz,px)+Math.PI/2,
     jamb=GATE_HALF_WIDTH+2.6,ox=Math.cos(a)*jamb,oz=Math.sin(a)*jamb; [[px+ox,pz+oz],[px-ox,pz-oz]].forEach(([x,z])=>{aCyl(2.7,3,H+7,8,x,(H+7)/2,z,'stone');aCone(3.8,4,8,x,H+9,z,'slate');addCollider(x,z,2.8);});const lintelLen=jamb*2+5.2, lintelRy=Math.atan2(ox,oz);
     aBox(3.1,3.4,lintelLen,px,H+1.7,pz,'stone',lintelRy);
@@ -8735,7 +8814,7 @@ const settingsEl=document.getElementById('settings');
 function openSettings(o){ const open=o===undefined?!settingsEl.classList.contains('open'):!!o;settingsEl.classList.toggle('open',open);settingsEl.setAttribute('aria-hidden',String(!open));if(open){if(dialogueOpen)closeDialogue();togglePuff(false);toggleStrains(false);document.exitPointerLock?.();clearPressedKeys();requestAnimationFrame(()=>document.getElementById('settingsClose').focus());} }
 document.getElementById('gear').addEventListener('click',()=>openSettings());
 document.getElementById('settingsClose').addEventListener('click',()=>openSettings(false));
-function returnToNorthGate(){closeDialogue();activeInterior=null;player.x=SPAWN_X;player.z=SPAWN_Z;player.y=0;player.vy=0;player.onGround=true;yaw=SPAWN_YAW;pitch=-.02;clearPressedKeys();saveGameState();showGameToast('You return to the outer gate.');}
+function returnToNorthGate(){closeDialogue();activeInterior=null;player.x=SPAWN_X;player.z=SPAWN_Z;player.y=surfaceAt(SPAWN_X,SPAWN_Z);player.vy=0;player.onGround=true;yaw=SPAWN_YAW;pitch=-.02;clearPressedKeys();saveGameState();showGameToast('You return to the outer gate.');}
 document.getElementById('unstuckBtn').addEventListener('click',returnToNorthGate);
 const worldSeedText=document.getElementById('worldSeedText');
 worldSeedText.textContent=String(WORLD_SEED);
@@ -9534,8 +9613,10 @@ const PUFF=(function(){
   let device=null, live=false, lastFrame=null, lastAt=0, writeChar=null, preset=3;
   // What each byte of the a9 state frame is believed to be. Anything left blank
   // has not been pinned down, and the grid exists to pin it down.
-  const FIELDS={0:'opcode',1:'length',3:'state',7:'session flag',11:'heat °C',
-                13:'session param',14:'separator',16:'volts?',18:'battery %?',19:'opcode'};
+  const FIELDS={0:'opcode a9',1:'length',3:'preset',6:'light mode',7:'session on',
+                8:'auto shut-off',9:'shut-off left',10:'temp high',11:'temp low',
+                12:'unit (15=F)',13:'session left',14:'haptics',15:'session extend',
+                16:'battery',17:'charging',18:'brightness',19:'opcode a9'};
   let lastBytes=null, lastLine=null, repeat=0, frames=0, logStart=performance.now(), picked=-1;
   const entries=[];
 
@@ -9580,8 +9661,18 @@ const PUFF=(function(){
     // out of it — a partial notification would otherwise be reported as a
     // temperature of whatever happened to be in byte 11.
     if(bytes.length!==FRAME_LEN||bytes[0]!==START||bytes[FRAME_LEN-1]!==START)return null;
-    return { heat:bytes[HEAT], running:bytes[SESSION]===0xaa,
-             state:bytes[STATE], param:bytes[PARAM], raw:bytes };
+    return {
+      preset:bytes[3], lightMode:bytes[6],
+      running:bytes[7]===0xaa,
+      autoShutOff:bytes[8], shutOffLeft:bytes[9],
+      // Sixteen bits. Reading only the low byte was fine until the device went
+      // past 255 and wrapped, which on a Fahrenheit device is most of a dab.
+      temp:(bytes[10]<<8)|bytes[11],
+      fahrenheit:bytes[12]===15,
+      sessionLeft:bytes[13], haptics:bytes[14]===0xaa,
+      sessionExtend:bytes[15], battery:bytes[16],
+      charging:bytes[17]===0xaa, brightness:bytes[18],
+      raw:bytes };
   }
   const at=()=>((performance.now()-logStart)/1000).toFixed(2).padStart(7)+'s';
   function put(kind,text){
@@ -9623,9 +9714,15 @@ const PUFF=(function(){
   }
   function paint(reading){
     if(!reading){ tempEl.textContent='—'; stateEl.textContent='—'; battEl.textContent='—'; return; }
-    tempEl.textContent=reading.heat+'°C · '+Math.round(reading.heat*9/5+32)+'°F';
-    stateEl.textContent=reading.running?'running · '+reading.param:'idle · '+reading.state;
-    battEl.textContent=reading.raw[18]+'% · '+(reading.raw[16]/10).toFixed(1)+'V?';
+    // The device says which scale it is in, so there is no need to guess or to
+    // convert behind the reader's back.
+    const other=reading.fahrenheit
+      ? Math.round((reading.temp-32)*5/9)+'°C'
+      : Math.round(reading.temp*9/5+32)+'°F';
+    tempEl.textContent=reading.temp+(reading.fahrenheit?'°F':'°C')+' · '+other;
+    stateEl.textContent=(reading.running?'running · '+reading.sessionLeft+'s left':'idle')+
+      ' · preset '+reading.preset;
+    battEl.textContent=reading.battery+'%'+(reading.charging?' · charging':'');
   }
   // Every notification, decoded or not. A frame that is not the twenty-byte
   // shape is reported rather than dropped — a second frame type sharing the a9
@@ -9689,7 +9786,7 @@ const PUFF=(function(){
   for(let i=1;i<=PRESETS;i++){
     const button=document.createElement('button');
     button.className='pbtn'; button.textContent=String(i);
-    button.title=(i===3||i===5)?'observed in the capture':'same index byte, not separately observed';
+    button.title='preset '+i+' — the same field the device reports back as e[3]';
     button.addEventListener('click',async()=>{
       preset=i;
       if(await send(b9(i,lastFrame&&lastFrame.running),'preset '+i))say('preset '+i+' selected.');
@@ -9785,7 +9882,9 @@ const PUFF=(function(){
     status(){
       const fresh=live&&lastFrame&&(Date.now()-lastAt)<4000;
       return { connected:!!fresh, active:!!(fresh&&lastFrame.running), busy:false,
-               heat:fresh?lastFrame.heat:null };
+               heat:fresh?lastFrame.temp:null,
+               fahrenheit:fresh?lastFrame.fahrenheit:null,
+               preset:fresh?lastFrame.preset:null };
     }
   };
 })();
@@ -9981,7 +10080,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r103',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r104',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -10010,10 +10109,29 @@ function loop(){ requestAnimationFrame(loop);
   if(moving){ let mx=fwdX*f+rgtX*r,mz=fwdZ*f+rgtZ*r; const ml=Math.hypot(mx,mz); mx/=ml; mz/=ml;
     const sp=CONFIG.moveSpeed*((keys['ShiftLeft']||keys['ShiftRight'])?CONFIG.sprintMul:1)*dt*Math.min(mag,1);
     const nx=player.x+mx*sp,nz=player.z+mz*sp;
-    if(!blocked(nx,player.z)) player.x=Math.max(-lim,Math.min(lim,nx));
-    if(!blocked(player.x,nz)) player.z=Math.max(-lim,Math.min(lim,nz)); }
+    // Above the rooftops the street-level colliders are not in the way any
+    // more — you are standing on top of them.
+    const aloft=player.y>3.2;
+    const under=aloft?surfaceAt(player.x,player.z):0;
+    // A drop of more than a step is an edge, and an edge is solid underfoot.
+    // The tolerance is what lets you walk down a flight without being stopped
+    // by each tread.
+    const footing=(tx,tz)=>!aloft||!player.onGround||surfaceAt(tx,tz)>under-1.7;
+    if((aloft||!blocked(nx,player.z))&&footing(nx,player.z)) player.x=Math.max(-lim,Math.min(lim,nx));
+    if((aloft||!blocked(player.x,nz))&&footing(player.x,nz)) player.z=Math.max(-lim,Math.min(lim,nz)); }
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
-  player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt; if(player.y<=0){ player.y=0; player.vy=0; player.onGround=true; }
+  player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt;
+  const floor=surfaceAt(player.x,player.z);
+  if(player.y<=floor){
+    // Landing on the ground inside something is the one way this can strand
+    // you: step off a rampart over a rooftop and you arrive at y=0 in the
+    // middle of a house with every direction blocked. Put them on the nearest
+    // walkable cell instead of leaving them in the masonry.
+    if(floor===0&&player.y<0&&colliderBlocked(player.x,player.z)){
+      const spot=navPlace(player.x,player.z); player.x=spot[0]; player.z=spot[1];
+    }
+    player.y=floor; player.vy=0; player.onGround=true;
+  }
   bob+=moving&&player.onGround?dt*9:0;
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt); sampleResidentFlow(t); updateWisps(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);
