@@ -99,6 +99,29 @@
   #gear:hover,#puffBtn:hover,#strainBtn:hover,.btn:hover{background:linear-gradient(145deg,rgba(68,58,48,.96),rgba(24,21,20,.97));border-color:rgba(206,174,119,.68)}
   #settings,#puffPanel,#strainPanel,#dialoguePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
   #settings,#puffPanel,#strainPanel{width:min(340px,calc(100vw - 24px))}#settings{width:min(306px,calc(100vw - 24px));padding-top:36px}.panel-close{position:absolute;right:10px;top:9px;width:25px;height:25px;border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;cursor:pointer;font-size:15px;line-height:1}.pbtn:disabled,.ppreset:disabled{opacity:.48;cursor:wait;transform:none;filter:saturate(.5)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(213,181,115,.92);outline-offset:2px}
+  .sw-mono{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+  .sw-warn{color:#e0a45a}
+  .sw-live{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 2px}
+  .sw-live div{border:1px solid rgba(173,143,94,.24);border-radius:7px;padding:5px 8px;background:rgba(255,255,255,.03)}
+  .sw-live small{display:block;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#a2907a}
+  .sw-live b{font:600 14px/1.3 Georgia,serif;color:#f0e4cf}
+  .sw-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin:4px 0}
+  .sw-cell{border:1px solid rgba(173,143,94,.2);border-radius:4px;padding:3px 0;text-align:center;
+    font:10px ui-monospace,Consolas,monospace;color:#cfc0a6;cursor:pointer;background:rgba(0,0,0,.2)}
+  .sw-cell i{display:block;font-style:normal;font-size:7px;color:#7d6f5e}
+  .sw-cell.named{color:#f2e6d0;border-color:rgba(219,179,112,.42)}
+  .sw-cell.moved{background:rgba(224,145,58,.28);border-color:#e0913a;color:#ffe2b4;font-weight:700}
+  .sw-cell.sel{outline:1px solid #dbb370}
+  #swReplay{width:100%;height:74px;margin:4px 0;padding:6px 7px;border-radius:7px;
+    border:1px solid rgba(173,143,94,.24);background:rgba(0,0,0,.28);color:#c7bba6;
+    font:10px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+  .sw-log{height:132px;overflow:auto;margin:5px 0;padding:6px 7px;border:1px solid rgba(173,143,94,.24);
+    border-radius:7px;background:rgba(0,0,0,.28);font:10px/1.5 ui-monospace,Consolas,monospace;
+    white-space:pre-wrap;word-break:break-all;color:#c7bba6}
+  .sw-log .w{color:#e0a45a}
+  .sw-log .m{color:#8fd6a4;font-weight:600}
+  .sw-log .o{color:#e0786a}
+  .sw-log .d{color:#9fc6e8}
   .wayfinder-watch{display:block;margin-top:4px;font:10px 'Trebuchet MS',sans-serif;color:#b9a892;letter-spacing:.3px;line-height:1.45;max-width:230px}
   .wayfinder-watch b{color:#e8d3ae;font-weight:600;letter-spacing:.6px}
   #settings h4,.puff-section,.strain-label,#dialogueTopic{font-family:Georgia,'Times New Roman',serif;color:#cdb58a;letter-spacing:1.45px}
@@ -185,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r101 the switch speaks</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r103 a bench in the panel</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -231,15 +254,43 @@
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button></div>
     </details>
     <details id="switchPanel"><summary>Dr. Dabber Switch 2</summary>
-      <div class="pnote">Read-only. Emberwatch listens to the Switch and never writes to it: the notification frame has been decoded from a real capture, the command encoding has not, and inventing bytes to send a heater is not a thing to do. Frame decode in <b>docs/dr-dabber-switch2-frames.md</b>.</div>
+      <div class="pnote">Sends the two commands the Dr. Dabber app was watched issuing — the state frame and the clock — and nothing else. Decode and provenance in <b>docs/dr-dabber-switch2-frames.md</b>.</div>
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="swConnect">◈ Connect a Switch 2</button><button class="pbtn" id="swDisconnect" style="flex:none">✕</button></div>
       <div id="swNote" class="pnote"></div>
-      <div class="puff-section">Device</div>
       <div id="swInfo" class="pnote">not connected</div>
+
       <div class="puff-section">Live</div>
-      <div class="prow"><span class="pnote" style="flex:1">heat</span><b id="swTemp">—</b></div>
-      <div class="prow"><span class="pnote" style="flex:1">session</span><b id="swState">—</b></div>
-      <div id="swFrame" class="pnote" style="font-family:ui-monospace,Consolas,monospace;word-break:break-all"></div>
+      <div class="sw-live">
+        <div><small>heat</small><b id="swTemp">—</b></div>
+        <div><small>session</small><b id="swState">—</b></div>
+        <div><small>battery</small><b id="swBatt">—</b></div>
+        <div><small>frames</small><b id="swCount">0</b></div>
+      </div>
+
+      <div class="puff-section">Frame</div>
+      <div id="swGrid" class="sw-grid"></div>
+      <div id="swPick" class="pnote">Every byte of the last state frame. A byte that just changed lights up; click one to read what it is.</div>
+
+      <div class="puff-section">Control</div>
+      <div class="prow" id="swPresets"></div>
+      <div class="prow" style="margin-top:6px"><button class="pbtn" id="swStart">▲ Start</button><button class="pbtn" id="swStop">■ Stop</button><button class="pbtn" id="swClock" style="flex:none">clock</button></div>
+
+      <div class="puff-section">Log</div>
+      <div class="pnote">Repeated frames collapse. Any frame that <b>differs</b> from the one before it prints in full with the changed bytes named, which is where the protocol is.</div>
+      <div class="prow"><input type="text" id="swMark" placeholder="label what you are about to do" aria-label="Log label"><button class="pbtn" id="swMarkBtn" style="flex:none">mark</button></div>
+      <div id="swLog" class="sw-log"></div>
+      <div class="prow"><button class="pbtn" id="swCopy">copy log</button><button class="pbtn" id="swCopyChanges">copy changes</button><button class="pbtn" id="swClear" style="flex:none">clear</button></div>
+
+      <details id="swRaw"><summary>raw write</summary>
+        <div class="pnote sw-warn">This sends bytes straight to the heater's control characteristic. It is here because decoding <code>b5</code> needs it and there is no other way to get it. Type the payload only — the opcode, the length and the trailing opcode are added for you. Nothing sends until it is armed.</div>
+        <label class="pnote"><input type="checkbox" id="swArmed"> armed</label>
+        <div class="prow"><input type="text" id="swOp" placeholder="b5" style="max-width:56px" aria-label="Opcode"><input type="text" id="swPayload" placeholder="03 e1" aria-label="Payload bytes"><button class="pbtn" id="swSend" style="flex:none" disabled>send</button></div>
+        <div id="swPreview" class="pnote sw-mono"></div>
+        <div class="puff-section">Replay a capture</div>
+        <div class="pnote">Paste a log — from here, from the sniffer, from anywhere. Lines of hex go through the same decode a live notification takes; anything else becomes a mark, so labels stay next to the traffic they describe. Nothing is sent to the device.</div>
+        <textarea id="swReplay" spellcheck="false" placeholder="a9 14 00 03 ... a9" aria-label="Captured frames to replay"></textarea>
+        <div class="prow"><button class="pbtn" id="swReplayGo">replay</button></div>
+      </details>
     </details>
     <details id="puffProbe"><summary>device probe</summary>
       <div class="pnote">Surveys any Bluetooth device: every service, every characteristic, its properties, and the current value of anything readable. It only reads — nothing is written to the device.</div>
@@ -9460,7 +9511,9 @@ const PUFF=(function(){
   const disconnectBtn=document.getElementById('swDisconnect'),
         note=document.getElementById('swNote'), info=document.getElementById('swInfo'),
         tempEl=document.getElementById('swTemp'), stateEl=document.getElementById('swState'),
-        frameEl=document.getElementById('swFrame');
+        battEl=document.getElementById('swBatt'), countEl=document.getElementById('swCount'),
+        gridEl=document.getElementById('swGrid'), pickEl=document.getElementById('swPick'),
+        logEl=document.getElementById('swLog');
   const DEMO='0000fee7-0000-1000-8000-00805f9b34fb',
         NOTIFY='0000fec2-0000-1000-8000-00805f9b34fb',
         INFO='0000180a-0000-1000-8000-00805f9b34fb';
@@ -9468,8 +9521,57 @@ const PUFF=(function(){
                     ['00002a27-0000-1000-8000-00805f9b34fb','hardware'],
                     ['00002a28-0000-1000-8000-00805f9b34fb','firmware'],
                     ['00002a29-0000-1000-8000-00805f9b34fb','maker']];
+  const WRITE='0000fec1-0000-1000-8000-00805f9b34fb';
   const FRAME_LEN=20, START=0xa9, SESSION=7, HEAT=11, STATE=3, PARAM=13;
-  let device=null, live=false, lastFrame=null, lastAt=0;
+  // The write frame shares the notification's envelope — opcode, total length,
+  // payload, opcode again — but not its field offsets. This is the b9 body
+  // exactly as the vendor app was observed sending it; only two bytes are ever
+  // varied from it, and both were isolated by diffing captures against labels
+  // the user wrote at the time.
+  const B9_BODY=[0x00,0x03,0x00,0x00,0x0a,0x00,0x0f,0x0f,0x00,0xaa,0x00,0x32,0x00,0x00,0x00,0x00,0x00];
+  const B9_PRESET=1, B9_RUN=8;            // indices into B9_BODY
+  const PRESETS=5;                        // the app exposes five; 3 and 5 observed
+  let device=null, live=false, lastFrame=null, lastAt=0, writeChar=null, preset=3;
+  // What each byte of the a9 state frame is believed to be. Anything left blank
+  // has not been pinned down, and the grid exists to pin it down.
+  const FIELDS={0:'opcode',1:'length',3:'state',7:'session flag',11:'heat °C',
+                13:'session param',14:'separator',16:'volts?',18:'battery %?',19:'opcode'};
+  let lastBytes=null, lastLine=null, repeat=0, frames=0, logStart=performance.now(), picked=-1;
+  const entries=[];
+
+  // opcode, total length, payload, opcode. b1 09 07 ea 09 06 04 06 b1 and
+  // d1 14 <18 bytes> d1 and b5 05 03 e1 b5 all fit it.
+  function frame(opcode,payload){
+    const out=new Uint8Array(payload.length+3);
+    out[0]=opcode; out[1]=out.length;
+    out.set(payload,2);
+    out[out.length-1]=opcode;
+    return out;
+  }
+  function b9(index,running){
+    const body=B9_BODY.slice();
+    body[B9_PRESET]=index;
+    body[B9_RUN]=running?0xaa:0x00;
+    return frame(0xb9,body);
+  }
+  // The clock sync the app sends on connect: year big-endian, month, day, hour,
+  // minute. Harmless, observed, and sent in case the device wants the handshake
+  // before it will take a state write.
+  function b1now(){
+    const d=new Date();
+    return frame(0xb1,[d.getFullYear()>>8,d.getFullYear()&0xff,d.getMonth()+1,d.getDate(),d.getHours(),d.getMinutes()]);
+  }
+  async function send(bytes,what){
+    if(!writeChar){ say('not connected — nothing sent.'); return false; }
+    try{
+      // The app uses write-without-response throughout; the device has never
+      // been seen answering a write directly, only through its state frames.
+      if(writeChar.writeValueWithoutResponse) await writeChar.writeValueWithoutResponse(bytes);
+      else await writeChar.writeValue(bytes);
+      put('WRITE',at()+'  WRITE  '+hex(bytes)+'   '+what);
+      return true;
+    }catch(error){ say('write failed: '+error.message); return false; }
+  }
   const say=t=>{ note.textContent=t; };
   const hex=b=>[...b].map(v=>v.toString(16).padStart(2,'0')).join(' ');
 
@@ -9481,16 +9583,67 @@ const PUFF=(function(){
     return { heat:bytes[HEAT], running:bytes[SESSION]===0xaa,
              state:bytes[STATE], param:bytes[PARAM], raw:bytes };
   }
+  const at=()=>((performance.now()-logStart)/1000).toFixed(2).padStart(7)+'s';
+  function put(kind,text){
+    entries.push({kind,text});
+    const line=document.createElement('div');
+    line.className=kind==='WRITE'?'w':kind==='MARK'?'m':kind==='ODD'?'o':kind==='DIFF'?'d':'';
+    line.textContent=text;
+    logEl.appendChild(line);
+    while(logEl.childElementCount>400)logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop=logEl.scrollHeight;
+  }
+  // The named diff is the whole point: "byte 7 went 00 to aa" is a fact you can
+  // act on, where two near-identical rows of hex are not.
+  function diffText(before,after){
+    const moved=[];
+    for(let i=0;i<after.length;i++)if(!before||before[i]!==after[i])moved.push(i);
+    if(!before)return 'first frame';
+    if(!moved.length)return '';
+    return moved.map(i=>'['+i+(FIELDS[i]?' '+FIELDS[i]:'')+'] '+
+      before[i].toString(16).padStart(2,'0')+'→'+after[i].toString(16).padStart(2,'0')).join('  ');
+  }
+  function paintGrid(bytes,before){
+    gridEl.replaceChildren();
+    if(!bytes)return;
+    bytes.forEach((value,index)=>{
+      const cell=document.createElement('div');
+      cell.className='sw-cell'+(FIELDS[index]?' named':'')+
+        (before&&before[index]!==value?' moved':'')+(index===picked?' sel':'');
+      cell.innerHTML='<i>'+index+'</i>'+value.toString(16).padStart(2,'0');
+      cell.title=(FIELDS[index]||'not identified')+' — '+value;
+      cell.addEventListener('click',()=>{
+        picked=index;
+        pickEl.textContent='byte '+index+' · 0x'+value.toString(16).padStart(2,'0')+' · '+value+
+          ' · '+(FIELDS[index]||'not identified — this is what the log is for');
+        paintGrid(lastBytes,null);
+      });
+      gridEl.appendChild(cell);
+    });
+  }
   function paint(reading){
-    if(!reading){ tempEl.textContent='—'; stateEl.textContent='—'; return; }
-    // Units are not settled — 75 to 201 over ten seconds of heating is a low
-    // dab in Celsius and does not reach one in Fahrenheit — so the number is
-    // shown as the device sends it rather than converted into a lie.
-    tempEl.textContent=reading.heat+'  (0x'+reading.heat.toString(16)+')';
-    stateEl.textContent=reading.running
-      ?'running · param '+reading.param
-      :'idle · state '+reading.state;
-    frameEl.textContent=hex(reading.raw);
+    if(!reading){ tempEl.textContent='—'; stateEl.textContent='—'; battEl.textContent='—'; return; }
+    tempEl.textContent=reading.heat+'°C · '+Math.round(reading.heat*9/5+32)+'°F';
+    stateEl.textContent=reading.running?'running · '+reading.param:'idle · '+reading.state;
+    battEl.textContent=reading.raw[18]+'% · '+(reading.raw[16]/10).toFixed(1)+'V?';
+  }
+  // Every notification, decoded or not. A frame that is not the twenty-byte
+  // shape is reported rather than dropped — a second frame type sharing the a9
+  // opcode would explain the heat reading falling to zero at the start of a
+  // cycle, and it can only be spotted if the odd ones are visible.
+  function onFrame(bytes){
+    frames++; countEl.textContent=frames;
+    const reading=decode(bytes);
+    if(!reading){ put('ODD',at()+'  UNEXPECTED ('+bytes.length+'B)  '+hex(bytes)); return; }
+    lastFrame=reading; lastAt=Date.now(); live=true;
+    paint(reading);
+    const line=hex(bytes);
+    if(line===lastLine){ repeat++; return; }
+    if(repeat){ put('rep','          (x'+(repeat+1)+')'); repeat=0; }
+    const diff=diffText(lastBytes,bytes);
+    put(lastBytes?'DIFF':'',at()+'  '+line+(diff?'\n          '+diff:''));
+    paintGrid(bytes,lastBytes);
+    lastBytes=bytes; lastLine=line;
   }
   async function connect(){
     try{
@@ -9512,22 +9665,104 @@ const PUFF=(function(){
       }catch{}
       info.textContent=described;
       const demo=await server.getPrimaryService(DEMO);
+      try{ writeChar=await demo.getCharacteristic(WRITE); }
+      catch{ writeChar=null; say('connected, but this device exposes no write characteristic.'); }
       const ch=await demo.getCharacteristic(NOTIFY);
       await ch.startNotifications();
-      ch.addEventListener('characteristicvaluechanged',event=>{
-        const reading=decode(new Uint8Array(event.target.value.buffer.slice(0)));
-        if(!reading)return;
-        lastFrame=reading; lastAt=Date.now(); live=true; paint(reading);
-      });
+      ch.addEventListener('characteristicvaluechanged',event=>
+        onFrame(new Uint8Array(event.target.value.buffer.slice(0))));
       live=true;
-      say('listening. Nothing is written to the device.');
+      say(writeChar?'listening. Controls below replay the app\'s own commands.':'listening, read-only.');
+      if(writeChar)await send(b1now(),'clock');
+      globalThis.emberwatchSwitchRefresh&&globalThis.emberwatchSwitchRefresh();
     }catch(error){
       const message=String((error&&error.message)||error);
       say(/cancel|User denied|No device selected/i.test(message)?'cancelled.':'could not connect: '+message);
       live=false;
     }
   }
-  function dropped(){ live=false; lastFrame=null; info.textContent='not connected'; paint(null); say('the Switch disconnected.'); }
+  function dropped(){ live=false; lastFrame=null; writeChar=null; info.textContent='not connected';
+    paint(null); say('the Switch disconnected.');
+    put('MARK',at()+'  ---- disconnected ----');
+    globalThis.emberwatchSwitchRefresh&&globalThis.emberwatchSwitchRefresh(); }
+  const presetRow=document.getElementById('swPresets');
+  for(let i=1;i<=PRESETS;i++){
+    const button=document.createElement('button');
+    button.className='pbtn'; button.textContent=String(i);
+    button.title=(i===3||i===5)?'observed in the capture':'same index byte, not separately observed';
+    button.addEventListener('click',async()=>{
+      preset=i;
+      if(await send(b9(i,lastFrame&&lastFrame.running),'preset '+i))say('preset '+i+' selected.');
+      [...presetRow.children].forEach((b,n)=>b.style.opacity=(n+1===i)?'1':'.55');
+    });
+    presetRow.appendChild(button);
+  }
+  [...presetRow.children].forEach((b,n)=>b.style.opacity=(n+1===preset)?'1':'.55');
+  document.getElementById('swStart').addEventListener('click',async()=>{
+    if(await send(b9(preset,true),'start'))say('cycle started on preset '+preset+'.');
+  });
+  document.getElementById('swStop').addEventListener('click',async()=>{
+    if(await send(b9(preset,false),'stop'))say('stop sent.');
+  });
+  document.getElementById('swClock').addEventListener('click',()=>send(b1now(),'clock'));
+
+  const markBox=document.getElementById('swMark');
+  const mark=()=>{ const text=markBox.value.trim(); if(!text)return;
+    put('MARK',at()+'  ---- '+text+' ----'); markBox.value=''; };
+  document.getElementById('swMarkBtn').addEventListener('click',mark);
+  markBox.addEventListener('keydown',event=>{ if(event.key==='Enter'){event.preventDefault();mark();} });
+
+  const asText=changesOnly=>'Emberwatch — Switch 2 log — '+new Date().toISOString()+'\n\n'+
+    entries.filter(row=>!changesOnly||row.kind==='WRITE'||row.kind==='MARK'||row.kind==='ODD'||row.kind==='DIFF')
+      .map(row=>row.text).join('\n');
+  async function copyOut(text){
+    try{ if(!navigator.clipboard?.writeText)throw new Error('no clipboard');
+      await navigator.clipboard.writeText(text); say('copied '+text.length+' characters.'); }
+    catch{ // Same fallback the Puffco panel uses: a blocked clipboard should not
+           // lose the capture, so it goes somewhere selectable instead.
+      markBox.value=''; put('MARK',at()+'  (clipboard blocked — the log is above, select and copy)'); }
+  }
+  document.getElementById('swCopy').addEventListener('click',()=>copyOut(asText(false)));
+  document.getElementById('swCopyChanges').addEventListener('click',()=>copyOut(asText(true)));
+  document.getElementById('swClear').addEventListener('click',()=>{
+    entries.length=0; logEl.replaceChildren();
+    frames=0; repeat=0; lastLine=null; lastBytes=null; logStart=performance.now();
+    countEl.textContent='0'; gridEl.replaceChildren();
+  });
+
+  // Raw write. Armed behind a checkbox because this is the one control that can
+  // send the device something nobody has ever watched the vendor app send.
+  const opBox=document.getElementById('swOp'), payloadBox=document.getElementById('swPayload'),
+        armed=document.getElementById('swArmed'), sendBtn=document.getElementById('swSend'),
+        preview=document.getElementById('swPreview');
+  const parseHex=text=>text.trim().split(/[\s,]+/).filter(Boolean).map(v=>parseInt(v,16));
+  function refreshRaw(){
+    const opcode=parseHex(opBox.value)[0], payload=parseHex(payloadBox.value);
+    const ok=Number.isFinite(opcode)&&payload.every(Number.isFinite);
+    preview.textContent=ok?'would send  '+hex(frame(opcode,payload)):'';
+    sendBtn.disabled=!(ok&&armed.checked&&writeChar);
+  }
+  [opBox,payloadBox].forEach(box=>box.addEventListener('input',refreshRaw));
+  armed.addEventListener('change',refreshRaw);
+  sendBtn.addEventListener('click',()=>{
+    const opcode=parseHex(opBox.value)[0], payload=parseHex(payloadBox.value);
+    send(frame(opcode,payload),'RAW');
+  });
+  globalThis.emberwatchSwitchRefresh=refreshRaw;   // called when a device arrives or leaves
+
+  document.getElementById('swReplayGo').addEventListener('click',()=>{
+    const text=document.getElementById('swReplay').value;
+    if(!text.trim()){ say('nothing to replay.'); return; }
+    let fed=0;
+    for(const line of text.split(/\r?\n/)){
+      // A run of hex pairs anywhere in the line is a frame; the timestamps and
+      // prefixes a captured log carries are ignored rather than fought with.
+      const match=line.match(/((?:[0-9a-f]{2}[ ]){3,}[0-9a-f]{2})/i);
+      if(match){ onFrame(Uint8Array.from(match[1].trim().split(/\s+/).map(v=>parseInt(v,16)))); fed++; }
+      else if(line.trim()) put('MARK','          '+line.trim());
+    }
+    say('replayed '+fed+' frame'+(fed===1?'':'s')+'.');
+  });
   connectBtn.addEventListener('click',connect);
   disconnectBtn.addEventListener('click',()=>{ try{ device&&device.gatt.connected&&device.gatt.disconnect(); }catch{} dropped(); });
 
@@ -9536,6 +9771,17 @@ const PUFF=(function(){
   // knowing which device is attached. Stale after four seconds of silence: the
   // device notifies twice a second, so a gap that long means it has gone.
   globalThis.emberwatchSwitchSession={
+    // A Switch takes a preset, not a temperature. The strain journal asks for a
+    // number; rather than invent a mapping from degrees to preset index, the
+    // Switch runs whichever preset is currently selected and reports back what
+    // it actually did.
+    async beginStrainSession(detail){
+      if(!writeChar)throw new Error('No Switch is connected.');
+      if(!await send(b9(preset,true),'start'))throw new Error('The Switch did not take the command.');
+      return { device:'switch2', preset,
+        note:'The Switch ran preset '+preset+'. It takes a preset, not a temperature, so '+
+             (detail&&detail.targetF?detail.targetF+'°F was not sent.':'no target was sent.') };
+    },
     status(){
       const fresh=live&&lastFrame&&(Date.now()-lastAt)<4000;
       return { connected:!!fresh, active:!!(fresh&&lastFrame.running), busy:false,
@@ -9735,7 +9981,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r101',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r103',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished

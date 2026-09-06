@@ -1,13 +1,15 @@
-**r101 — the switch speaks** · 2026-09-06 · phase 5, world depth
+**r103 — switch bench** · 2026-09-06 · phase 5, world depth
+
+In its own panel header: *r103 a bench in the panel*.
 
 ### Summary
 
-**a second device.** A real Switch 2 capture came back from the listening probe and the frame decoded: twenty bytes, a9 either end, 0x14 for the length, byte 7 is 0xaa for exactly the length of a heat cycle and byte 11 is the heat — identifiable because it goes on climbing with a decreasing slope for three seconds after byte 7 clears, which is thermal lag in a heater that has just switched off and nothing else in the frame does it. Note the device answers on the *demo* service, 0000fee7; the primary control service the vendor app declares did not enumerate at all on firmware V2.0.0. Emberwatch reads it and does not write to it. The command encoding is still unobserved and inventing bytes to send a heater is not a thing to do. The Switch publishes the same session signals the Puffco bridge does, so Ember Hour opens its arches and Heatline moves its fog on a Switch without either of them knowing which device is attached.
+the panel became the bench. A byte grid for the whole frame with the changed cells lit and every field named on click; a log that collapses repeats and prints any frame that *differs* with the changed bytes named; inline marks so a label sits beside the traffic it describes; copy-all and copy-changes; a raw write behind an arm switch, which is the only way b5 gets decoded; and a replay box that pushes a captured log through the same decode with no device present. A standalone page was built for this first and scrapped — the panel is where the device already is
 
 ### In the code
 
-- 1.17 MB (+6,842 bytes on r100).
-- 3 functions added: `decode`, `dropped`, `paint`.
+- 1.19 MB (+14,857 bytes on r101).
+- 10 functions added: `b1now`, `b9`, `copyOut`, `diffText`, `frame`, `onFrame`, `paintGrid`, `put`, `refreshRaw`, `send`.
 
 ### Play it
 
