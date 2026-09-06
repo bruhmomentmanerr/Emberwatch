@@ -99,7 +99,7 @@
   #gear:hover,#puffBtn:hover,#strainBtn:hover,.btn:hover{background:linear-gradient(145deg,rgba(68,58,48,.96),rgba(24,21,20,.97));border-color:rgba(206,174,119,.68)}
   #settings,#puffPanel,#strainPanel,#dialoguePanel{border-color:rgba(135,119,91,.68);border-radius:8px;background:radial-gradient(circle at 50% -18%,rgba(125,107,79,.15),transparent 38%),repeating-linear-gradient(174deg,rgba(255,255,255,.018) 0 1px,transparent 1px 5px),linear-gradient(145deg,rgba(27,25,24,.985),rgba(9,9,10,.99));box-shadow:0 25px 75px rgba(0,0,0,.72),inset 0 0 0 2px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)}
   #settings,#puffPanel,#strainPanel{width:min(340px,calc(100vw - 24px))}#settings{width:min(306px,calc(100vw - 24px));padding-top:36px}.panel-close{position:absolute;right:10px;top:9px;width:25px;height:25px;border:1px solid rgba(183,151,100,.48);border-radius:5px;background:rgba(85,60,38,.28);color:#eadfc9;cursor:pointer;font-size:15px;line-height:1}.pbtn:disabled,.ppreset:disabled{opacity:.48;cursor:wait;transform:none;filter:saturate(.5)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid rgba(213,181,115,.92);outline-offset:2px}
-  .sw-mono{font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+  .sw-mono{font-family:ui-monospace,Consolas,monospace;word-break:break-all;white-space:pre-line}
   .sw-warn{color:#e0a45a}
   .sw-live{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:6px 0 2px}
   .sw-live div{border:1px solid rgba(173,143,94,.24);border-radius:7px;padding:5px 8px;background:rgba(255,255,255,.03)}
@@ -208,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r104 ramparts, and the vendor map</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r105 the whole Switch protocol</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -267,6 +267,7 @@
         <div><small>frames</small><b id="swCount">0</b></div>
       </div>
 
+      <div id="swTarget" class="pnote">No preset target seen yet — it arrives in an <code>a3</code> frame, not in the state frame.</div>
       <div class="puff-section">Frame</div>
       <div id="swGrid" class="sw-grid"></div>
       <div id="swPick" class="pnote">Every byte of the last state frame. A byte that just changed lights up; click one to read what it is.</div>
@@ -9592,7 +9593,8 @@ const PUFF=(function(){
         tempEl=document.getElementById('swTemp'), stateEl=document.getElementById('swState'),
         battEl=document.getElementById('swBatt'), countEl=document.getElementById('swCount'),
         gridEl=document.getElementById('swGrid'), pickEl=document.getElementById('swPick'),
-        logEl=document.getElementById('swLog');
+        logEl=document.getElementById('swLog'),
+        presetTempEl=document.getElementById('swTarget');
   const DEMO='0000fee7-0000-1000-8000-00805f9b34fb',
         NOTIFY='0000fec2-0000-1000-8000-00805f9b34fb',
         INFO='0000180a-0000-1000-8000-00805f9b34fb';
@@ -9601,7 +9603,51 @@ const PUFF=(function(){
                     ['00002a28-0000-1000-8000-00805f9b34fb','firmware'],
                     ['00002a29-0000-1000-8000-00805f9b34fb','maker']];
   const WRITE='0000fec1-0000-1000-8000-00805f9b34fb';
-  const FRAME_LEN=20, START=0xa9, SESSION=7, HEAT=11, STATE=3, PARAM=13;
+  const FRAME_LEN=20, START=0xa9;
+  const CURVES={161:'Steady',177:'Ascent',193:'Descent',209:'Valley',225:'Hill',241:'Custom'};
+  const u16=(b,i)=>(b[i]<<8)|b[i+1];
+  const u32=(b,i)=>(b[i]<<24)|(b[i+1]<<16)|(b[i+2]<<8)|b[i+3];
+  // opcode -> a short human reading of the payload. Everything here mirrors a
+  // handler in drdabber.app; see docs/dr-dabber-switch2-frames.md.
+  // aa and ab share a layout: profile index, then three points of
+  // tempF / tempC / seconds. Only the point numbering differs.
+  function customPoints(b,first){
+    const out=[];
+    for(let n=0;n<3;n++){
+      const at=3+n*5;
+      out.push('#'+(first+n)+' '+u16(b,at)+'°F/'+u16(b,at+2)+'°C for '+b[at+4]+'s');
+    }
+    return 'profile index '+b[2]+' · '+out.join(' · ');
+  }
+  const FRAME_KINDS={
+    0xa1:{name:'clock',read:b=>u16(b,2)+'-'+b[4]+'-'+b[5]+' '+b[6]+':'+String(b[7]).padStart(2,'0')},
+    0xa2:{name:'statistics',read:b=>{
+      const L=b[1];
+      if(L===20||L===17||L===19)
+        return u16(b,6)+' heat cycles · favourite '+u16(b,2)+'°F/'+u16(b,4)+'°C · '+
+               'best day '+u16(b,8)+' · '+u16(b,10)+' charges · profile '+
+               (CURVES[b[12]]||b[12])+' · light '+b[13]+
+               (L===20?' · time '+u16(b,14)+' · '+u16(b,16)+' resets'
+                      :' · '+u16(b,14)+' resets'+(L===19?' · hold '+u16(b,16)+'s':''));
+      if(L===7) return 'total time '+u32(b,2);
+      if(L===11) return 'total time '+u32(b,2)+' · operating time '+u32(b,6);
+      if(L===13) return 'cycles per preset '+[2,4,6,8,10].map(i=>u16(b,i)).join(' / ');
+      return 'unrecognised length '+L;
+    }},
+    0xa3:{name:'preset temperature',read:b=>'preset index '+b[2]+' · '+u16(b,3)+'°F · '+u16(b,5)+'°C'},
+    0xa5:{name:'heating profile',read:b=>'preset index '+b[2]+' · '+(CURVES[b[3]]||b[3])},
+    0xa7:{name:'hold time',read:b=>'preset index '+b[2]+' · '+u16(b,3)+'s'},
+    0xa8:{name:'flag',read:b=>String(b[2])},
+    0xa9:{name:'state'},
+    0xaa:{name:'custom profile, points 1-3',read:b=>customPoints(b,1)},
+    0xab:{name:'custom profile, points 4-6',read:b=>customPoints(b,4)},
+    0xac:{name:'custom profile, trailer'},
+    0xc1:{name:'chunk 1 of 2'},0xc2:{name:'chunk 2 of 2'},
+    0xc3:{name:'identifier'},
+    0xc4:{name:'identifier · readiness'},
+    0xe1:{name:'profile detail',read:b=>b[2]+' / '+b[3]+' / '+b[4]+' / '+b[5]},
+    0xf1:{name:'charge state',read:b=>(b[2]===0?'not charging':b[2]===170?'charging':'?')+' · '+b[3]+'%'}
+  };
   // The write frame shares the notification's envelope — opcode, total length,
   // payload, opcode again — but not its field offsets. This is the b9 body
   // exactly as the vendor app was observed sending it; only two bytes are ever
@@ -9609,6 +9655,11 @@ const PUFF=(function(){
   // the user wrote at the time.
   const B9_BODY=[0x00,0x03,0x00,0x00,0x0a,0x00,0x0f,0x0f,0x00,0xaa,0x00,0x32,0x00,0x00,0x00,0x00,0x00];
   const B9_PRESET=1, B9_RUN=8;            // indices into B9_BODY
+  // Where each setting lives in the a9 state frame, and where the same setting
+  // lives in the b9 write frame. They are not the same offsets — the unit sits
+  // at 12 coming back and at 9 going out — which is exactly the kind of detail
+  // that makes a frozen body look like it works.
+  const B9_FROM_STATE=[[3,3],[6,6],[8,8],[12,9],[7,10],[14,11],[15,12],[18,13]];
   const PRESETS=5;                        // the app exposes five; 3 and 5 observed
   let device=null, live=false, lastFrame=null, lastAt=0, writeChar=null, preset=3;
   // What each byte of the a9 state frame is believed to be. Anything left blank
@@ -9631,6 +9682,13 @@ const PUFF=(function(){
   }
   function b9(index,running){
     const body=B9_BODY.slice();
+    // Carry the device's own settings forward rather than the capture's. If
+    // nothing has been heard yet the frozen body is all there is, but in
+    // practice a state frame arrives every 480 ms, so this is nearly always
+    // the live values.
+    const seen=lastFrame&&lastFrame.raw;
+    if(seen&&seen.length===FRAME_LEN)
+      for(const pair of B9_FROM_STATE) body[pair[1]-2]=seen[pair[0]];
     body[B9_PRESET]=index;
     body[B9_RUN]=running?0xaa:0x00;
     return frame(0xb9,body);
@@ -9730,8 +9788,18 @@ const PUFF=(function(){
   // cycle, and it can only be spotted if the odd ones are visible.
   function onFrame(bytes){
     frames++; countEl.textContent=frames;
+    const kind=FRAME_KINDS[bytes[0]];
+    if(bytes[0]!==START){
+      // Not the state frame, but very possibly one of the other thirteen.
+      let note='';
+      if(kind){ try{ note='  '+kind.name+(kind.read?'  '+kind.read(bytes):''); }catch{ note='  '+kind.name; } }
+      put(kind?'DIFF':'ODD',at()+'  '+hex(bytes)+(note||'  UNKNOWN OPCODE'));
+      if(bytes[0]===0xa3&&presetTempEl)presetTempEl.textContent=
+        'preset index '+bytes[2]+' target '+u16(bytes,3)+'°F / '+u16(bytes,5)+'°C';
+      return;
+    }
     const reading=decode(bytes);
-    if(!reading){ put('ODD',at()+'  UNEXPECTED ('+bytes.length+'B)  '+hex(bytes)); return; }
+    if(!reading){ put('ODD',at()+'  MALFORMED ('+bytes.length+'B)  '+hex(bytes)); return; }
     lastFrame=reading; lastAt=Date.now(); live=true;
     paint(reading);
     const line=hex(bytes);
@@ -9833,10 +9901,24 @@ const PUFF=(function(){
         armed=document.getElementById('swArmed'), sendBtn=document.getElementById('swSend'),
         preview=document.getElementById('swPreview');
   const parseHex=text=>text.trim().split(/[\s,]+/).filter(Boolean).map(v=>parseInt(v,16));
+  // Every command the vendor app can build, from its own senders. The ones
+  // marked destructive change something that does not change back.
+  const WRITE_OPS={
+    0xb1:['clock',0], 0xb2:['request statistics — a read, nothing is stored',0],
+    0xb3:['SET preset temperature',1], 0xb5:['SET heating profile',1],
+    0xb7:['SET hold time',1], 0xb8:['FACTORY RESET',2],
+    0xb9:['device state — preset, session, light, unit',0],
+    0xba:['SET custom profile points 1-3',1], 0xbb:['SET custom profile points 4-6',1],
+    0xd1:['RENAME device, part 1',1], 0xd2:['RENAME device, part 2',1],
+    0xd3:['SET serial number',2], 0xd4:['SET model',2]};
   function refreshRaw(){
     const opcode=parseHex(opBox.value)[0], payload=parseHex(payloadBox.value);
     const ok=Number.isFinite(opcode)&&payload.every(Number.isFinite);
-    preview.textContent=ok?'would send  '+hex(frame(opcode,payload)):'';
+    const known=ok&&WRITE_OPS[opcode];
+    preview.textContent=ok?'would send  '+hex(frame(opcode,payload))+
+      (known?'\n'+(known[1]===2?'!! ':known[1]===1?'! ':'')+known[0]
+            :'\nunknown opcode — the vendor app never builds this one'):'';
+    preview.classList.toggle('sw-warn',!!(known&&known[1]===2));
     sendBtn.disabled=!(ok&&armed.checked&&writeChar);
   }
   [opBox,payloadBox].forEach(box=>box.addEventListener('input',refreshRaw));
@@ -10080,7 +10162,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r104',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r105',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,outerBuildings:outerBuilt.built,outerSquares:outerBuilt.squares,outerYardDetails:outerBuilt.yards,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished

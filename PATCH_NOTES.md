@@ -1,13 +1,15 @@
-**r104 — ramparts** · 2026-09-06 · phase 5, world depth
+**r105 — the whole protocol** · 2026-09-06 · phase 5, world depth
+
+In its own panel header: *r105 the whole Switch protocol*.
 
 ### Summary
 
-ramparts. Both walls walkable: surfaceAt() gives the world surfaces above y=0, gravity lands on them, street-level colliders stop applying once you stand on top of them. Climbed 0->12.9 and 0->14.9, walked 65 and 67 units of circuit. Curved ramparts need solid edges — a tangent leaves a 4 m walkway inside thirty paces. Also: downloaded the vendor bundle and replaced the guessed a9 field map with their parser. Temperature is 16-bit Fahrenheit across bytes 10-11; the reported "drops to zero then climbs" was the low byte wrapping at 256 F. b5 is the heating profile, not a temperature.
+the whole Switch 2 protocol. All thirteen notification handlers and all thirteen command builders read out of the vendor bundle: the target temperature lives in a3, statistics in a2, custom profile points in aa/ab, and a write is always its read plus 0x10. Which exposed a real bug — the b9 frame is the entire settings block, and Emberwatch had been sending a body frozen from one capture, writing that evening's light mode, brightness, auto-shut-off, haptics and temperature unit over the owner's own every time a preset was pressed. It builds from the live state frame now. The panel names every frame type instead of shouting UNEXPECTED, and the raw-write preview names the opcode — b8 is a four-byte factory reset one nibble from b9.
 
 ### In the code
 
-- 1.19 MB (+6,054 bytes on r103).
-- 3 functions added: `stairAt`, `surfaceAt`, `walkAt`.
+- 1.20 MB (+4,820 bytes on r104).
+- 1 function added: `customPoints`.
 
 ### Play it
 
