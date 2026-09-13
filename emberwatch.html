@@ -208,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r108 places beyond the wall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r109 every ward keeps shop</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4843,7 +4843,7 @@ const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
 const WORLD_SEED_VERSION=1;
 // Bump this deliberately when geometry, street plans, or collision placement
 // changes enough that an old coordinate could be unsafe in the new layout.
-const WORLD_LAYOUT_VERSION=7;
+const WORLD_LAYOUT_VERSION=8;
 function normalWorldSeed(value){
   if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
   const text=String(value??'').trim();
@@ -6423,6 +6423,10 @@ function compilerArchetype(archetype,lot){
     aBox(w*1.11,.42,d*1.08,x,h*.64,z,key,ry);aBox(w*.54,.12,.78,front.x, h*.62,front.z,'wood',ry);
   }else if(archetype==='shop'){
     aBox(w*.9,.16,1.2,front.x+Math.sin(ry)*.52,2.45,front.z+Math.cos(ry)*.52,'cloth',ry);aBox(w*.7,.1,.16,front.x+Math.sin(ry)*.67,2.64,front.z+Math.cos(ry)*.67,accent,ry);
+    // The compiler has always called these shops and never given them anything
+    // to sell: an awning strip and nothing under it. The market's own frontage
+    // was the emptiest shopping street in Vaneth.
+    shopFront(x,z,w,d,ry,accent,{frame:false,along:-.27,width:.3});
   }else if(archetype==='workshop'){
     const chimneyX=x+front.sideX*w*.32,chimneyZ=z+front.sideZ*w*.32;aCyl(.32,.45,h+1.55,6,chimneyX,(h+1.55)/2,chimneyZ,'stone');aBox(w*.36,.48,.82,x-front.sideX*w*.28,.35,z-front.sideZ*d*.24,'wood',ry);
   }else if(archetype==='archive'){
@@ -7377,6 +7381,42 @@ const QUARTERS=[
   {id:'westreach',name:'Westreach',         palette:['dark','wall','dark','brick'],    accent:'arcane', storeys:.36, depth:1.06, trade:'forges'},
   {id:'southing', name:'The Long Southing', palette:['wall','wall','stone','wall'],    accent:'amber',  storeys:.26, depth:1.32, trade:'yards'}
 ];
+// ---------- shops ----------
+// Until r109 the only shopfronts in Vaneth were a third of Eastreach's houses.
+// The old city — the Cinder Market, Old Vaneth, the wall wards — had none at
+// all, because trade dressing was only ever applied between the two walls.
+// Every ward keeps shop now, mostly on its main streets, and sells what that
+// ward would sell. Each shop has a keeper, keeps the hours the watches name,
+// and can be looked into.
+const SHOPS=[];
+const SHOP_KINDS={
+  baker:     {noun:'Bakery',      generic:'a bakery',        shut:'The oven door is shut and still warm to the touch.',
+              lines:['Bread before the first watch. Whatever is left by the last goes to the Wayhouse.','Rye from the New North. The complaints are from everyone.']},
+  grocer:    {noun:'Provisions',  generic:'a provisions shop',shut:'A cat sleeps on the sacks behind the slats.',
+              lines:['Onions, salt fish, and a sack of something the carter swore was barley.','If it grows within a day’s cart of the wall, it has been on this board.']},
+  chandler:  {noun:'Candles',     generic:'a candle shop',   shut:'A single wick still burns in the back, for the smell.',
+              lines:['Tallow for the house, beeswax for the chapel — and the chapel pays slower.','Every lamp you walked past tonight burned something off this shelf.']},
+  draper:    {noun:'Cloth',       generic:'a draper’s',      shut:'Bolts of dyed wool lean against the shutter inside, like people waiting.',
+              lines:['Wool from the south road, dye from the east. The colour is the dear part.','Measure twice. There is only the one bolt of that.']},
+  ironmonger:{noun:'Ironmongery', generic:'an ironmonger’s', shut:'Something iron settles in the dark with a small clank.',
+              lines:['Nails by the pound, hinges by the pair, and advice for nothing.','The forges make it. The job here is stopping it walking off.']},
+  saddler:   {noun:'Saddlery',    generic:'a saddlery',      shut:'The shop smells of leather and oil even through the boards.',
+              lines:['Every drover through the south gate stops here, or wishes they had.','Leather does not care how much of a hurry you are in.']},
+  bookseller:{noun:'Books',       generic:'a bookshop',      shut:'A slate on the door reads: KNOCK ONLY IF IT IS ABOUT A BOOK.',
+              lines:['Most of these were copied at the Scriptorium. Some were copied badly.','Pay for it, or read it standing up. Either suits.']},
+  apothecary:{noun:'Apothecary',  generic:'an apothecary',   shut:'Violet and amber glass catches what little light gets through the slats.',
+              lines:['The violet jars are for sleep. The amber ones are for people who have had too much of it.','Say what hurts. The price follows from that.']}
+};
+// What each ward sells, by the names wardAt() gives the places.
+const WARD_SHOPS={
+  'Cinder Market':['baker','grocer','chandler','draper'], 'Old Vaneth':['baker','grocer','chandler','draper'],
+  'Lower Vaneth':['grocer','chandler','ironmonger'],      'North Ward':['baker','grocer','chandler'],
+  'South Road':['saddler','grocer','draper'],             'West Wall':['ironmonger','chandler','grocer'],
+  'East Wall':['bookseller','apothecary','chandler'],     'Citadel Ward':['apothecary','bookseller'],
+  'The Gates':['saddler','grocer','baker'],               'Underwall':['grocer','draper','ironmonger','baker'],
+  'Eastreach':['apothecary','bookseller','draper','grocer','chandler'], 'The New North':['grocer','baker','chandler'],
+  'Westreach':['ironmonger','saddler','chandler'],        'The Long Southing':['saddler','grocer','ironmonger']
+};
 function quarterAt(x,z){
   const deg=((Math.atan2(z,x)*180/Math.PI)+360)%360;
   if(deg<45||deg>=315)return QUARTERS[1];
@@ -7408,25 +7448,8 @@ function quarterTrade(kind,x,z,w,d,ry,accent){
       aBox(1.05,1.25,.1,sx,4.05,sz,'wood',ry); }
     return 0;
   }
-  if(kind==='shops'){
-    // An awning on two posts, a sign on a bracket, and a board of goods.
-    if(!free(0,1.5,1.1))return 0;
-    const [ax,az]=at(0,1.15);
-    aBox(w*.74,.14,2.4,ax,2.72,az,'cloth',ry);
-    for(const side of[-1,1]){ const [px,pz]=at(side*w*.3,2.15);
-      aBox(.16,2.7,.16,px,1.35,pz,'wood',ry); }
-    const [gx,gz]=at(-w*.16,1.0);
-    aBox(w*.4,.14,1.15,gx,1.02,gz,'wood',ry);
-    aBox(.12,.95,.12,gx-co*w*.15,.5,gz+si*w*.15,'wood',ry);
-    aBox(.12,.95,.12,gx+co*w*.15,.5,gz-si*w*.15,'wood',ry);
-    for(let i=-1;i<=1;i++){ const [cx,cz]=at(-w*.16+i*.9,1.0);
-      aBox(.4,.34,.4,cx,1.26,cz,'wood',ry+i*.4); }
-    const [sx,sz]=at(w*.3,.75);
-    aBox(.1,.1,1.5,sx,3.05,sz,'wood',ry);
-    aBox(1.0,.62,.1,sx,2.5,sz,accent,ry);
-    addCollider(gx,gz,1.1);
-    return 1;
-  }
+  // Eastreach's trade is shops, and a shop is built the same way everywhere.
+  if(kind==='shops')return shopFront(x,z,w,d,ry,accent)?1:0;
   if(kind==='forges'){
     // The chimney is the point: a brick stack up the side with the fire showing
     // at its foot, so a street of forges reads as one from the far end.
@@ -7456,6 +7479,58 @@ function quarterTrade(kind,x,z,w,d,ry,accent){
   addCollider(tx,tz,1.05);
   addCollider(rx,rz,.5);
   return 2;
+}
+// An awning on two posts, a counter with its goods, a sign on a bracket. The
+// frame is what Eastreach's shops always had; the goods say what is sold.
+// Consumes no worldRandom(): variation comes from a hash of position, so
+// adding a shop can never shift another building in the seeded stream.
+// The city compiler's own "shop" buildings already have an awning and a door
+// in the middle of their front, so they take the counter only (frame:false),
+// set to one side of the door rather than across it.
+function shopFront(x,z,w,d,ry,accent,opts={}){
+  const frame=opts.frame!==false, along=w*(opts.along??-.16), wide=w*(opts.width??.4);
+  const co=Math.cos(ry),si=Math.sin(ry);
+  const at=(al,out)=>[x+co*al+si*(d*.5+out), z-si*al+co*(d*.5+out)];
+  const clearOfDoors=(px,pz)=>!interiorDoors.some(door=>Math.hypot(px-door.outsideX,pz-door.outsideZ)<5.2);
+  const free=(al,out,pad)=>{ const [px,pz]=at(al,out);
+    return !onRoad(px,pz,pad)&&!colliderBlocked(px,pz,pad)&&clearOfDoors(px,pz); };
+  if(frame?!free(0,1.5,1.1):!free(along,1.0,.8))return null;
+  const hash=terrainHash(Math.round(x*8)+7,Math.round(z*8)-3);
+  const list=WARD_SHOPS[wardAt(x,z)]||['grocer','chandler'], kind=list[Math.floor(hash*list.length)%list.length];
+  if(frame){
+    const [ax,az]=at(0,1.15);
+    aBox(w*.74,.14,2.4,ax,2.72,az,'cloth',ry);
+    for(const side of[-1,1]){ const [px,pz]=at(side*w*.3,2.15);
+      aBox(.16,2.7,.16,px,1.35,pz,'wood',ry); }
+  }
+  const [gx,gz]=at(along,1.0);
+  aBox(wide,.14,1.15,gx,1.02,gz,'wood',ry);
+  aBox(.12,.95,.12,gx-co*wide*.375,.5,gz+si*wide*.375,'wood',ry);
+  aBox(.12,.95,.12,gx+co*wide*.375,.5,gz-si*wide*.375,'wood',ry);
+  const [sx,sz]=at(w*.3,.75);
+  aBox(.1,.1,1.5,sx,3.05,sz,'wood',ry);
+  aBox(1.0,.62,.1,sx,2.5,sz,accent,ry);
+  addCollider(gx,gz,frame?1.1:.8);
+  shopGoods(kind,at,along,wide,ry,hash);
+  const [fx,fz]=at(frame?0:along,3.0), shutter=at(along,1.64), lamp=at(w*.3,1.45);
+  const shop={kind,x,z,w,ry,counterW:wide*1.05,frontX:fx,frontZ:fz,shutter,lamp,keeper:null,authored:!frame};
+  SHOPS.push(shop);
+  return shop;
+}
+function shopGoods(kind,at,along0,wide,ry,hash){
+  // Goods were laid out for a counter w*.4 wide; narrower counters squeeze them.
+  const squeeze=Math.min(1,wide/3.4);
+  const place=(along,y,make)=>{ const [px,pz]=at(along0+along*squeeze,1.0); make(px,y,pz); };
+  if(kind==='baker'){ for(let i=-2;i<=2;i++)place(i*.42,1.17,(px,y,pz)=>aBox(.34,.16,.22,px,y,pz,'wood',ry+i*.35)); }
+  else if(kind==='grocer'){ for(let i=-1;i<=1;i++)place(i*.62,1.22,(px,y,pz)=>{ aBox(.44,.26,.44,px,y,pz,'wood',ry); aCone(.17,.16,6,px,y+.21,pz,'foliage'); }); }
+  else if(kind==='chandler'){ for(let i=-3;i<=3;i++)place(i*.24,1.26,(px,y,pz)=>{ aCyl(.045,.05,.34,6,px,y,pz,'wall2'); if(i%3===0)aBox(.05,.07,.05,px,y+.21,pz,'amber'); }); }
+  else if(kind==='draper'){ for(let i=-2;i<=1;i++)place(i*.32+.16,1.4,(px,y,pz)=>aCyl(.13,.13,.62,8,px,y,pz,i%2?'cloth':'brick')); }
+  else if(kind==='ironmonger'){ for(let i=-2;i<=1;i++)place(i*.2-.3,1.4,(px,y,pz)=>aBox(.07,.62,.07,px,y,pz,'dark',ry+i*.25));
+    place(.55,1.21,(px,y,pz)=>aCyl(.17,.21,.24,8,px,y,pz,'dark')); }
+  else if(kind==='saddler'){ for(let i=-1;i<=1;i++)place(i*.5,1.13,(px,y,pz)=>aCyl(.2,.2,.08,10,px,y,pz,'wood')); }
+  else if(kind==='bookseller'){ for(let i=-1;i<=1;i++){ const tall=2+((i+2+Math.floor(hash*3))%3);
+    for(let j=0;j<tall;j++)place(i*.5,1.13+j*.075,(px,y,pz)=>aBox(.3,.07,.22,px,y,pz,['cloth','dark','brick'][(i+j+3)%3],ry+j*.12)); } }
+  else { for(let i=-3;i<=2;i++)place(i*.24+.12,1.19,(px,y,pz)=>aCyl(.06,.07,.2,6,px,y,pz,i%2?'arcane':'amber')); }
 }
 function innerInfill(){
   const VERGE=2.6, FILL=.86;
@@ -7519,7 +7594,14 @@ function innerInfill(){
           housePorch(px,pz,w,depth,ry,accent);
           // A third of them carry their trade out into the street. All of them
           // would read as a theme park; none of them reads as terraces.
-          if(quarter&&worldRandom()<.34)quarterTrade(quarter.trade,px,pz,w,depth,ry,accent);
+          // The roll is taken exactly as before — once, and only in a quarter —
+          // so the shops below shift no building in the seeded stream.
+          const tradeRoll=quarter?worldRandom():1;
+          // Shops keep to the high street: nearly half the houses on a gate road
+          // or avenue, one in five on a diagonal, one in fourteen on a lane.
+          const shopChance=road.w>=10?.42:road.w>=8?.2:.07;
+          if(!(terrainHash(Math.round(px*8),Math.round(pz*8))<shopChance&&shopFront(px,pz,w,depth,ry,accent))
+             &&tradeRoll<.34)quarterTrade(quarter.trade,px,pz,w,depth,ry,accent);
           built++;
           t+=w+0.35;                                           // terraced
         } else t+=w*.42;
@@ -7555,6 +7637,8 @@ function innerInfill(){
           const accent=worldRandom()<.18?'arcane':'amber';
           wardHouse(px,pz,w,depth,stories,key,ry,accent);
           housePorch(px,pz,w,depth,ry,accent);
+          // The ring boulevard is the new city's high street.
+          if(terrainHash(Math.round(px*8),Math.round(pz*8))<(Math.abs(ring.r-(MID_WALL_R+20))<1?.4:.1))shopFront(px,pz,w,depth,ry,accent);
           built++;
           ang+=(w+0.35)/rad;
         } else ang+=(w*.42)/rad;
@@ -8513,6 +8597,70 @@ const WORLD_INTERACTIONS=[
   {id:'scriptorium-page',label:'read the unfinished page',x:218,z:43,r:3.6,interior:'The Eastwall Scriptorium',title:'An Unfinished Eastwall Page',text:'The final line ends mid-word. Fresh ink gathers at the nib, though nobody sits here.'}
 ];
 WORLD_INTERACTIONS.push(...wildInteractions());
+// Declared before the call below: a `let` further down this block is still in
+// its temporal dead zone when buildShopShutters() runs, and the city fails to
+// build with "Cannot access 'shopShutters' before initialization".
+let shopShutters=null, shopLamps=null, shopsOpen=true;
+WORLD_INTERACTIONS.push(...shopInteractions());
+buildShopShutters();
+
+// ---------- keeping shop ----------
+// The nearest resident to each shop keeps it: through the Working and the
+// Market watches they stand at their own counter instead of joining the crowd
+// on the square. One shop to a keeper and one keeper to a shop.
+function assignShopkeepers(){
+  const taken=new Set();
+  for(const shop of SHOPS){
+    let best=null,bestD=18;
+    for(const npc of villagers){ if(taken.has(npc)||npc.indoors||!npc.haunts)continue;
+      const d=Math.hypot(npc.homeX-shop.x,npc.homeZ-shop.z); if(d<bestD){bestD=d;best=npc;} }
+    if(!best)continue;
+    taken.add(best); shop.keeper=best; best.shop=shop;
+    const stand=loopNear(shop.frontX,shop.frontZ,nameIndex(best.name,97),1.6,2);
+    best.haunts.labour=stand; best.haunts.market=stand.map(point=>point.slice());
+  }
+}
+// Shutters come down for the Still Hours and the Ember Watch, and the lamp at
+// the sign goes out. Two instanced meshes for every shop in the city.
+function buildShopShutters(){
+  if(!SHOPS.length)return;
+  shopShutters=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),MATS.wood,SHOPS.length);
+  shopLamps=new THREE.InstancedMesh(new THREE.BoxGeometry(.18,.18,.18),new THREE.MeshBasicMaterial({color:0xffc27a}),SHOPS.length);
+  shopShutters.frustumCulled=false; shopLamps.frustumCulled=false;
+  scene.add(shopShutters); scene.add(shopLamps);
+  setShopsOpen(true);
+}
+function setShopsOpen(open){
+  shopsOpen=open;
+  if(!shopShutters)return;
+  const matrix=new THREE.Matrix4(), turn=new THREE.Quaternion(), hide=new THREE.Matrix4().makeScale(0,0,0);
+  SHOPS.forEach((shop,i)=>{
+    turn.setFromEuler(new THREE.Euler(0,shop.ry,0));
+    // Tall enough to hide the goods: at 1.3 m the greengrocers' greens showed
+    // over the top of a shut shop.
+    shopShutters.setMatrixAt(i,open?hide:matrix.compose(new THREE.Vector3(shop.shutter[0],.86,shop.shutter[1]),turn,new THREE.Vector3(shop.counterW,1.72,.07)));
+    shopLamps.setMatrixAt(i,open?matrix.compose(new THREE.Vector3(shop.lamp[0],2.95,shop.lamp[1]),turn,new THREE.Vector3(1,1,1)):hide);
+  });
+  shopShutters.instanceMatrix.needsUpdate=true; shopLamps.instanceMatrix.needsUpdate=true;
+}
+function shopsWatchTurned(watch){ setShopsOpen(watch.id==='labour'||watch.id==='market'); }
+function shopName(shop){ const spec=SHOP_KINDS[shop.kind]; return shop.keeper?shop.keeper.name.split(' ')[0]+'’s '+spec.noun:spec.generic; }
+function shopInteractions(){
+  return SHOPS.map((shop,i)=>({id:'shop-'+i,label:()=>shopsOpen?'look over the counter':'read the slate on the shutter',
+    x:shop.frontX,z:shop.frontZ,r:2.6,title:'A shop',text:'',act:()=>visitShop(shop)}));
+}
+function visitShop(shop){
+  const spec=SHOP_KINDS[shop.kind], watch=currentWatch(), name=shopName(shop), Name=name.charAt(0).toUpperCase()+name.slice(1);
+  if(!shopsOpen){ showGameToast(Name+' is shuttered for '+watch.name+'. '+spec.shut,6000); return; }
+  const keeper=shop.keeper, here=keeper&&!keeper.indoors&&Math.hypot(keeper.g.position.x-shop.frontX,keeper.g.position.z-shop.frontZ)<4.5;
+  if(here){
+    keeper.pauseLeft=Math.max(keeper.pauseLeft||0,3);
+    keeper.g.rotation.y=Math.atan2(player.x-keeper.g.position.x,player.z-keeper.g.position.z);
+    showGameToast(keeper.name+', at the counter of '+name+': “'+spec.lines[nameIndex(keeper.name+watch.id,spec.lines.length)]+'”',7000);
+    return;
+  }
+  showGameToast(Name+' is open, but nobody is at the counter. '+(keeper?keeper.name.split(' ')[0]+' cannot be far.':'A bell hangs on a string for anyone who wants serving.'),6000);
+}
 
 // ---------- places beyond the wall ----------
 // r107 made the landmarks reachable; this makes them worth reaching. Each one
@@ -9226,6 +9374,7 @@ function assignLives(){
     const host=npc.ties.find(tie=>tie.kind==='kin')||npc.ties.find(tie=>tie.kind!=='a rival');
     npc.haunts.ember=host?loopNear(host.x,host.z,nameIndex(npc.name,97),6):npc.haunts.home;
   });
+  assignShopkeepers();
   return {households};
 }
 // Retasking 300+ residents at once would fire 300 path requests into a queue
@@ -9239,6 +9388,7 @@ function applyWatch(t,dt){
     const watch=WATCHES[idx];
     for(const npc of villagers) npc.watchDue=(nameIndex(npc.name,60)/60)*14;
     wildWatchTurned();
+    shopsWatchTurned(watch);
     if(t>2)showGameToast('The bell turns to '+watch.name+'. '+watch.note);
   }
   const watch=WATCHES[Math.max(0,watchIndex)];
@@ -10805,7 +10955,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r108',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r109',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -10815,7 +10965,7 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 // Starts full so the very first frame always draws: a hidden window gets rAF

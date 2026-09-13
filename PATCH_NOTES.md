@@ -1,15 +1,15 @@
-**r108 — places beyond the wall** · 2026-09-13 · phase 5, world depth
+**r109 — every ward keeps shop** · 2026-09-13 · phase 5, world depth
 
 ### Summary
 
-places beyond the wall. Each landmark now does something, and none of them keeps score. Strike the standing stones with spells until every one holds a colour and the ring answers with a pillar of light the city can see. Skim stones on Foxglove Pond. Read the headstones — their names are the city's own households, and the living family knows when you have been. Sift one fragment of the Fallen Hall's end from its ash each watch. Read the waymarks at the crossroads. Found on the way: no one had ever been able to enter the graveyard. Its wall was 128 colliders and no geometry — an invisible ring with gaps too narrow to pass. It is a dry-stone wall with a gate now, and its mausoleum is a mausoleum instead of a house with lit windows. The standing stones floated up to half a metre and the headstones 20 cm. "Watch the foxglove water" sat 149 units from the pond; it is placed from the pond itself. audit-source.js read `...fn()` as a property access and called a live function dead; fixed.
+every ward keeps shop. The only shopfronts had been a third of Eastreach; the old city had none, and the compiler's eleven "shop" buildings on the Cinder Market were an awning strip with nothing under it. About 115 shops now, mostly on gate roads, avenues and the ring boulevard, each selling what its ward would — bakers and chandlers by the market, booksellers by the archive, ironmongers in the west, saddlers on the south road. Shutters come down for the Still Hours and the Ember Watch. The nearest resident keeps each shop and stands at its counter through the working day; look over the counter and they talk. Chosen by a hash of position, so no building in the seeded city moved. Caught before shipping: a `let` one line below its first use stopped the city building. Cost: +2 draw calls, about +25k triangles.
 
-Also: things to do at the four wilderness landmarks; the graveyard made enterable (it never had been)
+Also: ~115 shops across every ward, with keepers, hours and shutters
 
 ### In the code
 
-- 1.23 MB (+17,822 bytes on r107).
-- 16 functions added: `addRipple`, `advanceSkim`, `finishSkim`, `loadWildMemory`, `mausoleum`, `readHeadstone`, `readWaymark`, `saveWildMemory`, `siftAsh`, `skimStone`, `standingStoneStruck`, `touchStones`, `updateWilds`, `wildGreetingNote`, `wildInteractions`, `wildWatchTurned`.
+- 1.24 MB (+11,532 bytes on r108).
+- 9 functions added: `assignShopkeepers`, `buildShopShutters`, `setShopsOpen`, `shopFront`, `shopGoods`, `shopInteractions`, `shopName`, `shopsWatchTurned`, `visitShop`.
 
 ### Play it
 
