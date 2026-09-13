@@ -177,6 +177,7 @@
   <div class="row"><button class="btn active" data-light="night" style="flex:1">☾ night</button><button class="btn" data-light="dusk" style="flex:1">◐ dusk</button><button class="btn ember" data-light="ember" style="flex:1">✦ ember</button></div>
   <div class="sep"></div><h4>Display</h4>
   <div class="row"><button class="btn" id="pxBtn" style="flex:1" title="Choose graphics quality">▦ graphics</button></div>
+  <div class="row"><button class="btn" id="bloomBtn" style="flex:1" title="Glow round lamps, windows and fire">✦ bloom</button></div>
   <div class="row"><button class="btn" id="fsBtn" style="flex:1">⛶ fullscreen</button></div>
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
@@ -208,7 +209,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r111 physical light</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r112 bloom</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4585,6 +4586,94 @@ let RS=CONFIG.renderScale;
 function resize(){ const w=innerWidth,h=innerHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(Math.max(1,Math.floor(w*RS)),Math.max(1,Math.floor(h*RS)),false); }
 addEventListener('resize',resize); resize();
 
+// Bloom, since r112: a glow round lamps, windows, fires, crystals and spells.
+//
+// It is laid over the finished frame, not built into it. three.js's usual
+// route renders the scene into an HDR target and tone-maps once at the end —
+// but anything drawn into a render target skips tone mapping and colour
+// conversion, and that includes the fog, the background and the sky, which
+// r111's look was tuned with on screen. So the frame is drawn exactly as it
+// was, copied, and its brightest parts are blurred at five sizes and added
+// back on top.
+//
+// What glows is chosen by a key weighted toward red, not by plain luminance.
+// Measured on screen, the aurora's teal, rgb 0.25/1/1, is brighter by luminance
+// (0.84) than a lit window (0.80-0.88), so a luminance threshold low enough to
+// catch the windows turned the whole sky to milk. The key takes red, or blue in
+// excess of green: lamps, windows, fire and the moon carry red, violet spells
+// and crystals carry blue over green, and the aurora's teal carries neither.
+// (A red-only key left the default violet spell at 0.60, below the threshold.)
+// The cost: cyan and green spells, the Peak below 525°F, do not glow.
+// And the glow is laid on with a screen blend, 1-(1-a)(1-b), so a window that
+// is already bright gains a halo instead of turning into a white card.
+//
+// renderer.info is reset once a frame here rather than on every render call,
+// so calls and triangles count the whole frame, bloom passes included, and
+// info.render.frame still counts frames rather than passes.
+const BLOOM={on:true,threshold:.75,knee:.2,strength:1.35,radius:.65};
+const bloom=(()=>{
+  const MIPS=5, size=new THREE.Vector2();
+  const quadCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1), quadScene=new THREE.Scene();
+  const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; quadScene.add(quad);
+  const VERT='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
+  const shader=(fragmentShader,uniforms,extra={})=>new THREE.ShaderMaterial({vertexShader:VERT,fragmentShader,uniforms,depthTest:false,depthWrite:false,toneMapped:false,...extra});
+  const bright=shader(`uniform sampler2D tFrame; uniform float uThreshold; uniform float uKnee; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(tFrame,vUv).rgb; float k=max(c.r,min(1.0,(c.b-c.g)*2.0))*.7+dot(c,vec3(.2126,.7152,.0722))*.3;
+      gl_FragColor=vec4(c*smoothstep(uThreshold,uThreshold+uKnee,k),1.0); }`,
+    {tFrame:{value:null},uThreshold:{value:0},uKnee:{value:0}});
+  // A nine-tap Gaussian folded into five taps by bilinear sampling.
+  const blur=shader(`uniform sampler2D tInput; uniform vec2 uStep; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(tInput,vUv).rgb*.2270270270;
+      c+=(texture2D(tInput,vUv+uStep*1.3846153846).rgb+texture2D(tInput,vUv-uStep*1.3846153846).rgb)*.3162162162;
+      c+=(texture2D(tInput,vUv+uStep*3.2307692308).rgb+texture2D(tInput,vUv-uStep*3.2307692308).rgb)*.0702702703;
+      gl_FragColor=vec4(c,1.0); }`,
+    {tInput:{value:null},uStep:{value:new THREE.Vector2()}});
+  const composite=shader(`uniform sampler2D tMip0; uniform sampler2D tMip1; uniform sampler2D tMip2; uniform sampler2D tMip3; uniform sampler2D tMip4;
+    uniform float uWeight[5]; uniform float uStrength; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(tMip0,vUv).rgb*uWeight[0]+texture2D(tMip1,vUv).rgb*uWeight[1]+texture2D(tMip2,vUv).rgb*uWeight[2]
+      +texture2D(tMip3,vUv).rgb*uWeight[3]+texture2D(tMip4,vUv).rgb*uWeight[4];
+      gl_FragColor=vec4(min(c*uStrength,vec3(1.0)),1.0); }`,
+    {tMip0:{value:null},tMip1:{value:null},tMip2:{value:null},tMip3:{value:null},tMip4:{value:null},uWeight:{value:[1,1,1,1,1]},uStrength:{value:1}},
+    {blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneMinusSrcColorFactor,transparent:true});
+  // Half-float so a faint glow fades smoothly instead of in steps; eight-bit
+  // where a GPU cannot render to half-float.
+  const ext=renderer.extensions, type=ext.has('EXT_color_buffer_float')||ext.has('EXT_color_buffer_half_float')?THREE.HalfFloatType:THREE.UnsignedByteType;
+  const target=()=>new THREE.WebGLRenderTarget(1,1,{type,depthBuffer:false});
+  const brightTarget=target(), across=[], down=[];
+  for(let i=0;i<MIPS;i++){ across.push(target()); down.push(target()); composite.uniforms['tMip'+i].value=down[i].texture; }
+  let frame=null;
+  function fit(w,h){
+    if(frame&&frame.image.width===w&&frame.image.height===h)return;
+    if(frame)frame.dispose();
+    frame=new THREE.FramebufferTexture(w,h); frame.minFilter=frame.magFilter=THREE.LinearFilter;
+    let mw=Math.max(1,w>>1), mh=Math.max(1,h>>1); brightTarget.setSize(mw,mh);
+    for(let i=0;i<MIPS;i++){ mw=Math.max(1,mw>>1); mh=Math.max(1,mh>>1); across[i].setSize(mw,mh); down[i].setSize(mw,mh); }
+  }
+  const pass=(material,to)=>{ quad.material=material; renderer.setRenderTarget(to); renderer.render(quadScene,quadCamera); };
+  function render(){
+    renderer.getDrawingBufferSize(size); fit(size.x,size.y);
+    renderer.copyFramebufferToTexture(frame);
+    const frameCount=renderer.info.render.frame, autoClear=renderer.autoClear;
+    bright.uniforms.tFrame.value=frame; bright.uniforms.uThreshold.value=BLOOM.threshold; bright.uniforms.uKnee.value=BLOOM.knee;
+    pass(bright,brightTarget);
+    let from=brightTarget;
+    for(let i=0;i<MIPS;i++){
+      blur.uniforms.tInput.value=from.texture; blur.uniforms.uStep.value.set(1/across[i].width,0); pass(blur,across[i]);
+      blur.uniforms.tInput.value=across[i].texture; blur.uniforms.uStep.value.set(0,1/down[i].height); pass(blur,down[i]);
+      from=down[i];
+    }
+    // Small mips carry the wide haze, large ones the tight glow; radius leans
+    // the mix toward the haze.
+    for(let i=0;i<MIPS;i++){ const f=1-i*.2; composite.uniforms.uWeight.value[i]=f+(1.2-2*f)*BLOOM.radius; }
+    composite.uniforms.uStrength.value=BLOOM.strength;
+    renderer.autoClear=false; pass(composite,null); renderer.autoClear=autoClear;
+    renderer.info.render.frame=frameCount;
+  }
+  return {render};
+})();
+renderer.info.autoReset=false;
+function renderFrame(){ renderer.info.reset(); renderer.render(scene,camera); if(BLOOM.on)bloom.render(); }
+
 // lights
 // Physically based since r111. Colours are sRGB and converted to linear on the
 // way in, point lights fall off with the inverse square of distance (decay 2)
@@ -8250,7 +8339,7 @@ function canRestoreSavedPosition(save){
 }
 const savedGameState=loadGameState();
 const restoredInterior=false&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
-function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,interior:activeInterior?.name||null}));}catch{}}
+function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,bloom:BLOOM.on,interior:activeInterior?.name||null}));}catch{}}
 let nextGameSaveAt=0;
 addEventListener('beforeunload',saveGameState);addEventListener('pagehide',saveGameState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveGameState();});
 const keys={}; function typing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.isContentEditable)); }
@@ -10737,12 +10826,15 @@ function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=
   document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
 document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting(savedGameState?.lighting||'night');
 const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let pxi=1;function updateGraphicsButton(){document.getElementById('pxBtn').textContent='▦ graphics · '+pxNames[pxi];}if(Number.isFinite(savedGameState?.renderScale)){const savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex>=0){pxi=savedIndex;RS=pxSteps[pxi];resize();}}updateGraphicsButton();document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); updateGraphicsButton();saveGameState(); };
+function updateBloomButton(){document.getElementById('bloomBtn').textContent='✦ bloom · '+(BLOOM.on?'on':'off');}
+if(savedGameState?.bloom===false)BLOOM.on=false; updateBloomButton();
+document.getElementById('bloomBtn').onclick=()=>{ BLOOM.on=!BLOOM.on; updateBloomButton(); saveGameState(); };
 document.getElementById('fsBtn').onclick=()=>{ document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.(); };
 setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600);
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r111',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r112',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -10752,7 +10844,7 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,lampLight,lampPower,LAMP_REACH,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
 // once a frame at the top of loop(); it is constructed here, a moment before
@@ -10832,7 +10924,7 @@ function loop(){ requestAnimationFrame(loop);
   // the starfield keeps a constant apparent distance across the larger map.
   auroraUniforms.uTime.value=t;
   skyDome.position.copy(camera.position); starField.position.set(camera.position.x,0,camera.position.z);
-  if(!webglContextLost)renderer.render(scene,camera);
+  if(!webglContextLost)renderFrame();
   if(!started){ started=true; L.style.opacity='0'; setTimeout(()=>L.remove(),800); }
 }
 loop();
