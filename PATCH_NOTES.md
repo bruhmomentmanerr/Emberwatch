@@ -1,15 +1,15 @@
-**r107 — hills and water** · 2026-09-13 · phase 5, world depth
+**r108 — places beyond the wall** · 2026-09-13 · phase 5, world depth
 
 ### Summary
 
-hills and water, and a way out to them. Past radius 404 the ground now rolls into hills rising to about 25 m under the peaks; the city inside stays flat. terrainAt() reads the same triangles the mesh draws, so feet stay on the visible surface — a walk uphill measured a worst gap of 0 between the player and the ground. Foxglove Pond is real water in a 1.16 m basin, fed by a brook off the western peaks whose water only runs downhill. The four gate avenues used to stop at 426 with the landmarks at 467 and no path to any of them. An earth ring track at 440 now joins every gate road to every landmark, with signposts, lanterns and cairns. Found on the way: trees growing in the pond (5), the graveyard (5) and the ruins (3), because the forest was still avoiding where the landmarks stood before the rescale. Now 0. "Aloft" was y > 3.2, which on a hill would have switched off collision with every tree on it. r0's diagnostics had thrown on every call since r106 — the variant builder never runs what it builds — so tools/check-variants.js now boots all six. The harness moved into tools/harness and can take screenshots. Tree Flip (Lemon Tree × Wedding Cake, rosin) joined the strain ledger. Cost: +1 draw call, +100k triangles, about +1.5 ms a frame in the software harness.
+places beyond the wall. Each landmark now does something, and none of them keeps score. Strike the standing stones with spells until every one holds a colour and the ring answers with a pillar of light the city can see. Skim stones on Foxglove Pond. Read the headstones — their names are the city's own households, and the living family knows when you have been. Sift one fragment of the Fallen Hall's end from its ash each watch. Read the waymarks at the crossroads. Found on the way: no one had ever been able to enter the graveyard. Its wall was 128 colliders and no geometry — an invisible ring with gaps too narrow to pass. It is a dry-stone wall with a gate now, and its mausoleum is a mausoleum instead of a house with lit windows. The standing stones floated up to half a metre and the headstones 20 cm. "Watch the foxglove water" sat 149 units from the pond; it is placed from the pond itself. audit-source.js read `...fn()` as a property access and called a live function dead; fixed.
 
-Also: hills and water beyond the wall, the ring track, Tree Flip in the ledger, `tools/harness` + `check-variants.js`
+Also: things to do at the four wilderness landmarks; the graveyard made enterable (it never had been)
 
 ### In the code
 
-- 1.22 MB (+21,600 bytes on r106).
-- 20 functions added: `brookNearest`, `brookWater`, `inWildClearing`, `nearBrook`, `planBrook`, `raiseTerrain`, `receiveWaxArrivals`, `terrainAt`, `terrainFbm`, `terrainFloor`, `terrainHash`, `terrainNoise`, `terrainRaw`, `terrainShaped`, `terrainSmooth`, `updateWater`, `waterDepthAt`, `waterMaterial`, `wildTrackStrip`, `wildTracks`.
+- 1.23 MB (+17,822 bytes on r107).
+- 16 functions added: `addRipple`, `advanceSkim`, `finishSkim`, `loadWildMemory`, `mausoleum`, `readHeadstone`, `readWaymark`, `saveWildMemory`, `siftAsh`, `skimStone`, `standingStoneStruck`, `touchStones`, `updateWilds`, `wildGreetingNote`, `wildInteractions`, `wildWatchTurned`.
 
 ### Play it
 

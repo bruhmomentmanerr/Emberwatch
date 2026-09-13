@@ -208,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r107 hills and water</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r108 places beyond the wall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4843,7 +4843,7 @@ const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
 const WORLD_SEED_VERSION=1;
 // Bump this deliberately when geometry, street plans, or collision placement
 // changes enough that an old coordinate could be unsafe in the new layout.
-const WORLD_LAYOUT_VERSION=6;
+const WORLD_LAYOUT_VERSION=7;
 function normalWorldSeed(value){
   if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
   const text=String(value??'').trim();
@@ -5097,6 +5097,10 @@ const WILD_CLEARINGS=[
 function inWildClearing(x,z,pad=0){ return WILD_CLEARINGS.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+pad); }
 const POND={x:-340,z:320,r:17,level:-.22,deep:-1.6};
 const BROOK=[]; let BROOK_READY=false, BROOK_BOX=null;
+// What each landmark leaves behind for the interactions that run after the
+// world is built: where the stones stand, which headstones are legible, where
+// the waymarks are. Filled during the build, read at play time.
+const WILD_SITES={stones:null,graves:null,hall:null,signposts:[]};
 
 function terrainSmooth(a,b,v){ const t=Math.max(0,Math.min(1,(v-a)/(b-a))); return t*t*(3-2*t); }
 function terrainHash(ix,iz){
@@ -5435,10 +5439,43 @@ function town(){
 
 
 // ---------- wilds (beyond the wall) ----------
-function graveyard(cx,cz){ for(let i=0;i<40;i++){ const x=cx+rand(-14,14), z=cz+rand(-14,14); aBox(0.7,rand(1,1.6),0.18,x,0.7,z,'stone',rand(-0.3,0.3)); }
-  building(cx,cz-6,7,7,1,'stone',0); aCone(5,4,4,cx,4.2,cz-6,'slate',Math.PI/4); // mausoleum
-  for(let i=0;i<8;i++){ const a=i/8*6.28; wallColl(cx+Math.cos(a)*15,cz+Math.sin(a)*15,cx+Math.cos(a+0.7)*15,cz+Math.sin(a+0.7)*15,0.5); }
-  shrineCrystal(cx,cz+4); }
+function graveyard(cx,cz){
+  const site={cx,cz,stones:[],door:null};
+  for(let i=0;i<40;i++){ const x=cx+rand(-14,14), z=cz+rand(-14,14), h=rand(1,1.6), ry=rand(-0.3,0.3);
+    // Inside the wall only, clear of the mausoleum and the crystal. The square
+    // scatter used to put a quarter of the stones out in the forest.
+    if(Math.hypot(x-cx,z-cz)>13.6||(Math.abs(x-cx)<5&&Math.abs(z-(cz-6))<5)||Math.hypot(x-cx,z-(cz+4))<1.8)continue;
+    // Centred at 0.7 whatever its height, a one-metre stone floated 20 cm up.
+    aBox(0.7,h,0.18,x,h/2-.1,z,'stone',ry); site.stones.push({x,z,h,ry}); }
+  mausoleum(cx,cz-6); site.door={x:cx,z:cz-6+4.9};
+  // The wall used to be colliders and nothing else: an invisible ring with gaps
+  // too narrow to pass, so nobody could ever walk into the graveyard or see why.
+  // It is a dry-stone wall now, with the gap on the side the track comes from.
+  const toTrack=(Math.atan2(-cz,-cx)+Math.PI*2)%(Math.PI*2);
+  let gate=0,gateOff=Infinity;
+  for(let i=0;i<8;i++){ const mid=i/8*6.28+.35, off=Math.abs(((mid-toTrack+Math.PI*3)%(Math.PI*2))-Math.PI); if(off<gateOff){gateOff=off;gate=i;} }
+  for(let i=0;i<8;i++){ const a=i/8*6.28, x1=cx+Math.cos(a)*15, z1=cz+Math.sin(a)*15, x2=cx+Math.cos(a+0.7)*15, z2=cz+Math.sin(a+0.7)*15;
+    if(i===gate){ for(const [px,pz] of [[x1,z1],[x2,z2]]){ aBox(.75,1.5,.75,px,.75,pz,'stone'); addCollider(px,pz,.5); } continue; }
+    const len=Math.hypot(x2-x1,z2-z1), ry=Math.atan2(x2-x1,z2-z1), mx=(x1+x2)/2, mz=(z1+z2)/2;
+    aBox(.55,.9,len,mx,.45,mz,'stone',ry); aBox(.72,.12,len+.1,mx,.96,mz,'stone',ry);
+    wallColl(x1,z1,x2,z2,0.5); }
+  shrineCrystal(cx,cz+4);
+  WILD_SITES.graves=site;
+}
+// building() made this a house: tiled roof, lit windows. A mausoleum is a
+// plinth, three blind walls, a pillared front with a shut door, and a slab.
+function mausoleum(x,z){
+  aBox(8.2,.5,8.2,x,.25,z,'stone');
+  aBox(7,3.6,.6,x,2.3,z-3.2,'stone');
+  aBox(.6,3.6,6.4,x-3.2,2.3,z,'stone'); aBox(.6,3.6,6.4,x+3.2,2.3,z,'stone');
+  aBox(2.2,3.6,.6,x-2.4,2.3,z+3.2,'stone'); aBox(2.2,3.6,.6,x+2.4,2.3,z+3.2,'stone');
+  aBox(2.6,.9,.6,x,3.65,z+3.2,'stone');
+  aBox(2.5,2.7,.16,x,1.85,z+3.12,'dark');
+  for(const side of[-1,1]){ aCyl(.32,.38,3.6,8,x+side*1.55,2.3,z+4.1,'stone'); addCollider(x+side*1.55,z+4.1,.42); }
+  aBox(8.4,.45,8.8,x,4.33,z+.2,'stone');
+  aCone(5.6,1.6,4,x,5.35,z+.2,'stone',Math.PI/4);
+  addBoxCollider(x,z,7,7,0);
+}
 // The wall fragments used to take their height and their centre height from two
 // independent rolls, so a 1.5-high stub centred at 2.5 stood with its base a
 // metre and a half off the ground. They were also cut from 'wall', the house
@@ -5459,7 +5496,8 @@ function ruins(cx,cz){
     aCyl(0.6,0.7,h,8,x,h/2,z,'stone'); addCollider(x,z,0.7);
     // the drum that came off the top, lying where it landed
     if(worldRandom()<.5)aCyl(.62,.62,.7,8,x+rand(-2.6,2.6),.35,z+rand(-2.6,2.6),'stone'); }
-  aBox(4,0.6,4,cx,0.3,cz,'cobble'); }
+  aBox(4,0.6,4,cx,0.3,cz,'cobble');
+  WILD_SITES.hall={x:cx,z:cz}; }
 function pond(cx,cz){
   // Real water now, sitting in a basin rather than a painted disc on flat
   // grass. The disc runs a little past the shoreline so the bank hides its edge.
@@ -5474,7 +5512,27 @@ function pond(cx,cz){
   scene.add(new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(pads),MATS.foliage));
   brookWater();
 }
-function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
+function stones(cx,cz){
+  const ring={cx,cz,stones:[],answered:false,serial:0,crystal:null,glyphs:null,pillar:null};
+  for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7,h=rand(3,4.5);
+    // Every stone used to be centred at y=2 whatever its height, so a three
+    // metre stone stood half a metre clear of the ground. Seated now.
+    aBox(1,h,0.8,x,h/2-.3,z,'stone',a); addCollider(x,z,0.7); ring.stones.push({x,z,a,h,color:null}); }
+  aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz);
+  ring.crystal=crystals[crystals.length-1];
+  // A band worn round each stone, dark until a spell strikes it. One instanced
+  // mesh for all ten, sized just proud of the stone and turned with it.
+  const hide=new THREE.Matrix4().makeScale(0,0,0);
+  ring.glyphs=new THREE.InstancedMesh(new THREE.BoxGeometry(1.06,.3,.86),new THREE.MeshBasicMaterial({color:0xffffff}),10);
+  for(let i=0;i<10;i++){ ring.glyphs.setMatrixAt(i,hide); ring.glyphs.setColorAt(i,new THREE.Color(0)); }
+  ring.glyphs.instanceMatrix.needsUpdate=true; ring.glyphs.instanceColor.needsUpdate=true;
+  ring.glyphs.frustumCulled=false; scene.add(ring.glyphs);
+  // What the ring does when all ten hold a colour. Unfogged, so the city sees it.
+  ring.pillar=new THREE.Mesh(new THREE.CylinderGeometry(2.6,4.2,110,28,1,true),
+    new THREE.MeshBasicMaterial({color:0x9d7bff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}));
+  ring.pillar.position.set(cx,55,cz); ring.pillar.visible=false; scene.add(ring.pillar);
+  WILD_SITES.stones=ring;
+}
 const MTN_PARTS=[];
 // A cone is a pyramid, and six flat faces meeting at a point is what read as
 // "somebody left a pyramid in the forest". Break the solid of revolution: give
@@ -6711,6 +6769,7 @@ function wisps(){
 }
 function updateWisps(t){
   updateWater(t);
+  updateWilds(t);
   if(!wispField)return;
   const position=wispField.points.geometry.attributes.position;
   wispField.drift.forEach((w,i)=>{
@@ -6751,7 +6810,7 @@ function wildTracks(){
   MID_GATE_DEG.forEach(g=>{
     const a=g*Math.PI/180, out=WILD_TRACK_R+WILD_TRACK_W*.5+1.5;
     const px=Math.cos(a)*out+Math.cos(a+Math.PI/2)*4.5, pz=Math.sin(a)*out+Math.sin(a+Math.PI/2)*4.5;
-    aCyl(.12,.16,3.2,5,px,1.6,pz,'wood'); addCollider(px,pz,.32);
+    aCyl(.12,.16,3.2,5,px,1.6,pz,'wood'); addCollider(px,pz,.32); WILD_SITES.signposts.push({x:px,z:pz,gate:g});
     WILD_CLEARINGS.map(c=>({c,d:Math.hypot(c.x-px,c.z-pz)})).sort((p,q)=>p.d-q.d).slice(0,2).forEach((near,k)=>{
       const ry=Math.atan2(near.c.x-px,near.c.z-pz);          // local +Z points at it
       aBox(.1,.34,1.6,px+Math.sin(ry)*.8,2.55-k*.5,pz+Math.cos(ry)*.8,'wood',ry);
@@ -8445,15 +8504,215 @@ const WORLD_INTERACTIONS=[
   {id:'works-anvil',label:'inspect the works anvil',x:-168,z:-103,r:3.8,title:'The West Works Anvil',text:'Its face is scarred into a map of old repairs; one clean hammer mark is still warm.'},
   {id:'archive-lens',label:'study the archive lens',x:165,z:-105,r:3.8,title:'The Archive Lane Lens',text:'The violet glass makes every distant lamp look doubled, except the moon.'},
   {id:'south-marker',label:'read the south road marker',x:-62,z:-190,r:3.8,title:'The South Road Marker',text:'Names have been cut into the stone, then carefully removed. The newest absence is still pale.'},
-  {id:'foxglove-water',label:'watch the foxglove water',x:-295,z:178,r:4.2,title:'Foxglove Water',text:'The pond holds the stars perfectly until something beneath the lilies takes a breath.'},
+  // Stood at (-295, 178) until r108 — 149 units from any water, left behind
+  // when the city was rescaled. Placed from POND now, on the bank that faces
+  // the track, so it cannot drift away from the pond again.
+  {id:'foxglove-water',label:'skim a stone across the water',x:POND.x-POND.x/Math.hypot(POND.x,POND.z)*15,z:POND.z-POND.z/Math.hypot(POND.x,POND.z)*15,r:6,title:'Foxglove Water',text:'The pond holds the stars perfectly until something beneath the lilies takes a breath.',act:skimStone},
   {id:'great-hall-seat',label:'consider the empty seat',x:0,z:-25,r:4.0,interior:'The Great Hall',title:'The Empty Seat',text:'The smaller chair beside the throne has been kept polished, though no one seems to use it.'},
   {id:'moon-archive-orb',label:'touch the archive instrument',x:-86,z:-42,r:3.6,interior:'The Moon Archive',title:'The Moon Archive Instrument',text:'The crystal answers your touch with a brief image of Vaneth from far above—then goes dark.'},
   {id:'scriptorium-page',label:'read the unfinished page',x:218,z:43,r:3.6,interior:'The Eastwall Scriptorium',title:'An Unfinished Eastwall Page',text:'The final line ends mid-word. Fresh ink gathers at the nib, though nobody sits here.'}
 ];
+WORLD_INTERACTIONS.push(...wildInteractions());
+
+// ---------- places beyond the wall ----------
+// r107 made the landmarks reachable; this makes them worth reaching. Each one
+// uses something the player already does — casting, looking, reading, coming
+// back later — and none of them keeps score. The landmark ledger and objective
+// arrow were cut for turning the city into a checklist, so there is no count,
+// no tick and no "3 of 10" anywhere here. The stones say what they look like.
+const WILD_MEMORY_KEY='emberwatch.wilds.v1';
+function loadWildMemory(){
+  try{ const raw=JSON.parse(localStorage.getItem(WILD_MEMORY_KEY)||'{}');
+    return {graves:Array.isArray(raw.graves)?raw.graves.filter(v=>typeof v==='string').slice(0,80):[],
+            hall:Math.max(0,Math.min(99,Number(raw.hall)||0))}; }
+  catch{ return {graves:[],hall:0}; }
+}
+function saveWildMemory(){ try{ localStorage.setItem(WILD_MEMORY_KEY,JSON.stringify(wildMemory)); }catch{} }
+let wildMemory=loadWildMemory(), wildWatchSerial=0, hallSiftedSerial=-1, wildLastT=0;
+
+function wildInteractions(){
+  const out=[], ring=WILD_SITES.stones, graves=WILD_SITES.graves, hall=WILD_SITES.hall;
+  if(ring)out.push({id:'standing-stones',label:'lay a hand on the centre stone',x:ring.cx,z:ring.cz,r:6.2,title:'The Standing Stones',text:'',act:touchStones});
+  if(graves){
+    // Every other stone is still legible; the rest have weathered smooth.
+    graves.stones.forEach((stone,i)=>{ if(i%2)return;
+      out.push({id:'grave-'+i,label:'read the headstone',x:stone.x,z:stone.z,r:1.7,title:'A headstone',text:'',act:()=>readHeadstone(i)}); });
+    out.push({id:'mausoleum-door',label:'try the mausoleum door',x:graves.door.x,z:graves.door.z,r:2.2,title:'The Mausoleum',
+      text:'Barred from the inside. Someone has left foxglove on the step, and it is fresh.'});
+  }
+  if(hall)out.push({id:'fallen-hall',label:'sift the ash on the old floor',x:hall.x,z:hall.z,r:3.4,title:'The Fallen Hall',text:'',act:siftAsh});
+  WILD_SITES.signposts.forEach((post,i)=>out.push({id:'waymark-'+i,label:'read the waymark',x:post.x,z:post.z,r:2.4,title:'A waymark',text:'',act:()=>readWaymark(post)}));
+  return out;
+}
+
+// --- the Standing Stones: strike them with colour, and the ring answers ------
+function standingStoneStruck(x,z,color){
+  const ring=WILD_SITES.stones;
+  if(!ring||Math.hypot(x-ring.cx,z-ring.cz)>9)return;
+  let best=-1,bestD=1.6;
+  ring.stones.forEach((stone,i)=>{ const d=Math.hypot(x-stone.x,z-stone.z); if(d<bestD){bestD=d;best=i;} });
+  if(best<0)return;
+  const stone=ring.stones[best], first=!stone.color;
+  stone.color=color;
+  ring.glyphs.setMatrixAt(best,new THREE.Matrix4().compose(new THREE.Vector3(stone.x,stone.h*.62-.3,stone.z),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(0,stone.a,0)),new THREE.Vector3(1,1,1)));
+  ring.glyphs.setColorAt(best,new THREE.Color(color));
+  ring.glyphs.instanceMatrix.needsUpdate=true; ring.glyphs.instanceColor.needsUpdate=true;
+  if(!first||ring.answered)return;
+  const lit=ring.stones.filter(s=>s.color).length;
+  if(lit===1)showGameToast('The stone takes the colour and holds it.',4000);
+  if(lit===ring.stones.length){
+    ring.answered=true; ring.serial++;
+    ring.pillar.material.color.set(color); ring.pillar.visible=true;
+    showGameToast('Every stone holds a colour, and the ring answers. The light goes up past the trees, where the whole city can see it.',7000);
+  }
+}
+function touchStones(){
+  const ring=WILD_SITES.stones, lit=ring.stones.filter(s=>s.color).length;
+  showGameToast(ring.answered?'The ring is answering. The light will stand over the trees until the bell turns.'
+    :lit===0?'The stones are cold. Each has a band worn round it, as if it were made to hold a colour — and your spells have colour.'
+    :lit*2<ring.stones.length?'A few of the stones hold a colour now. The others are still cold.'
+    :'Most of the ring holds a colour. The cold stones look like gaps in a sentence.',6500);
+}
+
+// --- Foxglove Pond: skim a stone -----------------------------------------------
+const skim={stone:null,path:[],leg:0,t:0,sink:0,count:0,ripples:[]};
+let rippleGeometry=null;
+function addRipple(x,z,from,to,life,alpha){
+  // Thin: a ring scales with its radius, and at .86 the near rings read as
+  // thick white hoops rather than ripples.
+  if(!rippleGeometry)rippleGeometry=new THREE.RingGeometry(.94,1,48).rotateX(-Math.PI/2);
+  while(skim.ripples.length>=14){ const old=skim.ripples.shift(); scene.remove(old.mesh); old.mesh.material.dispose(); }
+  const mesh=new THREE.Mesh(rippleGeometry,new THREE.MeshBasicMaterial({color:0xcfd8ff,transparent:true,opacity:alpha,depthWrite:false}));
+  mesh.position.set(x,POND.level+.03,z); mesh.scale.setScalar(from); mesh.renderOrder=3; scene.add(mesh);
+  skim.ripples.push({mesh,age:0,life,from,to,alpha});
+}
+function skimStone(){
+  if(skim.stone)return;
+  const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
+  let water=null;
+  for(let d=1;d<=9;d+=.5){ if(waterDepthAt(player.x+fx*d,player.z+fz*d)>.05){ water=d; break; } }
+  if(water===null){ showGameToast('You would need to be facing the water.'); return; }
+  // A flat throw skips better. That is the only skill in it, and it is enough.
+  const flat=Math.abs(pitch)<.18, want=2+Math.floor(Math.random()*3)+(flat?Math.floor(Math.random()*3):0);
+  const hops=[]; let d=water+.8, hop=3.6;
+  for(let i=0;i<want;i++){ const x=player.x+fx*d, z=player.z+fz*d; if(waterDepthAt(x,z)<=.02)break; hops.push([x,POND.level,z]); d+=hop; hop*=.78; }
+  if(!hops.length){ showGameToast('Too close to the bank to get a skip out of it.'); return; }
+  skim.path=[[player.x+fx*.6,player.y+1.35,player.z+fz*.6],...hops];
+  skim.leg=0; skim.t=0; skim.sink=-1; skim.count=hops.length;
+  skim.stone=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.035,7),MATS.stone); scene.add(skim.stone);
+}
+function advanceSkim(dt){
+  const from=skim.path[skim.leg], to=skim.path[skim.leg+1];
+  if(!to){
+    skim.sink+=dt; skim.stone.position.y=POND.level-skim.sink*.8;
+    if(skim.sink>.7){ scene.remove(skim.stone); skim.stone.geometry.dispose(); skim.stone=null; finishSkim(); }
+    return;
+  }
+  const span=Math.hypot(to[0]-from[0],to[2]-from[2]), k=Math.min(1,(skim.t+=dt/(.12+span*.075)));
+  skim.stone.position.set(from[0]+(to[0]-from[0])*k,from[1]+(to[1]-from[1])*k+Math.sin(k*Math.PI)*span*.09,from[2]+(to[2]-from[2])*k);
+  skim.stone.rotation.y+=dt*22;
+  if(k>=1){ skim.leg++; skim.t=0; addRipple(to[0],to[2],.25,2.4+span*.25,2.3,.38); if(!skim.path[skim.leg+1])skim.sink=0; }
+}
+function finishSkim(){
+  const words=['','One skip.','Two skips, and it is gone.','Three skips. Not bad for a stone picked up in the dark.',
+    'Four skips. The rings cross each other on their way to the reeds.','Five skips. The last ring reaches the lilies before the stone has finished sinking.',
+    'Six skips — and nobody in the city saw it.','Seven skips. You will be telling somebody about that one.'];
+  let message=words[Math.min(skim.count,7)];
+  if(currentWatch()?.id==='still'&&skim.count>=4){
+    message+=' Then the pond holds the stars perfectly, until something beneath the lilies takes a breath.';
+    addRipple(POND.x,POND.z,1,12,6,.4);
+  }
+  showGameToast(message,6000);
+}
+
+// --- the Old Graveyard: the city's families, before the city had room ----------
+const GRAVE_FIRST=['Aldous','Berit','Cato','Dagny','Edric','Fenna','Gisela','Hollis','Ida','Jory','Kestrel','Linnet','Mabyn','Nell','Osric','Perrin','Quenby','Rook','Senna','Tobin','Ulla','Wynn'];
+const GRAVE_LINES=['who kept the lamps on the east road','who knew every bell in the city by its voice','who sold bread before the first watch and never once overslept',
+  'who built half the walls in Underwall and complained about all of them','who sang badly and often','who carried the city’s letters for forty winters',
+  'who never locked a door','who taught the children their letters by lamplight','who came in off the road and stayed','who kept bees on a roof nobody else could reach'];
+function readHeadstone(k){
+  const households=[...new Set(villagers.map(v=>v.household).filter(Boolean))].sort();
+  if(!households.length){ showGameToast('The name has weathered away. Only the shape of the letters is left.',5000); return; }
+  const house=households[k%households.length], seed=nameIndex(house+':'+k,9973);
+  const first=GRAVE_FIRST[seed%GRAVE_FIRST.length], line=GRAVE_LINES[Math.floor(seed/7)%GRAVE_LINES.length];
+  const kin=villagers.filter(v=>v.household===house), living=kin.length?kin[seed%kin.length]:null;
+  const where=living?wardAt(living.homeX??living.g.position.x,living.homeZ??living.g.position.z):'';
+  showGameToast('Here lies '+first+' '+house+', '+line+'.'+(living?' '+living.name+' still lives in '+where+'.':''),7500);
+  if(!wildMemory.graves.includes(house)){ wildMemory.graves.push(house); saveWildMemory(); }
+}
+
+// --- the Fallen Hall: one thing from the ash each watch --------------------------
+const FALLEN_HALL=[
+  'Under the ash, a scorched hinge the size of your hand. Whatever door it carried was built for a lot of people at once.',
+  'A floor tile, glazed blue, with half a word still on it: …WARD. The greater city named its halls the way Vaneth names its wards.',
+  'A bell clapper, cracked through. It rang the watches out here once, before anyone thought to ring them inside the wall.',
+  'Charred wood with rows of nails still in it — benches, long ones. Whatever met in this hall sat down and stayed a while.',
+  'A clay token stamped with a lamp. The Lamplighters’ Hall in the new quarters still uses the same mark.',
+  'Glass that ran like wax and set again. The fire here was hot enough to pour a window.',
+  'A child’s carved horse with a leg missing, and not burned at all. Someone set it here after the fire, not before.'
+];
+function siftAsh(){
+  if(wildMemory.hall>=FALLEN_HALL.length){ showGameToast('Nothing more in the ash. You know how the hall ended now — and that someone still comes back to it.',6500); return; }
+  if(hallSiftedSerial===wildWatchSerial){ showGameToast('You have turned over everything this watch will give up. The ash settles again.',4500); return; }
+  hallSiftedSerial=wildWatchSerial;
+  showGameToast(FALLEN_HALL[wildMemory.hall],8000);
+  wildMemory.hall++; saveWildMemory();
+}
+
+// --- the waymarks -------------------------------------------------------------
+function readWaymark(post){
+  const gate=['east','north','west','south'][MID_GATE_DEG.indexOf(post.gate)]||'old';
+  const arms=WILD_CLEARINGS.map(c=>({c,d:Math.hypot(c.x-post.x,c.z-post.z)})).sort((p,q)=>p.d-q.d).slice(0,2).map(p=>{
+    const deg=((Math.atan2(p.c.x-post.x,p.c.z-post.z)*180/Math.PI)+360)%360;
+    return p.c.name.replace(/^the /,'The ')+', '+COMPASS[Math.round(deg/45)%8]+' along the track, about '+Math.round(p.d/.8/10)*10+' paces';
+  });
+  showGameToast('The '+gate+' waymark. '+arms.join('. ')+'.',7000);
+}
+
+// --- the bell, and what the city says about it -----------------------------------
+function wildWatchTurned(){
+  wildWatchSerial++;
+  const ring=WILD_SITES.stones;
+  if(!ring||!(ring.answered||ring.stones.some(s=>s.color)))return;
+  const hide=new THREE.Matrix4().makeScale(0,0,0);
+  ring.stones.forEach((stone,i)=>{ stone.color=null; ring.glyphs.setMatrixAt(i,hide); });
+  ring.glyphs.instanceMatrix.needsUpdate=true;
+  ring.answered=false;
+}
+function wildGreetingNote(npc){
+  let note='';
+  if(npc.household&&wildMemory.graves.includes(npc.household)){
+    const memory=livingMemoryFor(npc);
+    if(!memory.graveSpoken){ memory.graveSpoken=true; saveLivingNpcMemory();
+      note+='\n\n“You have been out to the old graveyard. You have that look.” A pause. “One of those stones has our name on it. We do not go as often as we should.”'; }
+  }
+  const ring=WILD_SITES.stones;
+  if(ring&&ring.answered&&npc.stonesHeard!==ring.serial){ npc.stonesHeard=ring.serial;
+    note+='\n\n“Did you see the light past the north-east wall? Somebody woke the stones. Nobody has done that in my lifetime.”'; }
+  return note;
+}
+function updateWilds(t){
+  const dt=Math.min(.1,Math.max(0,t-wildLastT)); wildLastT=t;
+  const ring=WILD_SITES.stones;
+  if(ring){
+    const material=ring.pillar.material, target=ring.answered?.26:0;
+    material.opacity+=(target-material.opacity)*Math.min(1,dt*1.2);
+    ring.pillar.visible=material.opacity>.004; ring.pillar.rotation.y+=dt*.1;
+    if(ring.crystal)ring.crystal.flare=ring.answered?1:0;
+  }
+  if(skim.stone)advanceSkim(dt);
+  for(let i=skim.ripples.length-1;i>=0;i--){
+    const ripple=skim.ripples[i], k=(ripple.age+=dt)/ripple.life;
+    ripple.mesh.scale.setScalar(ripple.from+(ripple.to-ripple.from)*Math.min(1,k));
+    ripple.mesh.material.opacity=ripple.alpha*Math.max(0,1-k);
+    if(k>=1){ scene.remove(ripple.mesh); ripple.mesh.material.dispose(); skim.ripples.splice(i,1); }
+  }
+}
 function worldInteractionReachable(entry){for(let radius=.8;radius<=entry.r;radius+=.7)for(let spoke=0;spoke<16;spoke++){const angle=spoke/16*Math.PI*2;if(!colliderBlocked(entry.x+Math.cos(angle)*radius,entry.z+Math.sin(angle)*radius,.28))return true;}return false;}
 let nearestVillager=null,nearestDoor=null,nearestWorldInteraction=null,activeInterior=restoredInterior,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
 const interactHint=document.getElementById('interactHint'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
-function showGameToast(message){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),3200); }
+function showGameToast(message,ms=3200){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),ms); }
 
 // ---------- Wayfinder: a lightweight reason to inhabit the city ----------
 const VANETH_LANDMARKS=[
@@ -8468,7 +8727,11 @@ const VANETH_LANDMARKS=[
   {id:'cold-assay',name:'The Cold Assay',x:-271.6,z:-112.5,radius:16,detail:'They weigh things here that nobody will name.'},
   {id:'drovers',name:"The Drovers' Rest",x:112.5,z:-271.6,radius:17,detail:'Straw on the floor and the south road at the door.'},
   {id:'new-chapel',name:'The New Chapel',x:129.3,z:312.3,radius:16,detail:'Newer than the city it stands in, and it shows.'},
-  {id:'ferriers',name:"Ferrier's Yard",x:-129.3,z:-312.3,radius:16,detail:'Iron, hooves and an argument, most watches.'}
+  {id:'ferriers',name:"Ferrier's Yard",x:-129.3,z:-312.3,radius:16,detail:'Iron, hooves and an argument, most watches.'},
+  // The wilds, so a resident can send you out past the wall. Read from
+  // WILD_CLEARINGS rather than copied, so they cannot drift from the places.
+  ...WILD_CLEARINGS.filter(place=>place.id!=='pond').map(place=>({id:'wild-'+place.id,name:place.name,x:place.x,z:place.z,radius:place.r,
+    detail:{stones:'Ten stones past the north-east wall, with a band worn into every one.',graveyard:'Where the old families went, before there was room inside the wall.',ruins:'All that is left of the greater city: a floor, and the ash on it.'}[place.id]}))
 ];
 // The landmark ledger, discovery toasts, distance readout and objective arrow
 // are gone: they turned wandering the city into a checklist. VANETH_LANDMARKS
@@ -8658,7 +8921,7 @@ function livingGreeting(npc){const memory=livingMemoryFor(npc),strain=currentStr
   // reads as interrupting a person rather than triggering a menu.
   const activity=npcActivity(npc);
   const busy=activity?(activity.travelling?'\n\nThey are heading off to be '+activity.verb+', and slow down rather than stop.':'\n\nThey are '+activity.verb+', and keep half an eye on it while you talk.'):'';
-  return opener+busy+'\n\n'+profile.work+(strain?' Your jar catches a little lantern light, but '+npc.name+' does not make a performance of it.':'');}
+  return opener+wildGreetingNote(npc)+busy+'\n\n'+profile.work+(strain?' Your jar catches a little lantern light, but '+npc.name+' does not make a performance of it.':'');}
 function showDialogueGreeting(){const npc=activeDialogueNpc;if(!npc)return;const strain=currentStrain(),offer=strain?{label:'Ask if they want to share '+strain.name,action:()=>offerFromJar(npc)}:{label:'Open your smoke ledger',action:()=>{closeDialogue();toggleStrains(true);}};const choices=[{label:'Ask what they are working on',action:()=>askAboutWork(npc)},{label:'Ask who they know here',action:()=>askAboutTies(npc)},{label:'Ask what has changed around here',action:()=>askAboutVaneth(npc)},{label:'Ask for a place worth finding',action:()=>askForDirection(npc)},offer,{label:'Leave the conversation',action:closeDialogue,leave:true}];
   // Only offered when they actually have an errand in hand, so the option
   // never appears for a stationary indoor host with nothing to report.
@@ -8975,6 +9238,7 @@ function applyWatch(t,dt){
     watchIndex=idx;
     const watch=WATCHES[idx];
     for(const npc of villagers) npc.watchDue=(nameIndex(npc.name,60)/60)*14;
+    wildWatchTurned();
     if(t>2)showGameToast('The bell turns to '+watch.name+'. '+watch.note);
   }
   const watch=WATCHES[Math.max(0,watchIndex)];
@@ -9142,7 +9406,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
   // Select the genuinely closest available action so a door, resident, or
   // small world detail never steals E from something nearer to the player.
   nearestVillager=null;nearestDoor=null;nearestWorldInteraction=null;let selectedDistance=Infinity;if(closest&&best<18){nearestVillager=closest;selectedDistance=best;}if(door&&doorDistance<selectedDistance){nearestVillager=null;nearestDoor=door;selectedDistance=doorDistance;}if(worldInteraction&&worldDistance<selectedDistance){nearestVillager=null;nearestDoor=null;nearestWorldInteraction=worldInteraction;}
-  const close=nearestDoor||nearestVillager||nearestWorldInteraction;interactHint.style.display=!anyOverlayOpen()&&close?'block':'none';if(close){const label=nearestDoor?(activeInterior===nearestDoor?'leave '+nearestDoor.name:'enter '+nearestDoor.name):nearestVillager?'talk with '+nearestVillager.name:nearestWorldInteraction.label;interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=nearestDoor?(activeInterior===nearestDoor?'LEAVE':'ENTER'):nearestVillager?'TALK':'LOOK';}else mobileInteractBtn.textContent='TALK';
+  const close=nearestDoor||nearestVillager||nearestWorldInteraction;interactHint.style.display=!anyOverlayOpen()&&close?'block':'none';if(close){const label=nearestDoor?(activeInterior===nearestDoor?'leave '+nearestDoor.name:'enter '+nearestDoor.name):nearestVillager?'talk with '+nearestVillager.name:(typeof nearestWorldInteraction.label==='function'?nearestWorldInteraction.label():nearestWorldInteraction.label);interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=nearestDoor?(activeInterior===nearestDoor?'LEAVE':'ENTER'):nearestVillager?'TALK':'LOOK';}else mobileInteractBtn.textContent='TALK';
 }
 // Interiors have a real open doorway (no door leaf, see interiorHouse), so a
 // player can simply walk through the gap instead of pressing E. activeInterior
@@ -9156,7 +9420,7 @@ function syncActiveInterior(){
   else{activeInterior=null;showGameToast('You step back out into Vaneth.');}
   saveGameState();
 }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){showGameToast(nearestWorldInteraction.text);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
 
@@ -10541,7 +10805,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r107',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r108',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -10551,7 +10815,7 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 // Starts full so the very first frame always draws: a hidden window gets rAF
@@ -10602,11 +10866,11 @@ function loop(){ requestAnimationFrame(loop);
   updateCityAtmosphere(t,dt);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
-  for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
+  for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(!hit.npc)standingStoneStruck(hit.x,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
   for(let i=spellHits.length-1;i>=0;i--){const hit=spellHits[i];hit.life-=dt;hit.mesh.rotation.y+=dt*9;hit.mesh.scale.multiplyScalar(1+dt*3.2);if(hit.life<=0){scene.remove(hit.mesh);spellHits.splice(i,1);}}
   for(let i=socialSmoke.length-1;i>=0;i--){ const puff=socialSmoke[i]; puff.life-=dt; puff.mesh.position.y+=dt*.55; puff.mesh.scale.multiplyScalar(1+dt*.6); puff.mesh.material.opacity=Math.max(0,puff.life*.22); if(puff.life<=0){ scene.remove(puff.mesh); puff.mesh.geometry.dispose(); puff.mesh.material.dispose(); socialSmoke.splice(i,1); } }
   if(fireParticles){ const fp=fireParticles.geometry.attributes.position; for(let i=0;i<fpN;i++){ let y=fp.getY(i)+fpV[i]*60*dt; if(y>3.2)y=1; fp.setY(i,y); } fp.needsUpdate=true; if(fireLight) fireLight.intensity=2.4+Math.sin(t*12)*0.4; }
-  crystals.forEach(c=>{ c.mesh.position.y=c.base+Math.sin(t*1.5+c.phase)*0.2; c.mesh.rotation.y+=dt*0.5; c.light.intensity=1.2+Math.sin(t*2+c.phase)*0.4; });
+  crystals.forEach(c=>{ const flare=c.flare||0; c.mesh.position.y=c.base+Math.sin(t*1.5+c.phase)*0.2+flare*.5; c.mesh.rotation.y+=dt*(0.5+flare*2.5); c.mesh.scale.setScalar(1+flare*.6); c.light.intensity=(1.2+Math.sin(t*2+c.phase)*0.4)*(1+flare*3); });
   lights.forEach(l=>{ if(!l.fire)l.light.intensity=l.base+Math.sin(t*8+l.phase)*0.22; });
   cullLights(t);
   lodVillagers(t);
