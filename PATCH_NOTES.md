@@ -1,18 +1,16 @@
-**r110 — three r186** · 2026-09-13 · phase 5, world depth
-
-In its own panel header: *r110 three.js r186*.
+**r111 — physical light** · 2026-09-13 · phase 5, world depth
 
 ### Summary
 
-three.js r128 → r186. The engine is one generated block now, built by tools/build-three.js from pinned packages, replacing three hand-inlined r128 blocks. r186 changed colour management and light maths; unshimmed, the city rendered at half its brightness (22.7/255 average difference from r109). A compatibility layer restores r128's colour handling, π and point-light falloff, and the difference fell to 0.55-0.78 against a 0.32 noise floor. Also: NearestFilter textures had been smoothed by r128's anisotropy all along, so they are Linear now to keep that look; Clock → Timer; mergeBufferGeometries → mergeGeometries; PCFSoft → PCF. Same draw calls, ~62k fewer triangles, frame time level. Every probe from r107-r109, the runtime audit, all six variants and the Bluetooth smoke test pass on r186.
+physical light. The owner asked for a lighting upgrade, so the r128-look layer r110 had kept alive was retired and the city relit for physically based light: colour management on, inverse-square lamps, no π. The ~300 lamps keep their tuned numbers as "lamp units" through lampLight()/lampPower(), which convert to candela and stretch each lamp's reach 2.2×, so light lands on the street in warm pools. Night fill went from violet to deep blue (the violet turned every street purple under real light), the moon from lavender to pale cool blue, windows from white cards to amber (emissive ×0.7), moon shadows soft (radius 3). Ember mode desaturated; dusk kept. The aurora sky keeps r110's colour maths. All six variants' lights converted; Emberfall's carried ember and r0's campfire at a fixed range so they do not blow out at the player's feet. Tried and dropped: AgX tone mapping, physical lights on unconverted hex, the old violet scaled up. Measured against r110 (harness, software rendering): 16.6/255 average block difference over nine standpoints, the hearth 53 → 62 luminance, the lantern street 47 → 43; same draw calls and triangles; +1.9 ms at the north gate and +2.7 ms at the market, because the longer reach keeps more lamps lit (market 5 → 14). Probes r107-r109, reach, the runtime audit (same result as r110 on this harness), six variants and the smoke test pass. New: tools/probes/probe-light-tune.js, reference-r111 shots, build-three.js --entry/--html.
 
-Also: three.js r128 → r186 behind an r128-look compatibility layer
+Also: **physical lighting** — the layer retired, the city relit: warm lamp pools on dark streets, a blue night fill, amber windows, soft moon shadows
 
 ### In the code
 
-- 1.32 MB (+79,358 bytes on r109).
-- 312 functions added: `$S`, `$n`, `$p`, `$y`, `A0`, `AM`, `AS`, `A_`, `Ag`, `B0`, `BS`, `Be`, `Bg`, `C0`, `CM`, `CS`, `C_`, `Ca`, `Cg`, `D0`, `DM`, `DS`, `D_`, `De`, `Dl`, `E`, `E0`, `ES`, `E_`, `Ef`, `Eg`, `F0`, `FM`, `FS`, `F_`, `Fe`, `Fn`, `Fu`, `G0`, `GS`, and 272 more.
-- 175 functions removed: `$a`, `$c`, `$h`, `$i`, `$r`, `A`, `Br`, `Cr`, `Ct`, `Ei`, `Er`, `F`, `Fr`, `GLTFRegistry`, `Gi`, `Gr`, `Hi`, `Hr`, `InterpolantFactoryMethodGLTFCubicSpline`, `Ir`, `Ja`, `Jh`, `Ji`, `Jr`, `Ka`, `Kc`, `Kh`, `Ki`, `Kr`, `Mc`, `Mi`, `Ml`, `Mr`, `Mt`, `Nr`, `Oi`, `Or`, `Pr`, `Pt`, `Q`, and 135 more.
+- 1.32 MB (+669 bytes on r110).
+- 107 functions added: `$M`, `$f`, `$g`, `$u`, `Aa`, `Au`, `BM`, `Cs`, `Dg`, `Du`, `EM`, `Fg`, `GM`, `HM`, `H_`, `Hd`, `Hl`, `Hp`, `IM`, `JM`, `J_`, `Ju`, `KM`, `Ky`, `Ll`, `MM`, `Mn`, `Ng`, `Nl`, `Pr`, `Qf`, `Qg`, `Ql`, `Rl`, `Se`, `TM`, `Ta`, `Tf`, `U0`, `WM`, and 67 more.
+- 105 functions removed: `$S`, `Ca`, `Cg`, `D_`, `Dl`, `Ef`, `F0`, `F_`, `Fu`, `GS`, `Ig`, `Il`, `Kg`, `L0`, `Lr`, `MS`, `Me`, `Mf`, `O0`, `Pg`, `Ps`, `Q_`, `Qp`, `Qy`, `Ra`, `Sb`, `Sn`, `Tg`, `US`, `U_`, `Ul`, `VS`, `W0`, `Wg`, `Xl`, `YS`, `Yd`, `Yg`, `Z0`, `ZS`, and 65 more.
 
 ### Play it
 
