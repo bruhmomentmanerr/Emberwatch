@@ -208,7 +208,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r106 honest diagnostics</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r107 hills and water</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4843,7 +4843,7 @@ const LEGACY_WORLD_SEED_KEYS=['emberwatch.vaneth.world-seed.v1'];
 const WORLD_SEED_VERSION=1;
 // Bump this deliberately when geometry, street plans, or collision placement
 // changes enough that an old coordinate could be unsafe in the new layout.
-const WORLD_LAYOUT_VERSION=5;
+const WORLD_LAYOUT_VERSION=6;
 function normalWorldSeed(value){
   if(typeof value==='number')return Number.isInteger(value)&&value>=0&&value<=0xffffffff?value>>>0:null;
   const text=String(value??'').trim();
@@ -5066,6 +5066,274 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(M,M).rotateX(-Math.PI/2), sm
 // (rather than raising the floor, which would then fight the roads stacked
 // just above it) makes the paved layer win everywhere without moving anything.
 ground.material.polygonOffset=true; ground.material.polygonOffsetFactor=2; ground.material.polygonOffsetUnits=4;
+// ---------- the land beyond the wall ----------
+// Vaneth was built on a levelled plateau and stays that way: every building,
+// road, wall and resident inside OUTER_CITY_R stands at y=0, and nothing in
+// here changes that. Everything past it used to be the same flat plane out to
+// the edge of the map, so the wilderness read as a floor with trees on it.
+//
+// Beyond the wall the ground now rolls, rising into foothills under the ring of
+// peaks. It stays flat where anything was authored to be flat — the tracks,
+// the gate roads, the four landmark clearings — and it dips into a basin for
+// Foxglove Pond, fed by a brook off the hills.
+//
+// Heights are computed once onto a grid and the rendered mesh is built from
+// the same grid with the same triangle split, so terrainAt() returns exactly
+// the surface you can see. That is what keeps a player's feet on the hillside
+// rather than floating over it or sunk into it. No worldRandom() is consumed:
+// the noise is a hash of position and seed, so no seeded stream shifts.
+const TERRAIN_STEP=6, TERRAIN_N=Math.round(M/TERRAIN_STEP), TERRAIN_FLAT_R=OUTER_CITY_R+10;
+let TERRAIN_H=null, TERRAIN_ROADS=[], TERRAIN_RINGS=[];
+// The four landmarks and the ground each needs kept level. Before r107 the
+// forest only kept clear of four circles at (+-660, +-400) — where these stood
+// before the city was rescaled — so trees grew in the pond, the graveyard and
+// the ruins.
+const WILD_CLEARINGS=[
+  {id:'stones',   name:'the Standing Stones', x:330,  z:330,  r:18},
+  {id:'pond',     name:'Foxglove Pond',       x:-340, z:320,  r:22},
+  {id:'graveyard',name:'the Old Graveyard',   x:-326, z:-334, r:24},
+  {id:'ruins',    name:'the Fallen Hall',     x:338,  z:-326, r:26}
+];
+function inWildClearing(x,z,pad=0){ return WILD_CLEARINGS.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+pad); }
+const POND={x:-340,z:320,r:17,level:-.22,deep:-1.6};
+const BROOK=[]; let BROOK_READY=false, BROOK_BOX=null;
+
+function terrainSmooth(a,b,v){ const t=Math.max(0,Math.min(1,(v-a)/(b-a))); return t*t*(3-2*t); }
+function terrainHash(ix,iz){
+  let h=Math.imul(ix,374761393)^Math.imul(iz,668265263)^Math.imul(WORLD_SEED|0,-1640531535);
+  h=Math.imul(h^(h>>>13),1274126177); h^=h>>>16;
+  return (h>>>0)/4294967296;
+}
+function terrainNoise(x,z){
+  const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz, ux=fx*fx*(3-2*fx), uz=fz*fz*(3-2*fz);
+  const a=terrainHash(ix,iz), b=terrainHash(ix+1,iz), c=terrainHash(ix,iz+1), d=terrainHash(ix+1,iz+1);
+  return (a+(b-a)*ux+(c-a)*uz+(a-b-c+d)*ux*uz)*2-1;
+}
+function terrainFbm(x,z){ let v=0,amp=.55,f=1; for(let o=0;o<4;o++){ v+=terrainNoise(x*f+o*17.3,z*f-o*9.1)*amp; f*=2.03; amp*=.5; } return v; }
+// A floor at zero that the slope eases into, rather than a crease where max()
+// would cut a valley off flat.
+function terrainFloor(v){ return v<=-1?0:v>=1?v:(v+1)*(v+1)/4; }
+
+function terrainRaw(x,z){
+  const r=Math.hypot(x,z);
+  if(r<TERRAIN_FLAT_R)return 0;
+  // Fog at 0.007 hides almost everything past about 150 m, so hills that only
+  // got going 100 m out were invisible from the walls. The first pass rose over
+  // 120 m and looked flat from the rampart; it rises over 70 m now, and higher.
+  const rise=terrainSmooth(TERRAIN_FLAT_R,TERRAIN_FLAT_R+70,r), foot=terrainSmooth(520,690,r);
+  // A low base with a wide swing: distinct hills with level valley floors
+  // between them, rather than one broad swell nobody could see the shape of.
+  return rise*terrainFloor(2.5+terrainFbm(x*.0105,z*.0105)*12)
+       + foot*terrainFloor(12+terrainFbm(x*.004+40,z*.004)*6);
+}
+function brookNearest(x,z){
+  let best={d:Infinity,level:0,hw:0};
+  for(let i=0;i<BROOK.length-1;i++){
+    const p=BROOK[i], q=BROOK[i+1], dx=q.x-p.x, dz=q.z-p.z, len2=dx*dx+dz*dz;
+    const t=len2?Math.max(0,Math.min(1,((x-p.x)*dx+(z-p.z)*dz)/len2)):0;
+    const d=Math.hypot(x-(p.x+dx*t),z-(p.z+dz*t));
+    if(d<best.d)best={d,level:p.level+(q.level-p.level)*t,hw:p.hw+(q.hw-p.hw)*t};
+  }
+  return best;
+}
+function nearBrook(x,z,pad=0){
+  if(!BROOK_READY||x<BROOK_BOX.minX-pad||x>BROOK_BOX.maxX+pad||z<BROOK_BOX.minZ-pad||z>BROOK_BOX.maxZ+pad)return false;
+  const near=brookNearest(x,z); return near.d<near.hw+pad;
+}
+function terrainShaped(x,z){
+  let h=terrainRaw(x,z);
+  if(h>0){
+    // Anything authored flat keeps its flat, with a verge before the slope
+    // starts. The verge has to be a full cell diagonal (8.5 m) wide: at four
+    // metres, once the hills were steep enough to see, triangles reaching from
+    // the verge lifted the ground 8 cm through the track in 22 of 8,900 samples.
+    let keep=1;
+    for(const road of TERRAIN_ROADS){
+      const along=Math.max(0,Math.min(road.len,(x-road.x1)*road.ux+(z-road.z1)*road.uz));
+      const d=Math.hypot(x-(road.x1+road.ux*along),z-(road.z1+road.uz*along))-road.w*.5;
+      keep=Math.min(keep,terrainSmooth(8.5,26,d)); if(!keep)break;
+    }
+    for(const ring of TERRAIN_RINGS){ if(!keep)break; keep=Math.min(keep,terrainSmooth(8.5,26,Math.abs(Math.hypot(x,z)-ring.r)-ring.w*.5)); }
+    // A grid cell is 8.5 m corner to corner, so the slope starts that far past
+    // a clearing's edge: no triangle can then reach in and lift any of it.
+    // Measured before this: up to 23 cm of rise inside the ruins' clearing.
+    for(const c of WILD_CLEARINGS){ if(!keep)break; keep=Math.min(keep,terrainSmooth(8.5,30,Math.hypot(x-c.x,z-c.z)-c.r)); }
+    h*=keep;
+  }
+  const pd=Math.hypot(x-POND.x,z-POND.z);
+  if(pd<POND.r)h=Math.min(h,POND.deep*(1-terrainSmooth(0,POND.r,pd)));
+  if(BROOK_READY&&x>BROOK_BOX.minX-12&&x<BROOK_BOX.maxX+12&&z>BROOK_BOX.minZ-12&&z<BROOK_BOX.maxZ+12){
+    const near=brookNearest(x,z);
+    if(near.d<near.hw+10){
+      // The bed sits half a metre under the water, and the banks ease back up
+      // over ten metres — wider than a grid cell, for the same reason as above.
+      const bed=near.level-.55, t=terrainSmooth(near.hw+.6,near.hw+10,near.d);
+      h=Math.min(h,bed+(Math.max(h,bed)-bed)*t);
+    }
+  }
+  return h;
+}
+// A brook off the foot of the western peaks, down to the pond. Its water only
+// ever runs downhill: each point may be no higher than the one above it and
+// no higher than the ground under it allows.
+function planBrook(){
+  BROOK.length=0; BROOK_READY=false;
+  const pondA=Math.atan2(POND.z,POND.x), pondR=Math.hypot(POND.x,POND.z);
+  const srcA=pondA+.07, srcR=600, endR=pondR+12, steps=38;
+  let level=Infinity;
+  for(let i=0;i<=steps;i++){
+    const s=i/steps, bend=Math.sin(s*Math.PI*2.6+.8)*(1-s)*.02;
+    const a=srcA+(pondA-srcA)*s+bend, r=srcR+(endR-srcR)*s, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    const ground=Math.min(terrainShaped(x,z),terrainShaped(x+2.5,z),terrainShaped(x-2.5,z),terrainShaped(x,z+2.5),terrainShaped(x,z-2.5));
+    level=Math.min(level,ground-.6);
+    BROOK.push({x,z,level,hw:1.1+s*1.2});
+  }
+  // Level into the pond, and never below it — a hair above, so the two water
+  // surfaces do not fight where they meet.
+  for(const p of BROOK)p.level=Math.max(p.level,POND.level+.02);
+  BROOK_BOX={minX:Math.min(...BROOK.map(p=>p.x)),maxX:Math.max(...BROOK.map(p=>p.x)),
+             minZ:Math.min(...BROOK.map(p=>p.z)),maxZ:Math.max(...BROOK.map(p=>p.z))};
+  BROOK_READY=true;
+}
+function raiseTerrain(){
+  const reach=TERRAIN_FLAT_R-30;
+  TERRAIN_ROADS=ROAD_RECTS.filter(road=>Math.max(Math.hypot(road.x1,road.z1),Math.hypot(road.x1+road.ux*road.len,road.z1+road.uz*road.len))>reach);
+  TERRAIN_RINGS=ROAD_RINGS.filter(ring=>ring.r+ring.w>reach);
+  planBrook();
+  const V=TERRAIN_N+1, H=new Float32Array(V*V);
+  for(let j=0;j<V;j++){ const z=-M/2+j*TERRAIN_STEP; for(let i=0;i<V;i++)H[i+j*V]=terrainShaped(-M/2+i*TERRAIN_STEP,z); }
+  TERRAIN_H=H;
+  const positions=new Float32Array(V*V*3), uvs=new Float32Array(V*V*2), colors=new Float32Array(V*V*3), index=[];
+  for(let j=0;j<V;j++)for(let i=0;i<V;i++){ const k=i+j*V, x=-M/2+i*TERRAIN_STEP, z=-M/2+j*TERRAIN_STEP;
+    positions[k*3]=x; positions[k*3+1]=H[k]; positions[k*3+2]=z;
+    uvs[k*2]=(x+M/2)/M; uvs[k*2+1]=(z+M/2)/M; }
+  // The city floor covers everything inside its radius, so the cells wholly
+  // under it are not drawn at all.
+  const covered=OUTER_CITY_R-6;
+  for(let j=0;j<TERRAIN_N;j++)for(let i=0;i<TERRAIN_N;i++){
+    const x0=-M/2+i*TERRAIN_STEP, z0=-M/2+j*TERRAIN_STEP, x1=x0+TERRAIN_STEP, z1=z0+TERRAIN_STEP;
+    if(Math.max(Math.hypot(x0,z0),Math.hypot(x1,z0),Math.hypot(x0,z1),Math.hypot(x1,z1))<covered)continue;
+    const a=i+j*V, b=i+(j+1)*V, c=i+1+(j+1)*V, d=i+1+j*V;
+    index.push(a,b,d, b,c,d);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geometry.setAttribute('uv',new THREE.BufferAttribute(uvs,2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  // Bare earth shows on the steeper slopes and the high ground cools a little,
+  // so a hill reads as a hill at night when the texture alone cannot say so.
+  // At night a flat-shaded dark texture shows almost no difference between a
+  // slope and a valley floor, so the first pass of these hills was invisible
+  // from the walls even at twenty metres high. The side facing the moon takes
+  // the light and the far side falls into shade; on flat ground the factor is
+  // exactly 1, so nothing inside the walls changes colour.
+  const normals=geometry.attributes.normal, moonDir=moon.position.clone().sub(moon.target.position).normalize();
+  const flatLight=Math.max(0,moonDir.y);
+  for(let k=0;k<V*V;k++){
+    const nx=normals.getX(k), ny=normals.getY(k), nz=normals.getZ(k);
+    const steep=Math.min(1,(1-ny)*5), high=Math.min(1,Math.max(0,H[k]/18)), wet=H[k]<0?.72:1;
+    const facing=Math.max(0,nx*moonDir.x+ny*moonDir.y+nz*moonDir.z);
+    const shade=Math.max(.45,Math.min(1.6,1+(facing-flatLight)*2.6));
+    colors[k*3]  =(1+steep*.14)*(1-high*.07)*wet*shade;
+    colors[k*3+1]=(1-steep*.06)*(1+high*.03)*wet*shade;
+    colors[k*3+2]=(1-steep*.2)*(1+high*.1)*wet*shade;
+  }
+  geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  ground.geometry.dispose(); ground.geometry=geometry;
+  ground.material.vertexColors=true; ground.material.needsUpdate=true;
+}
+// The surface you can see, read off the same triangles the mesh draws.
+function terrainAt(x,z){
+  if(!TERRAIN_H)return 0;
+  const gx=(x+M/2)/TERRAIN_STEP, gz=(z+M/2)/TERRAIN_STEP;
+  if(gx<0||gz<0||gx>=TERRAIN_N||gz>=TERRAIN_N)return 0;
+  const i=Math.floor(gx), j=Math.floor(gz), fx=gx-i, fz=gz-j, V=TERRAIN_N+1, H=TERRAIN_H;
+  const ha=H[i+j*V], hb=H[i+(j+1)*V], hc=H[i+1+(j+1)*V], hd=H[i+1+j*V];
+  return fx+fz<=1 ? ha+(hd-ha)*fx+(hb-ha)*fz : hc+(hb-hc)*(1-fx)+(hd-hc)*(1-fz);
+}
+function waterDepthAt(x,z){
+  if(!TERRAIN_H)return 0;
+  let depth=0;
+  if(Math.abs(x-POND.x)<POND.r&&Math.abs(z-POND.z)<POND.r)depth=Math.max(0,POND.level-terrainAt(x,z));
+  if(nearBrook(x,z,0))depth=Math.max(depth,brookNearest(x,z).level-terrainAt(x,z));
+  return depth;
+}
+
+// Water that behaves like water at night: dark, holding the sky's colour at a
+// glancing angle, with the moon's glint moving across it. One shader for the
+// pond and the brook; the brook adds a current along its length.
+const WATER_MATERIALS=[];
+const WATER_VERT=`
+varying vec3 vWorld; varying vec2 vUv;
+#include <fog_pars_vertex>
+void main(){
+  vUv=uv;
+  vec4 world=modelMatrix*vec4(position,1.0); vWorld=world.xyz;
+  vec4 mvPosition=viewMatrix*world;
+  gl_Position=projectionMatrix*mvPosition;
+  #include <fog_vertex>
+}`;
+const WATER_FRAG=`
+uniform float uTime; uniform float uFlow;
+uniform vec3 uDeep; uniform vec3 uSky; uniform vec3 uGlint; uniform vec3 uMoon;
+varying vec3 vWorld; varying vec2 vUv;
+#include <fog_pars_fragment>
+void main(){
+  vec2 p=vWorld.xz;
+  float w1=sin(p.x*.9+uTime*1.3+sin(p.y*.7)*1.2);
+  float w2=sin(p.y*1.3-uTime*1.1+sin(p.x*.5+uTime*.3));
+  float w3=sin(vUv.y*5.0-uTime*3.2)*uFlow;
+  vec3 n=normalize(vec3(w1*.09+w3*.07,1.0,w2*.09));
+  vec3 view=normalize(cameraPosition-vWorld);
+  float fres=pow(1.0-max(dot(n,view),0.0),3.0);
+  vec3 col=mix(uDeep,uSky,.22+fres*.78);
+  float glint=pow(max(dot(n,normalize(uMoon+view)),0.0),90.0);
+  col+=uGlint*glint*1.5;
+  gl_FragColor=vec4(col,.9);
+  #include <fog_fragment>
+}`;
+function waterMaterial(flow){
+  const material=new THREE.ShaderMaterial({
+    uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{
+      uTime:{value:0}, uFlow:{value:flow}, uDeep:{value:new THREE.Color(0x061220)},
+      uSky:{value:new THREE.Color(0x2a2346)}, uGlint:{value:new THREE.Color(0xd8e4ff)},
+      uMoon:{value:moon.position.clone().sub(moon.target.position).normalize()}}]),
+    vertexShader:WATER_VERT, fragmentShader:WATER_FRAG,
+    fog:true, transparent:true, depthWrite:false, side:THREE.DoubleSide });
+  WATER_MATERIALS.push(material);
+  return material;
+}
+function updateWater(t){
+  for(const material of WATER_MATERIALS){
+    material.uniforms.uTime.value=t;
+    // The water holds whatever colour the sky is tonight.
+    material.uniforms.uSky.value.copy(scene.fog.color).multiplyScalar(2.4);
+  }
+}
+function brookWater(){
+  if(!BROOK_READY)return;
+  const positions=[], uvs=[], index=[];
+  let run=0;
+  BROOK.forEach((p,i)=>{
+    const q=BROOK[Math.min(i+1,BROOK.length-1)], o=BROOK[Math.max(i-1,0)];
+    const dx=q.x-o.x, dz=q.z-o.z, len=Math.hypot(dx,dz)||1, nx=-dz/len, nz=dx/len;
+    if(i)run+=Math.hypot(p.x-BROOK[i-1].x,p.z-BROOK[i-1].z);
+    positions.push(p.x+nx*p.hw,p.level,p.z+nz*p.hw, p.x-nx*p.hw,p.level,p.z-nz*p.hw);
+    uvs.push(0,run/8, 1,run/8);
+    if(i<BROOK.length-1){ const k=i*2; index.push(k,k+1,k+2, k+1,k+3,k+2); }
+  });
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+  geometry.setIndex(index); geometry.computeVertexNormals();
+  const mesh=new THREE.Mesh(geometry,waterMaterial(1)); mesh.renderOrder=2; scene.add(mesh);
+  // Where it rises: a few wet stones round the spring.
+  const src=BROOK[0];
+  for(let i=0;i<7;i++){ const a=i/7*6.28+rand(-.3,.3), r=src.hw+rand(.6,1.8), x=src.x+Math.cos(a)*r, z=src.z+Math.sin(a)*r, s=rand(.45,1.1);
+    aBox(s,s*.6,s*.8,x,terrainAt(x,z)+s*.22,z,'stone',rand(0,3.1)); }
+}
+
 function cityFloor(){
   // Packed earth, not pavement. The city used to be continuous hardscape in a
   // cobble texture one shade off the roads, so every street dissolved into the
@@ -5178,6 +5446,7 @@ function graveyard(cx,cz){ for(let i=0;i<40;i++){ const x=cx+rand(-14,14), z=cz+
 // every piece sits on the earth it fell on, and it is masonry.
 function ruins(cx,cz){
   for(let i=0;i<10;i++){ const x=cx+rand(-16,16),z=cz+rand(-16,16),w=rand(2,6),h=rand(1.5,5),ry=rand(0,3.1);
+    if(onRoad(x,z,w*.5+1))continue;
     aBox(w,h,1.4,x,h/2-.2,z,'stone',ry); addCollider(x,z,1.4);
     // A wall does not end in a clean horizontal. Knock a stub off one end.
     if(worldRandom()<.6){ const sh=h*rand(.3,.7);
@@ -5186,12 +5455,25 @@ function ruins(cx,cz){
     for(let b=0;b<3;b++){ const br=rand(.4,1.1);
       aBox(br,br*.6,br,x+rand(-3.4,3.4),br*.3-.1,z+rand(-3.4,3.4),'stone',rand(0,3.1)); } }
   for(let i=0;i<7;i++){ const x=cx+rand(-14,14),z=cz+rand(-14,14),h=rand(3,7);
+    if(onRoad(x,z,1.6))continue;
     aCyl(0.6,0.7,h,8,x,h/2,z,'stone'); addCollider(x,z,0.7);
     // the drum that came off the top, lying where it landed
     if(worldRandom()<.5)aCyl(.62,.62,.7,8,x+rand(-2.6,2.6),.35,z+rand(-2.6,2.6),'stone'); }
   aBox(4,0.6,4,cx,0.3,cz,'cobble'); }
-function pond(cx,cz){ const w=new THREE.Mesh(new THREE.CircleGeometry(13,36).rotateX(-Math.PI/2), new THREE.MeshStandardMaterial({color:0x16324f,emissive:0x0c2440,emissiveIntensity:0.4,transparent:true,opacity:0.85,roughness:0.3})); w.position.set(cx,0.08,cz); scene.add(w);
-  for(let i=0;i<24;i++){ const a=rand(0,6.28),r=rand(13,15),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r; aCyl(0.05,0.08,rand(1,2),4,x,0.8,z,'wood'); } }
+function pond(cx,cz){
+  // Real water now, sitting in a basin rather than a painted disc on flat
+  // grass. The disc runs a little past the shoreline so the bank hides its edge.
+  const water=new THREE.Mesh(new THREE.CircleGeometry(POND.r-2.5,48).rotateX(-Math.PI/2),waterMaterial(0));
+  water.position.set(cx,POND.level,cz); water.renderOrder=2; scene.add(water);
+  for(let i=0;i<24;i++){ const a=rand(0,6.28),r=rand(13,15),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r,tall=rand(1,2);
+    aCyl(0.05,0.08,tall,4,x,terrainAt(x,z)+tall*.5-.15,z,'wood'); }
+  // Lily pads, well out from the bank — one mesh, not fourteen draw calls.
+  const pads=[];
+  for(let i=0;i<14;i++){ const a=rand(0,6.28),r=rand(3,10),x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r,s=rand(.35,.7);
+    pads.push(new THREE.CircleGeometry(s,7).rotateX(-Math.PI/2).rotateY(rand(0,6.28)).translate(x,POND.level+.02,z)); }
+  scene.add(new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(pads),MATS.foliage));
+  brookWater();
+}
 function stones(cx,cz){ for(let i=0;i<10;i++){ const a=i/10*6.28,x=cx+Math.cos(a)*7,z=cz+Math.sin(a)*7; aBox(1,rand(3,4.5),0.8,x,2,z,'stone',a); addCollider(x,z,0.7); } aBox(2.4,0.8,2.4,cx,0.4,cz,'stone'); shrineCrystal(cx,cz); }
 const MTN_PARTS=[];
 // A cone is a pyramid, and six flat faces meeting at a point is what read as
@@ -6276,8 +6558,10 @@ function stairAt(x,z){
   return null;
 }
 function surfaceAt(x,z){
-  const a=walkAt(x,z), b=stairAt(x,z);
-  return Math.max(0, a===null?0:a, b===null?0:b);
+  // The ground itself first — flat inside the walls, rolling past them, and
+  // below zero in the pond — then anything built above it.
+  const a=walkAt(x,z), b=stairAt(x,z), land=terrainAt(x,z);
+  return Math.max(land, a===null?land:a, b===null?land:b);
 }
 function citadelWall(R=CITY_RADIUS,H=12){ const seg=Math.max(160,Math.round(R*.67));
   const gateDeg=(GATE_HALF_WIDTH/R)*180/Math.PI;
@@ -6355,10 +6639,10 @@ function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.
   const depth=r-edge;
   const density=depth<0?.12*Math.max(0,1+depth/30):Math.min(1,.3+depth/60);
   if(rand(0,1)>density)continue;
-  if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(Math.hypot(x+660,z+400)<34||Math.hypot(x-660,z+386)<34||Math.hypot(x+664,z-400)<35||Math.hypot(x-662,z-392)<31)continue;  // Scrub at the margin, full canopy once inside. The edge stops looking like
+  if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(inWildClearing(x,z,2)||nearBrook(x,z,4.5))continue;  // Scrub at the margin, full canopy once inside. The edge stops looking like
   // full-grown trees that were simply cut off at a radius.
   const maturity=Math.max(.55,Math.min(1,depth/70));
-  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
+  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;const foot=terrainAt(x,z)-.18*width;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,foot+h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,foot+h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,foot+h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
 // What is left outside the wall. The old greater city stood here and the
 // forest has taken it back; a broken ring of its wall still shows through the
 // trees, which is both a nicer thing to walk out to than an empty field and an
@@ -6370,6 +6654,10 @@ function ruinedRing(radius){
     // Two thirds of it has fallen. What stands is broken to different heights.
     if(worldRandom()<.62)continue;
     const x=Math.cos(a)*radius, z=Math.sin(a)*radius, h=rand(1.6,5.4), w=rand(5,13);
+    // The ring runs five metres from every landmark, so it used to stand a
+    // stretch of wall across the stones, the graveyard and the pond. It keeps
+    // clear of them now, and of the track.
+    if(inWildClearing(x,z,w*.5+3)||onRoad(x,z,w*.5+2))continue;
     // One clean box with a flat top is a wall, not a ruin — it was reading as a
     // building somebody had left in the forest. Break the run into stubs of
     // different heights with gaps between them, sink each one into the ground
@@ -6380,23 +6668,30 @@ function ruinedRing(radius){
     for(let piece=0;piece<stubs;piece++){
       const pw=w/stubs*rand(.55,.95), ph=h*rand(.42,1);
       const px=x+ux*(t+pw*.5), pz=z+uz*(t+pw*.5);
-      aBox(pw,ph,2.2,px,ph/2-.35,pz,'stone',-a);
+      // On a slope the downhill end would stand on air. Found the stub on the
+      // lowest ground under it and let the uphill end run into the bank.
+      const low=Math.min(terrainAt(px-ux*pw*.5,pz-uz*pw*.5),terrainAt(px+ux*pw*.5,pz+uz*pw*.5),terrainAt(px,pz));
+      const tall=terrainAt(px,pz)-low+ph;
+      aBox(pw,tall,2.2,px,low+tall/2-.35,pz,'stone',-a);
       wallColl(px-ux*pw*.45,pz-uz*pw*.45,px+ux*pw*.45,pz+uz*pw*.45,1.2);
       t+=w/stubs;
     }
     for(let b=0;b<4;b++){ const br=rand(.5,1.4);
-      aBox(br,br*.55,br*.8,x+ux*rand(-w*.6,w*.6)+Math.cos(a)*rand(-3.2,3.2),br*.27-.1,
-           z+uz*rand(-w*.6,w*.6)+Math.sin(a)*rand(-3.2,3.2),'stone',rand(0,3.1)); }
+      const bx=x+ux*rand(-w*.6,w*.6)+Math.cos(a)*rand(-3.2,3.2), bz=z+uz*rand(-w*.6,w*.6)+Math.sin(a)*rand(-3.2,3.2);
+      aBox(br,br*.55,br*.8,bx,terrainAt(bx,bz)+br*.27-.1,bz,'stone',rand(0,3.1)); }
     if(worldRandom()<.4){ const rh=rand(.4,1.1);
-      aBox(rand(1.4,3),rh,rand(1.4,3),x+Math.cos(a)*rand(-4,4),rh/2,z+Math.sin(a)*rand(-4,4),'stone',rand(0,3.1)); }
+      const rw=rand(1.4,3), rd=rand(1.4,3), rx=x+Math.cos(a)*rand(-4,4), rz=z+Math.sin(a)*rand(-4,4);
+      aBox(rw,rh,rd,rx,terrainAt(rx,rz)+rh/2,rz,'stone',rand(0,3.1)); }
     if(worldRandom()<.22){ const th=rand(7,11), intact=worldRandom()<.4;
-      aCyl(2.1,2.6,th,7,x,th/2,z,'stone'); addCollider(x,z,2.4);
-      if(intact){ aCone(3.1,2.4,7,x,th+1.2,z,'slate'); }
+      const top=terrainAt(x,z)+th, foot=Math.min(terrainAt(x+2.6,z),terrainAt(x-2.6,z),terrainAt(x,z+2.6),terrainAt(x,z-2.6))-.4;
+      aCyl(2.1,2.6,top-foot,7,x,(top+foot)/2,z,'stone'); addCollider(x,z,2.4);
+      if(intact){ aCone(3.1,2.4,7,x,top+1.2,z,'slate'); }
       else{ // a broken crown: merlons of uneven height where the roof came off
         for(let m=0;m<7;m++){ const ma=m/7*6.28, mh=rand(.5,1.9);
-          aBox(1.5,mh,1.1,x+Math.cos(ma)*2.1,th+mh/2-.2,z+Math.sin(ma)*2.1,'stone',-ma); } } }
+          aBox(1.5,mh,1.1,x+Math.cos(ma)*2.1,top+mh/2-.2,z+Math.sin(ma)*2.1,'stone',-ma); } } }
   }
 }
+
 // Cold lights that drift between the trees. Emissive geometry on the shared
 // batch rather than real lights: forty of them would cost more than the city.
 let wispField=null;
@@ -6415,13 +6710,62 @@ function wisps(){
   scene.add(wispField.points);
 }
 function updateWisps(t){
+  updateWater(t);
   if(!wispField)return;
   const position=wispField.points.geometry.attributes.position;
   wispField.drift.forEach((w,i)=>{
     const a=w.a+t*w.speed*.14;
-    position.setXYZ(i,Math.cos(a)*w.r,w.y+Math.sin(t*.6+w.phase)*.5,Math.sin(a)*w.r);
+    const wx=Math.cos(a)*w.r, wz=Math.sin(a)*w.r;
+    position.setXYZ(i,wx,terrainAt(wx,wz)+w.y+Math.sin(t*.6+w.phase)*.5,wz);
   });
   position.needsUpdate=true;
+}
+// The tracks beyond the wall. Four gate avenues left the city and every one of
+// them stopped dead at radius 426, while the four landmarks stand at 467 on the
+// diagonals between them — so there was no way to any of them but to push
+// through four thousand trees and hope. A place nobody can find is not a place.
+//
+// One earth track now runs round the city along the tree line, with each gate
+// road running on to meet it. Every landmark opens off it in its own clearing,
+// and a waymark stands at each crossroads pointing both ways.
+const WILD_TRACK_R=440, WILD_TRACK_W=5.5;
+function wildTrackStrip(x1,z1,x2,z2,w){
+  const dx=x2-x1, dz=z2-z1, len=Math.hypot(dx,dz);
+  ROAD_RECTS.push({x1,z1,len,w,ux:dx/len,uz:dz/len,
+    minX:Math.min(x1,x2)-w,maxX:Math.max(x1,x2)+w,minZ:Math.min(z1,z2)-w,maxZ:Math.max(z1,z2)+w});
+  return tileFlatUV(new THREE.PlaneGeometry(w,len).rotateX(-Math.PI/2).rotateY(Math.atan2(dx,dz)).translate((x1+x2)/2,0,(z1+z2)/2),7);
+}
+function wildTracks(){
+  const parts=[];
+  registerRing(WILD_TRACK_R,WILD_TRACK_W);
+  parts.push(tileFlatUV(new THREE.RingGeometry(WILD_TRACK_R-WILD_TRACK_W/2,WILD_TRACK_R+WILD_TRACK_W/2,280,1).rotateX(-Math.PI/2),7));
+  // The paving gives out where the gate road used to stop, and the track
+  // carries on from there.
+  MID_GATE_DEG.forEach(g=>{ const a=g*Math.PI/180, r0=OUTER_WALL_R+44;
+    parts.push(wildTrackStrip(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(a)*WILD_TRACK_R,Math.sin(a)*WILD_TRACK_R,6)); });
+  const track=new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(parts),MATS.dirt);
+  track.position.y=.045; track.receiveShadow=true; scene.add(track);
+
+  // A signpost on the far side of each crossroads, one arm to each of the two
+  // landmarks either side of that gate.
+  MID_GATE_DEG.forEach(g=>{
+    const a=g*Math.PI/180, out=WILD_TRACK_R+WILD_TRACK_W*.5+1.5;
+    const px=Math.cos(a)*out+Math.cos(a+Math.PI/2)*4.5, pz=Math.sin(a)*out+Math.sin(a+Math.PI/2)*4.5;
+    aCyl(.12,.16,3.2,5,px,1.6,pz,'wood'); addCollider(px,pz,.32);
+    WILD_CLEARINGS.map(c=>({c,d:Math.hypot(c.x-px,c.z-pz)})).sort((p,q)=>p.d-q.d).slice(0,2).forEach((near,k)=>{
+      const ry=Math.atan2(near.c.x-px,near.c.z-pz);          // local +Z points at it
+      aBox(.1,.34,1.6,px+Math.sin(ry)*.8,2.55-k*.5,pz+Math.cos(ry)*.8,'wood',ry);
+    });
+    cityLantern(Math.cos(a)*out-Math.cos(a+Math.PI/2)*4.5,Math.sin(a)*out-Math.sin(a+Math.PI/2)*4.5,true);
+  });
+  // A cairn on the verge where each landmark opens off the track, so you can
+  // tell the turning in the dark.
+  WILD_CLEARINGS.forEach(c=>{
+    const a=Math.atan2(c.z,c.x), r=WILD_TRACK_R+WILD_TRACK_W*.5+1.4, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    let y=0;
+    for(const s of[1.15,.85,.55]){ aBox(s,s*.5,s,x,y+s*.25,z,'stone',rand(0,3.1)); y+=s*.5; }
+    addCollider(x,z,.7);
+  });
 }
 // The ring boulevard and the four gate approaches. These used to be laid inside
 // wilderness(), which runs after the wall and the wards are already standing —
@@ -6587,9 +6931,9 @@ function cityClutter(){
     aBox(rand(.35,.65),rand(.45,1),rand(.35,.65),x,rand(.25,.5),z,'wood',rand(0,.8));addCollider(x,z,.42);if(i%3===0)aCyl(.28,.32,.7,8,x+rand(-.5,.5),.35,z+rand(-.5,.5),'stone');}
   [[-52,105],[52,105],[-150,6],[151,5],[-15,174],[17,174]].forEach((raw,index)=>{const spot=offRoad(raw[0],raw[1],1.3,7); if(!spot)return; aBox(3,.16,.55,spot[0],.78,spot[1],'wood',index%2?Math.PI/2:0);aBox(.16,.75,.16,spot[0]-1.05,.39,spot[1],'wood');aBox(.16,.75,.16,spot[0]+1.05,.39,spot[1],'wood');addCollider(spot[0],spot[1],1.55);});
 }
-function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<OUTER_CITY_R)return false;if(onRoad(x,z,1.5))return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
-function plantLife(){const positions=[];let tries=0;while(positions.length<3200&&tries++<24000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+20,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,h*.5,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
-  const bloom=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.075,0),new THREE.MeshBasicMaterial({color:0xd5a1e8,vertexColors:true}),Math.min(260,positions.length)),bloomMatrix=new THREE.Matrix4();for(let i=0;i<Math.min(260,positions.length);i++){const[x,z,h]=positions[(i*13)%positions.length];bloomMatrix.makeTranslation(x,h*.92,z);bloom.setMatrixAt(i,bloomMatrix);bloom.setColorAt(i,new THREE.Color(i%3?0xd5a1e8:0xf1c56c));}bloom.instanceMatrix.needsUpdate=true;if(bloom.instanceColor)bloom.instanceColor.needsUpdate=true;scene.add(bloom);}
+function openGroundForGrass(x,z){const radius=Math.hypot(x,z);if(Math.abs(x)<7||Math.abs(z)<7||Math.hypot(x,z-MARKET_Z)<31||radius<OUTER_CITY_R)return false;if(onRoad(x,z,1.5))return false;if(waterDepthAt(x,z)>0||nearBrook(x,z,1.5))return false;for(const ring of[64,126,190])if(Math.abs(radius-ring)<5)return false;for(const collider of collidersNearPoint(x,z)){const dx=x-collider.x,dz=z-collider.z,reach=collider.r+1.05;if(dx*dx+dz*dz<reach*reach)return false;}return true;}
+function plantLife(){const positions=[];let tries=0;while(positions.length<3200&&tries++<24000){const a=rand(0,Math.PI*2),r=rand(OUTER_CITY_R+20,M*.47),x=Math.cos(a)*r,z=Math.sin(a)*r;if(openGroundForGrass(x,z))positions.push([x,z,rand(.34,.82),rand(.7,1.35)]);}const blade=new THREE.ConeGeometry(.06,.76,3),mat=new THREE.MeshStandardMaterial({color:0x4a7c42,roughness:1,flatShading:true,vertexColors:true,emissive:0x071106,emissiveIntensity:.2}),mesh=new THREE.InstancedMesh(blade,mat,positions.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),turn=new THREE.Quaternion(),colors=[0x365e35,0x4d8041,0x5f8c49,0x2c5133];positions.forEach((bladeData,index)=>{const[x,z,h,width]=bladeData;position.set(x,terrainAt(x,z)+h*.5-.05,z);scale.set(width,h/.76,width);turn.setFromEuler(new THREE.Euler(rand(-.13,.13),rand(0,6.28),rand(-.13,.13)));matrix.compose(position,turn,scale);mesh.setMatrixAt(index,matrix);mesh.setColorAt(index,new THREE.Color(pick(colors)));});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
+  const bloom=new THREE.InstancedMesh(new THREE.OctahedronGeometry(.075,0),new THREE.MeshBasicMaterial({color:0xd5a1e8,vertexColors:true}),Math.min(260,positions.length)),bloomMatrix=new THREE.Matrix4();for(let i=0;i<Math.min(260,positions.length);i++){const[x,z,h]=positions[(i*13)%positions.length];bloomMatrix.makeTranslation(x,terrainAt(x,z)+h*.92,z);bloom.setMatrixAt(i,bloomMatrix);bloom.setColorAt(i,new THREE.Color(i%3?0xd5a1e8:0xf1c56c));}bloom.instanceMatrix.needsUpdate=true;if(bloom.instanceColor)bloom.instanceColor.needsUpdate=true;scene.add(bloom);}
 function cityLifeDetails(){
   const banner=(x,z,ry=0,material='cloth')=>{const sx=Math.sin(ry),cz=Math.cos(ry);aBox(.1,4.1,.1,x,2.05,z,'wood');aBox(1.25,1.5,.05,x+sx*.62,3.02,z+cz*.62,material,ry);};
   const awning=(x,z,ry=0,material='cloth')=>{const sx=Math.sin(ry),cz=Math.cos(ry);aBox(3.25,.13,1.45,x,3.02,z,material,ry);for(const side of[-1,1])aCyl(.07,.09,2.45,5,x+sx*side*1.38-cz*.5,1.23,z+cz*side*1.38+sx*.5,'wood');};
@@ -7255,6 +7599,8 @@ useWorldStream('outer-wall');citadelWall(OUTER_WALL_R,14);
 // there with no knowledge of what the authored passes had already built.
 // Vaneth is now one walled city inside CITY_RADIUS with wilderness beyond it,
 // which is both a better place and about a quarter of the geometry.
+LMSG.textContent='cutting the forest tracks…'; useWorldStream('wild-tracks');wildTracks();
+LMSG.textContent='shaping the hills…'; raiseTerrain();
 LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
 LMSG.textContent='raising the new halls…'; useWorldStream('new-landmarks');newQuarterLandmarks();
 LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
@@ -8868,6 +9214,14 @@ const STRAIN_REFERENCE_LIBRARY={
   // retailer records, so the aroma and terpene rows below are inferred from the
   // Red Hots half rather than read off a COA. `match` says so on the panel.
   'fawwk':{match:'Brand and one parent confirmed; the drop itself is not listed',lineage:'Mega Bite × Red Hots — Kaya Extracts (also trading as Kaya Farms), hand-washed live rosin. Red Hots is Apple Fritter × Indiana Bubblegum, from Lupos CannaSeed. Mega Bite and this cross return nothing in breeder or dispensary listings, so the drop is recent or regional.',terpenes:['limonene','caryophyllene','myrcene'],aromas:['candied apple','bubblegum','warm spice','sweet earth'],effects:['relaxed','euphoric','happy'],note:'Hand-washed live rosin from a house that presses a lot of it — Life Alert, Island Time, Kaya on Kaya are all theirs. The Red Hots side carries Apple Fritter’s sweet fruit-candy over Indiana Bubblegum and finishes spicy on the exhale. Mega Bite is undocumented, so the terpene and aroma rows here are read off the Red Hots half rather than a COA. Swap them for the label if you have it.'},
+  // Grower-supplied, 2026-09-13: an ounce of it, as rosin. Lemon Tree × Wedding
+  // Cake is the same in every record found — SeedFinder, Prime Cuts Nursery, and
+  // the rosin retailers carrying it. Who made the selection is not: SeedFinder
+  // files it under Clone Only Strains and one guide credits Lemon Tree Organics /
+  // Rasta Cruz Farms, so `match` does not claim a breeder. The listings also
+  // split on the lead terpene (limonene in one, pinene in SeedFinder), so both
+  // stay in, and they split on indica/sativa too, so neither ratio is quoted.
+  'tree flip':{match:'Nursery and database records; breeder not confirmed',lineage:'Lemon Tree (Lemon Skunk × Sour Diesel) × Wedding Cake — a clone-only selection',terpenes:['limonene','myrcene','caryophyllene','pinene'],aromas:['lemon zest','sweet cake','pine','light gas'],effects:['uplifted','creative','energetic','relaxed'],note:'Lemon Tree’s loud citrus over Wedding Cake’s sweet, doughy base, finishing a little gassy. Listings describe a bright lift first that settles into an easy body calm without weighing you down. Clone-only, and pressed as rosin by several solventless houses. The records disagree on whether limonene or pinene leads — the jar’s own label settles it.'},
   // Vaneth house jars
   'strawberry cheesecake':{match:'Baker’s garden notes',lineage:'Chronic × White Widow × Cheese',terpenes:[],aromas:['strawberry','cheese','sweet earth'],effects:['relaxed','happy','euphoric'],note:'Berry sweetness and tangy cheese settle into a soft, earthy finish.'},
   'island time':{match:'Wandering trader’s notes',lineage:'Banana OG × (Cherry Pie × Tangie) × Guava Cooler 3',terpenes:['earthy','citrus','woody'],aromas:['tropical citrus','mango','pine'],effects:['uplifted','relaxed','creative'],note:'Tropical fruit drifts in first, then a piney, easygoing finish.'},
@@ -8940,11 +9294,28 @@ const INITIAL_WAX_STOCK=[
   {name:'Orange Push Pop',form:'hash rosin'},
   {name:'Moroccan Peaches',form:'hash rosin'}
 ];
+// Jars that arrive after a ledger already exists. INITIAL_WAX_STOCK only ever
+// seeds a ledger once, so a new jar has to be delivered on its own. Each is
+// delivered once, by id: if it is later removed from the ledger, it stays gone.
+const WAX_ARRIVALS=[
+  {id:'tree-flip-2026-09-13',name:'Tree Flip',form:'hash rosin'}
+];
+function receiveWaxArrivals(){
+  const received=new Set(strainJournal.arrivals||[]), known=new Set(strainJournal.records.map(record=>strainKey(record.name)));
+  let changed=false;
+  WAX_ARRIVALS.forEach(jar=>{
+    if(received.has(jar.id))return;
+    received.add(jar.id); changed=true;
+    if(known.has(strainKey(jar.name)))return;
+    strainJournal.records.push(makeStrainRecord({id:'arrival-'+jar.id,name:jar.name,form:jar.form,terpenes:'',notes:'',createdAt:new Date().toISOString(),uses:[]}));
+  });
+  if(changed){ strainJournal.arrivals=[...received]; saveStrainJournal(); }
+}
 const SMOKE_TEMP_DEFAULT=475,SMOKE_SECONDS_DEFAULT=40;
 function smokeSessionTemp(value){if(value==null||String(value).trim()==='')return SMOKE_TEMP_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(302,Math.min(599,numeric)):SMOKE_TEMP_DEFAULT;}
 function smokeSessionSeconds(value){if(value==null||String(value).trim()==='')return SMOKE_SECONDS_DEFAULT;const numeric=Math.round(Number(value));return Number.isFinite(numeric)?Math.max(15,Math.min(120,numeric)):SMOKE_SECONDS_DEFAULT;}
 function makeStrainRecord(raw){raw=raw||{};const name=canonicalStrainName(raw.name);return {id:cleanStrainText(raw.id,96),name,form:cleanStrainText(raw.form,64)||'unspecified',terpenes:cleanStrainText(raw.terpenes,120),notes:cleanStrainText(raw.notes,360),createdAt:cleanStrainText(raw.createdAt,40),uses:Array.isArray(raw.uses)?raw.uses.filter(value=>typeof value==='string').slice(-100):[],sessionF:smokeSessionTemp(raw.sessionF),sessionSeconds:smokeSessionSeconds(raw.sessionSeconds),reference:referenceForStrain(name)||storedArchiveReference(raw.reference)};}
-function loadStrainJournal(){ try{ const saved=JSON.parse(localStorage.getItem(STRAIN_STORAGE_KEY)||'{}'),rawRecords=Array.isArray(saved.records)?saved.records:[],records=[],mergedInto=new Map;for(const raw of rawRecords){const record=makeStrainRecord(raw);if(!record.id||!record.name)continue;const prior=records.find(item=>strainKey(item.name)===strainKey(record.name));if(prior){mergedInto.set(record.id,prior.id);prior.uses=[...prior.uses,...record.uses].sort().slice(-100);if(prior.form==='unspecified'&&record.form!=='unspecified')prior.form=record.form;if(!prior.terpenes)prior.terpenes=record.terpenes;if(!prior.notes)prior.notes=record.notes;}else records.push(record);}const requestedId=typeof saved.currentId==='string'?saved.currentId:null,current=records.find(record=>record.id===(mergedInto.get(requestedId)||requestedId))||null;return {currentId:current?current.id:null,seededWaxStock:saved.seededWaxStock===true,records}; }catch{return {currentId:null,seededWaxStock:false,records:[]};} }
+function loadStrainJournal(){ try{ const saved=JSON.parse(localStorage.getItem(STRAIN_STORAGE_KEY)||'{}'),rawRecords=Array.isArray(saved.records)?saved.records:[],records=[],mergedInto=new Map;for(const raw of rawRecords){const record=makeStrainRecord(raw);if(!record.id||!record.name)continue;const prior=records.find(item=>strainKey(item.name)===strainKey(record.name));if(prior){mergedInto.set(record.id,prior.id);prior.uses=[...prior.uses,...record.uses].sort().slice(-100);if(prior.form==='unspecified'&&record.form!=='unspecified')prior.form=record.form;if(!prior.terpenes)prior.terpenes=record.terpenes;if(!prior.notes)prior.notes=record.notes;}else records.push(record);}const requestedId=typeof saved.currentId==='string'?saved.currentId:null,current=records.find(record=>record.id===(mergedInto.get(requestedId)||requestedId))||null;return {currentId:current?current.id:null,seededWaxStock:saved.seededWaxStock===true,arrivals:Array.isArray(saved.arrivals)?saved.arrivals.filter(id=>typeof id==='string').slice(-200):[],records}; }catch{return {currentId:null,seededWaxStock:false,arrivals:[],records:[]};} }
 let strainJournal=loadStrainJournal();
 const STRAIN_ARCHIVE_SEARCH='https://api.loyal9.app/v1/search?q=';
 // Rich smoke notes are fetched on demand from the MIT-licensed Grow Data catalog, then kept only as short tags.
@@ -9010,6 +9381,7 @@ document.getElementById('strainSessionF').addEventListener('change',saveCurrentS
 document.getElementById('strainSessionSeconds').addEventListener('change',saveCurrentSmokeRecipe);
 document.getElementById('strainSmoke').addEventListener('click',async()=>{const current=saveCurrentSmokeRecipe();if(!current)return;const bridge=globalThis.emberwatchPeakSession;if(!bridge?.beginStrainSession){showGameToast('Peak controls are still loading. Try again in a moment.');return;}const button=document.getElementById('strainSmoke');button.disabled=true;button.textContent='Preparing '+current.name+'…';try{await bridge.beginStrainSession({strainId:current.id,strainName:current.name,targetF:current.sessionF,seconds:current.sessionSeconds,npcKey:nearestVillager?livingNpcKey(nearestVillager):null});toggleStrains(false);}catch(error){showGameToast(error?.message||'The Peak session did not start.');}finally{button.disabled=false;renderStrainSession(currentStrain());}});
 seedWaxStock();
+receiveWaxArrivals();
 saveStrainJournal();
 renderStrainJournal();
 
@@ -10169,7 +10541,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r106',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r107',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -10179,7 +10551,7 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.elapsedTime;watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 const clock=new THREE.Clock(); let started=false,bob=0;
 // Starts full so the very first frame always draws: a hidden window gets rAF
@@ -10196,11 +10568,13 @@ function loop(){ requestAnimationFrame(loop);
   const mag=Math.hypot(f,r),moving=mag>0.06;
   const fwdX=-Math.sin(yaw),fwdZ=-Math.cos(yaw),rgtX=Math.cos(yaw),rgtZ=-Math.sin(yaw);
   if(moving){ let mx=fwdX*f+rgtX*r,mz=fwdZ*f+rgtZ*r; const ml=Math.hypot(mx,mz); mx/=ml; mz/=ml;
-    const sp=CONFIG.moveSpeed*((keys['ShiftLeft']||keys['ShiftRight'])?CONFIG.sprintMul:1)*dt*Math.min(mag,1);
+    // Water slows you: ankle-deep a little, waist-deep a lot.
+    const wade=waterDepthAt(player.x,player.z);
+    const sp=CONFIG.moveSpeed*((keys['ShiftLeft']||keys['ShiftRight'])?CONFIG.sprintMul:1)*dt*Math.min(mag,1)*(wade>.45?.5:wade>.12?.74:1);
     const nx=player.x+mx*sp,nz=player.z+mz*sp;
     // Above the rooftops the street-level colliders are not in the way any
     // more — you are standing on top of them.
-    const aloft=player.y>3.2;
+    const aloft=player.y-terrainAt(player.x,player.z)>3.2;
     const under=aloft?surfaceAt(player.x,player.z):0;
     // A drop of more than a step is an edge, and an edge is solid underfoot.
     // The tolerance is what lets you walk down a flight without being stopped
@@ -10216,11 +10590,13 @@ function loop(){ requestAnimationFrame(loop);
     // you: step off a rampart over a rooftop and you arrive at y=0 in the
     // middle of a house with every direction blocked. Put them on the nearest
     // walkable cell instead of leaving them in the masonry.
-    if(floor===0&&player.y<0&&colliderBlocked(player.x,player.z)){
+    if(floor<=terrainAt(player.x,player.z)+.001&&player.y<floor&&colliderBlocked(player.x,player.z)){
       const spot=navPlace(player.x,player.z); player.x=spot[0]; player.z=spot[1];
     }
     player.y=floor; player.vy=0; player.onGround=true;
   }
+  // Walking downhill used to mean a series of tiny falls. Stay on the slope.
+  else if(player.onGround&&player.vy<=0&&player.y-floor<.6){ player.y=floor; player.vy=0; }
   bob+=moving&&player.onGround?dt*9:0;
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateVillagers(t,dt); sampleResidentFlow(t); updateWisps(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);

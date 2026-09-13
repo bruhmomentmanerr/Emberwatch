@@ -1,13 +1,15 @@
-**r106 — honest diagnostics** · 2026-09-06 · phase 5, world depth
+**r107 — hills and water** · 2026-09-13 · phase 5, world depth
 
 ### Summary
 
-the diagnostics stopped lying. outerWards() was removed back at r85 but the three fields it fed were left wired to a stub returning hardcoded zeros, so diagnostics().city reported outerBuildings:0, outerSquares:0 and outerYardDetails:0 — three numbers naming a system that no longer exists, which read as "the outer city is empty" to anything trusting them. EMBER.wards pointed at the same stub. wilderness() now counts what each pass actually leaves: 8 features, 1,096 colliders (forest 840, graveyard 130, ruined ring 84). EMBER.wards is now EMBER.wilderness. Also new: tools/check-parse.js and tools/audit-dom.js, which cross-checks markup ids against script lookups in both directions — the audit that would have caught r85's dead settings panel. And PROJECT.md, the single-file rundown of the whole project.
+hills and water, and a way out to them. Past radius 404 the ground now rolls into hills rising to about 25 m under the peaks; the city inside stays flat. terrainAt() reads the same triangles the mesh draws, so feet stay on the visible surface — a walk uphill measured a worst gap of 0 between the player and the ground. Foxglove Pond is real water in a 1.16 m basin, fed by a brook off the western peaks whose water only runs downhill. The four gate avenues used to stop at 426 with the landmarks at 467 and no path to any of them. An earth ring track at 440 now joins every gate road to every landmark, with signposts, lanterns and cairns. Found on the way: trees growing in the pond (5), the graveyard (5) and the ruins (3), because the forest was still avoiding where the landmarks stood before the rescale. Now 0. "Aloft" was y > 3.2, which on a hill would have switched off collision with every tree on it. r0's diagnostics had thrown on every call since r106 — the variant builder never runs what it builds — so tools/check-variants.js now boots all six. The harness moved into tools/harness and can take screenshots. Tree Flip (Lemon Tree × Wedding Cake, rosin) joined the strain ledger. Cost: +1 draw call, +100k triangles, about +1.5 ms a frame in the software harness.
+
+Also: hills and water beyond the wall, the ring track, Tree Flip in the ledger, `tools/harness` + `check-variants.js`
 
 ### In the code
 
-- 1.20 MB (+529 bytes on r105).
-- No functions added or removed.
+- 1.22 MB (+21,600 bytes on r106).
+- 20 functions added: `brookNearest`, `brookWater`, `inWildClearing`, `nearBrook`, `planBrook`, `raiseTerrain`, `receiveWaxArrivals`, `terrainAt`, `terrainFbm`, `terrainFloor`, `terrainHash`, `terrainNoise`, `terrainRaw`, `terrainShaped`, `terrainSmooth`, `updateWater`, `waterDepthAt`, `waterMaterial`, `wildTrackStrip`, `wildTracks`.
 
 ### Play it
 
