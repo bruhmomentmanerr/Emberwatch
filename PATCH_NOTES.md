@@ -1,15 +1,18 @@
-**r109 — every ward keeps shop** · 2026-09-13 · phase 5, world depth
+**r110 — three r186** · 2026-09-13 · phase 5, world depth
+
+In its own panel header: *r110 three.js r186*.
 
 ### Summary
 
-every ward keeps shop. The only shopfronts had been a third of Eastreach; the old city had none, and the compiler's eleven "shop" buildings on the Cinder Market were an awning strip with nothing under it. About 115 shops now, mostly on gate roads, avenues and the ring boulevard, each selling what its ward would — bakers and chandlers by the market, booksellers by the archive, ironmongers in the west, saddlers on the south road. Shutters come down for the Still Hours and the Ember Watch. The nearest resident keeps each shop and stands at its counter through the working day; look over the counter and they talk. Chosen by a hash of position, so no building in the seeded city moved. Caught before shipping: a `let` one line below its first use stopped the city building. Cost: +2 draw calls, about +25k triangles.
+three.js r128 → r186. The engine is one generated block now, built by tools/build-three.js from pinned packages, replacing three hand-inlined r128 blocks. r186 changed colour management and light maths; unshimmed, the city rendered at half its brightness (22.7/255 average difference from r109). A compatibility layer restores r128's colour handling, π and point-light falloff, and the difference fell to 0.55-0.78 against a 0.32 noise floor. Also: NearestFilter textures had been smoothed by r128's anisotropy all along, so they are Linear now to keep that look; Clock → Timer; mergeBufferGeometries → mergeGeometries; PCFSoft → PCF. Same draw calls, ~62k fewer triangles, frame time level. Every probe from r107-r109, the runtime audit, all six variants and the Bluetooth smoke test pass on r186.
 
-Also: ~115 shops across every ward, with keepers, hours and shutters
+Also: three.js r128 → r186 behind an r128-look compatibility layer
 
 ### In the code
 
-- 1.24 MB (+11,532 bytes on r108).
-- 9 functions added: `assignShopkeepers`, `buildShopShutters`, `setShopsOpen`, `shopFront`, `shopGoods`, `shopInteractions`, `shopName`, `shopsWatchTurned`, `visitShop`.
+- 1.32 MB (+79,358 bytes on r109).
+- 312 functions added: `$S`, `$n`, `$p`, `$y`, `A0`, `AM`, `AS`, `A_`, `Ag`, `B0`, `BS`, `Be`, `Bg`, `C0`, `CM`, `CS`, `C_`, `Ca`, `Cg`, `D0`, `DM`, `DS`, `D_`, `De`, `Dl`, `E`, `E0`, `ES`, `E_`, `Ef`, `Eg`, `F0`, `FM`, `FS`, `F_`, `Fe`, `Fn`, `Fu`, `G0`, `GS`, and 272 more.
+- 175 functions removed: `$a`, `$c`, `$h`, `$i`, `$r`, `A`, `Br`, `Cr`, `Ct`, `Ei`, `Er`, `F`, `Fr`, `GLTFRegistry`, `Gi`, `Gr`, `Hi`, `Hr`, `InterpolantFactoryMethodGLTFCubicSpline`, `Ir`, `Ja`, `Jh`, `Ji`, `Jr`, `Ka`, `Kc`, `Kh`, `Ki`, `Kr`, `Mc`, `Mi`, `Ml`, `Mr`, `Mt`, `Nr`, `Oi`, `Or`, `Pr`, `Pt`, `Q`, and 135 more.
 
 ### Play it
 
