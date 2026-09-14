@@ -33,7 +33,8 @@
   #nub{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:rgba(157,123,255,.35);border:1px solid rgba(200,180,255,.5);box-shadow:0 0 18px rgba(157,123,255,.5)}
   #castBtn,#interactBtn{position:fixed;z-index:9;right:22px;width:76px;height:76px;border-radius:50%;border:1px solid rgba(255,138,61,.5);background:rgba(255,138,61,.16);display:none;align-items:center;justify-content:center;color:#ffd9b8;touch-action:none;box-shadow:0 7px 22px rgba(0,0,0,.35)}
   #castBtn{bottom:126px;font-size:26px}#interactBtn{bottom:34px;font:700 10px 'Trebuchet MS',sans-serif;letter-spacing:.6px;text-align:center;padding:9px;box-sizing:border-box}
-  .touch #stick,.touch #castBtn,.touch #interactBtn{display:flex}.touch #hint,.touch #cross{display:none}
+  #interactAltBtn{position:fixed;z-index:9;right:108px;bottom:44px;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,200,145,.42);background:rgba(25,14,25,.62);display:none;align-items:center;justify-content:center;color:#ffe6c9;font:700 9px 'Trebuchet MS',sans-serif;letter-spacing:.5px;text-align:center;padding:6px;box-sizing:border-box;touch-action:none}
+  .touch #stick,.touch #castBtn,.touch #interactBtn,.touch #interactAltBtn{display:flex}.touch #hint,.touch #cross{display:none}
   #drop{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(10,7,16,.7);border:3px dashed rgba(120,255,180,.5);font-size:18px;letter-spacing:2px;color:#bfffd8}
   #puffBtn{position:fixed;left:16px;bottom:16px;z-index:22;height:42px;padding:0 15px;border-radius:21px;cursor:pointer;border:1px solid rgba(120,200,255,.4);background:linear-gradient(135deg,rgba(18,26,45,.88),rgba(17,12,28,.86));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#d8eeff;font-size:12px;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:7px;box-shadow:0 6px 22px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.06);transition:.18s}
   #puffBtn:hover{background:linear-gradient(135deg,rgba(35,58,85,.94),rgba(26,18,45,.94));transform:translateY(-1px)}
@@ -82,7 +83,8 @@
   .btc-item small{display:block;opacity:.6;font:10px ui-monospace,Consolas,monospace;margin-top:2px;word-break:break-all}
   .btc-empty{font-size:11px;color:#adc5d8;opacity:.8;padding:8px 2px}
   #interactHint{position:fixed;left:50%;bottom:62px;z-index:15;transform:translateX(-50%);display:none;padding:8px 12px;border:1px solid rgba(255,200,145,.42);border-radius:10px;background:rgba(25,14,25,.82);backdrop-filter:blur(8px);color:#ffe6c9;font-size:11px;letter-spacing:.45px;pointer-events:none;box-shadow:0 6px 22px rgba(0,0,0,.35)}
-  #interactHint kbd{font:10px 'Trebuchet MS';border:1px solid rgba(255,224,190,.4);border-radius:4px;padding:2px 5px;margin-right:5px}#gameToast{position:fixed;top:68px;left:50%;z-index:24;transform:translate(-50%,-8px);opacity:0;pointer-events:none;max-width:min(430px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(190,152,255,.38);border-radius:11px;background:rgba(22,14,38,.91);color:#eee5ff;font-size:12px;text-align:center;letter-spacing:.35px;transition:.22s}#gameToast.show{transform:translate(-50%,0);opacity:1}#dialoguePanel{position:fixed;left:50%;top:50%;z-index:31;display:none;width:min(440px,calc(100vw - 28px));max-height:min(570px,calc(100vh - 36px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(200,157,255,.48);border-radius:15px;background:radial-gradient(circle at 100% 0,rgba(154,107,214,.16),transparent 42%),linear-gradient(145deg,rgba(26,16,42,.98),rgba(11,8,21,.99));box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.08);color:#f3eaff}#dialoguePanel.open{display:block}#dialogueHead{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(25,15,43,.96);border-bottom:1px solid rgba(208,168,255,.18)}#dialogueHead .rune{color:#d8b9ff;font-size:14px}#dialogueHead .who{flex:1;min-width:0}#dialogueName{display:block;color:#fbf3ff;font-size:14px;letter-spacing:.55px}#dialoguePlace{display:block;margin-top:2px;color:#c6b6d9;font-size:10px;letter-spacing:.5px;text-transform:uppercase}#dialogueClose{border:1px solid rgba(202,164,255,.4);border-radius:8px;background:rgba(91,56,136,.22);color:#f2e6ff;padding:4px 8px;font-size:13px;cursor:pointer}#dialogueBody{padding:18px 16px 16px}#dialogueTopic{color:#d0b7ef;font-size:10px;letter-spacing:1.2px;text-transform:uppercase}#dialogueLines{margin:10px 0 16px;padding:13px 14px;border-left:2px solid rgba(197,151,255,.62);border-radius:0 9px 9px 0;background:rgba(255,255,255,.045);color:#f0e8fa;font-size:13px;line-height:1.56;white-space:pre-line}#dialogueLines em{color:#cfb5e7;font-style:normal}#dialogueChoices{display:grid;grid-template-columns:1fr;gap:7px}#dialogueChoices button{border:1px solid rgba(204,165,255,.3);border-radius:9px;background:rgba(117,73,165,.14);color:#f1e9fb;padding:10px 11px;text-align:left;font:11px 'Trebuchet MS',sans-serif;cursor:pointer;transition:.15s}#dialogueChoices button:hover,#dialogueChoices button:focus{border-color:rgba(219,186,255,.76);background:rgba(134,83,187,.3);outline:0}#dialogueChoices button.leave{color:#d3c4df;background:rgba(255,255,255,.04)}
+  #interactHint kbd{font:10px 'Trebuchet MS';border:1px solid rgba(255,224,190,.4);border-radius:4px;padding:2px 5px;margin-right:5px}
+#interactAlt{font-weight:normal;margin-left:12px;opacity:.78}#gameToast{position:fixed;top:68px;left:50%;z-index:24;transform:translate(-50%,-8px);opacity:0;pointer-events:none;max-width:min(430px,calc(100vw - 32px));padding:10px 14px;border:1px solid rgba(190,152,255,.38);border-radius:11px;background:rgba(22,14,38,.91);color:#eee5ff;font-size:12px;text-align:center;letter-spacing:.35px;transition:.22s}#gameToast.show{transform:translate(-50%,0);opacity:1}#dialoguePanel{position:fixed;left:50%;top:50%;z-index:31;display:none;width:min(440px,calc(100vw - 28px));max-height:min(570px,calc(100vh - 36px));transform:translate(-50%,-50%);overflow:auto;border:1px solid rgba(200,157,255,.48);border-radius:15px;background:radial-gradient(circle at 100% 0,rgba(154,107,214,.16),transparent 42%),linear-gradient(145deg,rgba(26,16,42,.98),rgba(11,8,21,.99));box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 1px rgba(255,255,255,.08);color:#f3eaff}#dialoguePanel.open{display:block}#dialogueHead{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(25,15,43,.96);border-bottom:1px solid rgba(208,168,255,.18)}#dialogueHead .rune{color:#d8b9ff;font-size:14px}#dialogueHead .who{flex:1;min-width:0}#dialogueName{display:block;color:#fbf3ff;font-size:14px;letter-spacing:.55px}#dialoguePlace{display:block;margin-top:2px;color:#c6b6d9;font-size:10px;letter-spacing:.5px;text-transform:uppercase}#dialogueClose{border:1px solid rgba(202,164,255,.4);border-radius:8px;background:rgba(91,56,136,.22);color:#f2e6ff;padding:4px 8px;font-size:13px;cursor:pointer}#dialogueBody{padding:18px 16px 16px}#dialogueTopic{color:#d0b7ef;font-size:10px;letter-spacing:1.2px;text-transform:uppercase}#dialogueLines{margin:10px 0 16px;padding:13px 14px;border-left:2px solid rgba(197,151,255,.62);border-radius:0 9px 9px 0;background:rgba(255,255,255,.045);color:#f0e8fa;font-size:13px;line-height:1.56;white-space:pre-line}#dialogueLines em{color:#cfb5e7;font-style:normal}#dialogueChoices{display:grid;grid-template-columns:1fr;gap:7px}#dialogueChoices button{border:1px solid rgba(204,165,255,.3);border-radius:9px;background:rgba(117,73,165,.14);color:#f1e9fb;padding:10px 11px;text-align:left;font:11px 'Trebuchet MS',sans-serif;cursor:pointer;transition:.15s}#dialogueChoices button:hover,#dialogueChoices button:focus{border-color:rgba(219,186,255,.76);background:rgba(134,83,187,.3);outline:0}#dialogueChoices button.leave{color:#d3c4df;background:rgba(255,255,255,.04)}
   #puffFrame{flex:1;border:0;width:100%;background:#000}
   #puffNote{font-size:10px;color:#9ab;opacity:.75;padding:6px 9px;line-height:1.4}
   #loader{position:fixed;inset:0;z-index:50;background:#0a0710;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .8s;padding:24px;text-align:center}
@@ -141,7 +143,7 @@
 <div id="cross"></div>
 <div id="gameTitle"><span class="t">Emberwatch</span><span class="u">the black city of Vaneth</span></div>
 <div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact</div>
-<div id="interactHint"><kbd>E</kbd><span></span></div>
+<div id="interactHint"><kbd>E</kbd><span></span><b id="interactAlt" hidden><kbd>F</kbd><span></span></b></div>
 <div id="gameToast" role="status" aria-live="polite"></div>
 <aside id="sessionRamble" aria-hidden="true" aria-label="Shared smoke session">
   <div class="session-ramble-top"><span>Shared ember</span><span id="sessionRambleMeta"></span></div>
@@ -159,6 +161,7 @@
 <div id="stick"><div id="nub"></div></div>
 <button id="castBtn" type="button" aria-label="Cast spell">✦</button>
 <button id="interactBtn" type="button">TALK<br>ENTER</button>
+<button id="interactAltBtn" type="button" style="visibility:hidden">TALK</button>
 <div id="drop">drop a .glb to add it as scenery</div>
 <button id="gear" title="Open menu (M)">☰ menu <kbd>M</kbd></button>
 <div id="settings" role="dialog" aria-modal="true" aria-label="Game settings" aria-hidden="true">
@@ -209,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r112 bloom</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r113 walk-in homes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4689,8 +4692,14 @@ function renderFrame(){ renderer.info.reset(); renderer.render(scene,camera); if
 // light.userData.lampScale, so a flicker authored as "±0.22" still means that.
 const LAMP_GAIN=3, LAMP_REACH=2.2, LAMP_GLOW=.7;
 function lampPower(power,range){ return power*.233*LAMP_GAIN*range*range; }
-function lampLight(color,power,range){
-  const light=new THREE.PointLight(color,lampPower(power,range),range*LAMP_REACH,2);
+// reach, when given, keeps a long throw on a light converted at a nearer range.
+// Since r113 the market braziers use it. They sit a metre and a half off the paving with ranges
+// of 26 and 30; converted at those ranges the candela grow with their square
+// and the stones round the bowl burned to a white disc. Converted at 16 and
+// reaching as far as before, they throw an orange pool that still carries
+// across the square.
+function lampLight(color,power,range,reach=range){
+  const light=new THREE.PointLight(color,lampPower(power,range),reach*LAMP_REACH,2);
   light.userData.lampScale=lampPower(1,range);
   return light;
 }
@@ -5286,7 +5295,7 @@ function streets(){
   const plaza=new THREE.Mesh(tileFlatUV(new THREE.CircleGeometry(17,40).rotateX(-Math.PI/2),6,0,MARKET_Z), MATS.cobble); plaza.position.set(0,0.05,MARKET_Z); plaza.receiveShadow=true; scene.add(plaza);
 }
 function market(){ // brazier + stalls + well at the south-market plaza
-  fireLight=lampLight(0xff7a2d,2.6,26); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight);
+  fireLight=lampLight(0xff7a2d,2.6,16,26); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight);
   aCyl(1,1.2,1.4,8,0,0.7,MARKET_Z,'stone');
   const fg=new THREE.BufferGeometry(),fp=new Float32Array(fpN*3); for(let i=0;i<fpN;i++){ fp[i*3]=rand(-0.3,0.3); fp[i*3+1]=rand(1,3); fp[i*3+2]=MARKET_Z+rand(-0.3,0.3); fpV.push(rand(0.02,0.05)); }
   fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fireParticles=new THREE.Points(fg,new THREE.PointsMaterial({color:0xff9a3d,size:0.28,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(fireParticles);
@@ -5509,8 +5518,10 @@ function cullLights(t){
     const d=Math.hypot(light.position.x-player.x,light.position.z-player.z);
     // reach is the light's own falloff distance; 0 means infinite
     const reach=light.distance||1e9;
-    return {entry,d,useful:d<reach+4};
-  }).sort((a,b)=>a.d-b.d);
+    // A home's lamp (r113) is only worth a slot while you are in that home, and
+    // anything useful outranks anything merely near.
+    return {entry,d,useful:d<reach+4&&(!entry.home||activeInterior===entry.home)};
+  }).sort((a,b)=>(b.useful-a.useful)||(a.d-b.d));
   const wanted=ranked.filter(row=>row.useful).length;
   const tier=LIGHT_TIERS.find(size=>size>=wanted)??LIGHT_TIERS[LIGHT_TIERS.length-1];
   ranked.forEach((row,index)=>{ row.entry.light.visible=index<tier; });
@@ -6087,15 +6098,20 @@ function citadel(){ const R=49,H=11;
 const DOOR_SWING=1.32, DOOR_NEAR=2.9, DOOR_MATS={};
 function doorMaterial(key,color){ if(!DOOR_MATS[key])DOOR_MATS[key]=new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true}); return DOOR_MATS[key]; }
 function buildInteriorDoorLeaves(door,doorW,kind){
-  const leafW=doorW/2-.05,leafH=2.32,plank=doorMaterial('plank',kind==='royal'?0x4a3556:0x4a3524),iron=doorMaterial('iron',0x24202a),stud=doorMaterial('stud',kind==='royal'?0xa78cff:0xd9a05a);
+  const leafW=doorW/2-.05,plank=doorMaterial('plank',kind==='royal'?0x4a3556:0x4a3524),iron=doorMaterial('iron',0x24202a),stud=doorMaterial('stud',kind==='royal'?0xa78cff:0xd9a05a);
+  // A home's door (r113) is one plain panel per leaf, casts no shadow and turns
+  // with its house: there are dozens of them, and every mesh here is a draw call.
+  const home=kind==='home', leafH=home?2.22:2.32, ry=door.ry||0, co=Math.cos(ry), si=Math.sin(ry);
   door.leaves=[-1,1].map(side=>{
     // Pivot sits on the jamb; the panel hangs off it so rotation is a hinge,
     // not a spin about the leaf's own centre.
-    const hinge=new THREE.Group(); hinge.position.set(door.doorX+side*doorW/2,0,door.doorZ);
+    const hinge=new THREE.Group(); hinge.position.set(door.doorX+side*doorW/2*co,0,door.doorZ-side*doorW/2*si); hinge.rotation.y=ry;
     const panel=new THREE.Mesh(new THREE.BoxGeometry(leafW,leafH,.13),plank); panel.position.set(-side*leafW/2,leafH/2+.02,0);
-    panel.castShadow=true; panel.receiveShadow=true; hinge.add(panel);
-    for(const bandY of[.55,1.72]){ const band=new THREE.Mesh(new THREE.BoxGeometry(leafW*.92,.13,.17),iron); band.position.set(-side*leafW/2,bandY,0); hinge.add(band); }
-    const handle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.22),stud); handle.position.set(-side*(leafW-.28),1.16,.05); hinge.add(handle);
+    panel.castShadow=!home; panel.receiveShadow=true; hinge.add(panel);
+    if(!home){
+      for(const bandY of[.55,1.72]){ const band=new THREE.Mesh(new THREE.BoxGeometry(leafW*.92,.13,.17),iron); band.position.set(-side*leafW/2,bandY,0); hinge.add(band); }
+      const handle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.22),stud); handle.position.set(-side*(leafW-.28),1.16,.05); hinge.add(handle);
+    }
     scene.add(hinge); return {hinge,side};
   });
   // One collider is enough: the flanking jamb runs already reach to within a
@@ -6110,7 +6126,9 @@ function updateInteriorDoors(dt){
     let near=Math.hypot(player.x-door.doorX,player.z-door.doorZ)<DOOR_NEAR;
     // Residents get the courtesy too, so a host stepping to the threshold
     // opens their own door instead of standing behind a shut one.
-    if(!near)for(const npc of villagers){ if(Math.hypot(npc.g.position.x-door.doorX,npc.g.position.z-door.doorZ)<DOOR_NEAR){near=true;break;} }
+    // Not for homes: a front door swinging open for every passer-by is not a
+    // courtesy, it is a haunting.
+    if(!near&&door.kind!=='home')for(const npc of villagers){ if(Math.hypot(npc.g.position.x-door.doorX,npc.g.position.z-door.doorZ)<DOOR_NEAR){near=true;break;} }
     const want=near?1:0;
     door.openAmount+=(want-door.openAmount)*Math.min(1,dt*5.5);
     if(Math.abs(door.openAmount-want)<.01)door.openAmount=want;
@@ -6118,9 +6136,10 @@ function updateInteriorDoors(dt){
     // Only when it actually moved: restamping unconditionally would rebuild the
     // shadow map every frame again, which is the thing this is here to stop.
     if(angle!==door.lastAngle){
-      for(const leaf of door.leaves)leaf.hinge.rotation.y=leaf.side*angle;
+      for(const leaf of door.leaves)leaf.hinge.rotation.y=(door.ry||0)+leaf.side*angle;
       door.lastAngle=angle;
-      restampShadows();
+      // A home's leaves cast no shadow, so there is nothing to restamp.
+      if(!door.quiet)restampShadows();
     }
     // Stand the blocker down once there is genuinely room to walk through.
     if(door.collider)door.collider.open=door.openAmount>.42;
@@ -6173,7 +6192,7 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doo
   interiorDoors.push(doorRecord);
 }
 function marketDistrict(){
-  fireLight=lampLight(0xff7a2d,2.8,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
+  fireLight=lampLight(0xff7a2d,2.8,16,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
   const fg=new THREE.BufferGeometry(),fp=new Float32Array(fpN*3); for(let i=0;i<fpN;i++){ fp[i*3]=rand(-.3,.3); fp[i*3+1]=rand(1,3); fp[i*3+2]=MARKET_Z+rand(-.3,.3); fpV.push(rand(.02,.05)); } fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fireParticles=new THREE.Points(fg,new THREE.PointsMaterial({color:0xff9a3d,size:.28,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(fireParticles);
   // The ring of stalls was laid on pure trigonometry, so wherever a street ran
   // into the market a stall stood in its mouth. A stall that lands on paving
@@ -7402,6 +7421,164 @@ function shopGoods(kind,at,along0,wide,ry,hash){
     for(let j=0;j<tall;j++)place(i*.5,1.13+j*.075,(px,y,pz)=>aBox(.3,.07,.22,px,y,pz,['cloth','dark','brick'][(i+j+3)%3],ry+j*.12)); } }
   else { for(let i=-3;i<=2;i++)place(i*.24+.12,1.19,(px,y,pz)=>aCyl(.06,.07,.2,6,px,y,pz,i%2?'arcane':'amber')); }
 }
+// ---------- walk-in homes, since r113 ----------
+// Fifteen walk-in rooms in a city of well over a thousand houses, and every one
+// of them a landmark: a tavern, an archive, a guild. Nobody's home could be
+// entered. Some ordinary ward houses are now built hollow, with a real door onto
+// their street and a furnished room behind it.
+//
+// Chosen by a hash of position, never by worldRandom(), and built in two steps
+// so that the seeded city does not move. During the infill a home is drawn
+// hollow but keeps the solid box collider an ordinary house would have: every
+// later parcel's placement checks, of frontage, doorways and colliders, see
+// exactly what they always saw, and draw exactly the same numbers. Once the
+// infill is over, openHomes() hangs the door,
+// furnishes the room and lays thin walls round it — but leaves them inert and
+// the block standing, because every stage after the infill, avenue breaks,
+// kerbs, street dressing, anchor repair, the nav grid and residents' homes, also
+// reads the colliders. The first r113 build opened the rooms straight away: the
+// nav grid saw walkable floor inside the houses and one resident's home moved.
+// activateHomes(), after the residents are settled, swaps block for walls and
+// only then lists the doors. A home whose doorstep is taken by a porch cart or
+// a street stall keeps its block and gets a shut door.
+const HOME_WALL=.3, HOME_DOOR_W=1.6, HOME_DOOR_H=2.3, HOME_CHANCE=.06;
+const HOME_WORDS=['crooked','narrow','lamplit','low','tall','whitewashed','soot-dark','ivied','leaning','quiet',
+  'shuttered','red-doored','end','corner','cramped','well-kept','timbered','stone-footed','draughty','bread-warm'];
+const HOME_KINDS=['house','cottage','rooms','lodging'];
+const HOME_PURPOSES=[
+  'somebody’s two rooms, the fire banked low for the night',
+  'a family home, three bowls drying by the hearth',
+  'a lodger’s room, kept neat for a lodger who has not come back',
+  'a widow’s house, the kettle always half full',
+  'a working family’s rooms, boots lined up by the door',
+  'an old couple’s house, two chairs worn to the same shape',
+  'a cramped home with a child’s charcoal drawing on the wall',
+  'a quiet house that smells of tallow and rain'];
+const pendingHomes=[];
+function homeWanted(x,z,isShop){ return !isShop&&terrainHash(Math.round(x*5)+7919,Math.round(z*5)-4001)<HOME_CHANCE; }
+// wardHouse's outside, drawn as five walls instead of a block. Same roof, same
+// jetty, chimney, dormer and sign; the painted door becomes a doorway, and a
+// ground-floor window that would sit in the doorway is left out.
+function wardHome(x,z,w,d,stories,key,ry,accent){
+  const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),front=d*.5+.05,T=HOME_WALL;
+  const seed=Math.abs(Math.round(x*7.3+z*3.1))%100, roofKind=seed%4;
+  const at=(lx,lz)=>[x+lx*co+lz*si, z-lx*si+lz*co];
+  const side=(w-HOME_DOOR_W)/2;
+  const wall=(lx,lz,ww,hh,dd,y)=>{ const [wx,wz]=at(lx,lz); aBox(ww,hh,dd,wx,y,wz,key,ry); };
+  wall(0,-d/2+T/2,w,h,T,h/2); wall(-w/2+T/2,0,T,h,d,h/2); wall(w/2-T/2,0,T,h,d,h/2);
+  wall(-(HOME_DOOR_W/2+side/2),d/2-T/2,side,h,T,h/2); wall(HOME_DOOR_W/2+side/2,d/2-T/2,side,h,T,h/2);
+  wall(0,d/2-T/2,HOME_DOOR_W,h-HOME_DOOR_H,T,HOME_DOOR_H+(h-HOME_DOOR_H)/2);
+  // One room, whatever the storeys: boards underfoot and a ceiling at 2.7.
+  aBox(w-2*T,.1,d-2*T,x,.05,z,'wood',ry); aBox(w-2*T,.14,d-2*T,x,2.63,z,'dark',ry);
+  const jetty=stories>1&&seed%5<2;
+  if(jetty)aBox(w*1.06,2.5,d+.7,x,h-1.25,z,key,ry);
+  wardRoof(roofKind,x,z,w,d,h,ry,key);
+  { const [jx,jz]=at(-(HOME_DOOR_W/2+.07),front); aBox(.14,HOME_DOOR_H,.3,jx,HOME_DOOR_H/2,jz,'wood',ry); }
+  { const [jx,jz]=at(HOME_DOOR_W/2+.07,front); aBox(.14,HOME_DOOR_H,.3,jx,HOME_DOOR_H/2,jz,'wood',ry); }
+  aBox(HOME_DOOR_W+.44,.18,.34,x+si*front,HOME_DOOR_H+.09,z+co*front,'wood',ry);
+  aBox(1.5,.16,.5,x+si*front,HOME_DOOR_H+.32,z+co*front,accent,ry);
+  if(seed%3===0){ const cx=x+co*w*.34-si*d*.2,cz=z-si*w*.34-co*d*.2; aBox(.7,2.3,.7,cx,h+1.1,cz,'brick',ry); }
+  if(roofKind===1&&seed%4===0)aBox(.9,1.0,.8,x+si*(d*.34),h+1.2,z+co*(d*.34),key,ry);
+  for(let s=0;s<stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
+    const cols=seed%7<3?3:2,spread=w*.31;
+    for(let c=0;c<cols;c++){ const ox=cols===1?0:-spread+(2*spread)*(c/(cols-1));
+      if(s===0&&Math.abs(ox)<HOME_DOOR_W/2+.4)continue;
+      aBox(.5,.66,.06,x+ox*co+si*front,wy,z-ox*si+co*front,'window',ry); } }
+  const collider=addBoxCollider(x,z,w,d,ry);
+  pendingHomes.push({x,z,w,d,ry,stories,collider});
+}
+// Bed and chest against the back wall, a hearth on the far side wall with a
+// lamp in it, a table and two stools, a shelf, a rug. Mirrored by a hash so a
+// terrace of homes does not repeat, and laid out to keep the line from the door
+// to the room clear — the geometry audit checks that point.
+function furnishHome(home,at){
+  const {w,d,ry}=home, T=HOME_WALL, a=w/2-T, b=d/2-T;
+  const flip=terrainHash(Math.round(home.x*4)+59,Math.round(home.z*4)-83)<.5?1:-1;
+  const put=(lx,lz,ww,hh,dd,y,key,turn=0)=>{ const [px,pz]=at(lx*flip,lz); aBox(ww,hh,dd,px,y,pz,key,ry+turn); };
+  const solid=(lx,lz,ww,dd)=>{ const [px,pz]=at(lx*flip,lz); addBoxCollider(px,pz,ww,dd,ry); };
+  // bed, head to the back wall
+  const bx=-a+.85, bz=-b+1.1;
+  put(bx,bz,1.3,.38,2.05,.19,'wood'); put(bx,bz+.18,1.18,.14,1.55,.45,'cloth'); put(bx,bz-.72,.95,.12,.38,.5,'cloth');
+  solid(bx,bz,1.3,2.05);
+  if(b>2.9){ put(bx,bz+1.35,.9,.46,.5,.23,'wood'); solid(bx,bz+1.35,.9,.5); }
+  // hearth on the other side wall
+  const hx=a-.38, hz=-b*.25;
+  put(hx,hz,.72,1.55,1.5,.78,'stone'); put(hx-.36,hz,.1,.14,.9,.36,'amber'); put(hx-.28,hz,.3,.12,1.0,.26,'dark');
+  solid(hx,hz,.8,1.5);
+  // In the mouth of the fire, low: nearer the stone than this and the hearth's
+  // own face burned white under physical falloff and bloom.
+  const [lx,lz]=at((hx-.6)*flip,hz);
+  const lamp=lampLight(0xff9a4a,.55,4); lamp.position.set(lx,.6,lz); scene.add(lamp);
+  // In the light budget only while you are inside this home; see cullLights.
+  lights.push({light:lamp,base:.55,phase:terrainHash(Math.round(home.x*2),Math.round(home.z*2))*6,home:null});
+  home.lampEntry=lights[lights.length-1];
+  // table and stools, on the bed side of the middle
+  const tx=-a*.35, tz=b*.05;
+  put(tx,tz,1.25,.08,.85,.78,'wood'); put(tx,tz,.18,.74,.18,.37,'wood');
+  { const [sx,sz]=at((tx-.95)*flip,tz); aCyl(.2,.23,.44,6,sx,.22,sz,'wood'); }
+  { const [sx,sz]=at((tx+.95)*flip,tz); aCyl(.2,.23,.44,6,sx,.22,sz,'wood'); }
+  { const [cx,cz]=at(tx*flip,tz); addCollider(cx,cz,.75); }
+  // shelf on the back wall, the hearth side
+  put(a-1.35,-b+.2,1.3,1.7,.32,.85,'wood'); put(a-1.55,-b+.22,.22,.2,.2,1.3,'dark'); put(a-1.15,-b+.22,.18,.26,.18,1.33,'amber');
+  solid(a-1.35,-b+.2,1.3,.32);
+  // rug
+  put(tx*.3,b*.25,2.1,.03,1.3,.115,'cloth');
+}
+function openHomes(){
+  const taken=new Set(), total=HOME_WORDS.length*HOME_KINDS.length;
+  let opened=0, shut=0;
+  for(const home of pendingHomes){
+    const {x,z,w,d,ry}=home, co=Math.cos(ry), si=Math.sin(ry), T=HOME_WALL, side=(w-HOME_DOOR_W)/2;
+    const at=(lx,lz)=>[x+lx*co+lz*si, z-lx*si+lz*co];
+    // Both points clear the shut door's own collider (r .9 at the wall's middle)
+    // by a body's width, which is what the geometry audit asks of every door.
+    const [ox,oz]=at(0,d/2+1.6), [ix,iz]=at(0,d/2-1.7), [dx,dz]=at(0,d/2-T/2);
+    // Test the doorstep as it will be once the home is open, then seal it again.
+    home.collider.open=true;
+    const walls=[[0,-d/2+T/2,w,T],[-w/2+T/2,0,T,d],[w/2-T/2,0,T,d],[-(HOME_DOOR_W/2+side/2),d/2-T/2,side,T],[HOME_DOOR_W/2+side/2,d/2-T/2,side,T]]
+      .map(([lx,lz,ww,dd])=>{ const [wx,wz]=at(lx,lz), c=addBoxCollider(wx,wz,ww,dd,ry); c.wall=true; return c; });
+    const clear=!colliderBlocked(ox,oz)&&!colliderBlocked(ix,iz);
+    for(const c of walls)c.open=true;
+    home.collider.open=false;
+    if(!clear){
+      aBox(HOME_DOOR_W,HOME_DOOR_H,.12,dx,HOME_DOOR_H/2,dz,'wood',ry);
+      shut++; continue;
+    }
+    home.walls=walls;
+    const pick=terrainHash(Math.round(x*3)+313,Math.round(z*3)+131);
+    let name=null;
+    for(let k=0;k<total&&!name;k++){
+      const i=(Math.floor(pick*total)+k*7)%total, candidate='the '+HOME_WORDS[i%HOME_WORDS.length]+' '+HOME_KINDS[(i/HOME_WORDS.length|0)%HOME_KINDS.length];
+      if(!taken.has(candidate))name=candidate;
+    }
+    if(!name)name='a house on the '+(Math.round(x)+','+Math.round(z));
+    taken.add(name);
+    const purpose=HOME_PURPOSES[Math.floor(terrainHash(Math.round(x*2)-77,Math.round(z*2)+55)*HOME_PURPOSES.length)];
+    furnishHome(home,at);
+    const record={id:'home-'+name.replace(/\W+/g,'-'),name,x:ox,z:oz,outsideX:ox,outsideZ:oz,insideX:ix,insideZ:iz,
+      cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:'home',doorX:dx,doorZ:dz,purpose,quiet:true};
+    home.lampEntry.home=record;
+    buildInteriorDoorLeaves(record,HOME_DOOR_W,'home');
+    record.collider.open=true;                     // inert until activateHomes()
+    home.record=record;
+    opened++;
+  }
+  return {candidates:pendingHomes.length,opened,shut};
+}
+function activateHomes(){
+  const blocked=[];
+  for(const home of pendingHomes){
+    if(!home.record)continue;
+    home.collider.open=true;
+    for(const c of home.walls)c.open=false;
+    home.record.collider.open=false;
+    interiorDoors.push(home.record);
+    const r=home.record;
+    if(colliderBlocked(r.outsideX,r.outsideZ)||colliderBlocked(r.insideX,r.insideZ))blocked.push(r.name+' @'+r.outsideX.toFixed(0)+','+r.outsideZ.toFixed(0));
+  }
+  if(blocked.length)console.warn('Vaneth homes: doorsteps blocked after opening',blocked);
+  return blocked;
+}
 function innerInfill(){
   const VERGE=2.6, FILL=.86;
   let built=0, yards=0;
@@ -7460,7 +7637,7 @@ function innerInfill(){
           const accent=quarter
             ?(worldRandom()<.14?'arcane':quarter.accent)
             :(worldRandom()<.18?'arcane':'amber');
-          wardHouse(px,pz,w,depth,stories,key,ry,accent);
+          (homeWanted(px,pz,terrainHash(Math.round(px*8),Math.round(pz*8))<(road.w>=10?.42:road.w>=8?.2:.07))?wardHome:wardHouse)(px,pz,w,depth,stories,key,ry,accent);
           housePorch(px,pz,w,depth,ry,accent);
           // A third of them carry their trade out into the street. All of them
           // would read as a theme park; none of them reads as terraces.
@@ -7505,7 +7682,7 @@ function innerInfill(){
           const stories=1+(worldRandom()<.48?1:0)+(worldRandom()<.16?1:0);
           const key=['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
           const accent=worldRandom()<.18?'arcane':'amber';
-          wardHouse(px,pz,w,depth,stories,key,ry,accent);
+          (homeWanted(px,pz,terrainHash(Math.round(px*8),Math.round(pz*8))<(Math.abs(ring.r-(MID_WALL_R+20))<1?.4:.1))?wardHome:wardHouse)(px,pz,w,depth,stories,key,ry,accent);
           housePorch(px,pz,w,depth,ry,accent);
           // The ring boulevard is the new city's high street.
           if(terrainHash(Math.round(px*8),Math.round(pz*8))<(Math.abs(ring.r-(MID_WALL_R+20))<1?.4:.1))shopFront(px,pz,w,depth,ry,accent);
@@ -7616,7 +7793,7 @@ LMSG.textContent='cutting the forest tracks…'; useWorldStream('wild-tracks');w
 LMSG.textContent='shaping the hills…'; raiseTerrain();
 LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
 LMSG.textContent='raising the new halls…'; useWorldStream('new-landmarks');newQuarterLandmarks();
-LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();
+LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();const homesOpened=openHomes();
 // The monuments walk themselves out to the verge, but they used to do it before
 // innerInfill laid its lanes, so a monument that had cleared every road in
 // existence could end up standing in one that arrived afterwards. Three of them
@@ -8351,6 +8528,10 @@ addEventListener('keydown',e=>{ if(typing())return;
   if(e.code==='KeyP'){ e.preventDefault(); togglePuff(); return; }
   if(e.code==='KeyJ'){ e.preventDefault(); toggleStrains(); return; }
   if(e.code==='KeyE'&&!e.repeat){ shareSmoke(); return; }
+  // F is the second thing in reach. When it acts it keeps the key, so a layer
+  // that also listens for F, as Long Night does to cast, only hears it when there
+  // was nothing else for F to do.
+  if(e.code==='KeyF'&&!e.repeat&&secondAction()){ e.stopImmediatePropagation(); return; }
   keys[e.code]=true; if(e.code==='Space')e.preventDefault();
 }); addEventListener('keyup',e=>{ keys[e.code]=false; });
 const canvas=renderer.domElement; const isTouch=('ontouchstart'in window)||navigator.maxTouchPoints>0; if(isTouch) document.body.classList.add('touch');
@@ -8390,6 +8571,7 @@ document.addEventListener('touchend',e=>{for(const touch of e.changedTouches){if
 document.addEventListener('touchcancel',e=>{for(const touch of e.changedTouches){if(touch.identifier===stickId||touch.identifier===lookId){resetTouchInput();break;}}},{passive:true});
 document.getElementById('castBtn').addEventListener('touchstart',e=>{ cast(); e.preventDefault(); },{passive:false});
 document.getElementById('interactBtn').addEventListener('touchstart',e=>{ shareSmoke(); e.preventDefault(); },{passive:false});
+document.getElementById('interactAltBtn').addEventListener('touchstart',e=>{ secondAction(); e.preventDefault(); },{passive:false});
 
 const spells=[],spellHits=[],socialSmoke=[],SPELL_CAP=14,SPELL_HIT_CAP=18,spellCoreGeometry=new THREE.IcosahedronGeometry(.16,0),spellImpactGeometry=new THREE.IcosahedronGeometry(.31,0),spellMaterials=new Map(); let spellColor=0x9d7bff,spellPalette=[spellColor],spellIndex=0,usingPeakRgb=false,lastCastAt=0;
 const rgbInt=rgb=>(rgb[0]<<16)|(rgb[1]<<8)|rgb[2];
@@ -8731,8 +8913,8 @@ function updateWilds(t){
   }
 }
 function worldInteractionReachable(entry){for(let radius=.8;radius<=entry.r;radius+=.7)for(let spoke=0;spoke<16;spoke++){const angle=spoke/16*Math.PI*2;if(!colliderBlocked(entry.x+Math.cos(angle)*radius,entry.z+Math.sin(angle)*radius,.28))return true;}return false;}
-let nearestVillager=null,nearestDoor=null,nearestWorldInteraction=null,activeInterior=restoredInterior,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
-const interactHint=document.getElementById('interactHint'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
+let nearestVillager=null,nearestDoor=null,nearestWorldInteraction=null,secondOffer=null,activeInterior=restoredInterior,toastTimer=null,dialogueOpen=false,activeDialogueNpc=null;
+const interactHint=document.getElementById('interactHint'),interactAlt=document.getElementById('interactAlt'),mobileAltBtn=document.getElementById('interactAltBtn'),mobileInteractBtn=document.getElementById('interactBtn'),gameToast=document.getElementById('gameToast'),dialoguePanel=document.getElementById('dialoguePanel'),dialogueName=document.getElementById('dialogueName'),dialoguePlace=document.getElementById('dialoguePlace'),dialogueTopic=document.getElementById('dialogueTopic'),dialogueLines=document.getElementById('dialogueLines'),dialogueChoices=document.getElementById('dialogueChoices'),dialogueClose=document.getElementById('dialogueClose');
 function showGameToast(message,ms=3200){ gameToast.textContent=message; gameToast.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>gameToast.classList.remove('show'),ms); }
 
 // ---------- Wayfinder: a lightweight reason to inhabit the city ----------
@@ -9428,21 +9610,44 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
   let worldInteraction=null,worldDistance=Infinity;for(const entry of WORLD_INTERACTIONS){if(entry.interior?(activeInterior?.name!==entry.interior):!!activeInterior)continue;const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz;if(d<entry.r*entry.r&&d<worldDistance){worldDistance=d;worldInteraction=entry;}}
   // Select the genuinely closest available action so a door, resident, or
   // small world detail never steals E from something nearer to the player.
-  nearestVillager=null;nearestDoor=null;nearestWorldInteraction=null;let selectedDistance=Infinity;if(closest&&best<18){nearestVillager=closest;selectedDistance=best;}if(door&&doorDistance<selectedDistance){nearestVillager=null;nearestDoor=door;selectedDistance=doorDistance;}if(worldInteraction&&worldDistance<selectedDistance){nearestVillager=null;nearestDoor=null;nearestWorldInteraction=worldInteraction;}
-  const close=nearestDoor||nearestVillager||nearestWorldInteraction;interactHint.style.display=!anyOverlayOpen()&&close?'block':'none';if(close){const label=nearestDoor?(activeInterior===nearestDoor?'leave '+nearestDoor.name:'enter '+nearestDoor.name):nearestVillager?'talk with '+nearestVillager.name:(typeof nearestWorldInteraction.label==='function'?nearestWorldInteraction.label():nearestWorldInteraction.label);interactHint.querySelector('span').textContent=label;mobileInteractBtn.textContent=nearestDoor?(activeInterior===nearestDoor?'LEAVE':'ENTER'):nearestVillager?'TALK':'LOOK';}else mobileInteractBtn.textContent='TALK';
+  // E takes whatever is closest; F takes the next closest thing of another
+  // kind. A shopkeeper at their counter is the everyday case: the counter and
+  // the keeper are both in reach, and until r113 E could only ever reach one of
+  // them. Ties keep the old order: resident, then door, then world detail.
+  const offers=[];
+  if(closest&&best<18)offers.push({kind:'villager',target:closest,d:best});
+  if(door)offers.push({kind:'door',target:door,d:doorDistance});
+  if(worldInteraction)offers.push({kind:'world',target:worldInteraction,d:worldDistance});
+  offers.sort((a,b)=>a.d-b.d);
+  nearestVillager=null;nearestDoor=null;nearestWorldInteraction=null;
+  const first=offers[0]; if(first){ if(first.kind==='villager')nearestVillager=first.target; else if(first.kind==='door')nearestDoor=first.target; else nearestWorldInteraction=first.target; }
+  secondOffer=offers[1]||null;
+  const close=nearestDoor||nearestVillager||nearestWorldInteraction;interactHint.style.display=!anyOverlayOpen()&&close?'block':'none';if(close){interactHint.querySelector('span').textContent=offerLabel(first);mobileInteractBtn.textContent=offerButton(first);}else mobileInteractBtn.textContent='TALK';
+  interactAlt.hidden=!secondOffer; mobileAltBtn.style.visibility=secondOffer&&!anyOverlayOpen()?'visible':'hidden';
+  if(secondOffer){ interactAlt.querySelector('span').textContent=offerLabel(secondOffer); mobileAltBtn.textContent=offerButton(secondOffer); }
 }
 // Interiors have a real open doorway (no door leaf, see interiorHouse), so a
 // player can simply walk through the gap instead of pressing E. activeInterior
 // must therefore track physical position every frame, not just the E-teleport
 // below — otherwise walking in leaves the game thinking you are still outside
 // (wrong toast, wrong save, wrong enter/leave label).
-function interiorRoomAt(px,pz){for(const door of interiorDoors){if(px>door.cx-door.w/2&&px<door.cx+door.w/2&&pz>door.cz-door.d/2&&pz<door.cz+door.d/2)return door;}return null;}
+// Homes, since r113, stand square to their street, so a room can be turned: the point
+// is taken into the room's own frame before the box test.
+function interiorRoomAt(px,pz){for(const door of interiorDoors){let dx=px-door.cx,dz=pz-door.cz;if(door.ry){const co=Math.cos(door.ry),si=Math.sin(door.ry),lx=dx*co-dz*si,lz=dx*si+dz*co;dx=lx;dz=lz;}if(dx>-door.w/2&&dx<door.w/2&&dz>-door.d/2&&dz<door.d/2)return door;}return null;}
 function syncActiveInterior(){
   const room=interiorRoomAt(player.x,player.z); if(room===activeInterior)return;
   if(room){activeInterior=room;showGameToast('You enter '+room.name+' — '+(room.purpose||'a room with its own small routine')+'.');}
   else{activeInterior=null;showGameToast('You step back out into Vaneth.');}
   saveGameState();
 }
+function offerLabel(o){ return o.kind==='door'?(activeInterior===o.target?'leave '+o.target.name:'enter '+o.target.name):o.kind==='villager'?'talk with '+o.target.name:(typeof o.target.label==='function'?o.target.label():o.target.label); }
+function offerButton(o){ return o.kind==='door'?(activeInterior===o.target?'LEAVE':'ENTER'):o.kind==='villager'?'TALK':'LOOK'; }
+function actOn(o){
+  if(o.kind==='door'){ if(activeInterior===o.target){player.x=o.target.outsideX;player.z=o.target.outsideZ;}else{player.x=o.target.insideX;player.z=o.target.insideZ;} return; }
+  if(o.kind==='world'){ if(o.target.act)o.target.act(o.target); else showGameToast(o.target.text,5000); return; }
+  openDialogue(o.target);
+}
+function secondAction(){ if(anyOverlayOpen()||!secondOffer)return false; actOn(secondOffer); return true; }
 function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
@@ -10834,17 +11039,99 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r112',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r113',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
 // population.
 LMSG.textContent='settling the wards…'; useWorldStream('lives'); assignLives();
+CITY_PLAN.homeDoorsBlocked=activateHomes();
+// Every resident in one BatchedMesh, since r113. r77 merged each resident down
+// to six meshes, a head, a torso and four limbs, and a later revision gave each a
+// one-mesh far version, but that was still a draw call per part per resident:
+// the residents were the most expensive thing in the city per unit of life.
+//
+// Nothing about how residents are built or animated changed. Their groups stay
+// in the scene, the limb pivots still swing, lodVillagers still flips parts
+// between near and far, and sheltering still hides the whole group. The meshes
+// just stop drawing themselves, moved to layer 1, which no camera renders; after the
+// frame's animation, syncResidentBatch() copies each part's world matrix and
+// visibility into one batched mesh that draws them all. A carried lantern is
+// emissive and keeps its own mesh, as it always has. A resident created after
+// this point is simply not in the batch and draws itself the old way.
+const residentBatch=(()=>{
+  const parts=new Set([NPC_MERGED_MAT,...npcMaterialCache.values()]);
+  const groups=[]; let vertices=0, instances=0;
+  for(const npc of villagers){
+    if(!npc.g)continue;
+    const items=[];
+    npc.g.traverse(o=>{
+      if(!o.isMesh||!parts.has(o.material))return;
+      const source=o.geometry, geometry=source.index?source.toNonIndexed():source.clone();
+      for(const name of Object.keys(geometry.attributes)) if(name!=='position'&&name!=='normal'&&name!=='color')geometry.deleteAttribute(name);
+      if(!geometry.attributes.normal)geometry.computeVertexNormals();
+      if(!geometry.attributes.color){
+        const c=o.material.color,n=geometry.attributes.position.count,col=new Float32Array(n*3);
+        for(let i=0;i<n;i++){ col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b; }
+        geometry.setAttribute('color',new THREE.BufferAttribute(col,3));
+      }
+      vertices+=geometry.attributes.position.count; instances++;
+      items.push({mesh:o,geometry,id:-1});
+    });
+    if(items.length)groups.push({npc,items});
+  }
+  if(!instances)return null;
+  const batch=new THREE.BatchedMesh(instances,vertices,0,NPC_MERGED_MAT);
+  // Residents walk, so the batch's own bounding sphere would go stale; each
+  // instance is culled on its own instead. Sorting opaque figures a few pixels
+  // tall is not worth the CPU.
+  batch.frustumCulled=false; batch.perObjectFrustumCulled=true; batch.sortObjects=false;
+  batch.castShadow=false; batch.receiveShadow=true;
+  for(const {npc,items} of groups){
+    for(const item of items){
+      item.id=batch.addInstance(batch.addGeometry(item.geometry));
+      item.geometry.dispose(); item.geometry=null;
+      item.mesh.layers.set(1);
+    }
+  }
+  scene.add(batch);
+  // sync runs straight after the frame is drawn, using the world matrices the
+  // renderer has just computed, so the batch shows each resident as they stood
+  // one frame ago — two centimetres at a walk. The first version recomputed
+  // every group's matrices itself before drawing, which the renderer then did
+  // again: fewer draw calls, but a slower median frame on the harness. A far
+  // resident who has not moved and whose parts did not change visibility is
+  // skipped entirely; near residents always copy, their limbs are swinging.
+  // (matrixWorldAutoUpdate=false on the group looks like a way to save the
+  // renderer's work, but in r186 it stops the group's own world matrix being
+  // computed at all, and every resident drew at the world origin.)
+  // Seeded once here, so the first frame does not draw every part at the origin.
+  for(const group of groups)group.npc.g.updateMatrixWorld(true);
+  sync();
+  function sync(){
+    for(const group of groups){
+      const g=group.npc.g, shown=g.visible&&g.parent!==null;
+      const still=group.npc.isFar&&group.shown===shown&&group.x===g.position.x&&group.y===g.position.y&&group.z===g.position.z&&group.ry===g.rotation.y;
+      group.shown=shown; group.x=g.position.x; group.y=g.position.y; group.z=g.position.z; group.ry=g.rotation.y;
+      let changed=false;
+      for(const item of group.items){
+        const mesh=item.mesh, visible=shown&&mesh.visible&&(mesh.parent===g||mesh.parent.visible);
+        if(item.visible!==visible){ item.visible=visible; batch.setVisibleAt(item.id,visible); changed=true; }
+      }
+      if(still&&!changed)continue;
+      for(const item of group.items)if(item.visible)batch.setMatrixAt(item.id,item.mesh.matrixWorld);
+    }
+  }
+  return {batch,sync,instances,vertices,residents:groups.length};
+})();
+function syncResidentBatch(){ if(residentBatch)residentBatch.sync(); }
+// The diagnostics can run while the city is still being built, before the batch exists.
+function residentBatchInfo(){ try{ return residentBatch?{residents:residentBatch.residents,instances:residentBatch.instances,vertices:residentBatch.vertices}:null; }catch{ return null; } }
 window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWatch(),watches:WATCHES,
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
 // once a frame at the top of loop(); it is constructed here, a moment before
@@ -10925,6 +11212,7 @@ function loop(){ requestAnimationFrame(loop);
   auroraUniforms.uTime.value=t;
   skyDome.position.copy(camera.position); starField.position.set(camera.position.x,0,camera.position.z);
   if(!webglContextLost)renderFrame();
+  syncResidentBatch();
   if(!started){ started=true; L.style.opacity='0'; setTimeout(()=>L.remove(),800); }
 }
 loop();

@@ -1,15 +1,17 @@
-**r112 — bloom** · 2026-09-13 · phase 5, world depth
+**r113 — walk in homes** · 2026-09-14 · phase 5, world depth
+
+In its own panel header: *r113 walk-in homes*.
 
 ### Summary
 
-bloom. A glow round lamps, windows, fire, crystals and the moon. Laid over the finished frame (copied, blurred at five sizes, screen-blended back) instead of three's HDR composer, which would have skipped tone mapping on the fog, sky and water r111 was tuned with. Keyed toward red and violet, because the aurora's teal is brighter by luminance than a lit window and a luminance key turned the sky to milk; cyan and green spells do not glow as a result. Menu toggle, saved. Cost on the harness +1.1 to +1.8 ms and 12 draw calls. renderer.info now resets once a frame, so calls count the bloom passes and frame still counts frames. A tuning run that switched bloom off persisted through the harness's localStorage and made the next four screenshot sets bloomless — caught by reading EMBER.bloom, and probe-bloom now leaves it on.
+walk-in homes. Fifty to seventy ordinary ward houses are hollow now, each with a real door onto its street and a furnished room behind it; chosen by hash and kept solid to every build stage until the residents are settled, so the seeded city matches r112 exactly (a first try that opened them early moved a resident's home). Every resident draws in one BatchedMesh: north gate 551 → 322 draw calls, market 323 → 193, frame time level on the harness. F takes the second thing in reach (a keeper behind their counter). Long Night's wraiths share four lamps instead of carrying one each, which had compiled 120 shader programs in the first waves. The market braziers are converted at a nearer range, so their foot is an orange pool, not a white disc. The runtime audit's North Ward "failure" was the audit standing inside a shop. probe-soak played the base and all six variants for four minutes each. Dr. Dabber preset work shelved by the owner.
 
-Also: **bloom** — a glow round lamps, windows, fire, crystals and the moon, laid over the finished frame; a menu toggle, saved
+Also: **walk-in homes and one draw for the residents** — 50–72 furnished homes, every resident in one `BatchedMesh`, F for the second thing in reach, Long Night's shader churn fixed, the market brazier's hot spot, soak-tested variants
 
 ### In the code
 
-- 1.33 MB (+6,705 bytes on r111).
-- 4 functions added: `fit`, `render`, `renderFrame`, `updateBloomButton`.
+- 1.35 MB (+18,723 bytes on r112).
+- 12 functions added: `actOn`, `activateHomes`, `furnishHome`, `homeWanted`, `offerButton`, `offerLabel`, `openHomes`, `residentBatchInfo`, `secondAction`, `sync`, `syncResidentBatch`, `wardHome`.
 
 ### Play it
 
