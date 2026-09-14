@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r114 people at home</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r115 audit fixes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5236,7 +5236,7 @@ function torch(x,z,color,intensity,range,h){ h=h||3;
   if(typeof onRoad==='function'&&onRoad(x,z,.5)){ const spot=offRoad(x,z,.5,7); if(spot){x=spot[0];z=spot[1];} } aCyl(0.08,0.1,h,5,x,h/2,z,'wood'); aBox(0.28,0.28,0.28,x,h+0.1,z,'amber');
   const l=lampLight(color,intensity,range); l.position.set(x,h+0.2,z); scene.add(l); lights.push({light:l,base:intensity,phase:rand(0,6)}); addCollider(x,z,0.35); }
 function shrineCrystal(x,z){ const c=new THREE.Mesh(new THREE.OctahedronGeometry(rand(0.8,1.2),0),em(0x9d7bff,1.3)); c.position.set(x,1.4,z); c.castShadow=true; scene.add(c);
-  const l=lampLight(0x9d7bff,1.4,14); l.position.set(x,2,z); scene.add(l); crystals.push({mesh:c,light:l,base:1.4,phase:rand(0,6)}); addCollider(x,z,0.8); }
+  const l=lampLight(0x9d7bff,1.4,14); l.position.set(x,2,z); scene.add(l); crystals.push({mesh:c,light:l,base:1.4,phase:rand(0,6)}); lights.push({light:l,base:1.4,phase:0,fire:true}); addCollider(x,z,0.8); }
 
 // ============================================================
 //  CITY GENERATOR
@@ -5246,10 +5246,6 @@ function facadeWindows(x,z,w,d,h,ry){ const stories=Math.max(1,Math.round(h/2.6)
   for(let s=0;s<stories;s++){ const wy=1.4+s*2.6; if(wy>h-0.7)break;
     for(let c=0;c<cols;c++){ if(worldRandom()<0.18) continue; const ox=-w/2+w/(cols+1)*(c+1);
       [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co+oz*si, wz=z-ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } } }
-function building(x,z,w,d,stories,key,ry){ const h=stories*2.6;
-  aBox(w,h,d,x,h/2,z,key,ry);
-  aRoof(w,d,Math.max(1.5,Math.min(w,d)*0.32),x,h,z,'roof',ry,worldRandom()<0.45,0.5);
-  facadeWindows(x,z,w,d,h,ry); addCollider(x,z,Math.max(w,d)*0.58); }
 function spire(x,z,h){ const rb=1.5,rt=1.1,faces=6;
   aCyl(rt,rb,h,faces,x,h/2,z,'stone'); aCone(1.95,4,faces,x,h+2,z,'slate');
   // A crenellated ring at the roofline — a bare cone cap read as a silo, not
@@ -5264,21 +5260,6 @@ function spire(x,z,h){ const rb=1.5,rt=1.1,faces=6;
     for(let f=0;f<faces;f+=2){ const angle=(f/faces)*Math.PI*2+Math.PI/faces,wr=faceRadius+.05; aBox(.4,.8,.1,x+Math.cos(angle)*wr,y,z+Math.sin(angle)*wr,'arcane',angle-Math.PI/2); } }
   addCollider(x,z,rb); }
 
-function keep(){ const R=24,H=8;
-  // curtain walls (south gate gap around x in [-4,4] at z=+R)
-  aBox(2*R+2,H,2,0,H/2,-R,'stone'); aBox(2,H,2*R+2,-R,H/2,0,'stone'); aBox(2,H,2*R+2,R,H/2,0,'stone');
-  aBox(R-4,H,2,-(R+4)/2,H/2,R,'stone'); aBox(R-4,H,2,(R+4)/2,H/2,R,'stone');
-  wallColl(-R,-R,R,-R,1.3); wallColl(-R,-R,-R,R,1.3); wallColl(R,-R,R,R,1.3); wallColl(-R,R,-6,R,1.3); wallColl(6,R,R,R,1.3);
-  // corner + gate towers
-  [[-R,-R,3.2,H+5],[R,-R,3.2,H+5],[R,R,3.2,H+5],[-R,R,3.2,H+5],[-5,R,2,H+3],[5,R,2,H+3]].forEach(c=>{ aCyl(c[2],c[2]+0.4,c[3],8,c[0],c[3]/2,c[1],'stone'); aCone(c[2]+1.3,3.4,8,c[0],c[3]+1.7,c[1],'slate'); for(let s=1;s<c[3]/3;s++) aBox(0.5,0.8,0.14,c[0],s*3,c[1]+c[2]+0.05,'window',0); addCollider(c[0],c[1],c[2]); });
-  // great tower
-  aCyl(4.4,5,24,12,0,12,0,'stone'); aCone(6,8,12,0,24+4,0,'slate'); for(let s=0;s<7;s++){ aBox(0.8,1.3,0.14,0,4+s*3,5.05,'arcane'); aBox(0.14,1.3,0.8,5.05,4+s*3,0,'arcane'); } addCollider(0,0,4.6);
-  const gl=lampLight(0x9d7bff,2.2,40); gl.position.set(0,26,0); scene.add(gl); lights.push({light:gl,base:2.2,phase:1});
-  // courtyard halls
-  building(-11,-9,8,6,2,'wall',0.2); building(11,9,9,6,2,'wall2',Math.PI+0.1);
-  torch(-4.6,R+0.6,0xffa64d,1.6,16); torch(4.6,R+0.6,0xffa64d,1.6,16);
-}
-
 function cathedral(x,z,ry){ const w=12,d=22,h=12; aBox(w,h,d,x,h/2,z,'wall',ry);
   aCone(Math.max(w,d)*0.5,6,4,x,h+3,z,'slate',ry+Math.PI/4);
   const co=Math.cos(ry),si=Math.sin(ry); for(let i=0;i<5;i++){ const oz=-d/2+3+i*4; [w/2+0.05,-w/2-0.05].forEach(ox=>{ const wx=x+ox*co+oz*si,wz=z-ox*si+oz*co; aBox(0.06,3.2,1.0,wx,3.2,wz,'arcane',ry); }); }
@@ -5286,35 +5267,6 @@ function cathedral(x,z,ry){ const w=12,d=22,h=12; aBox(w,h,d,x,h/2,z,'wall',ry);
   [[-w*0.4],[w*0.4]].forEach(o=>{ const wx=x+o[0]*co+(d/2)*si, wz=z-o[0]*si+(d/2)*co; aCyl(1,1.2,h+6,6,wx,(h+6)/2,wz,'stone'); aCone(1.6,4,6,wx,h+6+2,wz,'slate'); });
   addCollider(x,z,Math.max(w,d)*0.55); }
 
-function streets(){
-  // 4 avenues (boxes along axes)
-  aBox(8,0.12,340,0,0.06,0,'cobble'); aBox(340,0.12,8,0,0.06,0,'cobble');
-  // ring roads
-  [46,70,104,138].forEach(r=>{ const ring=new THREE.Mesh(tileFlatUV(new THREE.RingGeometry(r-3,r+3,64).rotateX(-Math.PI/2),6), MATS.cobble); ring.position.y=0.05; ring.receiveShadow=true; scene.add(ring); });
-  // market plaza (south district)
-  const plaza=new THREE.Mesh(tileFlatUV(new THREE.CircleGeometry(17,40).rotateX(-Math.PI/2),6,0,MARKET_Z), MATS.cobble); plaza.position.set(0,0.05,MARKET_Z); plaza.receiveShadow=true; scene.add(plaza);
-}
-function market(){ // brazier + stalls + well at the south-market plaza
-  fireLight=lampLight(0xff7a2d,2.6,16,26); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight);
-  aCyl(1,1.2,1.4,8,0,0.7,MARKET_Z,'stone');
-  const fg=new THREE.BufferGeometry(),fp=new Float32Array(fpN*3); for(let i=0;i<fpN;i++){ fp[i*3]=rand(-0.3,0.3); fp[i*3+1]=rand(1,3); fp[i*3+2]=MARKET_Z+rand(-0.3,0.3); fpV.push(rand(0.02,0.05)); }
-  fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fireParticles=new THREE.Points(fg,new THREE.PointsMaterial({color:0xff9a3d,size:0.28,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(fireParticles);
-  // stalls
-  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2, sx=Math.cos(a)*12, sz=MARKET_Z+Math.sin(a)*12; aBox(3,0.3,2.4,sx,2.2,sz,'wood',a); aCyl(0.1,0.1,2.2,4,sx-1.2,1.1,sz-1,'wood'); aCyl(0.1,0.1,2.2,4,sx+1.2,1.1,sz+1,'wood'); addCollider(sx,sz,1.4); }
-  aCyl(1,1.2,1,10,7,0.5,MARKET_Z+6,'stone'); addCollider(7,MARKET_Z+6,1); // well
-}
-
-function town(){
-  const mats=['wall','wall2','brick'];
-  for(let r=34;r<=158;r+=7.5){ const count=Math.floor(2*Math.PI*r/8.5);
-    for(let i=0;i<count;i++){ let a=(i/count)*Math.PI*2+rand(-0.04,0.04); let x=Math.cos(a)*r+rand(-1.5,1.5), z=Math.sin(a)*r+rand(-1.5,1.5);
-      if(Math.abs(x)<5.5||Math.abs(z)<5.5) continue;                 // leave avenues clear
-      if(Math.max(Math.abs(x),Math.abs(z))<27) continue;             // outside keep
-      if(Math.hypot(x,z-MARKET_Z)<18) continue;                      // clear market
-      const ry=Math.atan2(x,z);
-       if(worldRandom()<0.07) spire(x,z,rand(11,17));
-       else building(x,z,rand(4.5,7),rand(4,6),1+(worldRandom()*3|0),pick(mats),ry); } }
-}
 
 
 // ---------- wilds (beyond the wall) ----------
@@ -5510,21 +5462,54 @@ const hearthFires=[];
 // tier while letting the wilderness run on none at all.
 const LIGHT_TIERS=[0,5,14];
 let lightCullAt=-1;
+// The moon's shadow camera covers 240 m square and used to sit on the city
+// centre for good: the citadel had shadows and 84% of the city, the north gate
+// spawn included, had none, per the r114 audit. It follows the player now, in 48 m
+// steps so the shadow map is redrawn only when a step is taken — a few times
+// a minute at a walk, never while standing — and the player is always within
+// 34 m of the middle of it. The light keeps its angle; only the square moves.
+const MOON_SNAP=48, MOON_OFFSET=[-60,90,-30];
+let moonCentreX=0, moonCentreZ=0;
+function followMoonShadow(){
+  const x=Math.round(player.x/MOON_SNAP)*MOON_SNAP, z=Math.round(player.z/MOON_SNAP)*MOON_SNAP;
+  if(x===moonCentreX&&z===moonCentreZ)return;
+  moonCentreX=x; moonCentreZ=z;
+  moon.position.set(x+MOON_OFFSET[0],MOON_OFFSET[1],z+MOON_OFFSET[2]);
+  moon.target.position.set(x,0,z); moon.target.updateMatrixWorld();
+  restampShadows();
+}
+// Since r115 only useful lights are lit, and a tier's spare slots go to these:
+// dark lights with no reach, which hold the count steady without lighting
+// anything. Until then the spare slots went to the nearest lamps that were not
+// useful — which lit home hearths through their walls while you stood in the
+// street: 57 of 68 doorsteps in the r114 audit. Every light in the world is in
+// lights[] now too: the shrine crystals and the market fire used to stay on
+// everywhere, so the "zero" tier out in the wilds was really three lights, and
+// a variant's own lamps (EMBER.addLamp) join the same budget instead of adding
+// to it.
+const padLights=Array.from({length:LIGHT_TIERS[LIGHT_TIERS.length-1]},()=>{
+  const pad=new THREE.PointLight(0x000000,0,.01,2); pad.position.set(0,-500,0); pad.visible=false; scene.add(pad); return pad;
+});
+const lampWorld=new THREE.Vector3();
 function cullLights(t){
   if(t-lightCullAt<.25)return;                   // four times a second is plenty
   lightCullAt=t;
   const ranked=lights.map(entry=>{
     const light=entry.light;
-    const d=Math.hypot(light.position.x-player.x,light.position.z-player.z);
+    // A lamp a layer hung on a group has a local position; ask for the world one.
+    const at=entry.child?light.getWorldPosition(lampWorld):light.position;
+    const d=Math.hypot(at.x-player.x,at.z-player.z);
     // reach is the light's own falloff distance; 0 means infinite
     const reach=light.distance||1e9;
     // A home's lamp (r113) is only worth a slot while you are in that home, and
-    // anything useful outranks anything merely near.
-    return {entry,d,useful:d<reach+4&&(!entry.home||activeInterior===entry.home)};
+    // a lamp that is out (an unlit brazier, a dark arch) is worth none.
+    return {entry,d,useful:d<reach+4&&light.intensity>0&&(!entry.home||activeInterior===entry.home)};
   }).sort((a,b)=>(b.useful-a.useful)||(a.d-b.d));
   const wanted=ranked.filter(row=>row.useful).length;
   const tier=LIGHT_TIERS.find(size=>size>=wanted)??LIGHT_TIERS[LIGHT_TIERS.length-1];
-  ranked.forEach((row,index)=>{ row.entry.light.visible=index<tier; });
+  let shown=0;
+  for(const row of ranked){ const on=row.useful&&shown<tier; row.entry.light.visible=on; if(on)shown++; }
+  padLights.forEach((pad,index)=>{ pad.visible=index<tier-shown; });
 }
 function interiorHearth(x,z,w=3.5){
   aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'dark');
@@ -6107,7 +6092,13 @@ function buildInteriorDoorLeaves(door,doorW,kind){
     // not a spin about the leaf's own centre.
     const hinge=new THREE.Group(); hinge.position.set(door.doorX+side*doorW/2*co,0,door.doorZ-side*doorW/2*si); hinge.rotation.y=ry;
     const panel=new THREE.Mesh(new THREE.BoxGeometry(leafW,leafH,.13),plank); panel.position.set(-side*leafW/2,leafH/2+.02,0);
-    panel.castShadow=!home; panel.receiveShadow=true; hinge.add(panel);
+    // No door leaf casts a moon shadow since r115. Each swing restamped the
+    // whole shadow map — 110 restamps in a minute in the r114 audit, all from
+    // landmark doors — and once r115 had the residents actually walking, the
+    // Cinder and Keg's door swung for passers-by often enough to double the
+    // market's triangle count on sampled frames. A leaf's shadow at night was
+    // never visible enough to pay for that.
+    panel.castShadow=false; panel.receiveShadow=true; hinge.add(panel);
     if(!home){
       for(const bandY of[.55,1.72]){ const band=new THREE.Mesh(new THREE.BoxGeometry(leafW*.92,.13,.17),iron); band.position.set(-side*leafW/2,bandY,0); hinge.add(band); }
       const handle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.22),stud); handle.position.set(-side*(leafW-.28),1.16,.05); hinge.add(handle);
@@ -6133,13 +6124,11 @@ function updateInteriorDoors(dt){
     door.openAmount+=(want-door.openAmount)*Math.min(1,dt*5.5);
     if(Math.abs(door.openAmount-want)<.01)door.openAmount=want;
     const angle=door.openAmount*DOOR_SWING;
-    // Only when it actually moved: restamping unconditionally would rebuild the
-    // shadow map every frame again, which is the thing this is here to stop.
+    // Only when it actually moved. Leaves cast no shadow since r115, so a swing
+    // no longer restamps the shadow map at all.
     if(angle!==door.lastAngle){
       for(const leaf of door.leaves)leaf.hinge.rotation.y=(door.ry||0)+leaf.side*angle;
       door.lastAngle=angle;
-      // A home's leaves cast no shadow, so there is nothing to restamp.
-      if(!door.quiet)restampShadows();
     }
     // Stand the blocker down once there is genuinely room to walk through.
     if(door.collider)door.collider.open=door.openAmount>.42;
@@ -6192,7 +6181,7 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doo
   interiorDoors.push(doorRecord);
 }
 function marketDistrict(){
-  fireLight=lampLight(0xff7a2d,2.8,16,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
+  fireLight=lampLight(0xff7a2d,2.8,16,30); fireLight.position.set(0,1.4,MARKET_Z); scene.add(fireLight); lights.push({light:fireLight,base:2.8,phase:0,fire:true}); aCyl(1,1.2,1.4,8,0,.7,MARKET_Z,'stone');
   const fg=new THREE.BufferGeometry(),fp=new Float32Array(fpN*3); for(let i=0;i<fpN;i++){ fp[i*3]=rand(-.3,.3); fp[i*3+1]=rand(1,3); fp[i*3+2]=MARKET_Z+rand(-.3,.3); fpV.push(rand(.02,.05)); } fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fireParticles=new THREE.Points(fg,new THREE.PointsMaterial({color:0xff9a3d,size:.28,transparent:true,opacity:.9,depthWrite:false,blending:THREE.AdditiveBlending})); scene.add(fireParticles);
   // The ring of stalls was laid on pure trigonometry, so wherever a street ran
   // into the market a stall stood in its mouth. A stall that lands on paving
@@ -7560,7 +7549,7 @@ function openHomes(){
     const purpose=HOME_PURPOSES[Math.floor(terrainHash(Math.round(x*2)-77,Math.round(z*2)+55)*HOME_PURPOSES.length)];
     furnishHome(home,at);
     const record={id:'home-'+name.replace(/\W+/g,'-'),name,x:ox,z:oz,outsideX:ox,outsideZ:oz,insideX:ix,insideZ:iz,
-      cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:'home',doorX:dx,doorZ:dz,purpose,quiet:true,spots:home.spots};
+      cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:'home',doorX:dx,doorZ:dz,purpose,spots:home.spots};
     home.lampEntry.home=record;
     buildInteriorDoorLeaves(record,HOME_DOOR_W,'home');
     record.collider.open=true;                     // inert until activateHomes()
@@ -7570,17 +7559,32 @@ function openHomes(){
   return {candidates:pendingHomes.length,opened,shut};
 }
 function activateHomes(){
-  const blocked=[];
+  // A doorstep that was clear after the infill can be taken later by the
+  // dressing stages — a verge bench, a cart, a monument. Those stages cannot
+  // be told about homes without changing what they see of the seeded city, so
+  // the check is repeated here, and a home whose doorstep is now taken stays
+  // an ordinary shut house: block standing, door leaves closed, no door
+  // listed, lamp out of the budget. Until r115 such a home was listed anyway —
+  // "enter the narrow cottage", and a bench in the way, on 4 of 10 worlds in the
+  // r114 audit).
+  const shut=[];
   for(const home of pendingHomes){
     if(!home.record)continue;
+    const r=home.record;
     home.collider.open=true;
     for(const c of home.walls)c.open=false;
-    home.record.collider.open=false;
-    interiorDoors.push(home.record);
-    const r=home.record;
-    if(colliderBlocked(r.outsideX,r.outsideZ)||colliderBlocked(r.insideX,r.insideZ))blocked.push(r.name+' @'+r.outsideX.toFixed(0)+','+r.outsideZ.toFixed(0));
+    if(colliderBlocked(r.outsideX,r.outsideZ)||colliderBlocked(r.insideX,r.insideZ)){
+      home.collider.open=false;
+      for(const c of home.walls)c.open=true;
+      const lamp=lights.indexOf(home.lampEntry); if(lamp>=0)lights.splice(lamp,1);
+      scene.remove(home.lampEntry.light);
+      home.record=null;
+      shut.push(r.name+' @'+r.outsideX.toFixed(0)+','+r.outsideZ.toFixed(0));
+      continue;
+    }
+    r.collider.open=false;
+    interiorDoors.push(r);
   }
-  if(blocked.length)console.warn('Vaneth homes: doorsteps blocked after opening',blocked);
   // Who lives there, since r114. Each home takes the residents whose address is
   // nearest its door, within 25 m and up to one per spot in the room, nearest
   // first; a resident whose own house is the home is always nearest. Their
@@ -7613,7 +7617,7 @@ function activateHomes(){
     const detail=details[Math.floor(terrainHash(Math.round(record.cx*2)+41,Math.round(record.cz*2)-19)*details.length)];
     record.purpose=(family?'the '+family+' household’s home':record.residents[0].name+'’s rooms')+', '+detail;
   }
-  return blocked;
+  return shut;
 }
 function innerInfill(){
   const VERGE=2.6, FILL=.86;
@@ -8546,10 +8550,6 @@ function loadGameState(){
   for(const key of [GAME_SAVE_KEY,...LEGACY_GAME_SAVE_KEYS])try{const raw=localStorage.getItem(key);if(!raw)continue;const saved=JSON.parse(raw);if(saved&&[1,2,3].includes(saved.version))return saved;}catch{}
   return null;
 }
-function worldLayoutFromSave(save){const version=save?.world?.layoutVersion??save?.layoutVersion;return Number.isInteger(version)?version:null;}
-function canRestoreSavedPosition(save){
-  return !!(save&&worldSeedFromSave(save)===WORLD_SEED&&worldLayoutFromSave(save)===WORLD_LAYOUT_VERSION&&Number.isFinite(save.x)&&Number.isFinite(save.z)&&Math.abs(save.x)<M*.47&&Math.abs(save.z)<M*.47&&!blocked(save.x,save.z));
-}
 const savedGameState=loadGameState();
 const restoredInterior=false&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
 function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,bloom:BLOOM.on,interior:activeInterior?.name||null}));}catch{}}
@@ -8646,10 +8646,6 @@ function spellImpact(x,y,z,color){while(spellHits.length>=SPELL_HIT_CAP)scene.re
 function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-lastCastAt<105)return; lastCastAt=now; while(spells.length>=SPELL_CAP)scene.remove(spells.shift().g);
   const from=camera.position.clone(),dir=new THREE.Vector3(); camera.getWorldDirection(dir); const castColor=spellPalette[spellIndex++%spellPalette.length]||spellColor; spellColor=castColor;
   const g=new THREE.Group(),core=new THREE.Mesh(spellCoreGeometry,spellMaterial(castColor)); g.add(core); g.position.copy(from).addScaledVector(dir,1); scene.add(g); spells.push({g,v:dir.multiplyScalar(38),core,color:castColor,life:1.5}); }
-// A plain literal, not a module-level const: canRestoreSavedPosition() calls
-// blocked() synchronously during startup, before this point in the file has
-// executed, so a const declared here would still be in its temporal dead
-// zone at that first call and throw.
 // Residents check each other every frame now, and 208 of them squared is 43k
 // distance tests per frame. One cell lookup instead: rebuilt once per frame,
 // queried by the nine cells around a point.
@@ -9054,7 +9050,12 @@ function nameIndex(name,count){return [...String(name||'')].reduce((total,char)=
 function dialogueChoice(label,action,leave=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(leave)button.className='leave';button.addEventListener('click',action);dialogueChoices.append(button);}
 function npcPathClear(x1,z1,x2,z2,extra=.22){const distance=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.ceil(distance/1.1));for(let step=1;step<=steps;step++){const blend=step/steps;if(colliderBlocked(x1+(x2-x1)*blend,z1+(z2-z1)*blend,extra))return false;}return true;}
 function talkSpotFor(npc){const fromX=npc.g.position.x,fromZ=npc.g.position.z,base=Math.atan2(player.z-fromZ,player.x-fromX);for(let index=0;index<10;index++){const angle=base+Math.PI+(index?((index%2?-1:1)*Math.ceil(index/2)*.44):0),x=player.x+Math.cos(angle)*2.15,z=player.z+Math.sin(angle)*2.15;if(!colliderBlocked(x,z,.26)&&npcPathClear(fromX,fromZ,x,z))return{x,z};}return{x:fromX,z:fromZ};}
-function anchorNpcRoute(npc){npc.path=null;npc.pathIndex=0;const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});if(best<0){npc.route=[[x,z]];npc.routeProgress=0;npc.pauseLeft=2.4;npc.routeRetryIn=2.4;return;}const ordered=loop.slice(best).concat(loop.slice(0,best));npc.route=[[x,z],...ordered];npc.routeProgress=0;npc.routeRetryIn=0;// Linger a good while after a conversation instead of turning on their heel.
+function anchorNpcRoute(npc){npc.path=null;npc.pathIndex=0;const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});// No stop in straight line of sight used to mean a one-point route that only
+// retried the same test every 2.4 s, and never reached the A* branch built to
+// walk round buildings: 147 of 326 residents stood where they spawned, per the r114
+// audit, and the same since at least r100. Start from the nearest stop anyway and
+// let the path-finder take them there.
+if(best<0){loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance){best=index;bestDistance=distance;}});}const ordered=loop.slice(best).concat(loop.slice(0,best));npc.route=[[x,z],...ordered];npc.routeProgress=0;npc.routeRetryIn=0;// Linger a good while after a conversation instead of turning on their heel.
   npc.pauseLeft=3.5+((npc.phase*9)%2.5);}
 dialogueClose.addEventListener('click',closeDialogue);
 
@@ -9627,7 +9628,19 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
               npc.blockedFor=0;
             } else npc.pauseLeft=.3;
           }                       // someone in the way: wait a beat
-          else if(!npcPathClear(npc.lastX,npc.lastZ,nx,nz)){npc.path=null;navRequest(npc);}  // world changed: re-plan
+          else if(!npcPathClear(npc.lastX,npc.lastZ,nx,nz)){
+            // World changed: re-plan. A few residents failed this on the first
+            // step of every path they were given and re-planned hundreds of times
+            // a minute, filling the seven-a-frame queue so that others were never
+            // served — the r114 audit counted 5,742 re-plans from 27 residents in 60 s. A
+            // path begins at the centre of the nearest open nav cell, and from
+            // where they really stand the first leg clips a wall. On a second
+            // failure inside two seconds, step them onto that centre, which is
+            // open by construction; from a third, wait a little before asking.
+            npc.replans=(t-(npc.replanAt??-9)<2)?(npc.replans||0)+1:1; npc.replanAt=t;
+            if(npc.replans>=2&&npc.path&&npc.pathIndex===0){ const [cx,cz]=npc.path[0]; if(Math.hypot(cx-npc.lastX,cz-npc.lastZ)<3.2&&!colliderBlocked(cx,cz,.4)){ x=cx; z=cz; } }
+            npc.path=null; if(npc.replans>=3)npc.pauseLeft=Math.min(6,npc.replans*.8); navRequest(npc);
+          }
           else{ npc.blockedFor=0; x=nx; z=nz; npc.g.rotation.y=Math.atan2(dx,dz); movingNpc=true; }
         }
       }
@@ -10433,7 +10446,7 @@ const PUFF=(function(){
   $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
   $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
-  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length,'profile slot raw: '+PUFF.lastProfileSlotRaw,'ready source: state8='+(lastState===8)+' tempReady=n/a','layout: r59'].join('\n');    // Always put the report on screen as selectable text. It used to only try
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length,'profile slot raw: '+PUFF.lastProfileSlotRaw,'ready source: state8='+(lastState===8)+' tempReady=n/a','build: '+(window.EMBER?.diagnostics?.().revision||'unknown')].join('\n');    // Always put the report on screen as selectable text. It used to only try
     // the clipboard and then cram the whole thing into a one-line note, so if
     // the copy silently failed there was nothing to hand over — exactly when
     // you most need it, right after a connection drops.
@@ -10590,7 +10603,12 @@ const PUFF=(function(){
   // that makes a frozen body look like it works.
   const B9_FROM_STATE=[[3,3],[6,6],[8,8],[12,9],[7,10],[14,11],[15,12],[18,13]];
   const PRESETS=5;                        // the app exposes five; 3 and 5 observed
-  let device=null, live=false, lastFrame=null, lastAt=0, writeChar=null, preset=3;
+  // No remembered preset. Until r115 the panel kept its own, starting at 3, and
+  // Start and Stop sent it — so pressing Start on a Switch set to preset 1 ran
+  // and saved preset 3. The preset is whatever the device last reported; the
+  // preset buttons write a new one and the device reports it back.
+  let device=null, live=false, lastFrame=null, lastAt=0, writeChar=null;
+  const devicePreset=()=>lastFrame?lastFrame.preset:null;
   // What each byte of the a9 state frame is believed to be. Anything left blank
   // has not been pinned down, and the grid exists to pin it down.
   const FIELDS={0:'opcode a9',1:'length',3:'preset',6:'light mode',7:'session on',
@@ -10610,14 +10628,17 @@ const PUFF=(function(){
     return out;
   }
   function b9(index,running){
-    const body=B9_BODY.slice();
-    // Carry the device's own settings forward rather than the capture's. If
-    // nothing has been heard yet the frozen body is all there is, but in
-    // practice a state frame arrives every 480 ms, so this is nearly always
-    // the live values.
+    // Carry the device's own settings forward rather than the capture's, and
+    // build nothing at all until the device has reported them. r105 made the
+    // settings come from the state frame but kept the frozen capture body as a
+    // fallback, and the r114 audit reached it: in the half second after
+    // connecting, or after notifications failed to start, a press wrote light
+    // mode 10, auto shut-off 15, °F, haptics on and brightness 50 over the
+    // owner's own. Now there is no fallback; send() refuses a null frame.
     const seen=lastFrame&&lastFrame.raw;
-    if(seen&&seen.length===FRAME_LEN)
-      for(const pair of B9_FROM_STATE) body[pair[1]-2]=seen[pair[0]];
+    if(!seen||seen.length!==FRAME_LEN||!Number.isInteger(index))return null;
+    const body=B9_BODY.slice();
+    for(const pair of B9_FROM_STATE) body[pair[1]-2]=seen[pair[0]];
     body[B9_PRESET]=index;
     body[B9_RUN]=running?0xaa:0x00;
     return frame(0xb9,body);
@@ -10631,6 +10652,7 @@ const PUFF=(function(){
   }
   async function send(bytes,what){
     if(!writeChar){ say('not connected — nothing sent.'); return false; }
+    if(!bytes){ say('the Switch has not reported its state yet — nothing sent, so its settings stay as they are.'); return false; }
     try{
       // The app uses write-without-response throughout; the device has never
       // been seen answering a write directly, only through its state frames.
@@ -10707,6 +10729,8 @@ const PUFF=(function(){
       ? Math.round((reading.temp-32)*5/9)+'°C'
       : Math.round(reading.temp*9/5+32)+'°F';
     tempEl.textContent=reading.temp+(reading.fahrenheit?'°F':'°C')+' · '+other;
+    // The highlighted preset is the device's, not a guess of the panel's.
+    [...presetRow.children].forEach((b,n)=>b.style.opacity=(n+1===reading.preset)?'1':'.55');
     stateEl.textContent=(reading.running?'running · '+reading.sessionLeft+'s left':'idle')+
       ' · preset '+reading.preset;
     battEl.textContent=reading.battery+'%'+(reading.charging?' · charging':'');
@@ -10715,7 +10739,10 @@ const PUFF=(function(){
   // shape is reported rather than dropped — a second frame type sharing the a9
   // opcode would explain the heat reading falling to zero at the start of a
   // cycle, and it can only be spotted if the odd ones are visible.
-  function onFrame(bytes){
+  // A replayed log is painted and logged like live traffic but never becomes
+  // the device's state: Start after a replay would otherwise carry a
+  // yesterday's settings to today's device.
+  function onFrame(bytes,replayed=false){
     frames++; countEl.textContent=frames;
     const kind=FRAME_KINDS[bytes[0]];
     if(bytes[0]!==START){
@@ -10729,7 +10756,7 @@ const PUFF=(function(){
     }
     const reading=decode(bytes);
     if(!reading){ put('ODD',at()+'  MALFORMED ('+bytes.length+'B)  '+hex(bytes)); return; }
-    lastFrame=reading; lastAt=Date.now(); live=true;
+    if(!replayed){ lastFrame=reading; lastAt=Date.now(); live=true; }
     paint(reading);
     const line=hex(bytes);
     if(line===lastLine){ repeat++; return; }
@@ -10744,6 +10771,9 @@ const PUFF=(function(){
       say('opening the chooser…');
       device=await navigator.bluetooth.requestDevice({
         filters:[{services:[DEMO]}], optionalServices:[INFO,DEMO]});
+      // requestDevice hands back the same object for the same device, so a
+      // reconnect used to stack a second listener, and a second "disconnected".
+      device.removeEventListener?.('gattserverdisconnected',dropped);
       device.addEventListener('gattserverdisconnected',dropped);
       say('connecting…');
       const server=await device.gatt.connect();
@@ -10771,8 +10801,13 @@ const PUFF=(function(){
       globalThis.emberwatchSwitchRefresh&&globalThis.emberwatchSwitchRefresh();
     }catch(error){
       const message=String((error&&error.message)||error);
+      // A connection that failed part-way must not keep its write channel: with
+      // notifications off no state frame ever arrives, and every control would
+      // be writing blind. Let go of the device quietly, then say why.
+      writeChar=null; live=false; lastFrame=null;
+      if(device){ device.removeEventListener?.('gattserverdisconnected',dropped); try{ device.gatt.connected&&device.gatt.disconnect(); }catch{} }
       say(/cancel|User denied|No device selected/i.test(message)?'cancelled.':'could not connect: '+message);
-      live=false;
+      globalThis.emberwatchSwitchRefresh&&globalThis.emberwatchSwitchRefresh();
     }
   }
   function dropped(){ live=false; lastFrame=null; writeChar=null; info.textContent='not connected';
@@ -10785,18 +10820,16 @@ const PUFF=(function(){
     button.className='pbtn'; button.textContent=String(i);
     button.title='preset '+i+' — the same field the device reports back as e[3]';
     button.addEventListener('click',async()=>{
-      preset=i;
-      if(await send(b9(i,lastFrame&&lastFrame.running),'preset '+i))say('preset '+i+' selected.');
-      [...presetRow.children].forEach((b,n)=>b.style.opacity=(n+1===i)?'1':'.55');
+      if(await send(b9(i,!!(lastFrame&&lastFrame.running)),'preset '+i))say('preset '+i+' selected.');
     });
     presetRow.appendChild(button);
   }
-  [...presetRow.children].forEach((b,n)=>b.style.opacity=(n+1===preset)?'1':'.55');
+  [...presetRow.children].forEach(b=>b.style.opacity='.55');
   document.getElementById('swStart').addEventListener('click',async()=>{
-    if(await send(b9(preset,true),'start'))say('cycle started on preset '+preset+'.');
+    if(await send(b9(devicePreset(),true),'start'))say('cycle started on preset '+devicePreset()+'.');
   });
   document.getElementById('swStop').addEventListener('click',async()=>{
-    if(await send(b9(preset,false),'stop'))say('stop sent.');
+    if(await send(b9(devicePreset(),false),'stop'))say('stop sent.');
   });
   document.getElementById('swClock').addEventListener('click',()=>send(b1now(),'clock'));
 
@@ -10829,7 +10862,10 @@ const PUFF=(function(){
   const opBox=document.getElementById('swOp'), payloadBox=document.getElementById('swPayload'),
         armed=document.getElementById('swArmed'), sendBtn=document.getElementById('swSend'),
         preview=document.getElementById('swPreview');
-  const parseHex=text=>text.trim().split(/[\s,]+/).filter(Boolean).map(v=>parseInt(v,16));
+  // One byte per token, one or two hex digits, optional 0x — anything else is
+  // not a number. parseInt alone took "-48" and "1b8", which a Uint8Array
+  // wraps to b8: a factory reset, previewed as "unknown opcode" (r114 audit).
+  const parseHex=text=>text.trim().split(/[\s,]+/).filter(Boolean).map(v=>/^(0x)?[0-9a-f]{1,2}$/i.test(v)?parseInt(v.replace(/^0x/i,''),16):NaN);
   // Every command the vendor app can build, from its own senders. The ones
   // marked destructive change something that does not change back.
   const WRITE_OPS={
@@ -10854,6 +10890,7 @@ const PUFF=(function(){
   armed.addEventListener('change',refreshRaw);
   sendBtn.addEventListener('click',()=>{
     const opcode=parseHex(opBox.value)[0], payload=parseHex(payloadBox.value);
+    if(!armed.checked||!Number.isFinite(opcode)||!payload.every(Number.isFinite)){ say('nothing sent — every byte must be one or two hex digits.'); return; }
     send(frame(opcode,payload),'RAW');
   });
   globalThis.emberwatchSwitchRefresh=refreshRaw;   // called when a device arrives or leaves
@@ -10866,7 +10903,7 @@ const PUFF=(function(){
       // A run of hex pairs anywhere in the line is a frame; the timestamps and
       // prefixes a captured log carries are ignored rather than fought with.
       const match=line.match(/((?:[0-9a-f]{2}[ ]){3,}[0-9a-f]{2})/i);
-      if(match){ onFrame(Uint8Array.from(match[1].trim().split(/\s+/).map(v=>parseInt(v,16)))); fed++; }
+      if(match){ onFrame(Uint8Array.from(match[1].trim().split(/\s+/).map(v=>parseInt(v,16))),true); fed++; }
       else if(line.trim()) put('MARK','          '+line.trim());
     }
     say('replayed '+fed+' frame'+(fed===1?'':'s')+'.');
@@ -10885,6 +10922,8 @@ const PUFF=(function(){
     // it actually did.
     async beginStrainSession(detail){
       if(!writeChar)throw new Error('No Switch is connected.');
+      const preset=devicePreset();
+      if(preset===null)throw new Error('The Switch has not reported its state yet.');
       if(!await send(b9(preset,true),'start'))throw new Error('The Switch did not take the command.');
       return { device:'switch2', preset,
         note:'The Switch ran preset '+preset+'. It takes a preset, not a temperature, so '+
@@ -11097,13 +11136,13 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r114',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r115',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
 // population.
 LMSG.textContent='settling the wards…'; useWorldStream('lives'); assignLives();
-CITY_PLAN.homeDoorsBlocked=activateHomes();
+CITY_PLAN.homesShutLate=activateHomes();
 // Every resident in one BatchedMesh, since r113. r77 merged each resident down
 // to six meshes, a head, a torso and four limbs, and a later revision gave each a
 // one-mesh far version, but that was still a draw call per part per resident:
@@ -11194,9 +11233,13 @@ function syncResidentBatch(){ if(residentBatch)residentBatch.sync(); }
 // that adds lights calls EMBER.warmShaders() again once they exist.
 let shaderWarmMs=0;
 function warmShaders(){
-  const started=performance.now(), saved=lights.map(entry=>entry.light.visible);
-  for(const tier of LIGHT_TIERS){ lights.forEach((entry,index)=>{ entry.light.visible=index<tier; }); renderer.compile(scene,camera); }
+  // Every tier is exactly its size in lights (r115), so warming a tier is
+  // showing that many dark pads and nothing else.
+  const started=performance.now(), saved=lights.map(entry=>entry.light.visible), padSaved=padLights.map(pad=>pad.visible);
+  lights.forEach(entry=>{ entry.light.visible=false; });
+  for(const tier of LIGHT_TIERS){ padLights.forEach((pad,index)=>{ pad.visible=index<tier; }); renderer.compile(scene,camera); }
   lights.forEach((entry,index)=>{ entry.light.visible=saved[index]; });
+  padLights.forEach((pad,index)=>{ pad.visible=padSaved[index]; });
   lightCullAt=-1;
   shaderWarmMs+=performance.now()-started;
 }
@@ -11207,7 +11250,12 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,warmShaders,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,warmShaders,
+  // A layer's lamp joins the city's light budget (r115). The layer keeps
+  // writing its intensity; the base only decides whether it is lit, and an
+  // intensity of 0 never takes a slot.
+  addLamp:light=>{ lights.push({light,base:0,phase:0,fire:true,child:light.parent!==scene}); lightCullAt=-1; },
+  overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
 // once a frame at the top of loop(); it is constructed here, a moment before
@@ -11267,6 +11315,7 @@ function loop(){ requestAnimationFrame(loop);
   if(fireParticles){ const fp=fireParticles.geometry.attributes.position; for(let i=0;i<fpN;i++){ let y=fp.getY(i)+fpV[i]*60*dt; if(y>3.2)y=1; fp.setY(i,y); } fp.needsUpdate=true; if(fireLight) fireLight.intensity=(2.4+Math.sin(t*12)*0.4)*fireLight.userData.lampScale; }
   crystals.forEach(c=>{ const flare=c.flare||0; c.mesh.position.y=c.base+Math.sin(t*1.5+c.phase)*0.2+flare*.5; c.mesh.rotation.y+=dt*(0.5+flare*2.5); c.mesh.scale.setScalar(1+flare*.6); c.light.intensity=(1.2+Math.sin(t*2+c.phase)*0.4)*(1+flare*3)*c.light.userData.lampScale; });
   lights.forEach(l=>{ if(!l.fire)l.light.intensity=(l.base+Math.sin(t*8+l.phase)*0.22)*l.light.userData.lampScale; });
+  followMoonShadow();
   cullLights(t);
   lodVillagers(t);
   for(const fire of hearthFires){
