@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r113 walk-in homes</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r114 people at home</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -7523,6 +7523,10 @@ function furnishHome(home,at){
   solid(a-1.35,-b+.2,1.3,.32);
   // rug
   put(tx*.3,b*.25,2.1,.03,1.3,.115,'cloth');
+  // Where the people who live here stand in the still hours: at the fire, at
+  // the table, beside the bed. [x, z, facing] in the world.
+  const spot=(lx,lz,fx,fz)=>{ const [sx,sz]=at(lx*flip,lz), [ox,oz]=at(fx*flip,fz); return [sx,sz,Math.atan2(ox-sx,oz-sz)]; };
+  home.spots=[spot(hx-1.25,hz,hx,hz),spot(tx,tz-.95,tx,tz),spot(bx+1.05,bz+.5,bx,bz)];
 }
 function openHomes(){
   const taken=new Set(), total=HOME_WORDS.length*HOME_KINDS.length;
@@ -7556,7 +7560,7 @@ function openHomes(){
     const purpose=HOME_PURPOSES[Math.floor(terrainHash(Math.round(x*2)-77,Math.round(z*2)+55)*HOME_PURPOSES.length)];
     furnishHome(home,at);
     const record={id:'home-'+name.replace(/\W+/g,'-'),name,x:ox,z:oz,outsideX:ox,outsideZ:oz,insideX:ix,insideZ:iz,
-      cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:'home',doorX:dx,doorZ:dz,purpose,quiet:true};
+      cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:'home',doorX:dx,doorZ:dz,purpose,quiet:true,spots:home.spots};
     home.lampEntry.home=record;
     buildInteriorDoorLeaves(record,HOME_DOOR_W,'home');
     record.collider.open=true;                     // inert until activateHomes()
@@ -7577,6 +7581,38 @@ function activateHomes(){
     if(colliderBlocked(r.outsideX,r.outsideZ)||colliderBlocked(r.insideX,r.insideZ))blocked.push(r.name+' @'+r.outsideX.toFixed(0)+','+r.outsideZ.toFixed(0));
   }
   if(blocked.length)console.warn('Vaneth homes: doorsteps blocked after opening',blocked);
+  // Who lives there, since r114. Each home takes the residents whose address is
+  // nearest its door, within 25 m and up to one per spot in the room, nearest
+  // first; a resident whose own house is the home is always nearest. Their
+  // still-hours doorway becomes the home's own doorstep, so they walk to that
+  // door and go in, instead of vanishing at a door of their own. Linking only by
+  // "the house nearest your address is a home" found six residents for fifty
+  // homes. Night workers keep the dark as they always have, and a named host
+  // stays in their own hall. Addresses do not move; only where they sleep.
+  const records=pendingHomes.filter(home=>home.record).map(home=>home.record);
+  for(const record of records)record.residents=[];
+  const pairs=[];
+  for(const npc of villagers){
+    if(!npc.doorway||keepsTheDark(npc)||npc.activityAnchor||!Number.isFinite(npc.homeX))continue;
+    for(const record of records){ const d=Math.hypot(record.outsideX-npc.homeX,record.outsideZ-npc.homeZ); if(d<25)pairs.push([d,npc,record]); }
+  }
+  pairs.sort((a,b)=>a[0]-b[0]);
+  for(const [,npc,record] of pairs){
+    if(npc.dwelling||record.residents.length>=record.spots.length)continue;
+    npc.dwelling=record; npc.dwellingSlot=record.residents.length; record.residents.push(npc);
+    npc.doorway=[record.outsideX,record.outsideZ];
+    if(npc.haunts)npc.haunts.still=[npc.doorway.slice(),navPlace(record.outsideX,record.outsideZ)];
+  }
+  // An occupied home says whose it is; an empty one keeps its own line, which
+  // is where the lodger who has not come back belongs.
+  const details=['three bowls drying by the hearth','boots lined up by the door','two chairs worn to the same shape',
+    'a child’s charcoal drawing on the wall','the kettle always half full','the room smells of tallow and rain'];
+  for(const record of records){
+    if(!record.residents.length)continue;
+    const family=record.residents.map(npc=>npc.household).find(Boolean);
+    const detail=details[Math.floor(terrainHash(Math.round(record.cx*2)+41,Math.round(record.cz*2)-19)*details.length)];
+    record.purpose=(family?'the '+family+' household’s home':record.residents[0].name+'’s rooms')+', '+detail;
+  }
   return blocked;
 }
 function innerInfill(){
@@ -9303,7 +9339,7 @@ function loopNear(x,z,seed,spread=6,stops=3){
 // closest to where they live, and walk out from its centre towards them until
 // the footprint ends. That is the wall they live behind, and the point in front
 // of it is their doorstep.
-function doorwayNear(x,z){
+function houseColliderNear(x,z){
   let best=null,bestD=Infinity;
   for(const collider of colliders){
     if(collider.wall||collider.door)continue;
@@ -9313,6 +9349,10 @@ function doorwayNear(x,z){
     const d=Math.hypot(collider.x-x,collider.z-z);
     if(d<bestD&&d<24){bestD=d;best=collider;}
   }
+  return best;
+}
+function doorwayNear(x,z){
+  const best=houseColliderNear(x,z);
   if(!best)return null;
   const angle=Math.atan2(z-best.z,x-best.x);
   const reach=(best.box?Math.hypot(best.hw,best.hd):best.r)+1.15;
@@ -9471,11 +9511,22 @@ function applyWatch(t,dt){
 // same quarter, so the ones you learn to expect on a corner are still there.
 const NIGHT_WORKER_SHARE=0.26;
 const keepsTheDark=npc=>(nameIndex(npc.name,100)/100)<NIGHT_WORKER_SHARE;
-function showResident(npc){ if(!npc.indoors)return; npc.indoors=false; npc.g.visible=true; }
+function showResident(npc){ if(!npc.indoors)return; npc.indoors=false; npc.g.visible=true;
+  // Back out onto the doorstep they went in from.
+  // Back where they went in, on the round they were walking. A conversation at
+  // home re-anchors that round inside the room, and only then is it anchored
+  // again from the doorstep: otherwise the next frame walks them straight back
+  // in. Re-anchoring everyone cost a lingering pause that left half as many
+  // walking on after the bell as the residents who sheltered the old way.
+  if(npc.atHome){ const out=npc.homeOut; if(out){ npc.g.position.set(out[0],out[1],out[2]); npc.g.rotation.y=out[3]; npc.lastX=out[0]; npc.lastZ=out[2]; }
+    npc.atHome=null; if(npc.route!==npc.homeRoute)anchorNpcRoute(npc); } }
 function updateShelter(){
   const watch=currentWatch();
   const still=watch&&watch.id==='still';
   for(const npc of villagers){
+    // At home through the still hours, talking or not: bringing them out for a
+    // conversation would leave them walking the room's walls when it ended.
+    if(npc.atHome&&still)continue;
     // Anyone mid-conversation, or one of the named hosts who lives in the room
     // they stand in, is left exactly where they are.
     if(npc.talking||npc.activityAnchor||npc.sessionAnchor){ showResident(npc); continue; }
@@ -9488,7 +9539,12 @@ function updateShelter(){
       // Face the wall on the way in, so the last frame of them is a person at a
       // door rather than a person facing the street who ceases to exist.
       if(npc.doorway)npc.g.rotation.y=Math.atan2(spot[0]-npc.homeX,spot[1]-npc.homeZ);
-      npc.indoors=true; npc.g.visible=false;
+      npc.indoors=true;
+      if(npc.dwelling){
+        const inside=npc.dwelling.spots[npc.dwellingSlot], g=npc.g;
+        npc.homeOut=[g.position.x,g.position.y,g.position.z,g.rotation.y]; npc.homeRoute=npc.route;
+        g.position.set(inside[0],.1,inside[1]); g.rotation.y=inside[2]; npc.atHome=npc.dwelling;
+      }else npc.g.visible=false;
     }
   }
 }
@@ -9523,7 +9579,9 @@ function updateMeetings(dt){
   }
 }
 function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid(); applyWatch(t,dt); updateShelter(); updateMeetings(dt);
-  for(const npc of villagers){ if(npc.indoors)continue;
+  for(const npc of villagers){
+    // Someone at home can be spoken to by whoever is in the room with them.
+    if(npc.indoors){ if(npc.atHome&&activeInterior===npc.atHome){ const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} } continue; }
     const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
@@ -11039,7 +11097,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r113',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r114',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -11125,13 +11183,31 @@ const residentBatch=(()=>{
   return {batch,sync,instances,vertices,residents:groups.length};
 })();
 function syncResidentBatch(){ if(residentBatch)residentBatch.sync(); }
+// Shader warm-up, since r114. three.js compiles a program for each material the
+// first time it is drawn under a new number of lights, and cullLights moves that
+// number between its tiers as you walk: the first trip from the gate into the
+// city compiled a batch of programs mid-stride, and the variants, which add
+// lights of their own, stalled for two to three seconds on the harness at that
+// moment. renderer.compile() takes every material in the scene, shown or not,
+// and compiles it against the lights currently shown, so doing that once per
+// tier while the loader is still up moves the whole cost into loading. A layer
+// that adds lights calls EMBER.warmShaders() again once they exist.
+let shaderWarmMs=0;
+function warmShaders(){
+  const started=performance.now(), saved=lights.map(entry=>entry.light.visible);
+  for(const tier of LIGHT_TIERS){ lights.forEach((entry,index)=>{ entry.light.visible=index<tier; }); renderer.compile(scene,camera); }
+  lights.forEach((entry,index)=>{ entry.light.visible=saved[index]; });
+  lightCullAt=-1;
+  shaderWarmMs+=performance.now()-started;
+}
+LMSG.textContent='warming the lamps…'; warmShaders();
 // The diagnostics can run while the city is still being built, before the batch exists.
 function residentBatchInfo(){ try{ return residentBatch?{residents:residentBatch.residents,instances:residentBatch.instances,vertices:residentBatch.vertices}:null; }catch{ return null; } }
 window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWatch(),watches:WATCHES,
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
+    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,warmShaders,lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
 // once a frame at the top of loop(); it is constructed here, a moment before

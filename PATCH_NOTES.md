@@ -1,17 +1,15 @@
-**r113 — walk in homes** · 2026-09-14 · phase 5, world depth
-
-In its own panel header: *r113 walk-in homes*.
+**r114 — people at home** · 2026-09-14 · phase 5, world depth
 
 ### Summary
 
-walk-in homes. Fifty to seventy ordinary ward houses are hollow now, each with a real door onto its street and a furnished room behind it; chosen by hash and kept solid to every build stage until the residents are settled, so the seeded city matches r112 exactly (a first try that opened them early moved a resident's home). Every resident draws in one BatchedMesh: north gate 551 → 322 draw calls, market 323 → 193, frame time level on the harness. F takes the second thing in reach (a keeper behind their counter). Long Night's wraiths share four lamps instead of carrying one each, which had compiled 120 shader programs in the first waves. The market braziers are converted at a nearer range, so their foot is an orange pool, not a white disc. The runtime audit's North Ward "failure" was the audit standing inside a shop. probe-soak played the base and all six variants for four minutes each. Dr. Dabber preset work shelved by the owner.
+people at home. Up to three residents live in each walk-in home, those whose address is nearest its door, and in the still hours they walk to that door and stand inside at the hearth, the table or the bed instead of vanishing; you can talk to them there, not through the wall. 35 residents in 18 homes on the harness seed. Talking to someone at home re-anchored their route inside, so at the bell they walked back in: now re-anchored from the doorstep, only when a conversation moved it. Shader warm-up while loading: no new programs compile during a four-minute soak, and the 1.9-3.5 s first-use stalls in Ember Hour and Long Night are gone. The read-only audit was rerun by a background agent against r113.
 
-Also: **walk-in homes and one draw for the residents** — 50–72 furnished homes, every resident in one `BatchedMesh`, F for the second thing in reach, Long Night's shader churn fixed, the market brazier's hot spot, soak-tested variants
+Also: **people at home** — residents who live in a walk-in home go in for the still hours and can be spoken to there; shader warm-up while loading; the read-only audit rerun
 
 ### In the code
 
-- 1.35 MB (+18,723 bytes on r112).
-- 12 functions added: `actOn`, `activateHomes`, `furnishHome`, `homeWanted`, `offerButton`, `offerLabel`, `openHomes`, `residentBatchInfo`, `secondAction`, `sync`, `syncResidentBatch`, `wardHome`.
+- 1.35 MB (+5,276 bytes on r113).
+- 2 functions added: `houseColliderNear`, `warmShaders`.
 
 ### Play it
 
