@@ -1,15 +1,15 @@
-**r116 — settled in** · 2026-09-14 · phase 5, world depth
+**r117 — mourners** · 2026-09-14 · phase 5, world depth
 
 ### Summary
 
-settled in. Residents at home are posed: crouched at the hearth with their hands to it, sat at the table, asleep on their backs in the bed. A lost WebGL context still reloads the page but puts you back where you stood (audit F15), tested by a probe that loses and restores the context through the harness, which now follows a reload. Wardens' hall commissions aim at each hall's real doorstep; Ferrier's Yard's had been behind its back wall (audit S4). probe-bloom proves the glow: +74 luminance just outside a white card with bloom on, +5 in empty sky (audit S3; the old whole-frame average once read darker with bloom on).
+the mourners. Somebody does go out to the Old Graveyard now: at the Working Watch bell two residents whose family has a legible stone walk out through the nearest gate, stand at the stone through the Still Hours with their head bowed, and walk home at the Ember Watch. The stone names whoever is standing at it; they tell you whose it is. Residents can carry a list of legs for a long walk, and walk on the terrain outside the wall. After a context-recovery reload the ward's welcome line no longer buries "The renderer recovered". The harness takes HARNESS_TIMEOUT for long probes; probe-soak-spikes records long- animation frames: none over 150 ms in three soaks, but three 306-345 ms frames in the next three soaks without it. Still open.
 
-Also: **settled in** — residents at home sit at the table, sleep in the bed or tend the fire; a lost WebGL context no longer sends you back to the gate; Wardens' hall targets from the real doors; `probe-bloom` now proves the glow
+Also: **the mourners** — each day two residents whose family has a legible headstone walk out through a gate to the Old Graveyard, keep the Still Hours at the stone and walk home at the Ember Watch; residents walk on the terrain outside the wall; a context-recovery reload no longer buries its own message
 
 ### In the code
 
-- 1.36 MB (+2,707 bytes on r115).
-- 2 functions added: `poseAtHome`, `recoverAfterContextLoss`.
+- 1.36 MB (+8,613 bytes on r116).
+- 8 functions added: `chooseMourners`, `endMourning`, `graveSpot`, `headstoneFor`, `homeFromVigil`, `legsDone`, `mournGateFor`, `setOutToMourn`.
 
 ### Play it
 

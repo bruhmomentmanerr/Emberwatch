@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r116 settled in</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r117 mourners</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -257,7 +257,7 @@
       <div class="pnote">No UUID is needed. Emberwatch checks the known Peak Pro control services automatically after you select your device.</div>
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="pWarmupReset">Reset warm-up learning</button></div>
     </details>
-    <details id="switchPanel"><summary>Dr. Dabber Switch 2</summary>
+    <details><summary>Dr. Dabber Switch 2</summary>
       <div class="pnote">Sends the two commands the Dr. Dabber app was watched issuing — the state frame and the clock — and nothing else. Decode and provenance in <b>docs/dr-dabber-switch2-frames.md</b>.</div>
       <div class="prow" style="margin-top:8px"><button class="pbtn" id="swConnect">◈ Connect a Switch 2</button><button class="pbtn" id="swDisconnect" style="flex:none">✕</button></div>
       <div id="swNote" class="pnote"></div>
@@ -286,7 +286,7 @@
       <div id="swLog" class="sw-log"></div>
       <div class="prow"><button class="pbtn" id="swCopy">copy log</button><button class="pbtn" id="swCopyChanges">copy changes</button><button class="pbtn" id="swClear" style="flex:none">clear</button></div>
 
-      <details id="swRaw"><summary>raw write</summary>
+      <details><summary>raw write</summary>
         <div class="pnote sw-warn">This sends bytes straight to the heater's control characteristic. It is here because decoding <code>b5</code> needs it and there is no other way to get it. Type the payload only — the opcode, the length and the trailing opcode are added for you. Nothing sends until it is armed.</div>
         <label class="pnote"><input type="checkbox" id="swArmed"> armed</label>
         <div class="prow"><input type="text" id="swOp" placeholder="b5" style="max-width:56px" aria-label="Opcode"><input type="text" id="swPayload" placeholder="03 e1" aria-label="Payload bytes"><button class="pbtn" id="swSend" style="flex:none" disabled>send</button></div>
@@ -297,7 +297,7 @@
         <div class="prow"><button class="pbtn" id="swReplayGo">replay</button></div>
       </details>
     </details>
-    <details id="puffProbe"><summary>device probe</summary>
+    <details><summary>device probe</summary>
       <div class="pnote">Surveys any Bluetooth device: every service, every characteristic, its properties, and the current value of anything readable. It only reads — nothing is written to the device.</div>
       <div class="pnote">After the survey it subscribes to everything that can notify and prints what arrives for <b>20 seconds</b>. Use the device while it listens — press a button, start a cycle, change a temperature — and its own traffic lands in the report. That is how a protocol gets read.</div>
       <div class="puff-section">Extra service UUIDs</div>
@@ -4558,8 +4558,8 @@ void main() {
 (function(){
 'use strict';
 const L=document.getElementById('loader'), LMSG=document.getElementById('lmsg');
-function fail(m){ L.style.opacity='1'; document.querySelector('#loader .g').textContent='hm.'; LMSG.innerHTML=m; document.querySelector('.orb').style.animation='none'; }
-if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.<br>Open this file in a real browser tab (Chrome/Edge/Firefox)."); return; }
+function fail(m){ L.style.opacity='1'; document.querySelector('#loader .g').textContent='hm.'; LMSG.textContent=m; document.querySelector('.orb').style.animation='none'; }
+if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.\nOpen this file in a real browser tab (Chrome/Edge/Firefox)."); return; }
 try {
 
 const CONFIG = {
@@ -5295,7 +5295,11 @@ function graveyard(cx,cz){
   let gate=0,gateOff=Infinity;
   for(let i=0;i<8;i++){ const mid=i/8*6.28+.35, off=Math.abs(((mid-toTrack+Math.PI*3)%(Math.PI*2))-Math.PI); if(off<gateOff){gateOff=off;gate=i;} }
   for(let i=0;i<8;i++){ const a=i/8*6.28, x1=cx+Math.cos(a)*15, z1=cz+Math.sin(a)*15, x2=cx+Math.cos(a+0.7)*15, z2=cz+Math.sin(a+0.7)*15;
-    if(i===gate){ for(const [px,pz] of [[x1,z1],[x2,z2]]){ aBox(.75,1.5,.75,px,.75,pz,'stone'); addCollider(px,pz,.5); } continue; }
+    if(i===gate){ for(const [px,pz] of [[x1,z1],[x2,z2]]){ aBox(.75,1.5,.75,px,.75,pz,'stone'); addCollider(px,pz,.5); }
+      // Where the way in is, for anyone who walks out here since r117: the
+      // middle of the gap, and a point on the grass outside it.
+      const mid=a+.35; site.gap=[cx+Math.cos(mid)*13,cz+Math.sin(mid)*13]; site.gapOut=[cx+Math.cos(mid)*20,cz+Math.sin(mid)*20];
+      continue; }
     const len=Math.hypot(x2-x1,z2-z1), ry=Math.atan2(x2-x1,z2-z1), mx=(x1+x2)/2, mz=(z1+z2)/2;
     aBox(.55,.9,len,mx,.45,mz,'stone',ry); aBox(.72,.12,len+.1,mx,.96,mz,'stone',ry);
     wallColl(x1,z1,x2,z2,0.5); }
@@ -7034,7 +7038,6 @@ addEventListener('keydown',event=>{
   if(event.key!=='k'&&event.key!=='K')return;
   if(typeof anyOverlayOpen==='function'&&anyOverlayOpen())return;
   const report=JSON.stringify(residentFlowReport(),null,1);
-  console.log(report);
   const done=()=>{ try{ showGameToast('Resident flow copied — '+residentFlowReport().clusterCount+' pile-up(s).'); }catch(e){} };
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(report).then(done,done); else done();
 });
@@ -8041,10 +8044,12 @@ function navServiceQueue(){
   navQueue.sort((a,b)=>((a.g.position.x-player.x)**2+(a.g.position.z-player.z)**2)-((b.g.position.x-player.x)**2+(b.g.position.z-player.z)**2));
   for(let n=0;n<NAV_REQUESTS_PER_FRAME&&navQueue.length;n++){
     const npc=navQueue.shift(); npc.navPending=false;
-    const goal=npc.routeLoop&&npc.routeLoop.length?npc.routeLoop[npc.goalIndex%npc.routeLoop.length]:null;
+    const goal=npc.legs?.length?npc.legs[0]:npc.routeLoop&&npc.routeLoop.length?npc.routeLoop[npc.goalIndex%npc.routeLoop.length]:null;
     if(!goal){npc.path=null;continue;}
     const path=navFindPath(npc.lastX,npc.lastZ,goal[0],goal[1]);
     if(path&&path.length){ npc.path=path; npc.pathIndex=0; npc.navFailures=0; npc.atStop=false; npc.errandIndex=npc.goalIndex; }
+    else if(npc.legs?.length){ // A leg nobody can reach is skipped, not retried.
+      npc.path=null; npc.legs.shift(); npc.pauseLeft=1.5; if(!npc.legs.length)legsDone(npc); }
     else { // Unreachable: move on to the next stop, and back off hard so a
       // resident with a bad waypoint cannot spam the queue forever.
       npc.path=null; npc.navFailures=(npc.navFailures||0)+1;
@@ -8880,15 +8885,128 @@ const GRAVE_FIRST=['Aldous','Berit','Cato','Dagny','Edric','Fenna','Gisela','Hol
 const GRAVE_LINES=['who kept the lamps on the east road','who knew every bell in the city by its voice','who sold bread before the first watch and never once overslept',
   'who built half the walls in Underwall and complained about all of them','who sang badly and often','who carried the city’s letters for forty winters',
   'who never locked a door','who taught the children their letters by lamplight','who came in off the road and stayed','who kept bees on a roof nobody else could reach'];
-function readHeadstone(k){
+// Who lies under legible stone k, and which of their family is still living.
+// The stone and the mourners who visit it read the same answer.
+function headstoneFor(k){
   const households=[...new Set(villagers.map(v=>v.household).filter(Boolean))].sort();
-  if(!households.length){ showGameToast('The name has weathered away. Only the shape of the letters is left.',5000); return; }
+  if(!households.length)return null;
   const house=households[k%households.length], seed=nameIndex(house+':'+k,9973);
-  const first=GRAVE_FIRST[seed%GRAVE_FIRST.length], line=GRAVE_LINES[Math.floor(seed/7)%GRAVE_LINES.length];
-  const kin=villagers.filter(v=>v.household===house), living=kin.length?kin[seed%kin.length]:null;
+  const kin=villagers.filter(v=>v.household===house);
+  return {house,first:GRAVE_FIRST[seed%GRAVE_FIRST.length],line:GRAVE_LINES[Math.floor(seed/7)%GRAVE_LINES.length],kin,living:kin.length?kin[seed%kin.length]:null};
+}
+function readHeadstone(k){
+  const stone=headstoneFor(k);
+  if(!stone){ showGameToast('The name has weathered away. Only the shape of the letters is left.',5000); return; }
+  const {house,first,line,living}=stone;
   const where=living?wardAt(living.homeX??living.g.position.x,living.homeZ??living.g.position.z):'';
-  showGameToast('Here lies '+first+' '+house+', '+line+'.'+(living?' '+living.name+' still lives in '+where+'.':''),7500);
+  const mourner=villagers.find(v=>v.vigil&&v.vigil.stone===k);
+  showGameToast('Here lies '+first+' '+house+', '+line+'.'+(living?' '+living.name+' still lives in '+where+'.':'')
+    +(mourner?' '+mourner.name+' is standing at it, and does not look up.':''),7500);
   if(!wildMemory.graves.includes(house)){ wildMemory.graves.push(house); saveWildMemory(); }
+}
+
+// --- the mourners, since r117: somebody does go out there ----------------------
+// A family whose stone you have read admits they do not go as often as they
+// should, and the mausoleum step has fresh foxglove on it. At the Working Watch
+// bell up to MOURNERS_PER_DAY residents whose household has a legible stone
+// walk out through the nearest gate, keep the Still Hours standing at the
+// stone, and walk home at the Ember Watch bell. The families with a legible
+// stone all live well inside the city: an estimated 560 m and more by way of a
+// gate, and it takes most of two watches, since through the streets they close
+// on the stone at 1-1.4 m/s measured against a walking pace of 2-3. That is
+// why they leave at the first bell of the day.
+// Only a household within MOURN_REACH metres by way of a gate is sent, a
+// different pick each day, and whoever reaches the stone late still stands
+// there MOURN_MIN_VIGIL seconds before turning home.
+// The route is a list of legs — the gate inside and out, a point every
+// MOURN_LEG metres across the wilds, the gap in the graveyard wall, the stone —
+// so each A* search stays short. Out past the wall they walk on the terrain.
+const MOURNERS_PER_DAY=2, MOURN_REACH=700, MOURN_LEG=90, MOURN_MIN_VIGIL=45;
+const WILD_GROUND_R2=(OUTER_WALL_R-2)**2;
+let mournDay=0, mournGates=null;
+function mournGateFor(x,z,graves){
+  mournGates=mournGates||MID_GATE_DEG.map(deg=>{ const a=deg*Math.PI/180, c=Math.cos(a), s=Math.sin(a);
+    return {deg,inside:navPlace(c*(OUTER_WALL_R-16),s*(OUTER_WALL_R-16)),outside:navPlace(c*(OUTER_WALL_R+30),s*(OUTER_WALL_R+30))}; });
+  let best=null;
+  for(const g of mournGates){
+    const walk=Math.hypot(g.inside[0]-x,g.inside[1]-z)+46+Math.hypot(graves.gapOut[0]-g.outside[0],graves.gapOut[1]-g.outside[1])*1.1;
+    if(!best||walk<best.walk)best={...g,walk};
+  }
+  return best;
+}
+// In front of the stone, on the side facing the way in.
+function graveSpot(stone,graves){
+  const fx=Math.sin(stone.ry)*1.15, fz=Math.cos(stone.ry)*1.15;
+  const sides=[[stone.x+fx,stone.z+fz],[stone.x-fx,stone.z-fz]].filter(p=>!colliderBlocked(p[0],p[1],.4));
+  if(!sides.length)return navPlace(stone.x+fx,stone.z+fz);
+  sides.sort((p,q)=>Math.hypot(p[0]-graves.gap[0],p[1]-graves.gap[1])-Math.hypot(q[0]-graves.gap[0],q[1]-graves.gap[1]));
+  return sides[0];
+}
+function chooseMourners(){
+  const graves=WILD_SITES.graves; if(!graves||!graves.gap)return [];
+  mournDay++;
+  const byHouse=new Map();
+  graves.stones.forEach((stone,k)=>{ if(k%2)return; const h=headstoneFor(k); if(h&&!byHouse.has(h.house))byHouse.set(h.house,{k,stone,h}); });
+  const picks=[];
+  for(const {k,stone,h} of byHouse.values())for(const npc of h.kin){
+    if(npc.shop||npc.sessionAnchor||npc.activityAnchor||npc.mourning||npc.legs?.length||!npc.haunts||!Number.isFinite(npc.homeX))continue;
+    const gate=mournGateFor(npc.homeX,npc.homeZ,graves);
+    if(gate.walk>MOURN_REACH)continue;
+    picks.push({npc,k,stone,h,gate,order:terrainHash(nameIndex(npc.name,65521),mournDay)});
+  }
+  picks.sort((p,q)=>p.order-q.order);
+  const chosen=[], houses=new Set();
+  for(const p of picks){
+    if(chosen.length>=MOURNERS_PER_DAY)break;
+    if(houses.has(p.h.house))continue;
+    houses.add(p.h.house); chosen.push(p.npc);
+    p.npc.mourning={stone:p.k,house:p.h.house,first:p.h.first,line:p.h.line,gate:p.gate,spot:graveSpot(p.stone,graves),face:[p.stone.x,p.stone.z],day:mournDay,setOut:false,outbound:null};
+  }
+  return chosen;
+}
+function setOutToMourn(npc){
+  const m=npc.mourning, graves=WILD_SITES.graves, g=m.gate;
+  const legs=[g.inside,g.outside], [ox,oz]=g.outside, [tx,tz]=graves.gapOut;
+  const n=Math.max(1,Math.round(Math.hypot(tx-ox,tz-oz)/MOURN_LEG));
+  for(let i=1;i<n;i++)legs.push(navPlace(ox+(tx-ox)*i/n,oz+(tz-oz)*i/n));
+  legs.push(graves.gapOut,graves.gap,m.spot);
+  m.outbound=legs.slice(); m.setOut=true;
+  npc.legs=legs; npc.vigil=null;
+  npc.routeLoop=[]; npc.goalIndex=0; npc.errandIndex=0; npc.atStop=false;
+  npc.errands=[{verb:'keeping vigil at the '+m.house+' stone in the old graveyard',
+    line:'It is '+m.first+'’s, '+m.line+'. Somebody ought to come and tell them how the city is getting on.'}];
+  anchorNpcRoute(npc);
+}
+// Back the way they came: every point already passed, in reverse. Someone
+// still inside the walls simply turns round.
+function endMourning(npc){
+  const m=npc.mourning; if(!m)return;
+  npc.mourning=null; npc.vigil=null; npc.mournedDay=m.day;
+  if(npc.parts)npc.parts.headPivot.rotation.x=0;
+  const passed=m.outbound?m.outbound.length-(npc.legs?npc.legs.length:0):0;
+  npc.legs=m.outbound?m.outbound.slice(0,Math.min(passed,m.outbound.length-1)).reverse():[];
+  if(!npc.routeLoop||!npc.routeLoop.length){ npc.routeLoop=npc.haunts.home.map(p=>[p[0],p[1]]); npc.goalIndex=0; npc.errandIndex=0; npc.errands=errandsFor(npc,npc.routeLoop.length); }
+}
+function legsDone(npc){
+  const m=npc.mourning;
+  if(m&&m.setOut){
+    if(Math.hypot(npc.lastX-m.spot[0],npc.lastZ-m.spot[1])<3){
+      npc.vigil=m; m.stood=0; npc.atStop=true; npc.path=null;
+      if(npc.parts)npc.parts.headPivot.rotation.x=.34;           // head bowed to the stone
+      return;
+    }
+    endMourning(npc);                                            // could not reach it: give it up
+  }
+  anchorNpcRoute(npc);
+}
+// Home from the stone once the bell has turned and they have stood long enough,
+// onto whatever round the watch now has them walking.
+function homeFromVigil(npc){
+  endMourning(npc);
+  const watch=currentWatch(), loop=npc.haunts[watch.id]||npc.haunts.home;
+  npc.routeLoop=loop.map(point=>[point[0],point[1]]); npc.goalIndex=0; npc.errandIndex=0;
+  npc.errands=errandsFor(npc,Math.max(1,npc.routeLoop.length));
+  anchorNpcRoute(npc);
 }
 
 // --- the Fallen Hall: one thing from the ash each watch --------------------------
@@ -8931,7 +9049,9 @@ function wildWatchTurned(){
 }
 function wildGreetingNote(npc){
   let note='';
-  if(npc.household&&wildMemory.graves.includes(npc.household)){
+  if(npc.vigil){
+    note+='\n\n“Not many come out this far.” They glance back at the stone as they say it.';
+  }else if(npc.household&&wildMemory.graves.includes(npc.household)){
     const memory=livingMemoryFor(npc);
     if(!memory.graveSpoken){ memory.graveSpoken=true; saveLivingNpcMemory();
       note+='\n\n“You have been out to the old graveyard. You have that look.” A pause. “One of those stones has our name on it. We do not go as often as we should.”'; }
@@ -9011,7 +9131,7 @@ const WARD_ATMOSPHERE={
   'The Northern Wilds':'Past the last lamp the trees close in, and the aurora has nothing left to light but them.',
   'The Eastern Wilds':'Standing stones and a long silence east of the wall, where the old road gave up.',
   'The Western Wilds':'Foxglove water and dark pines soften the western edge of Vaneth.',
-  'The Southern Wilds':'Low fog follows the southbound tracks between scattered holdings and a graveyard nobody tends.'
+  'The Southern Wilds':'Low fog follows the southbound tracks between scattered holdings and a graveyard few still visit.'
 };
 const wayfinderWard=document.getElementById('wayfinderWard'),wayfinderWatch=document.getElementById('wayfinderWatch');
 function wardAt(x,z){
@@ -9499,6 +9619,7 @@ function applyWatch(t,dt){
     for(const npc of villagers) npc.watchDue=(nameIndex(npc.name,60)/60)*14;
     wildWatchTurned();
     shopsWatchTurned(watch);
+    if(watch.id==='labour')chooseMourners();
     if(t>2)showGameToast('The bell turns to '+watch.name+'. '+watch.note);
   }
   const watch=WATCHES[Math.max(0,watchIndex)];
@@ -9508,6 +9629,19 @@ function applyWatch(t,dt){
     if(npc.watchDue>0)continue;
     npc.watchDue=-1;
     if(npc.talking||!npc.haunts)continue;
+    if(npc.mourning){
+      const m=npc.mourning;
+      if(!m.setOut){
+        if(watch.id==='labour'){ setOutToMourn(npc); continue; }
+        endMourning(npc);                                        // talking when the bell rang: not today
+      }
+      // On the way through the Market Watch, at the stone through the Still
+      // Hours. Any later bell sends them home, but only once they have stood
+      // there a while; the vigil branch in updateVillagers lets them go.
+      else if(watch.id==='market'||watch.id==='still')continue;
+      else if(!npc.vigil||npc.vigil.stood<MOURN_MIN_VIGIL){ m.homeward=true; continue; }
+      else endMourning(npc);                                     // and on with the watch below
+    }
     const loop=npc.haunts[watch.id]||npc.haunts.home;
     if(!loop||!loop.length)continue;
     npc.routeLoop=loop.map(point=>[point[0],point[1]]);
@@ -9560,7 +9694,7 @@ function updateShelter(){
     // they stand in, is left exactly where they are.
     if(npc.talking||npc.activityAnchor||npc.sessionAnchor){ showResident(npc); continue; }
     if(!still){ showResident(npc); continue; }
-    if(npc.indoors||keepsTheDark(npc))continue;
+    if(npc.indoors||keepsTheDark(npc)||npc.mourning)continue;
     // At their own door, not merely near their own address.
     const spot=npc.doorway||[npc.homeX,npc.homeZ];
     const reach=npc.doorway?2.4:6.5;
@@ -9615,8 +9749,9 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
     const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
-    else if(npc.route.length<=1&&npc.routeLoop?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
-    else if(npc.routeLoop&&npc.routeLoop.length>1){
+    else if(npc.vigil){ const v=npc.vigil, [fx,fz]=v.face; v.stood+=dt; npc.g.rotation.y=Math.atan2(fx-x,fz-z); if(v.homeward&&v.stood>=MOURN_MIN_VIGIL)homeFromVigil(npc); }
+    else if(npc.route.length<=1&&npc.routeLoop?.length&&!npc.legs?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
+    else if(npc.legs?.length||(npc.routeLoop&&npc.routeLoop.length>1)){
       // Follow the A* path to the current patrol stop. Walking into geometry
       // now means re-planning around it rather than stalling against it.
       if(npc.pauseLeft>0)npc.pauseLeft-=dt;
@@ -9625,6 +9760,8 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
         const [tx,tz]=npc.path[npc.pathIndex],dx=tx-npc.lastX,dz=tz-npc.lastZ,dist=Math.hypot(dx,dz);
         if(dist<.55){ npc.pathIndex++;
           if(npc.pathIndex>=npc.path.length){ npc.path=null;
+            // One leg of a longer walk: on to the next, no dawdling.
+            if(npc.legs?.length){ npc.legs.shift(); if(npc.legs.length)navRequest(npc); else legsDone(npc); } else {
             // Arrived: they are now *at* this errand, not travelling to it.
             // errandIndex stays on the stop just reached while goalIndex moves
             // on, so asking them mid-pause describes what they are actually
@@ -9634,7 +9771,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
             // Only dawdle at some stops. Pausing after every short leg meant
             // most residents were standing still most of the time.
             npc.pauseLeft=((npc.phase*13)%1)<.34?1.2+((npc.phase*11)%2.2):0;
-            navRequest(npc); } }
+            navRequest(npc); } } }
         else{
           const step=Math.min(npc.walkSpeed*38*dt,dist),nx=npc.lastX+dx/dist*step,nz=npc.lastZ+dz/dist*step;
           if(npcObstructed(npc,nx,nz)){
@@ -9697,7 +9834,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
         }
       }
     }
-    npc.g.position.set(x,sway*.05,z); npc.lastX=x;npc.lastZ=z;
+    npc.g.position.set(x,(x*x+z*z>WILD_GROUND_R2?terrainAt(x,z):0)+sway*.05,z); npc.lastX=x;npc.lastZ=z;
     if(npc.meetingWith&&!movingNpc){
       const mx=npc.meetingWith.g.position.x-x, mz=npc.meetingWith.g.position.z-z;
       if(!npc.meetingWith.indoors&&mx*mx+mz*mz<30)npc.g.rotation.y=Math.atan2(mx,mz);
@@ -9705,7 +9842,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
     }
     // The player still wins the look: being turned to when you walk up is worth
     // more than the conversation they were having with each other.
-    const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
+    const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor&&!npc.vigil)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
   let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
   let worldInteraction=null,worldDistance=Infinity;for(const entry of WORLD_INTERACTIONS){if(entry.interior?(activeInterior?.name!==entry.interior):!!activeInterior)continue;const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz;if(d<entry.r*entry.r&&d<worldDistance){worldDistance=d;worldInteraction=entry;}}
   // Select the genuinely closest available action so a door, resident, or
@@ -11165,7 +11302,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r116',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r117',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -11284,6 +11421,8 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   // writing its intensity; the base only decides whether it is lit, and an
   // intensity of 0 never takes a slot.
   addLamp:light=>{ lights.push({light,base:0,phase:0,fire:true,child:light.parent!==scene}); lightCullAt=-1; },
+  // Who is out at the old graveyard or on the way there, since r117.
+  mourners:()=>villagers.filter(v=>v.mourning||v.legs?.length).map(v=>({name:v.name,house:v.mourning?.house||null,stone:v.mourning?.stone??null,setOut:!!v.mourning?.setOut,vigil:!!v.vigil,stood:v.vigil?+v.vigil.stood.toFixed(1):null,homeward:!!v.mourning?.homeward,legs:v.legs?v.legs.length:0,spot:v.mourning?.spot||null,x:+v.g.position.x.toFixed(1),y:+v.g.position.y.toFixed(2),z:+v.g.position.z.toFixed(1)})),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
@@ -11380,13 +11519,17 @@ function loop(){ requestAnimationFrame(loop);
     if(!Number.isFinite(r.x)||!Number.isFinite(r.z)||colliderBlocked(r.x,r.z))return;
     player.x=r.x; player.z=r.z; player.y=surfaceAt(r.x,r.z); player.vy=0; player.onGround=true;
     if(Number.isFinite(r.yaw))yaw=r.yaw; if(Number.isFinite(r.pitch))pitch=r.pitch;
+    // They were already standing in this ward. Its welcome line fires on the
+    // first frames after a reload and, in one run of the r117 suite, buried the
+    // line that says what just happened.
+    visitedWardAtmosphere.add(wardAt(r.x,r.z));
     showGameToast('The renderer recovered. You are where you were.');
   }catch{}
 })();
 loop();
-setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display='inline-block'; LMSG.innerHTML='Taking a moment… tap ENTER, and if it stays dark, open the file in a real browser tab.'; document.getElementById('startBtn').onclick=()=>{ L.style.opacity='0'; setTimeout(()=>L.remove(),600); }; } },6000);
+setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display='inline-block'; LMSG.textContent='Taking a moment… tap ENTER, and if it stays dark, open the file in a real browser tab.'; document.getElementById('startBtn').onclick=()=>{ L.style.opacity='0'; setTimeout(()=>L.remove(),600); }; } },6000);
 
-} catch(err){ fail('Something broke while building the city:<br><code style="font-size:11px;opacity:.8">'+(err&&err.message||err)+'</code>'); }
+} catch(err){ fail('Something broke while building the city:\n'+(err&&err.message||err)); }
 })();
 </script>
 </body>
