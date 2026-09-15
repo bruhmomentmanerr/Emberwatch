@@ -1,15 +1,16 @@
-**r117 — mourners** · 2026-09-14 · phase 5, world depth
+**r118 — past the wall** · 2026-09-15 · phase 5, world depth
 
 ### Summary
 
-the mourners. Somebody does go out to the Old Graveyard now: at the Working Watch bell two residents whose family has a legible stone walk out through the nearest gate, stand at the stone through the Still Hours with their head bowed, and walk home at the Ember Watch. The stone names whoever is standing at it; they tell you whose it is. Residents can carry a list of legs for a long walk, and walk on the terrain outside the wall. After a context-recovery reload the ward's welcome line no longer buries "The renderer recovered". The harness takes HARNESS_TIMEOUT for long probes; probe-soak-spikes records long- animation frames: none over 150 ms in three soaks, but three 306-345 ms frames in the next three soaks without it. Still open.
+past the wall. The places outside the city that were waiting for somebody get somebody: a lamplighter kneels sifting at the Fallen Hall (its last fragment says someone still comes back to it), an angler fishes Foxglove Pond, and r117's mourners go on. One outing system for all three, with poses that hold — bowed, kneeling, rod out over the water. Sift or skim with them there and they notice. The long frames: three caught just before r118, no heap change and no script time named; r118's six soaks had none, and the spike probe now times the game's own frame callbacks for the next one.
 
-Also: **the mourners** — each day two residents whose family has a legible headstone walk out through a gate to the Old Graveyard, keep the Still Hours at the stone and walk home at the Ember Watch; residents walk on the terrain outside the wall; a context-recovery reload no longer buries its own message
+Also: **past the wall** — a lamplighter goes out to sift the ash at the Fallen Hall and an angler fishes Foxglove Pond, alongside r117's mourners; they kneel, fish and bow rather than stand, talk to you there, and notice you sifting or skimming a stone
 
 ### In the code
 
-- 1.36 MB (+8,613 bytes on r116).
-- 8 functions added: `chooseMourners`, `endMourning`, `graveSpot`, `headstoneFor`, `homeFromVigil`, `legsDone`, `mournGateFor`, `setOutToMourn`.
+- 1.37 MB (+5,155 bytes on r117).
+- 10 functions added: `chooseOutings`, `clearSpotAround`, `endOuting`, `fishingRod`, `gateTowards`, `homeFromOuting`, `outingFree`, `pickOne`, `sendOn`, `setOut`.
+- 5 functions removed: `chooseMourners`, `endMourning`, `homeFromVigil`, `mournGateFor`, `setOutToMourn`.
 
 ### Play it
 
