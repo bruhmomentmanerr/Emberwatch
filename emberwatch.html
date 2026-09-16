@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r118 past the wall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r119 the long frames</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4684,7 +4684,12 @@ const bloom=(()=>{
   return {render};
 })();
 renderer.info.autoReset=false;
-function renderFrame(){ renderer.info.reset(); renderer.render(scene,camera); if(BLOOM.on)bloom.render(); }
+// What the last frame spent where, in milliseconds. Four clock reads a frame,
+// so a probe can say which part of the game a long frame was in rather than
+// guessing: r116-r118 chased 300 ms frames on the harness with nothing to
+// point at. `EMBER.frameCost` reads it.
+const FRAME_COST={nav:0,villagers:0,render:0,watch:0,shelter:0,meetings:0,walk:0,anchor:0};
+function renderFrame(){ const started=performance.now(); renderer.info.reset(); renderer.render(scene,camera); if(BLOOM.on)bloom.render(); FRAME_COST.render=performance.now()-started; }
 
 // lights
 // Physically based since r111. Colours are sRGB and converted to linear on the
@@ -8038,15 +8043,28 @@ function navPlace(x,z){
 // legs at once cannot spike a frame. Nearest to the player go first.
 const navQueue=[];
 const NAV_REQUESTS_PER_FRAME=7;
+// Seven searches a frame is nothing when the legs are short and a 300 ms frame
+// when they are not: a bell, a teleport or a wave of residents finishing at
+// once can queue seven long crossings together, and each may walk up to 9,000
+// nodes. Serve until the frame's budget is gone and leave the rest for the next
+// one — waiting a frame for a path is invisible, a 300 ms hitch is not (r119).
+const NAV_FRAME_BUDGET_MS=8;
+// How many residents may re-anchor their round in one frame (r119). Three is
+// far more than the trickle of genuinely stuck residents, and small enough that
+// a bell cannot turn into a stall.
+const ANCHORS_PER_FRAME=3; let anchorsThisFrame=0;
 function navRequest(npc){ if(!npc.navPending){ npc.navPending=true; navQueue.push(npc); } }
 function navServiceQueue(){
+  FRAME_COST.nav=0;
   if(!navQueue.length)return;
+  const navStarted=performance.now();
   navQueue.sort((a,b)=>((a.g.position.x-player.x)**2+(a.g.position.z-player.z)**2)-((b.g.position.x-player.x)**2+(b.g.position.z-player.z)**2));
   for(let n=0;n<NAV_REQUESTS_PER_FRAME&&navQueue.length;n++){
     const npc=navQueue.shift(); npc.navPending=false;
     const goal=npc.legs?.length?npc.legs[0]:npc.routeLoop&&npc.routeLoop.length?npc.routeLoop[npc.goalIndex%npc.routeLoop.length]:null;
     if(!goal){npc.path=null;continue;}
     const path=navFindPath(npc.lastX,npc.lastZ,goal[0],goal[1]);
+    const spent=performance.now()-navStarted;
     if(path&&path.length){ npc.path=path; npc.pathIndex=0; npc.navFailures=0; npc.atStop=false; npc.errandIndex=npc.goalIndex; }
     else if(npc.legs?.length){ // A leg nobody can reach is skipped, not retried.
       npc.path=null; npc.legs.shift(); npc.pauseLeft=1.5; if(!npc.legs.length)legsDone(npc); }
@@ -8055,7 +8073,9 @@ function navServiceQueue(){
       npc.path=null; npc.navFailures=(npc.navFailures||0)+1;
       npc.goalIndex=(npc.goalIndex+1)%Math.max(1,(npc.routeLoop||[]).length);
       npc.pauseLeft=Math.min(30,2.5*Math.pow(1.8,Math.min(npc.navFailures,5)))+((npc.phase*7)%2); }
+    if(spent>NAV_FRAME_BUDGET_MS)break;
   }
+  FRAME_COST.nav=performance.now()-navStarted;
 }
 
 LMSG.textContent='mapping the streets…'; buildNavGrid(); const navRegionCount=labelNavRegions();
@@ -8669,6 +8689,7 @@ function cast(){ if(anyOverlayOpen())return;const now=performance.now(); if(now-
 // distance tests per frame. One cell lookup instead: rebuilt once per frame,
 // queried by the nine cells around a point.
 const NPC_CELL=2.6, npcGrid=new Map();
+const NPC_CLEAR_SAMPLES=40;
 function npcCellKey(x,z){ return ((x/NPC_CELL)|0)+','+((z/NPC_CELL)|0); }
 function rebuildNpcGrid(){
   npcGrid.clear();
@@ -9255,15 +9276,21 @@ function clearPressedKeys(){for(const key of Object.keys(keys))delete keys[key];
 function conversationFor(npc){return VANETH_CONVERSATION[npc?.district]||VANETH_CONVERSATION['Old Vaneth'];}
 function nameIndex(name,count){return [...String(name||'')].reduce((total,char)=>total+char.charCodeAt(0),0)%count;}
 function dialogueChoice(label,action,leave=false){const button=document.createElement('button');button.type='button';button.textContent=label;if(leave)button.className='leave';button.addEventListener('click',action);dialogueChoices.append(button);}
-function npcPathClear(x1,z1,x2,z2,extra=.22){const distance=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.ceil(distance/1.1));for(let step=1;step<=steps;step++){const blend=step/steps;if(colliderBlocked(x1+(x2-x1)*blend,z1+(z2-z1)*blend,extra))return false;}return true;}
+// A step every 1.1 m, but never more than NPC_CLEAR_SAMPLES of them: this is a
+// "can they just walk at it" test, and over a 300 m leg the fine sampling cost
+// 270 collider lookups a stop. Anchoring a round tests every stop, and a bell
+// anchors residents together — 337 ms in one frame on the harness, r119. The
+// path-finder is what actually routes them; this only decides where to start.
+function npcPathClear(x1,z1,x2,z2,extra=.22){const distance=Math.hypot(x2-x1,z2-z1),steps=Math.max(1,Math.min(NPC_CLEAR_SAMPLES,Math.ceil(distance/1.1)));for(let step=1;step<=steps;step++){const blend=step/steps;if(colliderBlocked(x1+(x2-x1)*blend,z1+(z2-z1)*blend,extra))return false;}return true;}
 function talkSpotFor(npc){const fromX=npc.g.position.x,fromZ=npc.g.position.z,base=Math.atan2(player.z-fromZ,player.x-fromX);for(let index=0;index<10;index++){const angle=base+Math.PI+(index?((index%2?-1:1)*Math.ceil(index/2)*.44):0),x=player.x+Math.cos(angle)*2.15,z=player.z+Math.sin(angle)*2.15;if(!colliderBlocked(x,z,.26)&&npcPathClear(fromX,fromZ,x,z))return{x,z};}return{x:fromX,z:fromZ};}
-function anchorNpcRoute(npc){npc.path=null;npc.pathIndex=0;const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});// No stop in straight line of sight used to mean a one-point route that only
+function anchorNpcRoute(npc){const anchorStarted=performance.now();npc.path=null;npc.pathIndex=0;const x=npc.g.position.x,z=npc.g.position.z,loop=(npc.routeLoop||[]).map(point=>[point[0],point[1]]);npc.lastX=x;npc.lastZ=z;if(!loop.length){npc.route=[[x,z]];npc.routeProgress=0;FRAME_COST.anchor+=performance.now()-anchorStarted;return;}let best=-1,bestDistance=Infinity;loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance&&npcPathClear(x,z,point[0],point[1])){best=index;bestDistance=distance;}});// No stop in straight line of sight used to mean a one-point route that only
 // retried the same test every 2.4 s, and never reached the A* branch built to
 // walk round buildings: 147 of 326 residents stood where they spawned, per the r114
 // audit, and the same since at least r100. Start from the nearest stop anyway and
 // let the path-finder take them there.
 if(best<0){loop.forEach((point,index)=>{const distance=(point[0]-x)**2+(point[1]-z)**2;if(distance<bestDistance){best=index;bestDistance=distance;}});}const ordered=loop.slice(best).concat(loop.slice(0,best));npc.route=[[x,z],...ordered];npc.routeProgress=0;npc.routeRetryIn=0;// Linger a good while after a conversation instead of turning on their heel.
-  npc.pauseLeft=3.5+((npc.phase*9)%2.5);}
+  npc.pauseLeft=3.5+((npc.phase*9)%2.5);
+  FRAME_COST.anchor+=performance.now()-anchorStarted;}
 dialogueClose.addEventListener('click',closeDialogue);
 
 // ---------- Living conversations: role, memory, and a real shared-jar flow ----------
@@ -9508,7 +9535,11 @@ function npcObstructed(npc,x,z){
     if(pd<preach&&ahead(pdx,pdz,pd))return true;
   }
   const reach=.42*1.7;
-  for(const other of villagers){ if(other===npc)continue;
+  // The nine grid cells around them, not all 326: this runs for every resident
+  // who is moving, every frame, and over the whole population it was the walk
+  // loop's own n-squared. Cells are 2.6 m, so a reach under a metre cannot
+  // leave out any neighbour the grid holds, r119.
+  for(const other of npcNeighbours(npc.lastX,npc.lastZ)){ if(other===npc)continue;
     const dx=other.g.position.x-npc.lastX,dz=other.g.position.z-npc.lastZ,dist=Math.hypot(dx,dz);
     if(dist<reach&&ahead(dx,dz,dist))return true; }
   return false;
@@ -9817,7 +9848,11 @@ function updateMeetings(dt){
     }
   }
 }
-function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); rebuildNpcGrid(); applyWatch(t,dt); updateShelter(); updateMeetings(dt);
+function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_COST.anchor=0; let closest=null,best=16; navServiceQueue(); rebuildNpcGrid();
+  const watchStarted=performance.now(); applyWatch(t,dt);
+  const shelterStarted=performance.now(); FRAME_COST.watch=shelterStarted-watchStarted; updateShelter();
+  const meetingsStarted=performance.now(); FRAME_COST.shelter=meetingsStarted-shelterStarted; updateMeetings(dt);
+  const walkStarted=performance.now(); FRAME_COST.meetings=walkStarted-meetingsStarted; anchorsThisFrame=0;
   for(const npc of villagers){
     // Someone at home can be spoken to by whoever is in the room with them.
     if(npc.indoors){ if(npc.atHome&&activeInterior===npc.atHome){ const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} } continue; }
@@ -9825,7 +9860,13 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
     else if(npc.stay){ const v=npc.stay, [fx,fz]=v.face; v.stood+=dt; npc.g.rotation.y=Math.atan2(fx-x,fz-z); if(v.homeward&&v.stood>=OUTING_MIN_STAY)homeFromOuting(npc); }
-    else if(npc.route.length<=1&&npc.routeLoop?.length&&!npc.legs?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;if(npc.routeRetryIn<=0)anchorNpcRoute(npc);}
+    // Re-anchoring walks a line of sight to every stop on the round, which is
+    // cheap once and expensive three hundred times over in one frame. Residents all
+    // set their retry at the same bell and came back to it together, and that
+    // was the 300 ms frame the soaks kept finding, r116 to r119. Only a few
+    // re-anchor per frame now, and each waits a beat of its own afterwards.
+    else if(npc.route.length<=1&&npc.routeLoop?.length&&!npc.legs?.length){npc.routeRetryIn=(Number.isFinite(npc.routeRetryIn)?npc.routeRetryIn:2.4)-dt;
+      if(npc.routeRetryIn<=0){ if(anchorsThisFrame<ANCHORS_PER_FRAME){ anchorsThisFrame++; anchorNpcRoute(npc); } else npc.routeRetryIn=.25+((npc.phase*7)%1.4); } }
     else if(npc.legs?.length||(npc.routeLoop&&npc.routeLoop.length>1)){
       // Follow the A* path to the current patrol stop. Walking into geometry
       // now means re-planning around it rather than stalling against it.
@@ -9860,7 +9901,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
             npc.blockedFor=(npc.blockedFor||0)+dt;
             if(npc.blockedFor>.7){
               let bx=0,bz=0;
-              for(const other of villagers){ if(other===npc)continue;
+              for(const other of npcNeighbours(npc.lastX,npc.lastZ)){ if(other===npc)continue;
                 const ox=npc.lastX-other.g.position.x,oz=npc.lastZ-other.g.position.z,od=Math.hypot(ox,oz);
                 if(od<1.4&&od>1e-4){ bx+=ox/od; bz+=oz/od; } }
               const bl=Math.hypot(bx,bz);
@@ -9937,6 +9978,7 @@ function updateVillagers(t,dt){ let closest=null,best=16; navServiceQueue(); reb
   const close=nearestDoor||nearestVillager||nearestWorldInteraction;interactHint.style.display=!anyOverlayOpen()&&close?'block':'none';if(close){interactHint.querySelector('span').textContent=offerLabel(first);mobileInteractBtn.textContent=offerButton(first);}else mobileInteractBtn.textContent='TALK';
   interactAlt.hidden=!secondOffer; mobileAltBtn.style.visibility=secondOffer&&!anyOverlayOpen()?'visible':'hidden';
   if(secondOffer){ interactAlt.querySelector('span').textContent=offerLabel(secondOffer); mobileAltBtn.textContent=offerButton(secondOffer); }
+  FRAME_COST.walk=performance.now()-walkStarted; FRAME_COST.villagers=performance.now()-villagersStarted;
 }
 // Interiors have a real open doorway (no door leaf, see interiorHouse), so a
 // player can simply walk through the gap instead of pressing E. activeInterior
@@ -11377,7 +11419,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r118',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r119',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -11500,6 +11542,10 @@ window.EMBER={scene,camera,renderer,CONFIG,player,villagers,watch:()=>currentWat
   outings:()=>villagers.filter(v=>v.outing||v.legs?.length).map(v=>({name:v.name,kind:v.outing?.kind||null,place:v.outing?.place||null,house:v.outing?.house||null,stone:v.outing?.stone??null,setOut:!!v.outing?.setOut,staying:!!v.stay,stood:v.stay?+v.stay.stood.toFixed(1):null,homeward:!!v.outing?.homeward,pose:v.stay?.pose||null,rod:!!v.rod,lastKind:v.lastOuting?.kind||null,legs:v.legs?v.legs.length:0,spot:v.outing?.spot||null,x:+v.g.position.x.toFixed(1),y:+v.g.position.y.toFixed(2),z:+v.g.position.z.toFixed(1)})),
   // r117's view, kept for probe-mourners: the graveyard's people only.
   mourners:()=>villagers.filter(v=>v.outing?.kind==='mourner'||(v.legs?.length&&v.lastOuting?.kind==='mourner')).map(v=>({name:v.name,house:v.outing?.house||null,stone:v.outing?.stone??null,setOut:!!v.outing?.setOut,vigil:!!v.stay,stood:v.stay?+v.stay.stood.toFixed(1):null,homeward:!!v.outing?.homeward,legs:v.legs?v.legs.length:0,spot:v.outing?.spot||null,x:+v.g.position.x.toFixed(1),y:+v.g.position.y.toFixed(2),z:+v.g.position.z.toFixed(1)})),
+  // Where the last frame was spent, r119: nav is the path queue, watch the
+  // bell's retasking, shelter the doors, meetings the ember watch's pauses,
+  // walk the per-resident step, villagers all of it, render draw and bloom.
+  frameCost:()=>({...FRAME_COST}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,

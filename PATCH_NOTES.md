@@ -1,16 +1,15 @@
-**r118 — past the wall** · 2026-09-15 · phase 5, world depth
+**r119 — the long frames** · 2026-09-16 · phase 5, world depth
 
 ### Summary
 
-past the wall. The places outside the city that were waiting for somebody get somebody: a lamplighter kneels sifting at the Fallen Hall (its last fragment says someone still comes back to it), an angler fishes Foxglove Pond, and r117's mourners go on. One outing system for all three, with poses that hold — bowed, kneeling, rod out over the water. Sift or skim with them there and they notice. The long frames: three caught just before r118, no heap change and no script time named; r118's six soaks had none, and the spike probe now times the game's own frame callbacks for the next one.
+the long frames. The 300 ms hitches the soaks had been catching since r116 are found and gone. The game now says where a frame went (FRAME_COST, EMBER.frameCost), and with that, seven instrumented Wardens soaks caught four and named three causes: npcObstructed testing all 326 residents for every moving resident (now the nine cells of the resident grid), the path queue running seven long searches with no time limit (8 ms a frame now), and a bell re-anchoring every resident at once with a line-of-sight test sampled every 1.1 m (40 samples maximum, three re-anchors a frame). Six soaks after: none. Frames 2-3 ms faster at every standpoint. Two probes that play a variant rather than soak it, for the balance nobody has measured.
 
-Also: **past the wall** — a lamplighter goes out to sift the ash at the Fallen Hall and an angler fishes Foxglove Pond, alongside r117's mourners; they kneel, fish and bow rather than stand, talk to you there, and notice you sifting or skimming a stone
+Also: **the long frames** — the 300 ms hitches the soaks had been catching since r116 are found and gone: every resident was testing every other resident each frame, the path queue could run seven long searches back to back, and a bell had them all re-anchor at once. Frames are 2–3 ms faster everywhere as well
 
 ### In the code
 
-- 1.37 MB (+5,155 bytes on r117).
-- 10 functions added: `chooseOutings`, `clearSpotAround`, `endOuting`, `fishingRod`, `gateTowards`, `homeFromOuting`, `outingFree`, `pickOne`, `sendOn`, `setOut`.
-- 5 functions removed: `chooseMourners`, `endMourning`, `homeFromVigil`, `mournGateFor`, `setOutToMourn`.
+- 1.37 MB (+3,524 bytes on r118).
+- No functions added or removed.
 
 ### Play it
 
