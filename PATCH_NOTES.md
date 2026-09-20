@@ -1,15 +1,17 @@
-**r120 — measured variants** · 2026-09-16 · phase 5, world depth
+**r121 — the city takes shape** · 2026-09-20 · phase 5, world depth
+
+In its own panel header: *r121 city kit*.
 
 ### Summary
 
-measured variants. The balance probes played: The Long Night cannot hurt you if you fight back at all (five minutes, vitality never below 100) and the dark is better than the lit street, which is the opposite of its own design; Emberfall's ember read 100% at every brazier it lit, 24 of 32 in fifteen minutes. Both verdicts are the owner's to act on. EMBER.findPath lets a probe walk the streets like someone who knows them. The resident grid stopped rebuilding a few hundred arrays a frame, which took The Long Night's last hitches with it: four soaks, none.
+the city takes shape. The generator now dresses its existing façades with authored stone surrounds, shutters, upper timber, hooded lanterns and rare verdigris panes. Rendering moves from a deliberately pixel/purple default to a glossy saturated low-poly cobalt night; mixed-stature residents smoke pipes. The city keeps its seed, nav, doors, collision and routes; the balance work first measured at r120 ships alongside it.
 
-Also: **measured variants** — Emberfall and The Long Night are played rather than soaked, and there are numbers for what they are like: both are too easy in the way the probes play them (§7). The Long Night's own hitches are gone too — the resident grid stopped handing the collector a few hundred arrays a frame
+Also: **the city takes shape** — the first authored façade pass: stone door surrounds, framed shutters, heavy timber upper fronts, hooded lantern silhouettes and sparse verdigris leadlight; the renderer shifts to a glossy saturated low-poly night, then receives a clean-poly finish (higher default render buffer, trilinear/aniso texture filtering, tight bloom, less grit). The market has readable merchant bays, while a mixed five-people resident kit brings distinct silhouettes, faces, clothes, gait and pipes/smoke. The generator, seed and collision rules stay intact. Sealed after the full runtime audit and a 6/6 variant boot check; no r121 installer yet.
 
 ### In the code
 
-- 1.37 MB (+869 bytes on r119).
-- No functions added or removed.
+- 1.43 MB (+55,211 bytes on r120).
+- 4 functions added: `dressCityFronts`, `dressPoints`, `kitGeometry`, `update`.
 
 ### Play it
 

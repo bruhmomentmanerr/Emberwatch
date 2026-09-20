@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r120 measured variants</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r121 city kit</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4565,14 +4565,14 @@ try {
 const CONFIG = {
   mapSize: 1500, moveSpeed: 8, sprintMul: 2.0, jump: 6.5, gravity: 20,
   eyeHeight: 1.7, playerRadius: 0.5, mouseSens: 0.0022, fov: 75,
-  fogDensity: 0.007, renderScale: 0.45,
-  colors: { nightFog:0x140b22, nightGround:0x221c2e, nightHemi:0x4a55a0, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
+  fogDensity: 0.0054, renderScale: 0.64,
+  colors: { nightFog:0x091722, nightGround:0x25392f, nightHemi:0x39799a, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
 };
 const C=CONFIG.colors;
 const scene=new THREE.Scene(); let lighting='night';
 scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new THREE.Color(C.nightFog);
 const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,1100); camera.rotation.order='YXZ';
-const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFShadowMap;
 // Measured at r90: 37.2ms a frame with the map rebuilding, 18.4ms without it.
 // autoUpdate off means Three renders the map only when asked, and the only
@@ -4622,7 +4622,16 @@ addEventListener('resize',resize); resize();
 // renderer.info is reset once a frame here rather than on every render call,
 // so calls and triangles count the whole frame, bloom passes included, and
 // info.render.frame still counts frames rather than passes.
-const BLOOM={on:true,threshold:.75,knee:.2,strength:1.35,radius:.65};
+// The earlier filmic pass was intentionally soft. The city is dense enough now
+// that it reads better with a tight highlight halo rather than a diffuse haze.
+const BLOOM={on:true,threshold:.86,knee:.13,strength:.86,radius:.32};
+// The reference's richness comes mostly from soft high-resolution edges and a
+// tightly controlled colour grade, not from blanket glow. Grade Vaneth after
+// the bloom pass: cool blue-green in shadow, preserved warm lamp pools, a
+// little extra saturation and a lens-like edge falloff. This is deliberately
+// a look layer rather than a fake texture, so actual material colours remain
+// meaningful to the game and the effect costs one full-screen draw.
+const CINEMATIC_LOOK={contrast:1.06,saturation:1.10,shadowTeal:new THREE.Color(0x0b3040),vignette:.09};
 const bloom=(()=>{
   const MIPS=5, size=new THREE.Vector2();
   const quadCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1), quadScene=new THREE.Scene();
@@ -4647,17 +4656,26 @@ const bloom=(()=>{
       gl_FragColor=vec4(min(c*uStrength,vec3(1.0)),1.0); }`,
     {tMip0:{value:null},tMip1:{value:null},tMip2:{value:null},tMip3:{value:null},tMip4:{value:null},uWeight:{value:[1,1,1,1,1]},uStrength:{value:1}},
     {blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneMinusSrcColorFactor,transparent:true});
+  const grade=shader(`uniform sampler2D tFrame; uniform float uContrast; uniform float uSaturation; uniform vec3 uShadowTeal; uniform float uVignette; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(tFrame,vUv).rgb; float l=dot(c,vec3(.2126,.7152,.0722));
+      c=mix(vec3(l),c,uSaturation); c=(c-.5)*uContrast+.5;
+      c+=uShadowTeal*(1.0-smoothstep(.10,.62,l))*0.18;
+      vec2 q=vUv-.5; float edge=dot(q,q)*2.15; c*=1.0-uVignette*smoothstep(.12,.55,edge);
+      gl_FragColor=vec4(clamp(c,0.0,1.0),1.0); }`,
+    {tFrame:{value:null},uContrast:{value:1},uSaturation:{value:1},uShadowTeal:{value:new THREE.Color()},uVignette:{value:0}},
+    {blending:THREE.NoBlending});
   // Half-float so a faint glow fades smoothly instead of in steps; eight-bit
   // where a GPU cannot render to half-float.
   const ext=renderer.extensions, type=ext.has('EXT_color_buffer_float')||ext.has('EXT_color_buffer_half_float')?THREE.HalfFloatType:THREE.UnsignedByteType;
   const target=()=>new THREE.WebGLRenderTarget(1,1,{type,depthBuffer:false});
   const brightTarget=target(), across=[], down=[];
   for(let i=0;i<MIPS;i++){ across.push(target()); down.push(target()); composite.uniforms['tMip'+i].value=down[i].texture; }
-  let frame=null;
+  let frame=null, gradedFrame=null;
   function fit(w,h){
     if(frame&&frame.image.width===w&&frame.image.height===h)return;
-    if(frame)frame.dispose();
+    if(frame)frame.dispose(); if(gradedFrame)gradedFrame.dispose();
     frame=new THREE.FramebufferTexture(w,h); frame.minFilter=frame.magFilter=THREE.LinearFilter;
+    gradedFrame=new THREE.FramebufferTexture(w,h); gradedFrame.minFilter=gradedFrame.magFilter=THREE.LinearFilter;
     let mw=Math.max(1,w>>1), mh=Math.max(1,h>>1); brightTarget.setSize(mw,mh);
     for(let i=0;i<MIPS;i++){ mw=Math.max(1,mw>>1); mh=Math.max(1,mh>>1); across[i].setSize(mw,mh); down[i].setSize(mw,mh); }
   }
@@ -4679,6 +4697,10 @@ const bloom=(()=>{
     for(let i=0;i<MIPS;i++){ const f=1-i*.2; composite.uniforms.uWeight.value[i]=f+(1.2-2*f)*BLOOM.radius; }
     composite.uniforms.uStrength.value=BLOOM.strength;
     renderer.autoClear=false; pass(composite,null); renderer.autoClear=autoClear;
+    renderer.copyFramebufferToTexture(gradedFrame);
+    grade.uniforms.tFrame.value=gradedFrame; grade.uniforms.uContrast.value=CINEMATIC_LOOK.contrast;
+    grade.uniforms.uSaturation.value=CINEMATIC_LOOK.saturation; grade.uniforms.uShadowTeal.value.copy(CINEMATIC_LOOK.shadowTeal);
+    grade.uniforms.uVignette.value=CINEMATIC_LOOK.vignette; pass(grade,null);
     renderer.info.render.frame=frameCount;
   }
   return {render};
@@ -4717,8 +4739,8 @@ function lampLight(color,power,range,reach=range){
   light.userData.lampScale=lampPower(1,range);
   return light;
 }
-const hemi=new THREE.HemisphereLight(C.nightHemi,C.nightGround,2.25); scene.add(hemi);
-const moon=new THREE.DirectionalLight(0xb8c4ff,2.2); moon.position.set(-60,90,-30); moon.castShadow=true;
+const hemi=new THREE.HemisphereLight(C.nightHemi,C.nightGround,2.7); scene.add(hemi);
+const moon=new THREE.DirectionalLight(0xb8c4ff,2.65); moon.position.set(-60,90,-30); moon.castShadow=true;
 moon.shadow.mapSize.set(2048,2048); const scam=moon.shadow.camera; scam.left=-120;scam.right=120;scam.top=120;scam.bottom=-120;scam.far=260; moon.shadow.bias=-0.0004; moon.shadow.radius=3; scene.add(moon);
 const moonDisc=new THREE.Mesh(new THREE.CircleGeometry(9,28),new THREE.MeshBasicMaterial({color:0xd9ccff,fog:false})); moonDisc.position.set(-110,80,-150); scene.add(moonDisc);
 const moon2=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xd98a6a,fog:false})); moon2.position.set(90,64,-160); scene.add(moon2);
@@ -4776,21 +4798,33 @@ function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('c
   else if(pattern==='ground'){for(let i=0;i<240;i++){const px=rand(0,S),py=rand(0,S);x.fillStyle=shade(base,rand(-12,18));x.fillRect(px,py,rand(1,4),rand(1,2));}for(let i=0;i<22;i++){x.fillStyle=shade(base,rand(16,34));x.fillRect(rand(0,S),rand(0,S),rand(2,5),1);}}
   else if(pattern==='cloth'){for(let i=0;i<S;i+=4){x.fillStyle=shade(base,i%8?8:-12);x.fillRect(0,i,S,1);}}
   for(let i=0;i<S*S*(opt.density||.08);i++){x.fillStyle=shade(base,(worldRandom()*2-1)*(opt.jitter||13));const s=worldRandom()<.12?2:1;x.fillRect((worldRandom()*S)|0,(worldRandom()*S)|0,s,s);}
-  const t=new THREE.CanvasTexture(cvs);/* Linear, not Nearest. The code asked for Nearest from the start, but r128 also set 4x anisotropy on these, and anisotropic filtering smooths whatever the filter says (D3D11 behind Chrome on Windows, and SwiftShader). So the city was always drawn smoothed. r186 honours Nearest and skips anisotropy on it, which showed every texture as hard pixels and opened visible seams down the roads. Linear keeps the look the game actually had. */t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearFilter;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;t.colorSpace=THREE.SRGBColorSpace;if(opt.repeat)t.repeat.set(opt.repeat[0],opt.repeat[1]);return t;}
+  /* Linear, not Nearest: clean low-poly surfaces need texture detail to settle
+     at a distance rather than breaking into hard pixels. Trilinear mipmaps
+     plus a little more anisotropy keep angled cobbles and roofs crisp without
+     turning the game photoreal. */
+  const t=new THREE.CanvasTexture(cvs);
+  t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  t.colorSpace=THREE.SRGBColorSpace;if(opt.repeat)t.repeat.set(opt.repeat[0],opt.repeat[1]);return t;}
 function sm(tex){ return new THREE.MeshStandardMaterial({map:tex,flatShading:true,roughness:1,metalness:0}); }
 // LAMP_GLOW: under real light a full-strength window reads as a white card; at
 // seven tenths it keeps its amber.
 function em(color,intensity){ return new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:intensity*LAMP_GLOW,flatShading:true}); }
 
 useWorldStream('textures');
-const TX={ground:makeTex(0x27301d,{pattern:'ground',density:.06,jitter:10,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15]}),
-  wall:makeTex(0x706556,{pattern:'stone',density:.04,jitter:12}),wall2:makeTex(0x5d596b,{pattern:'stone',density:.04,jitter:12}),
-  brick:makeTex(0x6a4239,{pattern:'brick',density:.03,jitter:10}),roof:makeTex(0x67343b,{pattern:'roof',density:.03,jitter:10}),
-  slate:makeTex(0x3d4057,{pattern:'slate',density:.03,jitter:10}),stone:makeTex(0x5c5865,{pattern:'stone',density:.03,jitter:11}),
-  cobble:makeTex(0x48424d,{pattern:'cobble',density:.025,jitter:8}),city:makeTex(0x24232b,{pattern:'cobble',density:.018,jitter:6}),
-  dirt:makeTex(0x3a3128,{pattern:'ground',density:.05,jitter:9,repeat:[26,26]}),wood:makeTex(0x4d3824,{pattern:'wood',density:.03,jitter:10}),cloth:makeTex(0x633e55,{pattern:'cloth',density:.03,jitter:8}),dark:makeTex(0x1b1922,{density:.03,jitter:7})};
+// Keep the clear low-poly construction marks, but suppress the old layer of
+// per-pixel grit. It was useful when the render buffer was deliberately tiny;
+// at the new resolution it read as blur rather than material.
+const TX={ground:makeTex(0x202d24,{pattern:'ground',density:.032,jitter:6,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15]}),
+  wall:makeTex(0x756a5d,{pattern:'stone',density:.018,jitter:7}),wall2:makeTex(0x4b5266,{pattern:'stone',density:.018,jitter:7}),
+  brick:makeTex(0x70413b,{pattern:'brick',density:.014,jitter:6}),roof:makeTex(0x742f42,{pattern:'roof',density:.014,jitter:6}),
+  slate:makeTex(0x2f3c54,{pattern:'slate',density:.014,jitter:6}),stone:makeTex(0x605b6c,{pattern:'stone',density:.016,jitter:7}),
+  cobble:makeTex(0x454052,{pattern:'cobble',density:.012,jitter:6}),city:makeTex(0x202333,{pattern:'cobble',density:.009,jitter:5}),
+  dirt:makeTex(0x3a3428,{pattern:'ground',density:.024,jitter:6,repeat:[26,26]}),wood:makeTex(0x513620,{pattern:'wood',density:.016,jitter:7}),cloth:makeTex(0x69384f,{pattern:'cloth',density:.012,jitter:5}),dark:makeTex(0x151927,{density:.012,jitter:5})};
 const MATS={ wall:sm(TX.wall), wall2:sm(TX.wall2), brick:sm(TX.brick), roof:sm(TX.roof), slate:sm(TX.slate), stone:sm(TX.stone),
   cobble:sm(TX.cobble), city:sm(TX.city), dirt:sm(TX.dirt), wood:sm(TX.wood), cloth:sm(TX.cloth), dark:sm(TX.dark), foliage:new THREE.MeshStandardMaterial({color:0x3f7140,roughness:1,flatShading:true}), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
+MATS.foliage.color.setHex(0x2d8c48);MATS.foliage.emissive.setHex(0x0b2d1a);MATS.foliage.emissiveIntensity=.46;
 // Hundreds of road rectangles meet at the same elevation. World-coordinate
 // paving UVs keep their pattern aligned; a slight polygon offset prevents the
 // shared edges from flickering while the roads remain a solid depth surface.
@@ -6207,6 +6241,18 @@ function marketDistrict(){
   for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; let sx=Math.cos(a)*20,sz=MARKET_Z+Math.sin(a)*20;
     for(let out=0;out<8&&onRoad(sx,sz,2.4);out++){ const rr=20+ (out+1)*1.6; sx=Math.cos(a)*rr; sz=MARKET_Z+Math.sin(a)*rr; }
     if(onRoad(sx,sz,2.4))continue; aBox(4,.28,2.8,sx,2.35,sz,'wood',a); aCone(2.65,1.15,4,sx,3.1,sz,i%3?'roof':'slate',a+Math.PI/4); aCyl(.1,.1,2.3,4,sx-1.35,1.15,sz-1,'wood'); aCyl(.1,.1,2.3,4,sx+1.35,1.15,sz+1,'wood'); addCollider(sx,sz,1.55); }
+  // The original ring left a very legible but empty thirty-metre disc. These
+  // are distinct merchant bays rather than random crates: each keeps the clear
+  // line through the fire, steps off any carriageway, and adds a tall awning,
+  // stock and a counter so the centre reads as several small destinations.
+  const marketBay=(x,z,ry,cloth,lit)=>{const spot=offRoad(x,z,2.15,10);if(!spot)return;[x,z]=spot;
+    aBox(3.35,.18,2.25,x,.92,z,'wood',ry);aBox(3.7,.14,2.55,x,2.95,z,cloth,ry);
+    for(const side of[-1,1])aCyl(.1,.12,2.9,5,x+Math.cos(ry)*side*1.48,1.47,z-Math.sin(ry)*side*1.48,'wood');
+    aBox(2.75,.44,.62,x-Math.sin(ry)*.78,.48,z-Math.cos(ry)*.78,'wood',ry);
+    for(const side of[-1,1]){aBox(.44,.52,.44,x+Math.cos(ry)*side*.84+Math.sin(ry)*.42,.38,z-Math.sin(ry)*side*.84+Math.cos(ry)*.42,side>0?'foliage':'stone',ry);}
+    addCollider(x,z,1.72);if(lit)cityLantern(x+Math.sin(ry)*2.35,z+Math.cos(ry)*2.35,true);
+  };
+  [[-11,86,0,'ember',true],[12,87,0,'cloth',false],[-11,130,Math.PI,'cloth',true],[12,130,Math.PI,'ember',false],[-29,101,Math.PI/2,'roof',true],[29,101,-Math.PI/2,'cloth',false],[-29,117,Math.PI/2,'cloth',false],[29,117,-Math.PI/2,'ember',true]].forEach(row=>marketBay(...row));
   interiorHouse('The Cinder and Keg',38,MARKET_Z+6,22,17,'tavern'); cityHouse(-39,MARKET_Z+4,15,11,2,'brick',0,'amber');
 }
 function perimeterWards(){
@@ -6600,7 +6646,7 @@ function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.
   if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(inWildClearing(x,z,2)||nearBrook(x,z,4.5))continue;  // Scrub at the margin, full canopy once inside. The edge stops looking like
   // full-grown trees that were simply cut off at a radius.
   const maturity=Math.max(.55,Math.min(1,depth/70));
-  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x3a2b1d,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x24452d,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x1f3b2a,0x2b5030,0x365f36,0x416d38];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;const foot=terrainAt(x,z)-.18*width;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,foot+h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x3a2b1d:0x4c3722));position.set(x,foot+h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,foot+h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
+  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x49301c,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x28783e,emissive:0x0a311c,emissiveIntensity:.55,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x17522f,0x24743b,0x34934a,0x58a34a];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;const foot=terrainAt(x,z)-.18*width;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,foot+h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x49301c:0x694523));position.set(x,foot+h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,foot+h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
 // What is left outside the wall. The old greater city stood here and the
 // forest has taken it back; a broken ring of its wall still shows through the
 // trees, which is both a nicer thing to walk out to than an empty field and an
@@ -7114,7 +7160,9 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
   for(let s=0;s<stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
     const cols=seed%7<3?3:2,spread=w*.31;
     for(let c=0;c<cols;c++){ const ox=cols===1?0:-spread+(2*spread)*(c/(cols-1));
-      aBox(.5,.66,.06,x+ox*co+si*front,wy,z-ox*si+co*front,'window',ry); } }
+      const wx=x+ox*co+si*front, wz=z-ox*si+co*front;
+      CITY_WINDOWS.push({x:wx,y:wy,z:wz,ry,accent});             // for the street kit's frames
+      aBox(.5,.66,.06,wx,wy,wz,'window',ry); } }
   addBoxCollider(x,z,w,d,ry);
 }
 // The wards had ~1690 houses and about 78 props between them, which is why the
@@ -7122,7 +7170,457 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
 // cluttered with the business of the people living on them, and that clutter
 // hugs the buildings rather than sitting in the middle of the road — so this
 // hangs props off each house's own frontage as it is built.
-function housePorch(x,z,w,d,ry,accent){
+// ---------- the street kit ----------
+// Pieces modelled in Blender, exported to glTF and inlined here as base64 by
+// tools/assets/inline-glb.js, because the game is one file. Each piece is one
+// geometry drawn as instances: the city has about 1,400 fronts, and a mesh per
+// front would be 1,400 draw calls on its own.
+//
+// Each piece is merged into one static mesh, the way the city itself is built:
+// one draw call, no per-frame work, and the same cost whether you look at it or
+// not. Two other ways were measured first and both were worse — twelve
+// InstancedMeshes bucketed by bearing (a sector of this city is 170 m across,
+// so nearly every sector touches the frustum and nearly every copy drew), and
+// a BatchedMesh culled per instance (6,700 bounds tests a frame in JS put the
+// gate at 90 ms). What the trim actually costs is its triangles.
+const CITY_FRONTS=[], CITY_WINDOWS=[], KIT_MESHES=[];
+// >>> ASSET WINDOW_FRAME
+const WINDOW_FRAME_GLB =
+  'Z2xURgIAAAAoFQAAVAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoid2luZG93X2ZyYW1lIn1dLCJtZXNoZXMiOlt7Im5hbWUiOiJ3aW5kb3dfZnJhbWUiLCJwcmlt' +
+  'aXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjoyfV19XSwiYWNjZXNzb3Jz' +
+  'IjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTY4LCJtYXgiOlswLjYwMDAwMDAyMzg0MTg1' +
+  'NzksMC40MjAwMDAwMTY2ODkzMDA1NCwwLjAyMDAwMDAwMzI3ODI1NTQ2M10sIm1pbiI6Wy0wLjYwMDAwMDAyMzg0MTg1NzksLTAu' +
+  'NDU0OTk5OTgzMzEwNjk5NDYsLTAuMTgwMDAwMDA3MTUyNTU3MzddLCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MSwiY29t' +
+  'cG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUi' +
+  'OjUxMjMsImNvdW50IjoyNTIsInR5cGUiOiJTQ0FMQVIifV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVMZW5ndGgi' +
+  'OjIwMTYsImJ5dGVPZmZzZXQiOjAsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyMDE2LCJieXRlT2Zm' +
+  'c2V0IjoyMDE2LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6NTA0LCJieXRlT2Zmc2V0Ijo0MDMyLCJ0' +
+  'YXJnZXQiOjM0OTYzfV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjQ1MzZ9XX24EQAAQklOAHoUrr49Cte+AAAAgHoUrr49Cte+' +
+  'AAAAgHoUrr49Cte+AAAAgHoUrr49Ctc+AAAAgHoUrr49Ctc+AAAAgHoUrr49Ctc+AAAAgHoUrr49Cte+zczMvXoUrr49Cte+zczM' +
+  'vXoUrr49Cte+zczMvXoUrr49Ctc+zczMvXoUrr49Ctc+zczMvXoUrr49Ctc+zczMvf//f749Cte+AAAAgP//f749Cte+AAAAgP//' +
+  'f749Cte+AAAAgP//f749Ctc+AAAAgP//f749Ctc+AAAAgP//f749Ctc+AAAAgP//f749Cte+zczMvf//f749Cte+zczMvf//f749' +
+  'Cte+zczMvf//f749Ctc+zczMvf//f749Ctc+zczMvf//f749Ctc+zczMvf//fz49Cte+AAAAgP//fz49Cte+AAAAgP//fz49Cte+' +
+  'AAAAgP//fz49Ctc+AAAAgP//fz49Ctc+AAAAgP//fz49Ctc+AAAAgP//fz49Cte+zczMvf//fz49Cte+zczMvf//fz49Cte+zczM' +
+  'vf//fz49Ctc+zczMvf//fz49Ctc+zczMvf//fz49Ctc+zczMvXoUrj49Cte+AAAAgHoUrj49Cte+AAAAgHoUrj49Cte+AAAAgHoU' +
+  'rj49Ctc+AAAAgHoUrj49Ctc+AAAAgHoUrj49Ctc+AAAAgHoUrj49Cte+zczMvXoUrj49Cte+zczMvXoUrj49Cte+zczMvXoUrj49' +
+  'Ctc+zczMvXoUrj49Ctc+zczMvXoUrj49Ctc+zczMvQAAgL4+Cte+AAAAgAAAgL4+Cte+AAAAgAAAgL4+Cte+AAAAgAAAgL7C9ai+' +
+  'AAAAgAAAgL7C9ai+AAAAgAAAgL7C9ai+AAAAgAAAgL4+Cte+zczMvQAAgL4+Cte+zczMvQAAgL4+Cte+zczMvQAAgL7C9ai+zczM' +
+  'vQAAgL7C9ai+zczMvQAAgL7C9ai+zczMvQAAgD4+Cte+AAAAgAAAgD4+Cte+AAAAgAAAgD4+Cte+AAAAgAAAgD7C9ai+AAAAgAAA' +
+  'gD7C9ai+AAAAgAAAgD7C9ai+AAAAgAAAgD4+Cte+zczMvQAAgD4+Cte+zczMvQAAgD4+Cte+zczMvQAAgD7C9ai+zczMvQAAgD7C' +
+  '9ai+zczMvQAAgD7C9ai+zczMvQAAgL7C9ag+AAAAgAAAgL7C9ag+AAAAgAAAgL7C9ag+AAAAgAAAgL4+Ctc+AAAAgAAAgL4+Ctc+' +
+  'AAAAgAAAgL4+Ctc+AAAAgAAAgL7C9ag+zczMvQAAgL7C9ag+zczMvQAAgL7C9ag+zczMvQAAgL4+Ctc+zczMvQAAgL4+Ctc+zczM' +
+  'vQAAgL4+Ctc+zczMvQAAgD7C9ag+AAAAgAAAgD7C9ag+AAAAgAAAgD7C9ag+AAAAgAAAgD4+Ctc+AAAAgAAAgD4+Ctc+AAAAgAAA' +
+  'gD4+Ctc+AAAAgAAAgD7C9ag+zczMvQAAgD7C9ag+zczMvQAAgD7C9ag+zczMvQAAgD4+Ctc+zczMvQAAgD4+Ctc+zczMvQAAgD4+' +
+  'Ctc+zczMvRSux77C9ei+DNejPBSux77C9ei+DNejPBSux77C9ei+DNejPBSux74AAMC+DNejPBSux74AAMC+DNejPBSux74AAMC+' +
+  'DNejPBSux77C9ei+7FE4vhSux77C9ei+7FE4vhSux77C9ei+7FE4vhSux74AAMC+7FE4vhSux74AAMC+7FE4vhSux74AAMC+7FE4' +
+  'vhSuxz7C9ei+DNejPBSuxz7C9ei+DNejPBSuxz7C9ei+DNejPBSuxz4AAMC+DNejPBSuxz4AAMC+DNejPBSuxz4AAMC+DNejPBSu' +
+  'xz7C9ei+7FE4vhSuxz7C9ei+7FE4vhSuxz7C9ei+7FE4vhSuxz4AAMC+7FE4vhSuxz4AAMC+7FE4vhSuxz4AAMC+7FE4vpqZGb8A' +
+  'AMC+AAAAgJqZGb8AAMC+AAAAgJqZGb8AAMC+AAAAgJqZGb8AAMA+AAAAgJqZGb8AAMA+AAAAgJqZGb8AAMA+AAAAgJqZGb8AAMC+' +
+  'zcxMvZqZGb8AAMC+zcxMvZqZGb8AAMC+zcxMvZqZGb8AAMA+zcxMvZqZGb8AAMA+zcxMvZqZGb8AAMA+zcxMvXsUrr4AAMC+AAAA' +
+  'gHsUrr4AAMC+AAAAgHsUrr4AAMC+AAAAgHsUrr4AAMA+AAAAgHsUrr4AAMA+AAAAgHsUrr4AAMA+AAAAgHsUrr4AAMC+zcxMvXsU' +
+  'rr4AAMC+zcxMvXsUrr4AAMC+zcxMvXsUrr4AAMA+zcxMvXsUrr4AAMA+zcxMvXsUrr4AAMA+zcxMvXsUrj4AAMC+AAAAgHsUrj4A' +
+  'AMC+AAAAgHsUrj4AAMC+AAAAgHsUrj4AAMA+AAAAgHsUrj4AAMA+AAAAgHsUrj4AAMA+AAAAgHsUrj4AAMC+zcxMvXsUrj4AAMC+' +
+  'zcxMvXsUrj4AAMC+zcxMvXsUrj4AAMA+zcxMvXsUrj4AAMA+zcxMvXsUrj4AAMA+zcxMvZqZGT8AAMC+AAAAgJqZGT8AAMC+AAAA' +
+  'gJqZGT8AAMC+AAAAgJqZGT8AAMA+AAAAgJqZGT8AAMA+AAAAgJqZGT8AAMA+AAAAgJqZGT8AAMC+zcxMvZqZGT8AAMC+zcxMvZqZ' +
+  'GT8AAMC+zcxMvZqZGT8AAMA+zcxMvZqZGT8AAMA+zcxMvZqZGT8AAMA+zcxMvQAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'PwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAA' +
+  'AAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAA' +
+  'AIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/' +
+  'AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAA' +
+  'AAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAA' +
+  'gD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'vwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAA' +
+  'AAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAA' +
+  'AIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/' +
+  'AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAA' +
+  'AAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAA' +
+  'gL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAIABQALAAIACwAIAAYACQAVAAYAFQASABQAFwARABQAEQAOAAwA' +
+  'DwADAAwAAwAAAAcAEwANAAcADQABABYACgAEABYABAAQABoAHQAjABoAIwAgAB4AIQAtAB4ALQAqACwALwApACwAKQAmACQAJwAb' +
+  'ACQAGwAYAB8AKwAlAB8AJQAZAC4AIgAcAC4AHAAoADIANQA7ADIAOwA4ADYAOQBFADYARQBCAEQARwBBAEQAQQA+ADwAPwAzADwA' +
+  'MwAwADcAQwA9ADcAPQAxAEYAOgA0AEYANABAAEoATQBTAEoAUwBQAE4AUQBdAE4AXQBaAFwAXwBZAFwAWQBWAFQAVwBLAFQASwBI' +
+  'AE8AWwBVAE8AVQBJAF4AUgBMAF4ATABYAGIAZQBrAGIAawBoAGYAaQB1AGYAdQByAHQAdwBxAHQAcQBuAGwAbwBjAGwAYwBgAGcA' +
+  'cwBtAGcAbQBhAHYAagBkAHYAZABwAHoAfQCDAHoAgwCAAH4AgQCNAH4AjQCKAIwAjwCJAIwAiQCGAIQAhwB7AIQAewB4AH8AiwCF' +
+  'AH8AhQB5AI4AggB8AI4AfACIAJIAlQCbAJIAmwCYAJYAmQClAJYApQCiAKQApwChAKQAoQCeAJwAnwCTAJwAkwCQAJcAowCdAJcA' +
+  'nQCRAKYAmgCUAKYAlACgAA==';
+// <<< ASSET WINDOW_FRAME
+// >>> ASSET DOOR_SURROUND
+const DOOR_SURROUND_GLB =
+  'Z2xURgIAAABoDQAALAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoiZG9vcl9zdXJyb3VuZCJ9XSwibWVzaGVzIjpbeyJuYW1lIjoiZG9vcl9zdXJyb3VuZCIsInBy' +
+  'aW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIk5PUk1BTCI6MX0sImluZGljZXMiOjJ9XX1dLCJhY2Nlc3Nv' +
+  'cnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50Ijo5NiwibWF4IjpbMC43MzAwMDAwMTkwNzM0' +
+  'ODYzLDIuMjEwMDAwMDM4MTQ2OTcyNywwXSwibWluIjpbLTAuNzMwMDAwMDE5MDczNDg2MywwLC0wLjM0MDAwMDAwMzU3NjI3ODdd' +
+  'LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjk2LCJ0eXBlIjoiVkVD' +
+  'MyJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjE0NCwidHlwZSI6IlNDQUxBUiJ9XSwiYnVm' +
+  'ZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MTE1MiwiYnl0ZU9mZnNldCI6MCwidGFyZ2V0IjozNDk2Mn0seyJi' +
+  'dWZmZXIiOjAsImJ5dGVMZW5ndGgiOjExNTIsImJ5dGVPZmZzZXQiOjExNTIsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJi' +
+  'eXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjIzMDQsInRhcmdldCI6MzQ5NjN9XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6' +
+  'MjU5Mn1dfSAKAABCSU4AHoUrvwAAAAAAAACAHoUrvwAAAAAAAACAHoUrvwAAAAAAAACAHoUrv6Rw/T8AAACAHoUrv6Rw/T8AAACA' +
+  'HoUrv6Rw/T8AAACAHoUrvwAAAACuR2G+HoUrvwAAAACuR2G+HoUrvwAAAACuR2G+HoUrv6Rw/T+uR2G+HoUrv6Rw/T+uR2G+HoUr' +
+  'v6Rw/T+uR2G+////vgAAAAAAAACA////vgAAAAAAAACA////vgAAAAAAAACA////vqRw/T8AAACA////vqRw/T8AAACA////vqRw' +
+  '/T8AAACA////vgAAAACuR2G+////vgAAAACuR2G+////vgAAAACuR2G+////vqRw/T+uR2G+////vqRw/T+uR2G+////vqRw/T+u' +
+  'R2G+////PgAAAAAAAACA////PgAAAAAAAACA////PgAAAAAAAACA////PqRw/T8AAACA////PqRw/T8AAACA////PqRw/T8AAACA' +
+  '////PgAAAACuR2G+////PgAAAACuR2G+////PgAAAACuR2G+////PqRw/T+uR2G+////PqRw/T+uR2G+////PqRw/T+uR2G+HoUr' +
+  'PwAAAAAAAACAHoUrPwAAAAAAAACAHoUrPwAAAAAAAACAHoUrP6Rw/T8AAACAHoUrP6Rw/T8AAACAHoUrP6Rw/T8AAACAHoUrPwAA' +
+  'AACuR2G+HoUrPwAAAACuR2G+HoUrPwAAAACuR2G+HoUrP6Rw/T+uR2G+HoUrP6Rw/T+uR2G+HoUrP6Rw/T+uR2G+SOE6v6Rw/T8A' +
+  'AACASOE6v6Rw/T8AAACASOE6v6Rw/T8AAACASOE6v6RwDUAAAACASOE6v6RwDUAAAACASOE6v6RwDUAAAACASOE6v6Rw/T9xPYq+' +
+  'SOE6v6Rw/T9xPYq+SOE6v6Rw/T9xPYq+SOE6v6RwDUBxPYq+SOE6v6RwDUBxPYq+SOE6v6RwDUBxPYq+SOE6P6Rw/T8AAACASOE6' +
+  'P6Rw/T8AAACASOE6P6Rw/T8AAACASOE6P6RwDUAAAACASOE6P6RwDUAAAACASOE6P6RwDUAAAACASOE6P6Rw/T9xPYq+SOE6P6Rw' +
+  '/T9xPYq+SOE6P6Rw/T9xPYq+SOE6P6RwDUBxPYq+SOE6P6RwDUBxPYq+SOE6P6RwDUBxPYq+H4UrvwAAAAAAAACAH4UrvwAAAAAA' +
+  'AACAH4UrvwAAAAAAAACAH4Urv65H4T0AAACAH4Urv65H4T0AAACAH4Urv65H4T0AAACAH4UrvwAAAAB7FK6+H4UrvwAAAAB7FK6+' +
+  'H4UrvwAAAAB7FK6+H4Urv65H4T17FK6+H4Urv65H4T17FK6+H4Urv65H4T17FK6+H4UrPwAAAAAAAACAH4UrPwAAAAAAAACAH4Ur' +
+  'PwAAAAAAAACAH4UrP65H4T0AAACAH4UrP65H4T0AAACAH4UrP65H4T0AAACAH4UrPwAAAAB7FK6+H4UrPwAAAAB7FK6+H4UrPwAA' +
+  'AAB7FK6+H4UrP65H4T17FK6+H4UrP65H4T17FK6+H4UrP65H4T17FK6+AAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAvwAAAAAA' +
+  'AAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAA' +
+  'AAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAA' +
+  'AAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAA' +
+  'AAAAAIC/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAA' +
+  'AIA/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/' +
+  'AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAA' +
+  'AAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAA' +
+  'gD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8A' +
+  'AAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAA' +
+  'AACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACA' +
+  'PwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAPwAA' +
+  'AAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAvwAAAAAA' +
+  'AAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAA' +
+  'AAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAA' +
+  'AAAAAAAAAIC/AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAgAFAAsA' +
+  'AgALAAgABgAJABUABgAVABIAFAAXABEAFAARAA4ADAAPAAMADAADAAAABwATAA0ABwANAAEAFgAKAAQAFgAEABAAGgAdACMAGgAj' +
+  'ACAAHgAhAC0AHgAtACoALAAvACkALAApACYAJAAnABsAJAAbABgAHwArACUAHwAlABkALgAiABwALgAcACgAMgA1ADsAMgA7ADgA' +
+  'NgA5AEUANgBFAEIARABHAEEARABBAD4APAA/ADMAPAAzADAANwBDAD0ANwA9ADEARgA6ADQARgA0AEAASgBNAFMASgBTAFAATgBR' +
+  'AF0ATgBdAFoAXABfAFkAXABZAFYAVABXAEsAVABLAEgATwBbAFUATwBVAEkAXgBSAEwAXgBMAFgA';
+// <<< ASSET DOOR_SURROUND
+// >>> ASSET TIMBER_FACADE
+const TIMBER_FACADE_GLB =
+  'Z2xURgIAAACIFwAALAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoidGltYmVyX2ZhY2FkZSJ9XSwibWVzaGVzIjpbeyJuYW1lIjoidGltYmVyX2ZhY2FkZSIsInBy' +
+  'aW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIk5PUk1BTCI6MX0sImluZGljZXMiOjJ9XX1dLCJhY2Nlc3Nv' +
+  'cnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxOTIsIm1heCI6WzQuMDU5OTk5OTQyNzc5' +
+  'NTQxLDIuNDE5OTk5ODM3ODc1MzY2LDBdLCJtaW4iOlstNC4wNTk5OTk5NDI3Nzk1NDEsMCwtMC4xOTQzOTk5OTc1OTE5NzIzNV0s' +
+  'InR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTkyLCJ0eXBlIjoiVkVD' +
+  'MyJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjI4OCwidHlwZSI6IlNDQUxBUiJ9XSwiYnVm' +
+  'ZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjMwNCwiYnl0ZU9mZnNldCI6MCwidGFyZ2V0IjozNDk2Mn0seyJi' +
+  'dWZmZXIiOjAsImJ5dGVMZW5ndGgiOjIzMDQsImJ5dGVPZmZzZXQiOjIzMDQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJi' +
+  'eXRlTGVuZ3RoIjo1NzYsImJ5dGVPZmZzZXQiOjQ2MDgsInRhcmdldCI6MzQ5NjN9XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6' +
+  'NTE4NH1dfUAUAABCSU4AAACAwAAAAAAAAACAAACAwAAAAAAAAACAAACAwAAAAAAAAACAAACAwI/CdT4AAACAAACAwI/CdT4AAACA' +
+  'AACAwI/CdT4AAACAAACAwAAAAADsUTi+AACAwAAAAADsUTi+AACAwAAAAADsUTi+AACAwI/CdT7sUTi+AACAwI/CdT7sUTi+AACA' +
+  'wI/CdT7sUTi+AACAQAAAAAAAAACAAACAQAAAAAAAAACAAACAQAAAAAAAAACAAACAQI/CdT4AAACAAACAQI/CdT4AAACAAACAQI/C' +
+  'dT4AAACAAACAQAAAAADsUTi+AACAQAAAAADsUTi+AACAQAAAAADsUTi+AACAQI/CdT7sUTi+AACAQI/CdT7sUTi+AACAQI/CdT7s' +
+  'UTi+heuBwEOtCUAAAACAheuBwEOtCUAAAACAheuBwEOtCUAAAACAheuBwEfhGkAAAACAheuBwEfhGkAAAACAheuBwEfhGkAAAACA' +
+  'heuBwEOtCUDLEEe+heuBwEOtCUDLEEe+heuBwEOtCUDLEEe+heuBwEfhGkDLEEe+heuBwEfhGkDLEEe+heuBwEfhGkDLEEe+heuB' +
+  'QEOtCUAAAACAheuBQEOtCUAAAACAheuBQEOtCUAAAACAheuBQEfhGkAAAACAheuBQEfhGkAAAACAheuBQEfhGkAAAACAheuBQEOt' +
+  'CUDLEEe+heuBQEOtCUDLEEe+heuBQEOtCUDLEEe+heuBQEfhGkDLEEe+heuBQEfhGkDLEEe+heuBQEfhGkDLEEe+X6h5wHiQFz4A' +
+  'AACAX6h5wHiQFz4AAACAX6h5wHiQFz4AAACAjBl8wHohEUAAAACAjBl8wHohEUAAAACAjBl8wHohEUAAAACAX6h5wHiQFz7sUTi+' +
+  'X6h5wHiQFz7sUTi+X6h5wHiQFz7sUTi+jBl8wHohEUDsUTi+jBl8wHohEUDsUTi+jBl8wHohEUDsUTi+2kxqwNj8Gz4AAACA2kxq' +
+  'wNj8Gz4AAACA2kxqwNj8Gz4AAACAB75swEBoEUAAAACAB75swEBoEUAAAACAB75swEBoEUAAAACA2kxqwNj8Gz7sUTi+2kxqwNj8' +
+  'Gz7sUTi+2kxqwNj8Gz7sUTi+B75swEBoEUDsUTi+B75swEBoEUDsUTi+B75swEBoEUDsUTi+mk7JvxgnGz4AAACAmk7JvxgnGz4A' +
+  'AACAmk7JvxgnGz4AAACA/wzGvwZeEUAAAACA/wzGvwZeEUAAAACA/wzGvwZeEUAAAACAmk7JvxgnGz7sUTi+mk7JvxgnGz7sUTi+' +
+  'mk7JvxgnGz7sUTi+/wzGvwZeEUDsUTi+/wzGvwZeEUDsUTi+/wzGvwZeEUDsUTi+2Zaqvyg0GD4AAACA2Zaqvyg0GD4AAACA2Zaq' +
+  'vyg0GD4AAACAPlWnv9YuEUAAAACAPlWnv9YuEUAAAACAPlWnv9YuEUAAAACA2Zaqvyg0GD7sUTi+2Zaqvyg0GD7sUTi+2Zaqvyg0' +
+  'GD7sUTi+PlWnv9YuEUDsUTi+PlWnv9YuEUDsUTi+PlWnv9YuEUDsUTi+hmGWP3j8Fz4AAACAhmGWP3j8Fz4AAACAhmGWP3j8Fz4A' +
+  'AACAAZWSP3QqEUAAAACAAZWSP3QqEUAAAACAAZWSP3QqEUAAAACAhmGWP3j8Fz7sUTi+hmGWP3j8Fz7sUTi+hmGWP3j8Fz7sUTi+' +
+  'AZWSP3QqEUDsUTi+AZWSP3QqEUDsUTi+AZWSP3QqEUDsUTi+Exm1PzhtGz4AAACAExm1PzhtGz4AAACAExm1PzhtGz4AAACAjkyx' +
+  'P4BhEUAAAACAjkyxP4BhEUAAAACAjkyxP4BhEUAAAACAExm1PzhtGz7sUTi+Exm1PzhtGz7sUTi+Exm1PzhtGz7sUTi+jkyxP4Bh' +
+  'EUDsUTi+jkyxP4BhEUDsUTi+jkyxP4BhEUDsUTi+2kxqQNj8Gz4AAACA2kxqQNj8Gz4AAACA2kxqQNj8Gz4AAACAB75sQEBoEUAA' +
+  'AACAB75sQEBoEUAAAACAB75sQEBoEUAAAACA2kxqQNj8Gz7sUTi+2kxqQNj8Gz7sUTi+2kxqQNj8Gz7sUTi+B75sQEBoEUDsUTi+' +
+  'B75sQEBoEUDsUTi+B75sQEBoEUDsUTi+X6h5QHiQFz4AAACAX6h5QHiQFz4AAACAX6h5QHiQFz4AAACAjBl8QHohEUAAAACAjBl8' +
+  'QHohEUAAAACAjBl8QHohEUAAAACAX6h5QHiQFz7sUTi+X6h5QHiQFz7sUTi+X6h5QHiQFz7sUTi+jBl8QHohEUDsUTi+jBl8QHoh' +
+  'EUDsUTi+jBl8QHohEUDsUTi+zN+pvgCu8D1csb+8zN+pvgCu8D1csb+8zN+pvgCu8D1csb+8NkZswAxKCEBcsb+8NkZswAxKCEBc' +
+  'sb+8NkZswAxKCEBcsb+8zN+pvgCu8D2A2T2+zN+pvgCu8D2A2T2+zN+pvgCu8D2A2T2+NkZswAxKCECA2T2+NkZswAxKCECA2T2+' +
+  'NkZswAxKCECA2T2+GLFpvuK5lD5csb+8GLFpvuK5lD5csb+8GLFpvuK5lD5csb+8TqVlwNhbE0Bcsb+8TqVlwNhbE0Bcsb+8TqVl' +
+  'wNhbE0Bcsb+8GLFpvuK5lD6A2T2+GLFpvuK5lD6A2T2+GLFpvuK5lD6A2T2+TqVlwNhbE0CA2T2+TqVlwNhbE0CA2T2+TqVlwNhb' +
+  'E0CA2T2+GLFpPuK5lD5csb+8GLFpPuK5lD5csb+8GLFpPuK5lD5csb+8TqVlQNhbE0Bcsb+8TqVlQNhbE0Bcsb+8TqVlQNhbE0Bc' +
+  'sb+8GLFpPuK5lD6A2T2+GLFpPuK5lD6A2T2+GLFpPuK5lD6A2T2+TqVlQNhbE0CA2T2+TqVlQNhbE0CA2T2+TqVlQNhbE0CA2T2+' +
+  'zN+pPgCu8D1csb+8zN+pPgCu8D1csb+8zN+pPgCu8D1csb+8NkZsQAxKCEBcsb+8NkZsQAxKCEBcsb+8NkZsQAxKCEBcsb+8zN+p' +
+  'PgCu8D2A2T2+zN+pPgCu8D2A2T2+zN+pPgCu8D2A2T2+NkZsQAxKCECA2T2+NkZsQAxKCECA2T2+NkZsQAxKCECA2T2+AAAAAAAA' +
+  'AAAAAIA/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAA' +
+  'AIC/AAAAAAAAgL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/' +
+  'AAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAA' +
+  'AAAAgL8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAA' +
+  'gL8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8A' +
+  'AAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAvwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgL8AAAAA' +
+  'AACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgL8AAAAAAACA' +
+  'PwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIA/K3aTPGL1f78AAAAAYvV/vyt2' +
+  'k7wAAAAAAAAAAAAAAAAAAIA/K3aTvGL1fz8AAAAAYvV/vyt2k7wAAAAAAAAAAAAAAAAAAIC/K3aTPGL1f78AAAAAYvV/vyt2k7wA' +
+  'AAAAAAAAAAAAAAAAAIC/K3aTvGL1fz8AAAAAYvV/vyt2k7wAAAAAAAAAAAAAAAAAAIA/K3aTPGL1f78AAAAAYvV/Pyt2kzwAAAAA' +
+  'AAAAAAAAAAAAAIA/YvV/Pyt2kzwAAAAAK3aTvGL1fz8AAAAAAAAAAAAAAAAAAIC/K3aTPGL1f78AAAAAYvV/Pyt2kzwAAAAAAAAA' +
+  'AAAAAAAAAIC/YvV/Pyt2kzwAAAAAK3aTvGL1fz8AAAAAAAAAAAAAAAAAAIA/D51EvEj7f78AAAAASPt/vw+dRDwAAAAAAAAAAAAA' +
+  'AAAAAIA/D51EPEj7fz8AAAAASPt/vw+dRDwAAAAAAAAAAAAAAAAAAIC/D51EvEj7f78AAAAASPt/vw+dRDwAAAAAAAAAAAAAAAAA' +
+  'AIC/D51EPEj7fz8AAAAASPt/vw+dRDwAAAAAAAAAAAAAAAAAAIA/SPt/Pw+dRLwAAAAAD51EvEj7f78AAAAAAAAAAAAAAAAAAIA/' +
+  'D51EPEj7fz8AAAAASPt/Pw+dRLwAAAAAAAAAAAAAAAAAAIC/SPt/Pw+dRLwAAAAAD51EvEj7f78AAAAAAAAAAAAAAAAAAIC/D51E' +
+  'PEj7fz8AAAAASPt/Pw+dRLwAAAAAAAAAAAAAAAAAAIA/YGBlPJT5f78AAAAAlPl/v2BgZbwAAAAAAAAAAAAAAAAAAIA/YGBlvJT5' +
+  'fz8AAAAAlPl/v2BgZbwAAAAAAAAAAAAAAAAAAIC/YGBlPJT5f78AAAAAlPl/v2BgZbwAAAAAAAAAAAAAAAAAAIC/YGBlvJT5fz8A' +
+  'AAAAlPl/v2BgZbwAAAAAAAAAAAAAAAAAAIA/YGBlPJT5f78AAAAAlPl/P2BgZTwAAAAAAAAAAAAAAAAAAIA/lPl/P2BgZTwAAAAA' +
+  'YGBlvJT5fz8AAAAAAAAAAAAAAAAAAIC/YGBlPJT5f78AAAAAlPl/P2BgZTwAAAAAAAAAAAAAAAAAAIC/lPl/P2BgZTwAAAAAYGBl' +
+  'vJT5fz8AAAAAAAAAAAAAAAAAAIA/K3aTvGL1f78AAAAAYvV/vyt2kzwAAAAAAAAAAAAAAAAAAIA/K3aTPGL1fz8AAAAAYvV/vyt2' +
+  'kzwAAAAAAAAAAAAAAAAAAIC/K3aTvGL1f78AAAAAYvV/vyt2kzwAAAAAAAAAAAAAAAAAAIC/K3aTPGL1fz8AAAAAYvV/vyt2kzwA' +
+  'AAAAAAAAAAAAAAAAAIA/YvV/Pyt2k7wAAAAAK3aTvGL1f78AAAAAAAAAAAAAAAAAAIA/K3aTPGL1fz8AAAAAYvV/Pyt2k7wAAAAA' +
+  'AAAAAAAAAAAAAIC/YvV/Pyt2k7wAAAAAK3aTvGL1f78AAAAAAAAAAAAAAAAAAIC/K3aTPGL1fz8AAAAAYvV/Pyt2k7wAAAAAAAAA' +
+  'AAAAAAAAAIA/taJbP92DA78AAAAA3YMDv7WiW78AAAAAAAAAAAAAAAAAAIA/3YMDv7WiW78AAAAAtaJbv92DAz8AAAAAAAAAAAAA' +
+  'AAAAAIC/taJbP92DA78AAAAA3YMDv7WiW78AAAAAAAAAAAAAAAAAAIC/3YMDv7WiW78AAAAAtaJbv92DAz8AAAAAAAAAAAAAAAAA' +
+  'AIA/3YMDP7WiWz8AAAAAtaJbP92DA78AAAAAAAAAAAAAAAAAAIA/3YMDP7WiWz8AAAAAtaJbv92DAz8AAAAAAAAAAAAAAAAAAIC/' +
+  '3YMDP7WiWz8AAAAAtaJbP92DA78AAAAAAAAAAAAAAAAAAIC/3YMDP7WiWz8AAAAAtaJbv92DAz8AAAAAAAAAAAAAAAAAAIA/3YMD' +
+  'v7WiWz8AAAAAtaJbv92DA78AAAAAAAAAAAAAAAAAAIA/taJbP92DAz8AAAAA3YMDv7WiWz8AAAAAAAAAAAAAAAAAAIC/3YMDv7Wi' +
+  'Wz8AAAAAtaJbv92DA78AAAAAAAAAAAAAAAAAAIC/taJbP92DAz8AAAAA3YMDv7WiWz8AAAAAAAAAAAAAAAAAAIA/3YMDP7WiW78A' +
+  'AAAAtaJbv92DA78AAAAAAAAAAAAAAAAAAIA/3YMDP7WiW78AAAAAtaJbP92DAz8AAAAAAAAAAAAAAAAAAIC/3YMDP7WiW78AAAAA' +
+  'taJbv92DA78AAAAAAAAAAAAAAAAAAIC/3YMDP7WiW78AAAAAtaJbP92DAz8AAAAAAgAFAAsAAgALAAgABgAJABUABgAVABIAFAAX' +
+  'ABEAFAARAA4ADAAPAAMADAADAAAABwATAA0ABwANAAEAFgAKAAQAFgAEABAAGgAdACMAGgAjACAAHgAhAC0AHgAtACoALAAvACkA' +
+  'LAApACYAJAAnABsAJAAbABgAHwArACUAHwAlABkALgAiABwALgAcACgAMgA1ADsAMgA7ADgANgA5AEUANgBFAEIARABGAEAARABA' +
+  'AD4APAA/ADMAPAAzADAANwBDAD0ANwA9ADEARwA6ADQARwA0AEEASgBNAFMASgBTAFAATgBRAF0ATgBdAFoAWwBfAFkAWwBZAFUA' +
+  'VABXAEsAVABLAEgATwBcAFYATwBWAEkAXgBSAEwAXgBMAFgAYgBlAGsAYgBrAGgAZgBpAHUAZgB1AHIAdAB2AHAAdABwAG4AbABv' +
+  'AGMAbABjAGAAZwBzAG0AZwBtAGEAdwBqAGQAdwBkAHEAegB9AIMAegCDAIAAfgCBAI0AfgCNAIoAiwCPAIkAiwCJAIUAhACHAHsA' +
+  'hAB7AHgAfwCMAIYAfwCGAHkAjgCCAHwAjgB8AIgAkgCUAJoAkgCaAJgAlgCZAKUAlgClAKIAowCmAKAAowCgAJ0AnACfAJMAnACT' +
+  'AJAAlwCkAJ4AlwCeAJEApwCbAJUApwCVAKEAqQCtALMAqQCzAK8ArgCxAL0ArgC9ALoAuwC+ALgAuwC4ALUAtAC3AKsAtACrAKgA' +
+  'sAC8ALYAsAC2AKoAvwCyAKwAvwCsALkA';
+// <<< ASSET TIMBER_FACADE
+// >>> ASSET HOODED_LANTERN
+const HOODED_LANTERN_GLB =
+  'Z2xURgIAAACQFwAANAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoiaG9vZGVkX2xhbnRlcm4ifV0sIm1lc2hlcyI6W3sibmFtZSI6Imhvb2RlZF9sYW50ZXJuIiwi' +
+  'cHJpbWl0aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MCwiTk9STUFMIjoxfSwiaW5kaWNlcyI6Mn1dfV0sImFjY2Vz' +
+  'c29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE5MiwibWF4IjpbMC43Mjk5OTk5NTk0' +
+  'Njg4NDE2LDIuOTk1MDAwMTIzOTc3NjYxLDBdLCJtaW4iOlswLjMxMDAwMDAwMjM4NDE4NTgsMi4yNjk5OTk5ODA5MjY1MTM3LC0w' +
+  'Ljc1XSwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxOTIsInR5cGUi' +
+  'OiJWRUMzIn0seyJidWZmZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6Mjg4LCJ0eXBlIjoiU0NBTEFSIn1d' +
+  'LCJidWZmZXJWaWV3cyI6W3siYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyMzA0LCJieXRlT2Zmc2V0IjowLCJ0YXJnZXQiOjM0OTYy' +
+  'fSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjMwNCwiYnl0ZU9mZnNldCI6MjMwNCwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIi' +
+  'OjAsImJ5dGVMZW5ndGgiOjU3NiwiYnl0ZU9mZnNldCI6NDYwOCwidGFyZ2V0IjozNDk2M31dLCJidWZmZXJzIjpbeyJieXRlTGVu' +
+  'Z3RoIjo1MTg0fV19ICAgQBQAAEJJTgB6FO4+rkcRQAAAAIB6FO4+rkcRQAAAAIB6FO4+rkcRQAAAAIB6FO4+Klw/QAAAAIB6FO4+' +
+  'Klw/QAAAAIB6FO4+Klw/QAAAAIB6FO4+rkcRQI/C9b16FO4+rkcRQI/C9b16FO4+rkcRQI/C9b16FO4+Klw/QI/C9b16FO4+Klw/' +
+  'QI/C9b16FO4+Klw/QI/C9b0zMxM/rkcRQAAAAIAzMxM/rkcRQAAAAIAzMxM/rkcRQAAAAIAzMxM/Klw/QAAAAIAzMxM/Klw/QAAA' +
+  'AIAzMxM/Klw/QAAAAIAzMxM/rkcRQI/C9b0zMxM/rkcRQI/C9b0zMxM/rkcRQI/C9b0zMxM/Klw/QI/C9b0zMxM/Klw/QI/C9b0z' +
+  'MxM/Klw/QI/C9b16FO4+16M4QAAAAIB6FO4+16M4QAAAAIB6FO4+16M4QAAAAIB6FO4+Fa4/QAAAAIB6FO4+Fa4/QAAAAIB6FO4+' +
+  'Fa4/QAAAAIB6FO4+16M4QClcD796FO4+16M4QClcD796FO4+16M4QClcD796FO4+Fa4/QClcD796FO4+Fa4/QClcD796FO4+Fa4/' +
+  'QClcD78zMxM/16M4QAAAAIAzMxM/16M4QAAAAIAzMxM/16M4QAAAAIAzMxM/Fa4/QAAAAIAzMxM/Fa4/QAAAAIAzMxM/Fa4/QAAA' +
+  'AIAzMxM/16M4QClcD78zMxM/16M4QClcD78zMxM/16M4QClcD78zMxM/Fa4/QClcD78zMxM/Fa4/QClcD78zMxM/Fa4/QClcD78y' +
+  'M/M+j8IlQDIz874yM/M+j8IlQDIz874yM/M+j8IlQDIz874yM/M+zcw8QDIz874yM/M+zcw8QDIz874yM/M+zcw8QDIz874yM/M+' +
+  'j8IlQNejEL8yM/M+j8IlQNejEL8yM/M+j8IlQNejEL8yM/M+zcw8QNejEL8yM/M+zcw8QNejEL8yM/M+zcw8QNejEL/XoxA/j8Il' +
+  'QDIz877XoxA/j8IlQDIz877XoxA/j8IlQDIz877XoxA/zcw8QDIz877XoxA/zcw8QDIz877XoxA/zcw8QDIz877XoxA/j8IlQNej' +
+  'EL/XoxA/j8IlQNejEL/XoxA/j8IlQNejEL/XoxA/zcw8QNejEL/XoxA/zcw8QNejEL/XoxA/zcw8QNejEL9SuJ4+Pgo3QMT1qL5S' +
+  'uJ4+Pgo3QMT1qL5SuJ4+Pgo3QMT1qL5SuJ4+pHA9QMT1qL5SuJ4+pHA9QMT1qL5SuJ4+pHA9QMT1qL5SuJ4+Pgo3QAAAQL9SuJ4+' +
+  'Pgo3QAAAQL9SuJ4+Pgo3QAAAQL9SuJ4+pHA9QAAAQL9SuJ4+pHA9QAAAQL9SuJ4+pHA9QAAAQL9H4To/Pgo3QMT1qL5H4To/Pgo3' +
+  'QMT1qL5H4To/Pgo3QMT1qL5H4To/pHA9QMT1qL5H4To/pHA9QMT1qL5H4To/pHA9QMT1qL5H4To/Pgo3QAAAQL9H4To/Pgo3QAAA' +
+  'QL9H4To/Pgo3QAAAQL9H4To/pHA9QAAAQL9H4To/pHA9QAAAQL9H4To/pHA9QAAAQL+jcL0+cT0aQBWux76jcL0+cT0aQBWux76j' +
+  'cL0+cT0aQBWux76jcL0+Fa43QBWux76jcL0+Fa43QBWux76jcL0+Fa43QBWux76jcL0+cT0aQNijML+jcL0+cT0aQNijML+jcL0+' +
+  'cT0aQNijML+jcL0+Fa43QNijML+jcL0+Fa43QNijML+jcL0+Fa43QNijML8ehSs/cT0aQBWux74ehSs/cT0aQBWux74ehSs/cT0a' +
+  'QBWux74ehSs/Fa43QBWux74ehSs/Fa43QBWux74ehSs/Fa43QBWux74ehSs/cT0aQNijML8ehSs/cT0aQNijML8ehSs/cT0aQNij' +
+  'ML8ehSs/Fa43QNijML8ehSs/Fa43QNijML8ehSs/Fa43QNijML/C9ag+exQWQDQzs77C9ag+exQWQDQzs77C9ag+exQWQDQzs77C' +
+  '9ag+C9cbQDQzs77C9ag+C9cbQDQzs77C9ag+C9cbQDQzs77C9ag+exQWQEjhOr/C9ag+exQWQEjhOr/C9ag+exQWQEjhOr/C9ag+' +
+  'C9cbQEjhOr/C9ag+C9cbQEjhOr/C9ag+C9cbQEjhOr+PwjU/exQWQDQzs76PwjU/exQWQDQzs76PwjU/exQWQDQzs76PwjU/C9cb' +
+  'QDQzs76PwjU/C9cbQDQzs76PwjU/C9cbQDQzs76PwjU/exQWQEjhOr+PwjU/exQWQEjhOr+PwjU/exQWQEjhOr+PwjU/C9cbQEjh' +
+  'Or+PwjU/C9cbQEjhOr+PwjU/C9cbQEjhOr/Xo7A+H4UbQAvXA7/Xo7A+H4UbQAvXA7/Xo7A+H4UbQAvXA7/Xo7A+Z2Y2QAvXA7/X' +
+  'o7A+Z2Y2QAvXA7/Xo7A+Z2Y2QAvXA7/Xo7A+H4UbQNejEL/Xo7A+H4UbQNejEL/Xo7A+H4UbQNejEL/Xo7A+Z2Y2QNejEL/Xo7A+' +
+  'Z2Y2QNejEL/Xo7A+Z2Y2QNejEL9xPco+H4UbQAvXA79xPco+H4UbQAvXA79xPco+H4UbQAvXA79xPco+Z2Y2QAvXA79xPco+Z2Y2' +
+  'QAvXA79xPco+Z2Y2QAvXA79xPco+H4UbQNejEL9xPco+H4UbQNejEL9xPco+H4UbQNejEL9xPco+Z2Y2QNejEL9xPco+Z2Y2QNej' +
+  'EL9xPco+Z2Y2QNejEL+5HiU/H4UbQAvXA7+5HiU/H4UbQAvXA7+5HiU/H4UbQAvXA7+5HiU/Z2Y2QAvXA7+5HiU/Z2Y2QAvXA7+5' +
+  'HiU/Z2Y2QAvXA7+5HiU/H4UbQNejEL+5HiU/H4UbQNejEL+5HiU/H4UbQNejEL+5HiU/Z2Y2QNejEL+5HiU/Z2Y2QNejEL+5HiU/' +
+  'Z2Y2QNejEL+F6zE/H4UbQAvXA7+F6zE/H4UbQAvXA7+F6zE/H4UbQAvXA7+F6zE/Z2Y2QAvXA7+F6zE/Z2Y2QAvXA7+F6zE/Z2Y2' +
+  'QAvXA7+F6zE/H4UbQNejEL+F6zE/H4UbQNejEL+F6zE/H4UbQNejEL+F6zE/Z2Y2QNejEL+F6zE/Z2Y2QNejEL+F6zE/Z2Y2QNej' +
+  'EL8AAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAA' +
+  'AAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAA' +
+  'AAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAA' +
+  'AAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAA' +
+  'gD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8A' +
+  'AAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAA' +
+  'AACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACA' +
+  'vwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAA' +
+  'AAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAA' +
+  'AIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/' +
+  'AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAA' +
+  'AAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAA' +
+  'AAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAA' +
+  'AAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAA' +
+  'AAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAA' +
+  'AAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAA' +
+  'gD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8A' +
+  'AAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAA' +
+  'AACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACA' +
+  'PwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAA' +
+  'AAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAA' +
+  'AIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/' +
+  'AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAA' +
+  'AAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAA' +
+  'AAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAA' +
+  'AAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAA' +
+  'AAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAA' +
+  'AAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAA' +
+  'gL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8A' +
+  'AAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAA' +
+  'AACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAACAAUACwACAAsACAAGAAkAFQAG' +
+  'ABUAEgAUABcAEQAUABEADgAMAA8AAwAMAAMAAAAHABMADQAHAA0AAQAWAAoABAAWAAQAEAAaAB0AIwAaACMAIAAeACEALQAeAC0A' +
+  'KgAsAC8AKQAsACkAJgAkACcAGwAkABsAGAAfACsAJQAfACUAGQAuACIAHAAuABwAKAAyADUAOwAyADsAOAA2ADkARQA2AEUAQgBE' +
+  'AEcAQQBEAEEAPgA8AD8AMwA8ADMAMAA3AEMAPQA3AD0AMQBGADoANABGADQAQABKAE0AUwBKAFMAUABOAFEAXQBOAF0AWgBcAF8A' +
+  'WQBcAFkAVgBUAFcASwBUAEsASABPAFsAVQBPAFUASQBeAFIATABeAEwAWABiAGUAawBiAGsAaABmAGkAdQBmAHUAcgB0AHcAcQB0' +
+  'AHEAbgBsAG8AYwBsAGMAYABnAHMAbQBnAG0AYQB2AGoAZAB2AGQAcAB6AH0AgwB6AIMAgAB+AIEAjQB+AI0AigCMAI8AiQCMAIkA' +
+  'hgCEAIcAewCEAHsAeAB/AIsAhQB/AIUAeQCOAIIAfACOAHwAiACSAJUAmwCSAJsAmACWAJkApQCWAKUAogCkAKcAoQCkAKEAngCc' +
+  'AJ8AkwCcAJMAkACXAKMAnQCXAJ0AkQCmAJoAlACmAJQAoACqAK0AswCqALMAsACuALEAvQCuAL0AugC8AL8AuQC8ALkAtgC0ALcA' +
+  'qwC0AKsAqACvALsAtQCvALUAqQC+ALIArAC+AKwAuAA=';
+// <<< ASSET HOODED_LANTERN
+// >>> ASSET LEADLIGHT_WINDOW
+const LEADLIGHT_WINDOW_GLB =
+  'Z2xURgIAAAAkEAAAYAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoibGVhZGxpZ2h0X3dpbmRvdyJ9XSwibWVzaGVzIjpbeyJuYW1lIjoibGVhZGxpZ2h0X3dpbmRv' +
+  'dyIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIk5PUk1BTCI6MX0sImluZGljZXMiOjJ9XX1dLCJh' +
+  'Y2Nlc3NvcnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxMjAsIm1heCI6WzAuMjM5OTk5' +
+  'OTk0NjM1NTgxOTcsMC4yOTUwMDAwMTY2ODkzMDA1NCwtMC4wMTgwMDAwMDEwODc3ODQ3NjddLCJtaW4iOlstMC4yMTUwMDAwMDM1' +
+  'NzYyNzg3LC0wLjI4OTk5OTk5MTY1NTM0OTczLC0wLjA4OTUwMDAwMjU2Mjk5OTczXSwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZp' +
+  'ZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxMjAsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoyLCJjb21w' +
+  'b25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MTgwLCJ0eXBlIjoiU0NBTEFSIn1dLCJidWZmZXJWaWV3cyI6W3siYnVmZmVyIjowLCJi' +
+  'eXRlTGVuZ3RoIjoxNDQwLCJieXRlT2Zmc2V0IjowLCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MTQ0' +
+  'MCwiYnl0ZU9mZnNldCI6MTQ0MCwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjM2MCwiYnl0ZU9mZnNl' +
+  'dCI6Mjg4MCwidGFyZ2V0IjozNDk2M31dLCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjozMjQwfV19ICCoDAAAQklOAPYoXL6F65G+' +
+  'vXSTvPYoXL6F65G+vXSTvPYoXL6F65G+vXSTvPYoXL6F65E+vXSTvPYoXL6F65E+vXSTvPYoXL6F65E+vXSTvPYoXL6F65G+gGo8' +
+  'vfYoXL6F65G+gGo8vfYoXL6F65G+gGo8vfYoXL6F65E+gGo8vfYoXL6F65E+gGo8vfYoXL6F65E+gGo8vfYoXD6F65G+vXSTvPYo' +
+  'XD6F65G+vXSTvPYoXD6F65G+vXSTvPYoXD6F65E+vXSTvPYoXD6F65E+vXSTvPYoXD6F65E+vXSTvPYoXD6F65G+gGo8vfYoXD6F' +
+  '65G+gGo8vfYoXD6F65G+gGo8vfYoXD6F65E+gGo8vfYoXD6F65E+gGo8vfYoXD6F65E+gGo8veJ6lL3hepS+ehQuveJ6lL3hepS+' +
+  'ehQuveJ6lL3hepS+ehQuveJ6lL3hepQ+ehQuveJ6lL3hepQ+ehQuveJ6lL3hepQ+ehQuveJ6lL3hepS+MzOzveJ6lL3hepS+MzOz' +
+  'veJ6lL3hepS+MzOzveJ6lL3hepQ+MzOzveJ6lL3hepQ+MzOzveJ6lL3hepQ+MzOzva5H4bzhepS+ehQuva5H4bzhepS+ehQuva5H' +
+  '4bzhepS+ehQuva5H4bzhepQ+ehQuva5H4bzhepQ+ehQuva5H4bzhepQ+ehQuva5H4bzhepS+MzOzva5H4bzhepS+MzOzva5H4bzh' +
+  'epS+MzOzva5H4bzhepQ+MzOzva5H4bzhepQ+MzOzva5H4bzhepQ+MzOzvT0KV74ehWs9okU2vT0KV74ehWs9okU2vT0KV74ehWs9' +
+  'okU2vT0KV76F69E9okU2vT0KV76F69E9okU2vT0KV76F69E9okU2vT0KV74ehWs9x0u3vT0KV74ehWs9x0u3vT0KV74ehWs9x0u3' +
+  'vT0KV76F69E9x0u3vT0KV76F69E9x0u3vT0KV76F69E9x0u3vY/CdT4ehWs9okU2vY/CdT4ehWs9okU2vY/CdT4ehWs9okU2vY/C' +
+  'dT6F69E9okU2vY/CdT6F69E9okU2vY/CdT6F69E9okU2vY/CdT4ehWs9x0u3vY/CdT4ehWs9x0u3vY/CdT4ehWs9x0u3vY/CdT6F' +
+  '69E9x0u3vY/CdT6F69E9x0u3vY/CdT6F69E9x0u3vVyPAj65HoU9okU2vVyPAj65HoU9okU2vVyPAj65HoU9okU2vVyPAj4+Cpc+' +
+  'okU2vVyPAj4+Cpc+okU2vVyPAj4+Cpc+okU2vVyPAj65HoU9x0u3vVyPAj65HoU9x0u3vVyPAj65HoU9x0u3vVyPAj4+Cpc+x0u3' +
+  'vVyPAj4+Cpc+x0u3vVyPAj4+Cpc+x0u3vdijMD65HoU9okU2vdijMD65HoU9okU2vdijMD65HoU9okU2vdijMD4+Cpc+okU2vdij' +
+  'MD4+Cpc+okU2vdijMD4+Cpc+okU2vdijMD65HoU9x0u3vdijMD65HoU9x0u3vdijMD65HoU9x0u3vdijMD4+Cpc+x0u3vdijMD4+' +
+  'Cpc+x0u3vdijMD4+Cpc+x0u3vZqZWb4pXI++okU2vZqZWb4pXI++okU2vZqZWb4pXI++okU2vZqZWb4L16O9okU2vZqZWb4L16O9' +
+  'okU2vZqZWb4L16O9okU2vZqZWb4pXI++x0u3vZqZWb4pXI++x0u3vZqZWb4pXI++x0u3vZqZWb4L16O9x0u3vZqZWb4L16O9x0u3' +
+  'vZqZWb4L16O9x0u3vR6FK74pXI++okU2vR6FK74pXI++okU2vR6FK74pXI++okU2vR6FK74L16O9okU2vR6FK74L16O9okU2vR6F' +
+  'K74L16O9okU2vR6FK74pXI++x0u3vR6FK74pXI++x0u3vR6FK74pXI++x0u3vR6FK74L16O9x0u3vR6FK74L16O9x0u3vR6FK74L' +
+  '16O9x0u3vQAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'PwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAA' +
+  'AAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAA' +
+  'AIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/' +
+  'AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAA' +
+  'AAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAA' +
+  'gD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'PwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAA' +
+  'AAAAAIA/AAAAAAAAgD8AAAAAAAAAAAIABQALAAIACwAIAAYACQAVAAYAFQASABQAFwARABQAEQAOAAwADwADAAwAAwAAAAcAEwAN' +
+  'AAcADQABABYACgAEABYABAAQABoAHQAjABoAIwAgAB4AIQAtAB4ALQAqACwALwApACwAKQAmACQAJwAbACQAGwAYAB8AKwAlAB8A' +
+  'JQAZAC4AIgAcAC4AHAAoADIANQA7ADIAOwA4ADYAOQBFADYARQBCAEQARwBBAEQAQQA+ADwAPwAzADwAMwAwADcAQwA9ADcAPQAx' +
+  'AEYAOgA0AEYANABAAEoATQBTAEoAUwBQAE4AUQBdAE4AXQBaAFwAXwBZAFwAWQBWAFQAVwBLAFQASwBIAE8AWwBVAE8AVQBJAF4A' +
+  'UgBMAF4ATABYAGIAZQBrAGIAawBoAGYAaQB1AGYAdQByAHQAdwBxAHQAcQBuAGwAbwBjAGwAYwBgAGcAcwBtAGcAbQBhAHYAagBk' +
+  'AHYAZABwAA==';
+// <<< ASSET LEADLIGHT_WINDOW
+// One flat-shaded stone for the trim. The pieces carry no UVs, so they take a
+// plain colour rather than the city's tiled textures; give a piece UVs in its
+// Blender script if it ever needs one.
+const KIT_STONE=new THREE.MeshStandardMaterial({color:0x6d6252,roughness:1,flatShading:true});
+const KIT_TIMBER=new THREE.MeshStandardMaterial({color:0x5a4632,roughness:1,flatShading:true});
+const KIT_VERDIGRIS=new THREE.MeshStandardMaterial({color:0x4f9f64,emissive:0x183c26,emissiveIntensity:.8,roughness:.82,flatShading:true});
+function kitGeometry(b64,then){
+  if(!b64||!THREE.GLTFLoader)return;
+  let bytes;
+  try{ bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); }
+  catch(error){ console.warn('street kit: that piece did not decode',error); return; }
+  new THREE.GLTFLoader().parse(bytes.buffer,'',gltf=>{
+    let geometry=null; gltf.scene.traverse(o=>{ if(!geometry&&o.isMesh)geometry=o.geometry; });
+    if(geometry)then(geometry);
+  },error=>console.warn('street kit: that piece did not parse',error));
+}
+// Stamp a piece at every one of `points` — {x,y,z,ry} in the world, facing the
+// way the wall does.
+//
+// Every point is cloned into one merged static mesh. A per-instance batch was
+// measured and rejected: 6,700 bounds tests a frame made the north gate nearly
+// three times slower, and coarse InstancedMesh sectors still drew most of the
+// city. Static trim costs one call per kind and no per-frame work.
+function dressPoints(points,b64,material){
+  if(!points.length)return;
+  kitGeometry(b64,source=>{
+    const base=source.index?source.toNonIndexed():source, parts=[];
+    const matrix=new THREE.Matrix4(), turn=new THREE.Quaternion(), up=new THREE.Vector3(0,1,0),
+          place=new THREE.Vector3(), scale=new THREE.Vector3();
+    for(const point of points){
+      place.set(point.x,point.y||0,point.z);
+      turn.setFromAxisAngle(up,point.ry);
+      scale.set(point.sx||1,point.sy||1,point.sz||1);
+      parts.push(base.clone().applyMatrix4(matrix.compose(place,turn,scale)));
+    }
+    const merged=THREE.BufferGeometryUtils.mergeGeometries(parts,false);
+    for(const part of parts)part.dispose();
+    if(!merged)return;
+    const mesh=new THREE.Mesh(merged,material);
+    mesh.castShadow=false; mesh.receiveShadow=true;
+    scene.add(mesh); KIT_MESHES.push(mesh);
+    // The pieces arrive a tick after the city is built, which is after the
+    // shader warm-up has already run; warm the new material now rather than
+    // compiling it in the middle of the first street the player walks down.
+    if(typeof warmShaders==='function')warmShaders();
+  });
+}
+function dressCityFronts(){
+  // Doors sit on the front wall; the fronts were recorded without their door
+  // point, so it is worked out here the way wardHouse works it out.
+  dressPoints(CITY_FRONTS.map(front=>{
+    const out=front.d*.5+.05;
+    return {x:front.x+Math.sin(front.ry)*out,y:0,z:front.z+Math.cos(front.ry)*out,ry:front.ry};
+  }),DOOR_SURROUND_GLB,KIT_STONE);
+  // Street level only. Every window in the city is 5,400 frames and half a
+  // million triangles for trim nobody can read three storeys up; the ground
+  // floor is where a street is actually looked at.
+  dressPoints(CITY_WINDOWS.filter(window=>window.y<3),WINDOW_FRAME_GLB,KIT_TIMBER);
+  // Rare green leaded panes give the arcane houses a richer visual language than
+  // a city made entirely of amber squares. The placement is keyed to their
+  // existing accent, then thinned by a hash; no seeded roll is consumed.
+  dressPoints(CITY_WINDOWS.filter(window=>window.accent==='arcane'&&terrainHash(Math.round(window.x*7)+333,Math.round(window.z*7)-701)<.36),LEADLIGHT_WINDOW_GLB,KIT_VERDIGRIS);
+  // The reference's charm comes from deep construction and a few clear shapes,
+  // not from blank cubes with a texture on them. Give a deterministic share of
+  // two-storey homes a heavy upper timber frame; it is visual-only, so neither
+  // the seeded stream nor a saved city's lots, doors, shops or residents move.
+  const timbered=CITY_FRONTS.filter(front=>front.stories>1&&terrainHash(Math.round(front.x*3)+1847,Math.round(front.z*3)-619)<.44);
+  dressPoints(timbered.map(front=>{
+    const out=front.d*.5+.08;
+    return {x:front.x+Math.sin(front.ry)*out,y:2.73,z:front.z+Math.cos(front.ry)*out,ry:front.ry,sx:front.w/8};
+  }),TIMBER_FACADE_GLB,KIT_TIMBER);
+  // A hooded lantern is silhouette and warmth, not a new point light. Existing
+  // lamps retain sole ownership of the fixed lighting budget.
+  const lanterns=CITY_FRONTS.filter(front=>terrainHash(Math.round(front.x*5)-971,Math.round(front.z*5)+231)<.28);
+  dressPoints(lanterns.map(front=>{
+    const out=front.d*.5+.08;
+    return {x:front.x+Math.sin(front.ry)*out,y:0,z:front.z+Math.cos(front.ry)*out,ry:front.ry};
+  }),HOODED_LANTERN_GLB,KIT_TIMBER);
+}
+function housePorch(x,z,w,d,ry,accent,stories){
+  // Every infill building passes through here, so this is where the street kit
+  // learns the fronts it has to dress (r121). Recording only — no roll is taken
+  // and nothing is placed, so the seeded stream and the city's layout are
+  // exactly what they were.
+  CITY_FRONTS.push({x,z,w,d,ry,accent,stories});
   const co=Math.cos(ry),si=Math.sin(ry);                 // across = (co,-si), front = (si,co)
   const at=(along,out)=>[x+co*along+si*(d*.5+out), z-si*along+co*(d*.5+out)];
   const seed=Math.abs(Math.round(x*11.7+z*5.3));
@@ -7489,7 +7987,9 @@ function wardHome(x,z,w,d,stories,key,ry,accent){
     const cols=seed%7<3?3:2,spread=w*.31;
     for(let c=0;c<cols;c++){ const ox=cols===1?0:-spread+(2*spread)*(c/(cols-1));
       if(s===0&&Math.abs(ox)<HOME_DOOR_W/2+.4)continue;
-      aBox(.5,.66,.06,x+ox*co+si*front,wy,z-ox*si+co*front,'window',ry); } }
+      const wx=x+ox*co+si*front, wz=z-ox*si+co*front;
+      CITY_WINDOWS.push({x:wx,y:wy,z:wz,ry,accent});             // for the street kit's frames
+      aBox(.5,.66,.06,wx,wy,wz,'window',ry); } }
   const collider=addBoxCollider(x,z,w,d,ry);
   pendingHomes.push({x,z,w,d,ry,stories,collider});
 }
@@ -7700,7 +8200,7 @@ function innerInfill(){
             ?(worldRandom()<.14?'arcane':quarter.accent)
             :(worldRandom()<.18?'arcane':'amber');
           (homeWanted(px,pz,terrainHash(Math.round(px*8),Math.round(pz*8))<(road.w>=10?.42:road.w>=8?.2:.07))?wardHome:wardHouse)(px,pz,w,depth,stories,key,ry,accent);
-          housePorch(px,pz,w,depth,ry,accent);
+          housePorch(px,pz,w,depth,ry,accent,stories);
           // A third of them carry their trade out into the street. All of them
           // would read as a theme park; none of them reads as terraces.
           // The roll is taken exactly as before — once, and only in a quarter —
@@ -7745,7 +8245,7 @@ function innerInfill(){
           const key=['wall','brick','wall2','stone'][Math.floor(worldRandom()*4)];
           const accent=worldRandom()<.18?'arcane':'amber';
           (homeWanted(px,pz,terrainHash(Math.round(px*8),Math.round(pz*8))<(Math.abs(ring.r-(MID_WALL_R+20))<1?.4:.1))?wardHome:wardHouse)(px,pz,w,depth,stories,key,ry,accent);
-          housePorch(px,pz,w,depth,ry,accent);
+          housePorch(px,pz,w,depth,ry,accent,stories);
           // The ring boulevard is the new city's high street.
           if(terrainHash(Math.round(px*8),Math.round(pz*8))<(Math.abs(ring.r-(MID_WALL_R+20))<1?.4:.1))shopFront(px,pz,w,depth,ry,accent);
           built++;
@@ -7855,7 +8355,7 @@ LMSG.textContent='cutting the forest tracks…'; useWorldStream('wild-tracks');w
 LMSG.textContent='shaping the hills…'; raiseTerrain();
 LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
 LMSG.textContent='raising the new halls…'; useWorldStream('new-landmarks');newQuarterLandmarks();
-LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();const homesOpened=openHomes();
+LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();dressCityFronts();const homesOpened=openHomes();
 // The monuments walk themselves out to the verge, but they used to do it before
 // innerInfill laid its lanes, so a monument that had cleared every road in
 // existence could end up standing in one that arrived afterwards. Three of them
@@ -8193,7 +8693,20 @@ const INTERIOR_HOST_ACTIVITY=Object.freeze({
   'Chamberlain Ash':{x:0,z:-26,doing:'keeping an eye on the dais'}
 });
 const npcMaterialCache=new Map();
-function npcMaterial(color){const key=Number(color)>>>0;if(!npcMaterialCache.has(key))npcMaterialCache.set(key,new THREE.MeshStandardMaterial({color:key,flatShading:true,roughness:1}));return npcMaterialCache.get(key);}
+function npcMaterial(color){const key=Number(color)>>>0;if(!npcMaterialCache.has(key))npcMaterialCache.set(key,new THREE.MeshStandardMaterial({color:key,flatShading:false,roughness:.94}));return npcMaterialCache.get(key);}
+// A mixed population keeps Vaneth from looking like one repeated doll. These
+// are not five palette swaps: each people has a different proportion, face and
+// clothing silhouette. Everything is still ordinary low-poly geometry that is
+// collapsed into the same resident batch after it is built.
+const NPC_PEOPLES=['gnome','human','long-ear','stonekin','mossfolk'];
+const NPC_STATURE=[.78,.94,1.00,1.08,.86];
+const NPC_PROFILE=[
+  {body:[1.16,.78,1.08],arm:[1.14,.76,1.13],leg:[1.13,.72,1.12],armSpread:.91,legSpread:1.10,head:[1.16,1.08,1.08],headY:1.49}, // gnome
+  {body:[1,1,1],arm:[1,1,1],leg:[1,1,1],armSpread:1,legSpread:1,head:[1,1,1],headY:1.62},                                  // human
+  {body:[.84,1.12,.88],arm:[.82,1.16,.84],leg:[.82,1.16,.86],armSpread:.92,legSpread:.88,head:[.92,1.04,.94],headY:1.73},      // long-ear
+  {body:[1.29,.94,1.18],arm:[1.31,.87,1.27],leg:[1.25,.88,1.20],armSpread:1.17,legSpread:1.22,head:[1.13,.88,1.10],headY:1.58}, // stonekin
+  {body:[1.13,.83,1.14],arm:[1.04,.88,1.04],leg:[1.16,.70,1.13],armSpread:1.06,legSpread:1.16,head:[1.10,.92,1.10],headY:1.48}  // mossfolk
+];
 // districtOverride lets the procedural outer-city residents declare their ward
 // directly; villagerDistrict() can only recognise the hand-authored routes by
 // identity, so generated routes would otherwise all fall back to 'Old Vaneth'.
@@ -8207,7 +8720,7 @@ function npcMaterial(color){const key=Number(color)>>>0;if(!npcMaterialCache.has
 //
 // Colour moves from the material into the vertex stream, so one material now
 // serves every resident in the city.
-const NPC_MERGED_MAT=new THREE.MeshStandardMaterial({roughness:1,flatShading:true,vertexColors:true});
+const NPC_MERGED_MAT=new THREE.MeshStandardMaterial({roughness:.94,flatShading:false,vertexColors:true});
 function mergeTinted(parent){
   const source=[];
   for(const child of parent.children){
@@ -8321,31 +8834,74 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // — about half of residents were getting the Three.js default white instead
   // of their trim/skin/hair tone). Use unsigned >>> throughout so the shifted
   // value stays non-negative like signature itself.
-  const g=new THREE.Group(),cloth=npcMaterial(robe),trim=npcMaterial([0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5]),skin=npcMaterial([0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30][(signature>>>5)%5]),hair=npcMaterial([0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4]),leather=npcMaterial(0x382519);
+  const species=(signature>>>19)%NPC_STATURE.length,profile=NPC_PROFILE[species],g=new THREE.Group(),cloth=npcMaterial(robe),trim=npcMaterial([0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5]),skin=npcMaterial((species===4?[0x72875d,0x637b59,0x81986d]:species===3?[0x827774,0x6e6666,0x8e8179]:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30])[(signature>>>5)%(species===4?3:species===3?3:5)]),hair=npcMaterial([0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4]),leather=npcMaterial(0x382519),speciesAccent=npcMaterial([0x965439,0x6c4b35,0x42665e,0x5d6870,0x487348][species]),smokeRoll=(signature>>>16)%7,smokes=species===0?smokeRoll<5:smokeRoll<2;
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),faceStyle=signature%6;
-  const face=new THREE.Mesh(new THREE.SphereGeometry(.21,7,6),skin); face.position.y=.17; headPivot.position.y=1.7; headPivot.add(face);
+  const face=new THREE.Mesh(new THREE.SphereGeometry(.27,8,7),skin); face.position.y=.15; face.scale.set(profile.head[0],profile.head[1]*.93,profile.head[2]*.96); headPivot.position.y=profile.headY; headPivot.add(face);
   const eyeMaterial=npcEyeMaterials[(signature>>>11)%npcEyeMaterials.length],mouthMaterial=npcMouthMaterials[(signature>>>14)%npcMouthMaterials.length],eyeScale=[1,.82,1.18,.72,1.05,.9][faceStyle],eyeLift=[.255,.24,.27,.248,.262,.25][faceStyle];
   const leftEye=new THREE.Mesh(new THREE.BoxGeometry(.03,.038,.012),eyeMaterial),rightEye=leftEye.clone();
-  leftEye.position.set(-.068,eyeLift-.055,.201); rightEye.position.set(.068,eyeLift-.055,.201); leftEye.scale.set(eyeScale,eyeScale,1); rightEye.scale.set(eyeScale,eyeScale,1);
-  const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.068,.012,.01),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.068,.012,.01),hair);
-  const browTilt=[-.08,.1,-.18,.04,-.04,.17][faceStyle]; leftBrow.position.set(-.068,.276,.205); rightBrow.position.set(.068,.276,.205); leftBrow.rotation.z=browTilt; rightBrow.rotation.z=-browTilt;
-  const mouthLift=[.42,-.18,.05,.28,-.38,.12][faceStyle],mouth=new THREE.Mesh(new THREE.BoxGeometry(.072,.012,.01),mouthMaterial);mouth.position.set(0,.09,.207);mouth.rotation.z=mouthLift*.12;
-  headPivot.add(leftEye,rightEye,leftBrow,rightBrow,mouth);
+  const eyeSpread=[.095,.083,.09,.098,.088][species],eyeFront=.254*profile.head[2];
+  leftEye.position.set(-eyeSpread,eyeLift-.065,eyeFront); rightEye.position.set(eyeSpread,eyeLift-.065,eyeFront); leftEye.scale.set(eyeScale*1.25,eyeScale*1.25,1); rightEye.scale.set(eyeScale*1.25,eyeScale*1.25,1);
+  const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.088,.016,.012),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.088,.016,.012),hair);
+  const browTilt=[-.08,.1,-.18,.04,-.04,.17][faceStyle]; leftBrow.position.set(-eyeSpread,.27,eyeFront+.004); rightBrow.position.set(eyeSpread,.27,eyeFront+.004); leftBrow.rotation.z=browTilt; rightBrow.rotation.z=-browTilt;
+  const mouthLift=[.42,-.18,.05,.28,-.38,.12][faceStyle],mouth=new THREE.Mesh(new THREE.BoxGeometry(.092,.015,.012),mouthMaterial);mouth.position.set(0,.07,eyeFront+.004);mouth.rotation.z=mouthLift*.12;
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(species===0?.075:.055,6,5),skin);nose.position.set(0,.145,eyeFront+.03);nose.scale.set(species===3?1.3:1,1,species===0?1.12:.85);
+  headPivot.add(leftEye,rightEye,leftBrow,rightBrow,mouth,nose);
+  if(species===0){
+    // Broad cheeks, little side ears and a pointed beard make a gnome readable
+    // even when the outfit happens to be a guard's coat rather than a tall hat.
+    for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.SphereGeometry(.075,5,4),skin);ear.position.set(side*.285,.16,.01);ear.scale.set(.6,1,.55);headPivot.add(ear);}
+    const beard=new THREE.Mesh(new THREE.ConeGeometry(.18,.34,6),hair);beard.position.set(0,-.06,.16);beard.rotation.x=Math.PI;headPivot.add(beard);
+  }else if(species===2){
+    for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.085,.43,4),skin);ear.position.set(side*.30,.16,-.005);ear.rotation.z=side*Math.PI*.5;headPivot.add(ear);}
+    const crown=new THREE.Mesh(new THREE.SphereGeometry(.25,7,5),hair);crown.position.set(0,.30,-.05);crown.scale.set(.95,.36,.82);headPivot.add(crown);
+  }else if(species===3){
+    const brow=new THREE.Mesh(new THREE.BoxGeometry(.49,.11,.075),speciesAccent);brow.position.set(0,.31,.205);const jaw=new THREE.Mesh(new THREE.BoxGeometry(.33,.11,.17),skin);jaw.position.set(0,-.025,.115);headPivot.add(brow,jaw);
+    for(const side of[-1,1]){const stud=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.05,5),trim);stud.position.set(side*.3,.14,.04);stud.rotation.z=Math.PI*.5;headPivot.add(stud);}
+  }else if(species===4){
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(.35,7,5),speciesAccent);cap.position.set(0,.31,-.04);cap.scale.set(1.18,.48,.98);headPivot.add(cap);
+    for(const side of[-1,1]){const sprout=new THREE.Mesh(new THREE.ConeGeometry(.06,.34,4),hair);sprout.position.set(side*.10,.54,-.03);sprout.rotation.z=side*.33;headPivot.add(sprout);}
+  }
   if(faceStyle===2||faceStyle===5){[-.09,-.065,.065,.09].forEach((fx,index)=>{const freckle=new THREE.Mesh(new THREE.BoxGeometry(.006,.006,.007),hair);freckle.position.set(fx,.135+(index%2)*.012,.205);headPivot.add(freckle);});}
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.2,6),skin);neck.position.y=1.62;g.add(neck);
-  const arm=(side,material)=>{const pivot=side<0?leftArm:rightArm,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.082,.105,.64,5),material);pivot.position.set(side*.35,1.26,0);mesh.position.y=-.3;mesh.rotation.z=side*.07;pivot.add(mesh);return pivot;};
-  const leg=(side,material)=>{const pivot=side<0?leftLeg:rightLeg,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.095,.115,.52,5),material);pivot.position.set(side*.15,.54,0);mesh.position.y=-.24;pivot.add(mesh);return pivot;};
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.2,6),skin);neck.position.y=profile.headY;g.add(neck);
+  const arm=(side,material)=>{const pivot=side<0?leftArm:rightArm,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.082,.105,.64,5),material);pivot.position.set(side*.35*profile.armSpread,1.26,0);mesh.position.y=-.3;mesh.scale.set(profile.arm[0],profile.arm[1],profile.arm[2]);mesh.rotation.z=side*.07;pivot.add(mesh);return pivot;};
+  const leg=(side,material)=>{const pivot=side<0?leftLeg:rightLeg,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.095,.115,.52,5),material);pivot.position.set(side*.15*profile.legSpread,.54,0);mesh.position.y=-.24;mesh.scale.set(profile.leg[0],profile.leg[1],profile.leg[2]);pivot.add(mesh);return pivot;};
+  const fitBody=mesh=>{mesh.scale.multiply(new THREE.Vector3(...profile.body));return mesh;};
   let prop=null;
   if(variant===0){
-    const body=new THREE.Mesh(new THREE.CylinderGeometry(.27,.48,1.46,6),cloth);body.position.y=.78;const hoodCap=new THREE.Mesh(new THREE.SphereGeometry(.235,7,5),cloth);hoodCap.position.set(0,.18,-.08);hoodCap.scale.set(1.08,1.05,.78);const hoodRim=new THREE.Mesh(new THREE.TorusGeometry(.222,.028,4,8),trim);hoodRim.position.set(0,.17,.01);headPivot.add(hoodCap,hoodRim);prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.55,5),leather);prop.position.set(.46,.78,.04);prop.rotation.z=-.13;g.add(body,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
+    const body=new THREE.CylinderGeometry(.33,.55,1.34,7),bodyMesh=fitBody(new THREE.Mesh(body,cloth));bodyMesh.position.y=.72;const hoodCap=new THREE.Mesh(new THREE.SphereGeometry(.29,8,6),cloth);hoodCap.position.set(0,.16,-.08);hoodCap.scale.set(1.12,1.08,.8);const hoodPeak=new THREE.Mesh(new THREE.ConeGeometry(.16,.48,6),cloth);hoodPeak.position.set(.045,.51,-.08);hoodPeak.rotation.z=-.18;const hoodRim=new THREE.Mesh(new THREE.TorusGeometry(.275,.032,4,9),trim);hoodRim.position.set(0,.16,.01);headPivot.add(hoodCap,hoodPeak,hoodRim);prop=new THREE.Mesh(new THREE.CylinderGeometry(.04,.058,1.36,5),leather);prop.position.set(.48,.71,.04);prop.rotation.z=-.13;g.add(bodyMesh,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
   }else if(variant===1){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(.68,1.08,.4),cloth);body.position.y=1.02;const belt=new THREE.Mesh(new THREE.BoxGeometry(.73,.1,.46),leather);belt.position.y=.67;const hairCap=new THREE.Mesh(new THREE.SphereGeometry(.22,7,5),hair);hairCap.position.y=.255;hairCap.scale.y=.38;headPivot.add(hairCap);g.add(body,belt,arm(-1,cloth),arm(1,cloth),leg(-1,leather),leg(1,leather));
+    const body=fitBody(new THREE.Mesh(new THREE.BoxGeometry(.68,1.08,.4),cloth));body.position.y=1.02;const belt=new THREE.Mesh(new THREE.BoxGeometry(.73,.1,.46),leather);belt.position.y=.67;const hairCap=new THREE.Mesh(new THREE.SphereGeometry(.22,7,5),hair);hairCap.position.y=.255;hairCap.scale.y=.38;headPivot.add(hairCap);g.add(body,belt,arm(-1,cloth),arm(1,cloth),leg(-1,leather),leg(1,leather));
   }else if(variant===2){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(.72,1.1,.46),cloth);body.position.y=1.0;const helm=new THREE.Mesh(new THREE.CylinderGeometry(.225,.25,.19,6),trim);helm.position.y=.32;headPivot.add(helm);const shield=new THREE.Mesh(new THREE.CircleGeometry(.29,6),trim);shield.position.set(-.46,1.08,.06);shield.rotation.y=-Math.PI/2;prop=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,1.62,5),leather);prop.position.set(.43,.85,.04);prop.rotation.z=-.07;g.add(body,shield,arm(-1,trim),arm(1,cloth),leg(-1,leather),leg(1,leather));
+    const body=fitBody(new THREE.Mesh(new THREE.BoxGeometry(.72,1.1,.46),cloth));body.position.y=1.0;const helm=new THREE.Mesh(new THREE.CylinderGeometry(.225,.25,.19,6),trim);helm.position.y=.32;headPivot.add(helm);const shield=new THREE.Mesh(new THREE.CircleGeometry(.29,6),trim);shield.position.set(-.46,1.08,.06);shield.rotation.y=-Math.PI/2;prop=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,1.62,5),leather);prop.position.set(.43,.85,.04);prop.rotation.z=-.07;g.add(body,shield,arm(-1,trim),arm(1,cloth),leg(-1,leather),leg(1,leather));
   }else if(variant===3){
-    const body=new THREE.Mesh(new THREE.CylinderGeometry(.28,.48,1.42,6),cloth);body.position.y=.78;const hatBrim=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.055,8),trim);hatBrim.position.y=.35;const hatTop=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,.32,7),trim);hatTop.position.y=.51;headPivot.add(hatBrim,hatTop);const satchel=new THREE.Mesh(new THREE.BoxGeometry(.3,.36,.14),leather);satchel.position.set(.35,.78,.23);g.add(body,satchel,arm(-1,cloth),arm(1,cloth),leg(-1,leather),leg(1,leather));
+    const body=fitBody(new THREE.Mesh(new THREE.CylinderGeometry(.34,.55,1.3,7),cloth));body.position.y=.71;const hatBrim=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.065,9),trim);hatBrim.position.y=.34;const hatTop=new THREE.Mesh(new THREE.ConeGeometry(.18,.62,7),trim);hatTop.position.set(.06,.68,0);hatTop.rotation.z=-.16;headPivot.add(hatBrim,hatTop);const satchel=new THREE.Mesh(new THREE.BoxGeometry(.34,.4,.16),leather);satchel.position.set(.39,.73,.25);g.add(body,satchel,arm(-1,cloth),arm(1,cloth),leg(-1,leather),leg(1,leather));
   }else{
-    const body=new THREE.Mesh(new THREE.CylinderGeometry(.28,.5,1.5,6),cloth);body.position.y=.78;const wrap=new THREE.Mesh(new THREE.CylinderGeometry(.225,.26,.17,6),trim);wrap.position.y=.285;headPivot.add(wrap);const lantern=new THREE.Mesh(new THREE.BoxGeometry(.18,.24,.18),MATS.amber);lantern.position.set(.43,.68,.08);prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.58,5),leather);prop.position.set(-.44,.8,.04);prop.rotation.z=.12;g.add(body,lantern,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
+    const body=fitBody(new THREE.Mesh(new THREE.CylinderGeometry(.28,.5,1.5,6),cloth));body.position.y=.78;const wrap=new THREE.Mesh(new THREE.CylinderGeometry(.225,.26,.17,6),trim);wrap.position.y=.285;headPivot.add(wrap);const lantern=new THREE.Mesh(new THREE.BoxGeometry(.18,.24,.18),MATS.amber);lantern.position.set(.43,.68,.08);prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.58,5),leather);prop.position.set(-.44,.8,.04);prop.rotation.z=.12;g.add(body,lantern,arm(-1,cloth),arm(1,cloth),leg(-1,trim),leg(1,trim));
+  }
+  // Race-specific body language sits on top of the job outfit. It is designed
+  // as big, readable shapes for an N64-era camera, not tiny detail that turns
+  // into noise once a resident is more than a few metres away.
+  if(species===0){
+    const waist=new THREE.Mesh(new THREE.CylinderGeometry(.42,.50,.15,7),speciesAccent);waist.position.y=.59;
+    const pouch=new THREE.Mesh(new THREE.SphereGeometry(.13,6,5),leather);pouch.position.set(.28,.57,.31);pouch.scale.set(1,.8,.45);g.add(waist,pouch);
+  }else if(species===1){
+    const scarf=new THREE.Mesh(new THREE.BoxGeometry(.44,.12,.12),speciesAccent);scarf.position.set(0,1.42,.18);
+    const tail=new THREE.Mesh(new THREE.BoxGeometry(.11,.43,.07),speciesAccent);tail.position.set((signature&1)?.22:-.22,1.17,.25);tail.rotation.z=(signature&1)?.22:-.22;g.add(scarf,tail);
+  }else if(species===2){
+    const mantle=new THREE.Mesh(new THREE.ConeGeometry(.47,.72,4),speciesAccent);mantle.position.set(0,1.08,-.09);mantle.scale.set(1,.9,.60);
+    const clasp=new THREE.Mesh(new THREE.SphereGeometry(.075,6,5),trim);clasp.position.set(0,1.34,.28);g.add(mantle,clasp);
+  }else if(species===3){
+    for(const side of[-1,1]){const shoulder=new THREE.Mesh(new THREE.SphereGeometry(.20,6,5),speciesAccent);shoulder.position.set(side*.42,1.32,0);shoulder.scale.set(1.35,.72,1);g.add(shoulder);}
+    const beltPlate=new THREE.Mesh(new THREE.BoxGeometry(.62,.18,.13),trim);beltPlate.position.set(0,.67,.29);g.add(beltPlate);
+  }else{
+    const leafBack=new THREE.Mesh(new THREE.ConeGeometry(.46,.82,5),speciesAccent);leafBack.position.set(0,1.00,-.15);leafBack.scale.set(.92,1,.52);
+    for(const side of[-1,1]){const leaf=new THREE.Mesh(new THREE.ConeGeometry(.10,.42,4),speciesAccent);leaf.position.set(side*.32,1.23,.04);leaf.rotation.z=side*.85;g.add(leaf);}
+    g.add(leafBack);
+  }
+  if(smokes){
+    const pipeStem=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,.31,5),leather),pipeBowl=new THREE.Mesh(new THREE.CylinderGeometry(.072,.055,.09,6),hair);
+    pipeStem.position.set(.17*profile.head[0],.062,eyeFront+.018); pipeStem.rotation.z=Math.PI*.38; pipeStem.rotation.x=Math.PI*.48;
+    pipeBowl.position.set(.31*profile.head[0],.038,eyeFront+.024); pipeBowl.rotation.z=Math.PI*.5; headPivot.add(pipeStem,pipeBowl);
   }
   if(prop)g.add(prop);g.add(headPivot);
   // Head and torso each collapse to one mesh. The four limb pivots are left
@@ -8353,8 +8909,8 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // into anything.
   mergeTinted(headPivot); mergeTinted(g);
   const lodHide=g.children.slice(), lodMesh=buildVillagerLod(g);
-  g.position.set(x,0,z);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(g);
-  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082),routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant});
+  g.position.set(x,0,z);g.scale.setScalar(NPC_STATURE[species]);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(g);
+  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null,gaitSpeed=[1.14,1,.98,.84,.92][species]; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082)*gaitSpeed,routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg},variant,species,people:NPC_PEOPLES[species],smokes});
   // One errand per stop on their round, so every waypoint is somewhere they
   // are going *for* a reason rather than an anonymous coordinate.
   const created=villagers[villagers.length-1];
@@ -9935,7 +10491,21 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
         }
       }
     }else if(npc.activityAnchor){const activity=npc.activityAnchor;npc.g.rotation.y=Math.atan2(activity.x-x,activity.z-z)+Math.sin(t*.47+npc.phase)*.08;}else npc.g.rotation.y+=Math.sin(t*.37+npc.phase)*.002;
-    const gait=Math.sin(t*(movingNpc?5.6:1.35)+npc.phase)*(movingNpc?.52:.08),parts=npc.parts;if(parts&&!npc.isFar&&!npc.stay){parts.leftArm.rotation.x=gait;parts.rightArm.rotation.x=-gait*.86;parts.leftLeg.rotation.x=-gait*.72;parts.rightLeg.rotation.x=gait*.72;parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;}
+    // Each people gets a recognisable rhythm as well as a silhouette: quick
+    // gnome steps, a long-ear stride, a stonekin's weight, and a soft mossfolk
+    // sway. It only touches the existing five animated pivots, so it costs no
+    // extra meshes or draw calls.
+    const cadence=[6.45,5.6,5.05,4.25,4.72][npc.species]||5.6,
+      gaitAmp=[.58,.52,.47,.36,.43][npc.species]||.52,
+      idleAmp=[.105,.08,.05,.035,.12][npc.species]||.08,
+      gait=Math.sin(t*(movingNpc?cadence:1.35)+npc.phase)*(movingNpc?gaitAmp:idleAmp),parts=npc.parts;
+    if(parts&&!npc.isFar&&!npc.stay){
+      const armLean=[1.08,1,.78,.72,.92][npc.species]||1,legLean=[.66,.72,.86,.52,.64][npc.species]||.72;
+      parts.leftArm.rotation.x=gait*armLean;parts.rightArm.rotation.x=-gait*.86*armLean;
+      parts.leftLeg.rotation.x=-gait*legLean;parts.rightLeg.rotation.x=gait*legLean;
+      parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;
+      parts.headPivot.rotation.z=(npc.species===4?Math.sin(t*1.18+npc.phase)*.065:npc.species===0?Math.sin(t*1.35+npc.phase)*.035:0);
+    }
     // The existing unstick only fires when a resident is trying to move and
     // finds someone in the way. A resident that has arrived at its stop and is
     // idling never runs it at all, so two who converge on the same stop stand
@@ -9958,7 +10528,8 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
         }
       }
     }
-    npc.g.position.set(x,(x*x+z*z>WILD_GROUND_R2?terrainAt(x,z):0)+sway*.05,z); npc.lastX=x;npc.lastZ=z;
+    const speciesBob=[.085,.05,.032,.018,.075][npc.species]||.05;
+    npc.g.position.set(x,(x*x+z*z>WILD_GROUND_R2?terrainAt(x,z):0)+sway*speciesBob,z); npc.lastX=x;npc.lastZ=z;
     if(npc.meetingWith&&!movingNpc){
       const mx=npc.meetingWith.g.position.x-x, mz=npc.meetingWith.g.position.z-z;
       if(!npc.meetingWith.indoors&&mx*mx+mz*mz<30)npc.g.rotation.y=Math.atan2(mx,mz);
@@ -9967,6 +10538,7 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
     // The player still wins the look: being turned to when you walk up is worth
     // more than the conversation they were having with each other.
     const dx=player.x-x,dz=player.z-z,d=dx*dx+dz*dz;if(d<16&&!movingNpc&&!npc.sessionAnchor&&!npc.stay)npc.g.rotation.y=Math.atan2(dx,dz);if(d<best){best=d;closest=npc;} }
+  residentSmoke?.update(t);
   let door=null,doorDistance=25; for(const entry of interiorDoors){ const point=activeInterior===entry?{x:entry.insideX,z:entry.insideZ}:{x:entry.outsideX,z:entry.outsideZ},dx=player.x-point.x,dz=player.z-point.z,d=dx*dx+dz*dz; if(d<doorDistance){doorDistance=d;door=entry;} }
   let worldInteraction=null,worldDistance=Infinity;for(const entry of WORLD_INTERACTIONS){if(entry.interior?(activeInterior?.name!==entry.interior):!!activeInterior)continue;const dx=player.x-entry.x,dz=player.z-entry.z,d=dx*dx+dz*dz;if(d<entry.r*entry.r&&d<worldDistance){worldDistance=d;worldInteraction=entry;}}
   // Select the genuinely closest available action so a door, resident, or
@@ -11418,7 +11990,7 @@ function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=
   starField.material.opacity=lighting==='night'?.8:.35;
   document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
 document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting(savedGameState?.lighting||'night');
-const pxSteps=[0.65,0.45,0.3],pxNames=['clear','balanced','performance']; let pxi=1;function updateGraphicsButton(){document.getElementById('pxBtn').textContent='▦ graphics · '+pxNames[pxi];}if(Number.isFinite(savedGameState?.renderScale)){const savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex>=0){pxi=savedIndex;RS=pxSteps[pxi];resize();}}updateGraphicsButton();document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); updateGraphicsButton();saveGameState(); };
+const pxSteps=[0.86,0.64,0.48],pxNames=['clear','balanced','performance']; let pxi=1;function updateGraphicsButton(){document.getElementById('pxBtn').textContent='▦ graphics · '+pxNames[pxi];}if(Number.isFinite(savedGameState?.renderScale)){const savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex>=0){pxi=savedIndex;RS=pxSteps[pxi];resize();}}updateGraphicsButton();document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); updateGraphicsButton();saveGameState(); };
 function updateBloomButton(){document.getElementById('bloomBtn').textContent='✦ bloom · '+(BLOOM.on?'on':'off');}
 if(savedGameState?.bloom===false)BLOOM.on=false; updateBloomButton();
 document.getElementById('bloomBtn').onclick=()=>{ BLOOM.on=!BLOOM.on; updateBloomButton(); saveGameState(); };
@@ -11427,13 +11999,38 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r120',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r121',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
 // population.
 LMSG.textContent='settling the wards…'; useWorldStream('lives'); assignLives();
 CITY_PLAN.homesShutLate=activateHomes();
+// A shared point cloud carries pipe smoke for the residents who have one. It
+// is one soft, animated draw rather than a sprite per person, and follows the
+// head direction loosely enough to read while they walk or turn to talk.
+const residentSmoke=(()=>{
+  const smokers=villagers.filter(npc=>npc.smokes);
+  if(!smokers.length)return null;
+  const per=3,pos=new Float32Array(smokers.length*per*3),geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=32;
+  const cx=canvas.getContext('2d'),rad=cx.createRadialGradient(16,16,1,16,16,16);rad.addColorStop(0,'rgba(221,241,228,.76)');rad.addColorStop(.5,'rgba(156,193,176,.32)');rad.addColorStop(1,'rgba(96,137,126,0)');cx.fillStyle=rad;cx.fillRect(0,0,32,32);
+  const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
+  const points=new THREE.Points(geometry,new THREE.PointsMaterial({map,color:0xb8d5c5,size:.52,transparent:true,opacity:.68,depthWrite:false,blending:THREE.NormalBlending,sizeAttenuation:true}));
+  points.frustumCulled=false;scene.add(points);
+  function update(t){
+    let at=0;
+    for(const npc of smokers){
+      const visible=npc.g.visible&&!npc.indoors,heading=npc.g.rotation.y,stature=NPC_STATURE[npc.species]||1,profile=NPC_PROFILE[npc.species]||NPC_PROFILE[1];
+      const px=npc.g.position.x+Math.sin(heading)*.22,py=npc.g.position.y+(profile.headY+.13)*stature,pz=npc.g.position.z+Math.cos(heading)*.22;
+      for(let i=0;i<per;i++,at+=3){const cycle=(t*.32+npc.phase+i/per)%1,drift=Math.sin(t*1.4+npc.phase+i*2.1)*.12;
+        pos[at]=visible?px+Math.sin(heading)*cycle*.22+drift:9999;pos[at+1]=visible?py+cycle*.94:9999;pos[at+2]=visible?pz+Math.cos(heading)*cycle*.22+Math.cos(t*1.1+npc.phase+i)*.08:9999;}
+    }
+    geometry.attributes.position.needsUpdate=true;
+  }
+  update(0);return {points,update,smokers:smokers.length};
+})();
 // Every resident in one BatchedMesh, since r113. r77 merged each resident down
 // to six meshes, a head, a torso and four limbs, and a later revision gave each a
 // one-mesh far version, but that was still a draw call per part per resident:
