@@ -1,15 +1,15 @@
-**r124 — material and resident pass** · 2026-09-21 · phase 5, world depth
+**r124b — material and street logic** · 2026-09-21 · phase 5, world depth
 
 In its own panel header: *r124 material & resident pass*.
 
 ### Summary
 
-material & resident pass. Structured 128 px painted building materials, 82% balanced rendering (98% clear / 62% performance), tight warm bloom and the existing FXAA finish. Five peoples now have three build axes and eight job silhouettes; hooded people are rare, and props are fixed to animated arm pivots rather than clipping through bodies. City layout, road and collision generation untouched.
+The second file archived as r124: the material and resident pass carried on into the street logic, on the way to r125. material & resident pass. Structured 128 px painted building materials, 82% balanced rendering (98% clear / 62% performance), tight warm bloom and the existing FXAA finish. Five peoples now have three build axes and eight job silhouettes; hooded people are rare, and props are fixed to animated arm pivots rather than clipping through bodies. City layout, road and collision generation untouched.
 
 ### In the code
 
-- 1.48 MB (+28,795 bytes on r123).
-- 9 functions added: `doorLocked`, `dressLotYards`, `dressRoadEnds`, `enterShop`, `furnishShop`, `pruneLanterns`, `removeLantern`, `shopNoun`, `stockItem`.
+- 1.48 MB (+7,281 bytes on r124).
+- 6 functions added: `assignCarts`, `carryCart`, `cartGeometry`, `shopRoomCache`, `syncShopRooms`, `withBins`.
 
 ### Play it
 
