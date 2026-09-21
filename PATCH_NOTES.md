@@ -1,15 +1,15 @@
-**r123 — clean poly polish** · 2026-09-21 · phase 5, world depth
+**r124 — material and resident pass** · 2026-09-21 · phase 5, world depth
 
-In its own panel header: *r123 clean-poly polish*.
+In its own panel header: *r124 material & resident pass*.
 
 ### Summary
 
-clean-poly polish. 72% balanced render scale with clear and performance alternatives, post-grade FXAA and smooth hard-surface/NPC kit normals. Trees, grass and their low-side-count silhouette stay faceted. The same seal carries a geometry pass: a fix for kit pieces that were exporting into the walls (surrounds, frames, timber, lanterns, leadlights now stand proud), roof dormers with lit windows, and 221 wall banners. Seed, doors, collision and residents untouched; the homes fingerprint matches r122.
+material & resident pass. Structured 128 px painted building materials, 82% balanced rendering (98% clear / 62% performance), tight warm bloom and the existing FXAA finish. Five peoples now have three build axes and eight job silhouettes; hooded people are rare, and props are fixed to animated arm pivots rather than clipping through bodies. City layout, road and collision generation untouched.
 
 ### In the code
 
-- 1.45 MB (+8,924 bytes on r122).
-- 1 function added: `roofDormers`.
+- 1.48 MB (+28,795 bytes on r123).
+- 9 functions added: `doorLocked`, `dressLotYards`, `dressRoadEnds`, `enterShop`, `furnishShop`, `pruneLanterns`, `removeLantern`, `shopNoun`, `stockItem`.
 
 ### Play it
 
