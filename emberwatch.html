@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r126 nothing left to roll</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r127 one shop, everywhere</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5764,26 +5764,33 @@ function dressInterior(name,x,z,w,d,kind){
   // Tries far more often than it succeeds, which is the point: the wall is
   // already carrying shelves, banners and hearths from the room's own
   // character pass, and this fills whatever is genuinely still empty.
-  const attempts=Math.round(Math.min(46,area/13));
-  for(let i=0;i<attempts;i++){
-    const side=Math.floor(rnd()*3);
-    let px,pz,ry;
-    if(side===0){ px=x+(rnd()*2-1)*hw; pz=z-hd+rnd()*.5; ry=0; }
-    else { const s=side===1?-1:1; px=x+s*(hw-rnd()*.5); pz=z+(rnd()*2-1)*hd; ry=Math.PI/2; }
-    const roll=rnd();
-    if(roll<.26)       placed+=put(interiorBarrel,px,pz,.42,rnd()<.45);
-    else if(roll<.48)  placed+=put(interiorCrate,px,pz,.42,rnd);
-    else if(roll<.62)  placed+=put(interiorSack,px,pz,.36,rnd);
-    else if(roll<.76)  placed+=put(interiorChest,px,pz,.5,ry);
-    else if(roll<.9)   placed+=put(interiorRack,px,pz,.5,ry);
-    else               placed+=put(interiorCask,px,pz,.45);
-  }
+  // Skipped for royal: a great hall is 952 square units, so this ran at its
+  // cap of 46 attempts and scattered barrels, sacks and chests the width of a
+  // storeroom through a throne room that already has a complete, deliberate
+  // furniture set above. It read as a warehouse the owner sat a throne in,
+  // not a hall — one of the two things they screenshotted and asked fixed.
+  if(kind!=='royal'){
+    const attempts=Math.round(Math.min(46,area/13));
+    for(let i=0;i<attempts;i++){
+      const side=Math.floor(rnd()*3);
+      let px,pz,ry;
+      if(side===0){ px=x+(rnd()*2-1)*hw; pz=z-hd+rnd()*.5; ry=0; }
+      else { const s=side===1?-1:1; px=x+s*(hw-rnd()*.5); pz=z+(rnd()*2-1)*hd; ry=Math.PI/2; }
+      const roll=rnd();
+      if(roll<.26)       placed+=put(interiorBarrel,px,pz,.42,rnd()<.45);
+      else if(roll<.48)  placed+=put(interiorCrate,px,pz,.42,rnd);
+      else if(roll<.62)  placed+=put(interiorSack,px,pz,.36,rnd);
+      else if(roll<.76)  placed+=put(interiorChest,px,pz,.5,ry);
+      else if(roll<.9)   placed+=put(interiorRack,px,pz,.5,ry);
+      else               placed+=put(interiorCask,px,pz,.45);
+    }
 
-  // --- a little clutter loose on the floor --------------------------------
-  const loose=Math.round(Math.min(9,area/110));
-  for(let i=0;i<loose;i++){
-    const px=x+(rnd()*2-1)*hw*.8, pz=z+(rnd()*2-1)*hd*.8;
-    placed+=rnd()<.5?put(interiorCrate,px,pz,.6,rnd):put(interiorBarrel,px,pz,.6,rnd()<.4);
+    // --- a little clutter loose on the floor --------------------------------
+    const loose=Math.round(Math.min(9,area/110));
+    for(let i=0;i<loose;i++){
+      const px=x+(rnd()*2-1)*hw*.8, pz=z+(rnd()*2-1)*hd*.8;
+      placed+=rnd()<.5?put(interiorCrate,px,pz,.6,rnd):put(interiorBarrel,px,pz,.6,rnd()<.4);
+    }
   }
 
   // --- light, so the new corners are not pitch dark -----------------------
@@ -6448,15 +6455,26 @@ function compilerLotTouchesRoad(x,z,w,d,ry,gap=COMPILER_ROAD_GAP){
 function compilerFront(x,z,d,ry){const co=Math.cos(ry),si=Math.sin(ry);return{x:x+si*d*.5,z:z+co*d*.5,sideX:co,sideZ:-si};}
 function compilerArchetype(archetype,lot){
   const {x,z,w,d,stories,key,ry,accent}=lot,h=stories*2.7,front=compilerFront(x,z,d,ry);
+  if(archetype==='shop'){
+    // A compiler shop used to be a solid cityHouse with an awning strip and
+    // nothing under it — "open, but nobody is at the counter... a bell hangs
+    // on a string", forever, because there was never a room behind that door
+    // for a keeper to stand in. That is a different building from the 95
+    // walk-in shops the terrace walk builds, and it read as one: same street,
+    // two unrelated kinds of "shop". r126 makes it the same building. wardHome
+    // gives it the hollow shell, the real door and the pendingHomes entry
+    // openHomes/activateHomes already know how to open into a room; shopFront
+    // with room:true gives it the counter, the stock and the keeper, same as
+    // every other walk-in shop in Vaneth.
+    wardHome(x,z,w,d,stories,key,ry,accent,true);
+    const shell=pendingHomes[pendingHomes.length-1];
+    const shop=shopFront(x,z,w,d,ry,accent,{room:true});
+    if(shop){ shop.home=shell; shell.shop=shop; }
+    return;
+  }
   cityHouse(x,z,w,d,stories,key,ry,accent);
   if(archetype==='rowhouse'){
     aBox(w*1.11,.42,d*1.08,x,h*.64,z,key,ry);aBox(w*.54,.12,.78,front.x, h*.62,front.z,'wood',ry);
-  }else if(archetype==='shop'){
-    aBox(w*.9,.16,1.2,front.x+Math.sin(ry)*.52,2.45,front.z+Math.cos(ry)*.52,'cloth',ry);aBox(w*.7,.1,.16,front.x+Math.sin(ry)*.67,2.64,front.z+Math.cos(ry)*.67,accent,ry);
-    // The compiler has always called these shops and never given them anything
-    // to sell: an awning strip and nothing under it. The market's own frontage
-    // was the emptiest shopping street in Vaneth.
-    shopFront(x,z,w,d,ry,accent,{frame:false,along:-.27,width:.3});
   }else if(archetype==='workshop'){
     const chimneyX=x+front.sideX*w*.32,chimneyZ=z+front.sideZ*w*.32;aCyl(.32,.45,h+1.55,6,chimneyX,(h+1.55)/2,chimneyZ,'stone');aBox(w*.36,.48,.82,x-front.sideX*w*.28,.35,z-front.sideZ*d*.24,'wood',ry);
   }else if(archetype==='archive'){
@@ -8617,9 +8635,16 @@ function furnishShop(home,at){
     for(let i=0;i<n;i++)stock(i+(y>1?3:0),-a+.8+i*((2*a-1.6)/Math.max(1,n-1)),backZ+.12,y+.03);
   }
   solid(0,backZ,2*a-.6,.5);
-  // shelves down the side wall in front of the counter, where there is room
+  // shelves down the side wall in front of the counter, where there is room.
+  // "Where there is room" used to mean only inside the room's own walls — true
+  // for a terrace shop, whose street clearance is generous, but a compiler
+  // shop can sit at the end of a tightly packed row with a cross street close
+  // along its own flank, and this shelf sits close enough to that flank
+  // (a-.24, six centimetres shy of the wall) to reach past it. Checked here,
+  // once, so a shop's own furniture can never again stand in a carriageway.
   const sideFrom=cz+1.2, sideTo=b-2.1, sideLen=sideTo-sideFrom, sideZ=(sideFrom+sideTo)/2, sideX=a-.24;
-  if(sideLen>1.1){
+  const [sidePx,sidePz]=at(sideX*flip,sideZ);
+  if(sideLen>1.1&&!onRoad(sidePx,sidePz,.3)){
     put(sideX,sideZ,.4,1.7,sideLen,.85,'wood');
     for(const y of[.5,1.0,1.5]){
       put(sideX-.02,sideZ,.5,.06,sideLen-.1,y,'dark');
@@ -12689,7 +12714,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r126',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r127',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished

@@ -1,13 +1,15 @@
-**r126 — nothing left to roll** · 2026-09-21 · phase 5, world depth
+**r127 — one shop everywhere** · 2026-09-21 · phase 5, world depth
+
+In its own panel header: *r127 one shop, everywhere*.
 
 ### Summary
 
-nothing left to roll. The owner: "I don't even want any part generated." The two remaining systems that move where anything stands — 268 outer residents walked down every arterial street, and the district compiler's 126 attempted lots — are baked the same way r125 baked the terrace walk. Proven with two fresh, never-used seeds: both give the exact city the fixed seed always has (shops 115, parcels 98, same shop sum, same resident-address sum). WORLD_SEED no longer moves a building, a shop or a resident anywhere. About fifteen worldRandom() calls remain, all decorative (texture dither, a ruin's rubble, which good sits on a counter) and none of them move a single fingerprint number — left as is, documented, not hidden.
+one shop, everywhere. The owner's own screenshots, fixed: the Great Hall's generic wall-and-floor clutter pass (barrels, crates, sacks — the same set any tavern gets) is skipped now that the hall has its own composed furniture, and the district compiler's 20 solid-box stalls ("a bell hangs on a string", forever, nobody behind the counter) are now the same walk-in room every other shop is — 13 of 20 open, the rest stay shut the same way a blocked terrace shop does. Caught and fixed in the same pass: one shop's own interior shelf was standing in a road at the end of a tightly packed compiler row; checked directly now, the same rule r125 wrote for street lanterns. Shops 113, shop sum 669314 — a real change, not drift; parcels and resident addresses untouched, and both numbers repeat exactly across two runs and a fresh seed.
 
 ### In the code
 
-- 1.70 MB (+49,528 bytes on r125).
-- 2 functions removed: `compilerLotClear`, `outerDistrictFor`.
+- 1.70 MB (+1,503 bytes on r126).
+- No functions added or removed.
 
 ### Play it
 
