@@ -1,15 +1,13 @@
-**r124b — material and street logic** · 2026-09-21 · phase 5, world depth
-
-In its own panel header: *r124 material & resident pass*.
+**r125 — the city holds still** · 2026-09-21 · phase 5, world depth
 
 ### Summary
 
-The second file archived as r124: the material and resident pass carried on into the street logic, on the way to r125. material & resident pass. Structured 128 px painted building materials, 82% balanced rendering (98% clear / 62% performance), tight warm bloom and the existing FXAA finish. Five peoples now have three build axes and eight job silhouettes; hooded people are rare, and props are fixed to animated arm pivots rather than clipping through bodies. City layout, road and collision generation untouched.
+the city holds still. innerInfill's live terrace walk — worldRandom() rolls for every house and shop's width, depth, storeys, material, accent and whether it became a shop, one after another down every street — is retired. The walk was run once and its exact output frozen into a table (CITY_LOTS_BUILT / CITY_LOTS_VACANT); innerInfill replays it. Same city, verified house-for-house and shop-for-shop against the live build it replaced, but it can no longer reshuffle when something else changes, and any one lot is now a line in a table instead of a hash to reverse-engineer. First step of a larger, explicit move away from procedural generation toward one hand-finished map; the rest — residents, wilderness, clutter, the roads and districts themselves — is still generated and is the next phase, not this one.
 
 ### In the code
 
-- 1.48 MB (+7,281 bytes on r124).
-- 6 functions added: `assignCarts`, `carryCart`, `cartGeometry`, `shopRoomCache`, `syncShopRooms`, `withBins`.
+- 1.65 MB (+171,442 bytes on r124b).
+- 1 function removed: `frontageClear`.
 
 ### Play it
 
