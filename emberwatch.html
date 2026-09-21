@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-  <div id="puffHead"><span>◈ Puffco — r121 city kit</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+  <div id="puffHead"><span>◈ Puffco — r122 street dressing</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4803,7 +4803,10 @@ function makeTex(base,opt={}){const S=opt.size||64,cvs=document.createElement('c
      plus a little more anisotropy keep angled cobbles and roofs crisp without
      turning the game photoreal. */
   const t=new THREE.CanvasTexture(cvs);
-  t.magFilter=THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;
+  // Paving is the one surface seen at a grazing angle from a metre and a half:
+  // a 64 px tile over six metres stretched bilinear turns into streaks there,
+  // so it keeps crisp texels up close and the mipmaps still settle it far off.
+  t.magFilter=pattern==='cobble'?THREE.NearestFilter:THREE.LinearFilter;t.minFilter=THREE.LinearMipmapLinearFilter;
   t.generateMipmaps=true;t.wrapS=t.wrapT=THREE.RepeatWrapping;
   t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
   t.colorSpace=THREE.SRGBColorSpace;if(opt.repeat)t.repeat.set(opt.repeat[0],opt.repeat[1]);return t;}
@@ -7183,7 +7186,7 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
 // so nearly every sector touches the frustum and nearly every copy drew), and
 // a BatchedMesh culled per instance (6,700 bounds tests a frame in JS put the
 // gate at 90 ms). What the trim actually costs is its triangles.
-const CITY_FRONTS=[], CITY_WINDOWS=[], KIT_MESHES=[];
+const CITY_FRONTS=[], CITY_WINDOWS=[], CITY_AWNINGS=[], KIT_MESHES=[];
 // >>> ASSET WINDOW_FRAME
 const WINDOW_FRAME_GLB =
   'Z2xURgIAAAAoFQAAVAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
@@ -7536,11 +7539,153 @@ const LEADLIGHT_WINDOW_GLB =
   'UgBMAF4ATABYAGIAZQBrAGIAawBoAGYAaQB1AGYAdQByAHQAdwBxAHQAcQBuAGwAbwBjAGwAYwBgAGcAcwBtAGcAbQBhAHYAagBk' +
   'AHYAZABwAA==';
 // <<< ASSET LEADLIGHT_WINDOW
+// >>> ASSET CORNER_QUOINS
+const CORNER_QUOINS_GLB =
+  'Z2xURgIAAACgEgAAVAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoiY29ybmVyX3F1b2lucyJ9XSwibWVzaGVzIjpbeyJuYW1lIjoiY29ybmVyX3F1b2lucyIsInBy' +
+  'aW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIk5PUk1BTCI6MX0sImluZGljZXMiOjJ9XX1dLCJhY2Nlc3Nv' +
+  'cnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNDQsIm1heCI6WzAuMzEwMDAwMDAyMzg0' +
+  'MTg1OCwyLjY4NDk5OTk0Mjc3OTU0MSwwLjMxMDAwMDAwMjM4NDE4NThdLCJtaW4iOlstMC4zMTAwMDAwMDIzODQxODU4LDAuMDE1' +
+  'MDAwMDAwNTk2MDQ2NDQ4LC0wLjMxMDAwMDAwMjM4NDE4NThdLCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MSwiY29tcG9u' +
+  'ZW50VHlwZSI6NTEyNiwiY291bnQiOjE0NCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUx' +
+  'MjMsImNvdW50IjoyMTYsInR5cGUiOiJTQ0FMQVIifV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjE3' +
+  'MjgsImJ5dGVPZmZzZXQiOjAsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0' +
+  'IjoxNzI4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6NDMyLCJieXRlT2Zmc2V0IjozNDU2LCJ0YXJn' +
+  'ZXQiOjM0OTYzfV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjM4ODh9XX0gICAwDwAAQklOAFK4nr6QwnU8exQuPlK4nr6QwnU8' +
+  'exQuPlK4nr6QwnU8exQuPlK4nr5SuN4+exQuPlK4nr5SuN4+exQuPlK4nr5SuN4+exQuPlK4nr6QwnU8exQuvlK4nr6QwnU8exQu' +
+  'vlK4nr6QwnU8exQuvlK4nr5SuN4+exQuvlK4nr5SuN4+exQuvlK4nr5SuN4+exQuvlK4nj6QwnU8exQuPlK4nj6QwnU8exQuPlK4' +
+  'nj6QwnU8exQuPlK4nj5SuN4+exQuPlK4nj5SuN4+exQuPlK4nj5SuN4+exQuPlK4nj6QwnU8exQuvlK4nj6QwnU8exQuvlK4nj6Q' +
+  'wnU8exQuvlK4nj5SuN4+exQuvlK4nj5SuN4+exQuvlK4nj5SuN4+exQuvnsULr58FO4+UriePnsULr58FO4+UriePnsULr58FO4+' +
+  'UriePnsULr5cj2I/UriePnsULr5cj2I/UriePnsULr5cj2I/UriePnsULr58FO4+UrievnsULr58FO4+UrievnsULr58FO4+Urie' +
+  'vnsULr5cj2I/UrievnsULr5cj2I/UrievnsULr5cj2I/UrievnsULj58FO4+UriePnsULj58FO4+UriePnsULj58FO4+UriePnsU' +
+  'Lj5cj2I/UriePnsULj5cj2I/UriePnsULj5cj2I/UriePnsULj58FO4+UrievnsULj58FO4+UrievnsULj58FO4+UrievnsULj5c' +
+  'j2I/UrievnsULj5cj2I/UrievnsULj5cj2I/UrievlK4nr5xPWo/exQuPlK4nr5xPWo/exQuPlK4nr5xPWo/exQuPlK4nr5I4ao/' +
+  'exQuPlK4nr5I4ao/exQuPlK4nr5I4ao/exQuPlK4nr5xPWo/exQuvlK4nr5xPWo/exQuvlK4nr5xPWo/exQuvlK4nr5I4ao/exQu' +
+  'vlK4nr5I4ao/exQuvlK4nr5I4ao/exQuvlK4nj5xPWo/exQuPlK4nj5xPWo/exQuPlK4nj5xPWo/exQuPlK4nj5I4ao/exQuPlK4' +
+  'nj5I4ao/exQuPlK4nj5I4ao/exQuPlK4nj5xPWo/exQuvlK4nj5xPWo/exQuvlK4nj5xPWo/exQuvlK4nj5I4ao/exQuvlK4nj5I' +
+  '4ao/exQuvlK4nj5I4ao/exQuvnsULr5SuK4/UriePnsULr5SuK4/UriePnsULr5SuK4/UriePnsULr7ieuQ/UriePnsULr7ieuQ/' +
+  'UriePnsULr7ieuQ/UriePnsULr5SuK4/UrievnsULr5SuK4/UrievnsULr5SuK4/UrievnsULr7ieuQ/UrievnsULr7ieuQ/Urie' +
+  'vnsULr7ieuQ/UrievnsULj5SuK4/UriePnsULj5SuK4/UriePnsULj5SuK4/UriePnsULj7ieuQ/UriePnsULj7ieuQ/UriePnsU' +
+  'Lj7ieuQ/UriePnsULj5SuK4/UrievnsULj5SuK4/UrievnsULj5SuK4/UrievnsULj7ieuQ/UrievnsULj7ieuQ/UrievnsULj7i' +
+  'euQ/UrievlK4nr7sUeg/exQuPlK4nr7sUeg/exQuPlK4nr7sUeg/exQuPlK4nr4+Cg9AexQuPlK4nr4+Cg9AexQuPlK4nr4+Cg9A' +
+  'exQuPlK4nr7sUeg/exQuvlK4nr7sUeg/exQuvlK4nr7sUeg/exQuvlK4nr4+Cg9AexQuvlK4nr4+Cg9AexQuvlK4nr4+Cg9AexQu' +
+  'vlK4nj7sUeg/exQuPlK4nj7sUeg/exQuPlK4nj7sUeg/exQuPlK4nj4+Cg9AexQuPlK4nj4+Cg9AexQuPlK4nj4+Cg9AexQuPlK4' +
+  'nj7sUeg/exQuvlK4nj7sUeg/exQuvlK4nj7sUeg/exQuvlK4nj4+Cg9AexQuvlK4nj4+Cg9AexQuvlK4nj4+Cg9AexQuvnsULr7C' +
+  '9RBAUriePnsULr7C9RBAUriePnsULr7C9RBAUriePnsULr4K1ytAUriePnsULr4K1ytAUriePnsULr4K1ytAUriePnsULr7C9RBA' +
+  'UrievnsULr7C9RBAUrievnsULr7C9RBAUrievnsULr4K1ytAUrievnsULr4K1ytAUrievnsULr4K1ytAUrievnsULj7C9RBAUrie' +
+  'PnsULj7C9RBAUriePnsULj7C9RBAUriePnsULj4K1ytAUriePnsULj4K1ytAUriePnsULj4K1ytAUriePnsULj7C9RBAUrievnsU' +
+  'Lj7C9RBAUrievnsULj7C9RBAUrievnsULj4K1ytAUrievnsULj4K1ytAUrievnsULj4K1ytAUrievgAAAAAAAAAAAACAPwAAAAAA' +
+  'AIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/' +
+  'AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAA' +
+  'AAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAA' +
+  'gD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'PwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAA' +
+  'AAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAA' +
+  'AIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/' +
+  'AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAA' +
+  'AAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAA' +
+  'gD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8A' +
+  'AAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAA' +
+  'AAAAAAAAAAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAA' +
+  'AAAAAAAAAAAAAACAvwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAA' +
+  'AAAAAAAAAACAPwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAA' +
+  'AAAAAACAvwAAAAAAAIC/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgL8AAAAAAAAAAAAAAAAAAAAA' +
+  'AACAPwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACA' +
+  'vwAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAvwAAAAAAAIA/AAAAAAAAgD8AAAAAAAAAAAIABQALAAIACwAIAAYA' +
+  'CQAVAAYAFQASABQAFwARABQAEQAOAAwADwADAAwAAwAAAAcAEwANAAcADQABABYACgAEABYABAAQABoAHQAjABoAIwAgAB4AIQAt' +
+  'AB4ALQAqACwALwApACwAKQAmACQAJwAbACQAGwAYAB8AKwAlAB8AJQAZAC4AIgAcAC4AHAAoADIANQA7ADIAOwA4ADYAOQBFADYA' +
+  'RQBCAEQARwBBAEQAQQA+ADwAPwAzADwAMwAwADcAQwA9ADcAPQAxAEYAOgA0AEYANABAAEoATQBTAEoAUwBQAE4AUQBdAE4AXQBa' +
+  'AFwAXwBZAFwAWQBWAFQAVwBLAFQASwBIAE8AWwBVAE8AVQBJAF4AUgBMAF4ATABYAGIAZQBrAGIAawBoAGYAaQB1AGYAdQByAHQA' +
+  'dwBxAHQAcQBuAGwAbwBjAGwAYwBgAGcAcwBtAGcAbQBhAHYAagBkAHYAZABwAHoAfQCDAHoAgwCAAH4AgQCNAH4AjQCKAIwAjwCJ' +
+  'AIwAiQCGAIQAhwB7AIQAewB4AH8AiwCFAH8AhQB5AI4AggB8AI4AfACIAA==';
+// <<< ASSET CORNER_QUOINS
+// >>> ASSET AWNING_VALANCE
+const AWNING_VALANCE_GLB =
+  'Z2xURgIAAADMFAAAKAMAAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NS4yLjQw' +
+  'IiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJuYW1lIjoiU2NlbmUiLCJub2RlcyI6WzBdfV0sIm5vZGVz' +
+  'IjpbeyJtZXNoIjowLCJuYW1lIjoiYXduaW5nX3ZhbGFuY2UifV0sIm1lc2hlcyI6W3sibmFtZSI6ImF3bmluZ192YWxhbmNlIiwi' +
+  'cHJpbWl0aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MCwiTk9STUFMIjoxfSwiaW5kaWNlcyI6Mn1dfV0sImFjY2Vz' +
+  'c29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE2OCwibWF4IjpbMC41LDAsMC4wMTk5' +
+  'OTk5OTk1NTI5NjUxNjRdLCJtaW4iOlstMC41LC0wLjMxOTk5OTk5Mjg0NzQ0MjYsLTAuMDE5OTk5OTk5NTUyOTY1MTY0XSwidHlw' +
+  'ZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNjgsInR5cGUiOiJWRUMzIn0s' +
+  'eyJidWZmZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MjI4LCJ0eXBlIjoiU0NBTEFSIn1dLCJidWZmZXJW' +
+  'aWV3cyI6W3siYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyMDE2LCJieXRlT2Zmc2V0IjowLCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZl' +
+  'ciI6MCwiYnl0ZUxlbmd0aCI6MjAxNiwiYnl0ZU9mZnNldCI6MjAxNiwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVM' +
+  'ZW5ndGgiOjQ1NiwiYnl0ZU9mZnNldCI6NDAzMiwidGFyZ2V0IjozNDk2M31dLCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjo0NDg4' +
+  'fV19iBEAAEJJTgAAAAC/CtcjvgrXozwAAAC/CtcjvgrXozwAAAC/CtcjvgrXozwAAAC/AAAAAArXozwAAAC/AAAAAArXozwAAAC/' +
+  'AAAAAArXozwAAAC/CtcjvgrXo7wAAAC/CtcjvgrXo7wAAAC/CtcjvgrXo7wAAAC/AAAAAArXo7wAAAC/AAAAAArXo7wAAAC/AAAA' +
+  'AArXo7wAAAA/CtcjvgrXozwAAAA/CtcjvgrXozwAAAA/CtcjvgrXozwAAAA/AAAAAArXozwAAAA/AAAAAArXozwAAAA/AAAAAArX' +
+  'ozwAAAA/CtcjvgrXo7wAAAA/CtcjvgrXo7wAAAA/CtcjvgrXo7wAAAA/AAAAAArXo7wAAAA/AAAAAArXo7wAAAA/AAAAAArXo7wA' +
+  'AAC/CtcjvgrXozwAAAC/CtcjvgrXozwAAAC/CtcjvgrXozwAAMC+CtcjvgrXozwAAMC+CtcjvgrXozwAAMC+CtcjvgrXozwAAOC+' +
+  'CtejvgrXozwAAOC+CtejvgrXozwAAOC+CtejvgrXozwAAAC/CtcjvgrXo7wAAAC/CtcjvgrXo7wAAAC/CtcjvgrXo7wAAMC+Ctcj' +
+  'vgrXo7wAAMC+CtcjvgrXo7wAAMC+CtcjvgrXo7wAAOC+CtejvgrXo7wAAOC+CtejvgrXo7wAAOC+CtejvgrXo7wAAMC+CtcjvgrX' +
+  'ozwAAMC+CtcjvgrXozwAAMC+CtcjvgrXozwAAIC+CtcjvgrXozwAAIC+CtcjvgrXozwAAIC+CtcjvgrXozwAAKC+CtejvgrXozwA' +
+  'AKC+CtejvgrXozwAAKC+CtejvgrXozwAAMC+CtcjvgrXo7wAAMC+CtcjvgrXo7wAAMC+CtcjvgrXo7wAAIC+CtcjvgrXo7wAAIC+' +
+  'CtcjvgrXo7wAAIC+CtcjvgrXo7wAAKC+CtejvgrXo7wAAKC+CtejvgrXo7wAAKC+CtejvgrXo7wAAIC+CtcjvgrXozwAAIC+Ctcj' +
+  'vgrXozwAAIC+CtcjvgrXozwAAAC+CtcjvgrXozwAAAC+CtcjvgrXozwAAAC+CtcjvgrXozwAAEC+CtejvgrXozwAAEC+CtejvgrX' +
+  'ozwAAEC+CtejvgrXozwAAIC+CtcjvgrXo7wAAIC+CtcjvgrXo7wAAIC+CtcjvgrXo7wAAAC+CtcjvgrXo7wAAAC+CtcjvgrXo7wA' +
+  'AAC+CtcjvgrXo7wAAEC+CtejvgrXo7wAAEC+CtejvgrXo7wAAEC+CtejvgrXo7wAAAC+CtcjvgrXozwAAAC+CtcjvgrXozwAAAC+' +
+  'CtcjvgrXozwAAAAACtcjvgrXozwAAAAACtcjvgrXozwAAAAACtcjvgrXozwAAIC9CtejvgrXozwAAIC9CtejvgrXozwAAIC9Ctej' +
+  'vgrXozwAAAC+CtcjvgrXo7wAAAC+CtcjvgrXo7wAAAC+CtcjvgrXo7wAAAAACtcjvgrXo7wAAAAACtcjvgrXo7wAAAAACtcjvgrX' +
+  'o7wAAIC9CtejvgrXo7wAAIC9CtejvgrXo7wAAIC9CtejvgrXo7wAAAAACtcjvgrXozwAAAAACtcjvgrXozwAAAAACtcjvgrXozwA' +
+  'AAA+CtcjvgrXozwAAAA+CtcjvgrXozwAAAA+CtcjvgrXozwAAIA9CtejvgrXozwAAIA9CtejvgrXozwAAIA9CtejvgrXozwAAAAA' +
+  'CtcjvgrXo7wAAAAACtcjvgrXo7wAAAAACtcjvgrXo7wAAAA+CtcjvgrXo7wAAAA+CtcjvgrXo7wAAAA+CtcjvgrXo7wAAIA9Ctej' +
+  'vgrXo7wAAIA9CtejvgrXo7wAAIA9CtejvgrXo7wAAAA+CtcjvgrXozwAAAA+CtcjvgrXozwAAAA+CtcjvgrXozwAAIA+CtcjvgrX' +
+  'ozwAAIA+CtcjvgrXozwAAIA+CtcjvgrXozwAAEA+CtejvgrXozwAAEA+CtejvgrXozwAAEA+CtejvgrXozwAAAA+CtcjvgrXo7wA' +
+  'AAA+CtcjvgrXo7wAAAA+CtcjvgrXo7wAAIA+CtcjvgrXo7wAAIA+CtcjvgrXo7wAAIA+CtcjvgrXo7wAAEA+CtejvgrXo7wAAEA+' +
+  'CtejvgrXo7wAAEA+CtejvgrXo7wAAIA+CtcjvgrXozwAAIA+CtcjvgrXozwAAIA+CtcjvgrXozwAAMA+CtcjvgrXozwAAMA+Ctcj' +
+  'vgrXozwAAMA+CtcjvgrXozwAAKA+CtejvgrXozwAAKA+CtejvgrXozwAAKA+CtejvgrXozwAAIA+CtcjvgrXo7wAAIA+CtcjvgrX' +
+  'o7wAAIA+CtcjvgrXo7wAAMA+CtcjvgrXo7wAAMA+CtcjvgrXo7wAAMA+CtcjvgrXo7wAAKA+CtejvgrXo7wAAKA+CtejvgrXo7wA' +
+  'AKA+CtejvgrXo7wAAMA+CtcjvgrXozwAAMA+CtcjvgrXozwAAMA+CtcjvgrXozwAAAA/CtcjvgrXozwAAAA/CtcjvgrXozwAAAA/' +
+  'CtcjvgrXozwAAOA+CtejvgrXozwAAOA+CtejvgrXozwAAOA+CtejvgrXozwAAMA+CtcjvgrXo7wAAMA+CtcjvgrXo7wAAMA+Ctcj' +
+  'vgrXo7wAAAA/CtcjvgrXo7wAAAA/CtcjvgrXo7wAAAA/CtcjvgrXo7wAAOA+CtejvgrXo7wAAOA+CtejvgrXo7wAAOA+CtejvgrX' +
+  'o7wAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAA' +
+  'AAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAA' +
+  'AAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAA' +
+  'AAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAA' +
+  'gD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9D' +
+  'c24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAA' +
+  'AACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACA' +
+  'PwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAA' +
+  'AABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABD' +
+  'c24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/' +
+  'Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66' +
+  'vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAA' +
+  'AAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAA' +
+  'AAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAA' +
+  'AAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAA' +
+  'AAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAA' +
+  'gD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8A' +
+  'AAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/' +
+  'Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACA' +
+  'PwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAA' +
+  'AABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABD' +
+  'c26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/' +
+  'Wk66vgAAAAAAAAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66' +
+  'vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAA' +
+  'AAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAA' +
+  'AAAAAAAAAAAAgD9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAABDc26/Wk66vgAAAAAAAAAA' +
+  'AAAAAAAAgL8AAAAAAACAPwAAAABDc24/Wk66vgAAAAAAAAAAAAAAAAAAgL9Dc24/Wk66vgAAAABDc26/Wk66vgAAAAACAAUACwAC' +
+  'AAsACAAGAAkAFQAGABUAEgAUABcAEQAUABEADgAMAA8AAwAMAAMAAAAHABMADQAHAA0AAQAWAAoABAAWAAQAEAAYAB4AGwAnACEA' +
+  'JAAaACMAKQAaACkAIAAfACgAJgAfACYAHQAcACUAIgAcACIAGQAqADAALQA5ADMANgAsADUAOwAsADsAMgAxADoAOAAxADgALwAu' +
+  'ADcANAAuADQAKwA8AEIAPwBLAEUASAA+AEcATQA+AE0ARABDAEwASgBDAEoAQQBAAEkARgBAAEYAPQBOAFQAUQBdAFcAWgBQAFkA' +
+  'XwBQAF8AVgBVAF4AXABVAFwAUwBSAFsAWABSAFgATwBgAGYAYwBvAGkAbABiAGsAcQBiAHEAaABnAHAAbgBnAG4AZQBkAG0AagBk' +
+  'AGoAYQByAHgAdQCBAHsAfgB0AH0AgwB0AIMAegB5AIIAgAB5AIAAdwB2AH8AfAB2AHwAcwCEAIoAhwCTAI0AkACGAI8AlQCGAJUA' +
+  'jACLAJQAkgCLAJIAiQCIAJEAjgCIAI4AhQCWAJwAmQClAJ8AogCYAKEApwCYAKcAngCdAKYApACdAKQAmwCaAKMAoACaAKAAlwA=';
+// <<< ASSET AWNING_VALANCE
 // One flat-shaded stone for the trim. The pieces carry no UVs, so they take a
 // plain colour rather than the city's tiled textures; give a piece UVs in its
 // Blender script if it ever needs one.
 const KIT_STONE=new THREE.MeshStandardMaterial({color:0x6d6252,roughness:1,flatShading:true});
 const KIT_TIMBER=new THREE.MeshStandardMaterial({color:0x5a4632,roughness:1,flatShading:true});
+const KIT_CLOTH=new THREE.MeshStandardMaterial({color:0x3f7f86,roughness:1,flatShading:true,side:THREE.DoubleSide});
 const KIT_VERDIGRIS=new THREE.MeshStandardMaterial({color:0x4f9f64,emissive:0x183c26,emissiveIntensity:.8,roughness:.82,flatShading:true});
 function kitGeometry(b64,then){
   if(!b64||!THREE.GLTFLoader)return;
@@ -7607,6 +7752,23 @@ function dressCityFronts(){
     const out=front.d*.5+.08;
     return {x:front.x+Math.sin(front.ry)*out,y:2.73,z:front.z+Math.cos(front.ry)*out,ry:front.ry,sx:front.w/8};
   }),TIMBER_FACADE_GLB,KIT_TIMBER);
+  // A scalloped fringe hanging off the front edge of every shop awning: the flat
+  // cloth slab reads as a table top until it has an edge worth looking at.
+  dressPoints(CITY_AWNINGS,AWNING_VALANCE_GLB,KIT_CLOTH);
+  // Dressed-stone quoins up both street corners of a share of the taller homes.
+  // A plain box reads as a stage flat; a corner tied in stone reads as built.
+  // The piece is symmetric, so the right corner needs no mirrored copy, and it
+  // is scaled in y to the building's own height. Hash-picked, no seeded roll.
+  const quoined=CITY_FRONTS.filter(front=>front.stories>1&&terrainHash(Math.round(front.x*3)-4409,Math.round(front.z*3)+2213)<.5);
+  const quoinPoints=[];
+  for(const front of quoined){
+    const co=Math.cos(front.ry),si=Math.sin(front.ry), out=front.d*.5;
+    for(const side of[-1,1]){
+      const along=side*front.w*.5;
+      quoinPoints.push({x:front.x+co*along+si*out,y:0,z:front.z-si*along+co*out,ry:front.ry,sy:front.stories});
+    }
+  }
+  dressPoints(quoinPoints,CORNER_QUOINS_GLB,KIT_STONE);
   // A hooded lantern is silhouette and warmth, not a new point light. Existing
   // lamps retain sole ownership of the fixed lighting budget.
   const lanterns=CITY_FRONTS.filter(front=>terrainHash(Math.round(front.x*5)-971,Math.round(front.z*5)+231)<.28);
@@ -7893,6 +8055,8 @@ function shopFront(x,z,w,d,ry,accent,opts={}){
   if(frame){
     const [ax,az]=at(0,1.15);
     aBox(w*.74,.14,2.4,ax,2.72,az,'cloth',ry);
+    const [vx,vz]=at(0,2.35);
+    CITY_AWNINGS.push({x:vx,y:2.65,z:vz,ry,sx:w*.74});           // for the scalloped valance
     for(const side of[-1,1]){ const [px,pz]=at(side*w*.3,2.15);
       aBox(.16,2.7,.16,px,1.35,pz,'wood',ry); }
   }
@@ -11999,7 +12163,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-  return{revision:'r121',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
+  return{revision:'r122',world:{seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
