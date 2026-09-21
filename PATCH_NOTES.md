@@ -1,13 +1,15 @@
-**r122 — street dressing** · 2026-09-21 · phase 5, world depth
+**r123 — clean poly polish** · 2026-09-21 · phase 5, world depth
+
+In its own panel header: *r123 clean-poly polish*.
 
 ### Summary
 
-street dressing. Stone quoins up the street corners of half the taller homes, a scalloped teal valance on the awning of every frame shop (100 of them), and paving that keeps crisp texels up close instead of smearing into streaks. Seed, doors, collision and residents untouched: the homes fingerprint matches r121.
+clean-poly polish. 72% balanced render scale with clear and performance alternatives, post-grade FXAA and smooth hard-surface/NPC kit normals. Trees, grass and their low-side-count silhouette stay faceted. The same seal carries a geometry pass: a fix for kit pieces that were exporting into the walls (surrounds, frames, timber, lanterns, leadlights now stand proud), roof dormers with lit windows, and 221 wall banners. Seed, doors, collision and residents untouched; the homes fingerprint matches r122.
 
 ### In the code
 
-- 1.44 MB (+16,144 bytes on r121).
-- No functions added or removed.
+- 1.45 MB (+8,924 bytes on r122).
+- 1 function added: `roofDormers`.
 
 ### Play it
 
