@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r133 nothing hangs on nothing</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r134 people in the square</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -9461,6 +9461,23 @@ function npcActivity(npc){
   return {verb:errand.verb,line:errand.line,travelling:!npc.atStop};
 }
 const INTERIOR_HOST_ACTIVITY=Object.freeze({
+  // The eight merchant bays and the fire had counters, awnings, stock and
+  // lanterns, and not one person at any of them: twenty stalls of furniture in
+  // an empty square that the ward text calls "a dozen overlapping
+  // conversations". Each keeper faces the bay they are standing at; the four
+  // at the fire face it.
+  'Hesper Quill':{x:-11,z:86,doing:'minding the cloth bay'},
+  'Bram Tanner':{x:12,z:87,doing:'counting the morning stock'},
+  'Nesa Fallow':{x:-11,z:130,doing:'working the north counter'},
+  'Oddrin Payle':{x:12,z:130,doing:'weighing out the last of it'},
+  'Juno Shrike':{x:-29,z:101,doing:'keeping the west bay'},
+  'Calla Went':{x:29,z:101,doing:'trading across the counter'},
+  'Merrow Fisk':{x:-29,z:117,doing:'stacking crates behind the counter'},
+  'Tobin Ash':{x:29,z:117,doing:'calling prices at the corner'},
+  'Wyn Carrow':{x:0,z:108,doing:'warming their hands at the fire'},
+  'Silla Dray':{x:0,z:108,doing:'talking across the fire'},
+  'Hob Winter':{x:0,z:108,doing:'listening more than talking'},
+  'Rue Tamsin':{x:0,z:108,doing:'waiting for someone at the fire'},
   'Barkeep Varn':{x:38,z:112.5,doing:'keeping the bar'},
   'Archivist Lysa':{x:-86,z:-46.5,doing:'reading the old shelves'},
   'Pilgrim Sorell':{x:96,z:48.5,doing:'watching the offering table'},
@@ -9604,6 +9621,26 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // now land inside the new wards' geometry.
   const district=districtOverride||villagerDistrict(route);
   [x,z]=navPlace(x,z);
+  // navPlace finds walkable ground; it does not care who is already standing on
+  // it, or that a wall may have been built across the spot since the resident
+  // was authored. Two residents given the same doorstep stand inside each other
+  // for the whole session, and one authored into a wall never gets out of it —
+  // Brother Cael has been in the chapel wall, and adding the market keepers put
+  // Tobin Ash exactly on top of Hobb of the Tally, distance 0.00. Step off by a
+  // pace, in a widening spiral, until the spot is both clear of geometry and
+  // nobody else's.
+  {
+    const baseX=x, baseZ=z;
+    for(let attempt=1;attempt<=12;attempt++){
+      const onSomeone=villagers.some(other=>{
+        const dx=other.g.position.x-x, dz=other.g.position.z-z;
+        return dx*dx+dz*dz<.81;                      // within 0.9 m
+      });
+      if(!onSomeone&&!colliderBlocked(x,z,.34))break;
+      const ang=attempt*2.399, step=1.0+attempt*.3;   // golden angle, widening
+      [x,z]=navPlace(baseX+Math.cos(ang)*step,baseZ+Math.sin(ang)*step);
+    }
+  }
   route=route.map(point=>navPlace(point[0],point[1]));
   // Drop any stop the resident could never actually reach on foot, so nobody
   // spends their life failing to path to a courtyard on the far side of a wall.
@@ -9622,7 +9659,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // value stays non-negative like signature itself.
   const species=(signature>>>19)%NPC_STATURE.length,profile=NPC_PROFILE[species],build=NPC_BUILD[bodyType],g=new THREE.Group(),cloth=npcMaterial(robe),under=npcMaterial([0x3d536c,0x76583a,0x4a6b57,0x77505e,0x6b6036,0x394b62][(signature>>>27)%6]),trim=npcMaterial([0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5]),skin=npcMaterial((species===4?[0x72875d,0x637b59,0x81986d]:species===3?[0x827774,0x6e6666,0x8e8179]:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30])[(signature>>>5)%(species===4?3:species===3?3:5)]),hair=npcMaterial([0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4]),leather=npcMaterial(0x382519),speciesAccent=npcMaterial([0x965439,0x6c4b35,0x42665e,0x5d6870,0x487348][species]),smokeRoll=(signature>>>16)%7,smokes=species===0?smokeRoll<5:smokeRoll<2;
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),faceStyle=signature%6;
-  const face=new THREE.Mesh(new THREE.SphereGeometry(.27,8,7),skin); face.position.y=.15; face.scale.set(profile.head[0],profile.head[1]*.93,profile.head[2]*.96); headPivot.position.y=profile.headY; headPivot.add(face);
+  const face=new THREE.Mesh(new THREE.SphereGeometry(.27,8,7),skin); face.position.y=.15; face.scale.set(profile.head[0],profile.head[1]*.93,profile.head[2]*.96); headPivot.position.y=profile.headY+.07; headPivot.scale.setScalar(.86); headPivot.add(face);
   const eyeMaterial=npcEyeMaterials[(signature>>>11)%npcEyeMaterials.length],mouthMaterial=npcMouthMaterials[(signature>>>14)%npcMouthMaterials.length],eyeScale=[1,.82,1.18,.72,1.05,.9][faceStyle],eyeLift=[.255,.24,.27,.248,.262,.25][faceStyle];
   const leftEye=new THREE.Mesh(new THREE.BoxGeometry(.03,.038,.012),eyeMaterial),rightEye=leftEye.clone();
   const eyeSpread=[.095,.083,.09,.098,.088][species],eyeFront=.254*profile.head[2];
@@ -9638,7 +9675,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
     for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.SphereGeometry(.075,5,4),skin);ear.position.set(side*.285,.16,.01);ear.scale.set(.6,1,.55);headPivot.add(ear);}
     const beard=new THREE.Mesh(new THREE.ConeGeometry(.18,.34,6),hair);beard.position.set(0,-.06,.16);beard.rotation.x=Math.PI;headPivot.add(beard);
   }else if(species===2){
-    for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.085,.43,4),skin);ear.position.set(side*.30,.16,-.005);ear.rotation.z=side*Math.PI*.5;headPivot.add(ear);}
+    for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.08,.36,4),skin);ear.position.set(side*.25,.19,-.03);ear.rotation.z=side*1.02;ear.rotation.x=-.30;headPivot.add(ear);}
     const crown=new THREE.Mesh(new THREE.SphereGeometry(.25,7,5),hair);crown.position.set(0,.30,-.05);crown.scale.set(.95,.36,.82);headPivot.add(crown);
   }else if(species===3){
     const brow=new THREE.Mesh(new THREE.BoxGeometry(.49,.11,.075),speciesAccent);brow.position.set(0,.31,.205);const jaw=new THREE.Mesh(new THREE.BoxGeometry(.33,.11,.17),skin);jaw.position.set(0,-.025,.115);headPivot.add(brow,jaw);
@@ -9648,7 +9685,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
     for(const side of[-1,1]){const sprout=new THREE.Mesh(new THREE.ConeGeometry(.06,.34,4),hair);sprout.position.set(side*.10,.54,-.03);sprout.rotation.z=side*.33;headPivot.add(sprout);}
   }
   if(faceStyle===2||faceStyle===5){[-.09,-.065,.065,.09].forEach((fx,index)=>{const freckle=new THREE.Mesh(new THREE.BoxGeometry(.006,.006,.007),hair);freckle.position.set(fx,.135+(index%2)*.012,.205);headPivot.add(freckle);});}
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.105,.12,.2,6),skin);neck.position.y=profile.headY;g.add(neck);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.10,.14,.42,6),skin);neck.position.y=profile.headY-.18;g.add(neck);
   // A sleeve alone read as a blunt block once a resident held a book or tool.
   // Give every people a small, deliberately low-poly palm and thumb at the
   // wrist. They merge with the sleeve into the existing animated limb mesh, so
@@ -9668,7 +9705,9 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
     grip.position.copy(palm.position);grip.userData.side=side;
     pivot.add(sleeve,palm,thumb);mergeTinted(pivot);pivot.add(grip);pivot.userData.grip=grip;return pivot;
   };
-  const leg=(side,material)=>{const pivot=side<0?leftLeg:rightLeg,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.095,.115,.52,5),material);pivot.position.set(side*.15*profile.legSpread,.54,0);mesh.position.y=-.24;mesh.scale.set(profile.leg[0],profile.leg[1],profile.leg[2]);pivot.add(mesh);return pivot;};
+  const leg=(side,material)=>{const pivot=side<0?leftLeg:rightLeg,mesh=new THREE.Mesh(new THREE.CylinderGeometry(.095,.115,.52,5),material);pivot.position.set(side*.15*profile.legSpread,.54,0);mesh.position.y=-.24;mesh.scale.set(profile.leg[0],profile.leg[1],profile.leg[2]);
+    const foot=new THREE.Mesh(new THREE.BoxGeometry(.17,.085,.27),leather);foot.position.set(0,-.4975,.07);foot.scale.set(profile.leg[0],1,profile.leg[2]);
+    pivot.add(mesh,foot);mergeTinted(pivot);return pivot;};
   const fitBody=mesh=>{mesh.scale.multiply(new THREE.Vector3(...profile.body));return mesh;};
   // Props sit below a wrist grip, never in torso space. The LOD bakes them
   // later; the near rig keeps the carried item, palm and arm together.
@@ -9857,6 +9896,32 @@ const vanethPassers=[
 ];
 useWorldStream('residents-passers');
 vanethPassers.forEach(resident=>villager(...resident));
+// The market's own people. Twelve stand — eight at the bay counters, four at
+// the fire — and four more walk the square, so the centre is busy without
+// every figure in it being in transit somewhere else. A resident with no route
+// holds their ground and faces their anchor; villager() runs each position
+// through navPlace, so a keeper whose spot is inside a stall collider steps
+// clear of it rather than standing in the stock.
+const vanethMarket=[
+  ['Hesper Quill',-11,83.9,0x6d4a63,'Cloth keeps the cold off better than most advice.',[],'Market Ward'],
+  ['Bram Tanner',12,84.9,0x7a5433,'Count it twice and nobody has to argue about it later.',[],'Market Ward'],
+  ['Nesa Fallow',-11,132.1,0x4f6b5c,'The north end gets the wind and the honest customers.',[],'Market Ward'],
+  ['Oddrin Payle',12,132.1,0x83603a,'Last of the day goes cheap. That is not generosity, it is arithmetic.',[],'Market Ward'],
+  ['Juno Shrike',-31.1,101,0x5b5177,'Stand here long enough and the whole city walks past you.',[],'Market Ward'],
+  ['Calla Went',31.1,101,0x8a5a4a,'A good trade leaves both of us mildly disappointed.',[],'Market Ward'],
+  ['Merrow Fisk',-31.1,117,0x466079,'Crates first, conversation after.',[],'Market Ward'],
+  ['Tobin Ash',31.1,117,0x7d6b38,'I shout the price once. After that it is up to you.',[],'Market Ward'],
+  ['Wyn Carrow',4.2,104.6,0x6b4038,'The fire is the only part of this square that never haggles.',[],'Market Ward'],
+  ['Silla Dray',-4.4,105.4,0x556a46,'Everything worth knowing gets said within six feet of a fire.',[],'Market Ward'],
+  ['Hob Winter',5.0,111.4,0x3f4f68,'I come for the warmth and stay for the arguments.',[],'Market Ward'],
+  ['Rue Tamsin',-4.8,111.2,0x77455f,'Waiting is easier somewhere with light in it.',[],'Market Ward'],
+  ['Ilsa Bray',-17,112,0x6a5a7d,'I do a slow lap and hear everything twice.',vanethRoutes.market],
+  ['Danel Crow',18,104,0x4c6657,'Every stall tells you a different version of the same week.',vanethRoutes.market],
+  ['Pell Roon',-6,96.5,0x84613f,'I am only here for bread and I say that every single day.',vanethRoutes.market],
+  ['Verity Lund',8,120,0x5d4a6b,'The square is loudest just before it empties.',vanethRoutes.market]
+];
+useWorldStream('residents-market');
+vanethMarket.forEach(resident=>villager(...resident));
 
 // ---------- greater-city residents ----------
 // The outer city is far too large to hand-author a population for, so these
@@ -11359,6 +11424,43 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
   for(const npc of villagers){
     // Someone at home can be spoken to by whoever is in the room with them.
     if(npc.indoors){ if(npc.atHome&&activeInterior===npc.atHome){ const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} } continue; }
+    // Buried: standing inside solid geometry with no way out of it.
+    // The shove further down is the only escape a stalled resident has, and it
+    // pushes away from other *bodies* — so someone stuck on their own waits
+    // there for ever. Five did, on every run: a clear path, a target seven
+    // metres off, replans at zero, and colliderBlocked true where they stood.
+    // A resident does not have to be walked into a wall to end up in one; a
+    // spawn point that a later building landed on does it, and so does a route
+    // stop inside a facade. Geometry now gets the same escape bodies have.
+    //
+    // Deliberately slow to trigger: the test runs twice a second, staggered by
+    // the resident's own phase so three hundred of them never land on one
+    // frame, and only fires after a metre and a half of *continuous* burial,
+    // so someone crossing a doorway or an archway is never touched. Residents
+    // inside their own homes are `indoors` and skipped above.
+    if(!npc.talking&&!npc.sessionAnchor&&!npc.stay){
+      npc.buriedCheck=(npc.buriedCheck||0)-dt;
+      if(npc.buriedCheck<=0){
+        npc.buriedCheck=.5+((npc.phase*5)%.4);
+        if(colliderBlocked(npc.lastX,npc.lastZ,.28)){
+          npc.buriedFor=(npc.buriedFor||0)+.5;
+          if(npc.buriedFor>1.5){
+            // nearest open ground, walking outward a ring at a time
+            for(let ring=1;ring<=6&&npc.buriedFor>0;ring++){
+              const reach=ring*.8;
+              for(let step=0;step<12;step++){
+                const ang=(step/12)*Math.PI*2+npc.phase,
+                  ex=npc.lastX+Math.cos(ang)*reach, ez=npc.lastZ+Math.sin(ang)*reach;
+                if(colliderBlocked(ex,ez,.3))continue;
+                npc.lastX=ex; npc.lastZ=ez;
+                npc.path=null; npc.pauseLeft=0; npc.buriedFor=0;   // re-plan from where they now are
+                break;
+              }
+            }
+          }
+        } else npc.buriedFor=0;
+      }
+    }
     const sway=Math.sin(t*1.35+npc.phase)*.28; let x=npc.lastX,z=npc.lastZ,movingNpc=false;
     if(npc.sessionAnchor){x=npc.sessionAnchor.x;z=npc.sessionAnchor.z;npc.g.rotation.y=Math.atan2(player.x-x,player.z-z);}
     else if(npc.talking){ const nextX=npc.lastX+(npc.talkX-npc.lastX)*Math.min(1,dt*4.8),nextZ=npc.lastZ+(npc.talkZ-npc.lastZ)*Math.min(1,dt*4.8);if(npcPathClear(npc.lastX,npc.lastZ,nextX,nextZ)) {x=nextX;z=nextZ;} npc.g.rotation.y=Math.atan2(player.x-x,player.z-z); }
@@ -12942,7 +13044,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r133',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r134',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
