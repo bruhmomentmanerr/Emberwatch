@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r132 streets that bend</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r133 nothing hangs on nothing</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5346,7 +5346,24 @@ function facadeWindows(x,z,w,d,h,ry){ const stories=Math.max(1,Math.round(h/2.6)
   const co=Math.cos(ry),si=Math.sin(ry);
   for(let s=0;s<stories;s++){ const wy=1.4+s*2.6; if(wy>h-0.7)break;
     for(let c=0;c<cols;c++){ if(worldRandom()<0.18) continue; const ox=-w/2+w/(cols+1)*(c+1);
-      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co+oz*si, wz=z-ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } } }
+      [d/2+0.05,-d/2-0.05].forEach(oz=>{ const wx=x+ox*co+oz*si, wz=z-ox*si+oz*co; aBox(0.5,0.7,0.05,wx,wy,wz, worldRandom()<0.08?'arcane':'window', ry); }); } }
+  // The flanks were bare. Front and back both get windows above, but nothing
+  // ever touched the two gable ends, so any building standing side-on to its
+  // street showed a blank slab the full height of it — which is what the north
+  // ward looks like from the road, and a good part of why the streets read as
+  // unfinished. A gable end carries fewer openings than a frontage, so these
+  // are sparser and leave the ground floor alone.
+  //
+  // Deliberately not worldRandom(): this runs once per building across the
+  // whole city, and taking draws from the world stream here would reshuffle
+  // everything downstream of it. planHash is seeded by position only, so the
+  // same wall gets the same windows without moving anything else.
+  const bays=Math.max(1,Math.floor(d/2.3));
+  for(let s=1;s<stories;s++){ const wy=1.4+s*2.6; if(wy>h-0.7)break;
+    for(let bay=0;bay<bays;bay++){ const oz=-d/2+d/(bays+1)*(bay+1);
+      [w/2+0.05,-w/2-0.05].forEach(ox=>{ const wx=x+ox*co+oz*si, wz=z-ox*si+oz*co;
+        if(planHash(Math.round(wx*4),Math.round(wz*4))<0.52)return;
+        aBox(0.05,0.7,0.5,wx,wy,wz, planHash(Math.round(wz*4),Math.round(wx*4))<0.07?'arcane':'window', ry); }); } } }
 function spire(x,z,h){ const rb=1.5,rt=1.1,faces=6;
   aCyl(rt,rb,h,faces,x,h/2,z,'stone'); aCone(1.95,4,faces,x,h+2,z,'slate');
   // A crenellated ring at the roofline — a bare cone cap read as a silo, not
@@ -5824,6 +5841,7 @@ function furnishInterior(name,x,z,w,d,kind){
   if(name==='The Cinder and Keg'){
     interiorRug(x,z+2.6,w*.43,d*.28,'cloth');interiorHearth(x,z-d*.5+.46,4.25);interiorShelf(x-w*.34,z-d*.27,3.2,'y');
     interiorTable(x-4.6,z+3.2,2.4,1.25);interiorTable(x+4.6,z+3.2,2.4,1.25);interiorSolid(4.6,.18,1.7,x,1.18,z+d*.29,'wood');aBox(3.55,.12,.12,x,2.45,z+d*.29,'amber');
+    for(const side of[-1,1])aBox(.06,3.56,.06,x+side*1.55,4.27,z+d*.29,'dark');   // it hangs from the beams
     interiorGlow(x-6.1,z-1.8,'amber',0xffa15a);interiorGlow(x+6.1,z-1.8,'amber',0xffa15a);
   }else if(name==='The Moon Archive'){
     interiorRug(x,z+1.1,w*.42,d*.58,'dark');interiorShelf(x,z-d*.39,w*.68,'x');interiorShelf(x-w*.39,z,4.7,'y');interiorTable(x,z+1.8,3.35,1.55);
@@ -5842,7 +5860,8 @@ function furnishInterior(name,x,z,w,d,kind){
     interiorRug(x,z+1,w*.43,d*.49,'dark');interiorTable(x,z+1.1,4.3,2.2,'wood');aBox(3.4,.08,1.65,x,1.04,z+1.1,'cloth');interiorShelf(x-w*.38,z-d*.26,4.2,'y');
     interiorBanner(x+w*.31,z-d*.35,'cloth');interiorGlow(x+5.7,z-1.7,'amber',0xffb060);
   }else if(name==='The Westwall Refuge'){
-    interiorRug(x,z+1.4,w*.41,d*.45,'dark');interiorSolid(4.25,.25,1.22,x-w*.17,1.12,z-d*.21,'wood');aBox(3.5,.18,.72,x-w*.17,2.1,z-d*.21,'wood');interiorSolid(1.12,1.45,1.12,x+w*.26,.75,z+1.55,'stone');
+    interiorRug(x,z+1.4,w*.41,d*.45,'dark');interiorSolid(4.25,.25,1.22,x-w*.17,1.12,z-d*.21,'wood');aBox(3.5,.18,.72,x-w*.17,2.1,z-d*.21,'wood');
+    for(const side of[-1,1])aBox(.1,.79,.1,x-w*.17+side*1.5,1.62,z-d*.21,'wood');   // the shelf stands on theseinteriorSolid(1.12,1.45,1.12,x+w*.26,.75,z+1.55,'stone');
     interiorShelf(x-w*.39,z+1.3,4.1,'y');interiorGlow(x+5.7,z-1.6,'amber',0xffb060);
   }else if(name==='The Southgate Rest'){
     interiorRug(x,z+2.2,w*.42,d*.27,'cloth');interiorHearth(x,z-d*.5+.46,3.8);interiorSolid(4.5,.48,1.35,x-w*.2,.42,z+1.8,'wood');interiorSolid(3.45,.16,1.15,x+w*.22,1.1,z+2.5,'cloth');
@@ -6677,7 +6696,7 @@ function stageCompilerRoads(){
   DISTRICT_SPECS.forEach(spec=>(spec.roads||[]).forEach((road,index)=>CITY_PLAN.roads.push({id:spec.id+':road-'+index,districtId:spec.id,x1:road[0],z1:road[1],x2:road[2],z2:road[3],width:road[4]})));
 }
 function compileDistrict(spec){
-  useWorldStream('compiler:'+spec.id);const district={id:spec.id,name:spec.name,theme:spec.theme,parcelIds:[],buildingIds:[],anchorIds:[],roadIds:[]};CITY_PLAN.districts.push(district);
+  useWorldStream('compiler:'+spec.id);const district={id:spec.id,name:spec.name,theme:spec.theme,accent:spec.accent,parcelIds:[],buildingIds:[],anchorIds:[],roadIds:[]};CITY_PLAN.districts.push(district);
   (spec.roads||[]).forEach((road,index)=>{layRoad(...road);district.roadIds.push(spec.id+':road-'+index);});compilerCourt(spec);
   (spec.frontages||[]).forEach((row,rowIndex)=>{const length=Math.abs(row.end-row.start),count=Math.max(2,Math.floor(length/13));const compiled={...row,id:rowIndex};for(let index=0;index<count;index++)compilerLot(district,compiled,index,count);});
 }
@@ -8296,8 +8315,10 @@ function housePorch(x,z,w,d,ry,accent,stories){
       for(const s of[-1,1])aBox(.16,.5,.5,px+co*s*.8,.25,pz-si*s*.8,'wood',ry); addCollider(px,pz,.8); } }
   if(put(5)<2){ // hanging trade sign on a bracket
     const [px,pz]=at(w*.34,.15);
-    aBox(.12,.12,.9,px,2.55,pz,'wood',ry);
-    aBox(.9,.55,.07,px+si*.75,2.15,pz+co*.75,put(6)%3===0?accent:'dark',ry); }
+    // 1.5 long and set 0.3 proud: still bedded 0.45 into the wall, but now
+    // reaching 1.05 out, past the board it carries.
+    aBox(.12,.12,1.5,px+si*.3,2.55,pz+co*.3,'wood',ry);
+    aBox(.9,.55,.07,px+si*.75,2.22,pz+co*.75,put(6)%3===0?accent:'dark',ry); }
   if(put(6)<2){ // awning over the doorway
     aBox(w*.55,.1,1.15,x+si*(d*.5+.55),2.45,z+co*(d*.5+.55),'cloth',ry);
     for(const s of[-1,1]){ const [bx,bz]=at(s*w*.24,1.05); aCyl(.07,.08,2.4,5,bx,1.2,bz,'wood'); } }
@@ -12921,7 +12942,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r132',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r133',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished

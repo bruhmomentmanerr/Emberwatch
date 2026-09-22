@@ -1,84 +1,88 @@
-**r132 — streets that bend** · 1.32.0 · 2026-09-22 · phase 5, world depth
+**r133 — nothing hangs on nothing** · 1.33.0 · 2026-09-22 · phase 5, world depth
 
 ### Summary
 
-streets that bend. The roads were the last part of the city still drawn with a ruler: two dead-straight cardinal avenues and a symmetric grid. Both cardinals and all eight lattice lines now keep their exact endpoints — every gate and frontage authored against them still lines up — and kink two to four times in between; the ring roads are polygons rather than circles; the lattice offsets are uneven, so the quadrants stop mirroring. Three seed-dependence bugs came out of it. The bends were drawn with the world seed, so on any other profile the roads moved and the baked city did not: the smoke run had 244 colliders standing in a carriageway while the harness showed none. The plan is now drawn by planHash, with the seed left out, and is identical on every profile. The citadel's four corner bastions, at radius 69, had always sat outside the 54 clearance disc and were missed by luck; side streets now clear a 78 precinct. And a lattice line crossing an authored ward cannot thread a 7 m carriageway between rowhouses spaced 14.3, so a street now stops at a ward and picks up beyond it, the same way it already stopped at a landmark hall — the ward is authored, the cross-street is new, so the street gives way rather than the buildings. The lot table was regenerated against the final network: 1,801 lots, up from 1,513. Verified: compiler lots in a road 7 to 0, inRoad 244 to 1, no road overlap, no blocked anchor, gate approaches whole, 303 of 326 residents walking.
+nothing hangs on nothing. A walk round the city for clutter that makes no sense and residents that are broken. The residents turned out to be fine — nobody wedged in geometry, nobody permanently stuck, no clump that lasts longer than two people passing each other — but the clutter audit had been looking at the wrong thing for its whole life. aBox, aCyl and aCone merge into one mesh per material, so there is no individual prop left in the scene to test, and every scene-graph audit of the city's props has been inspecting a handful of giant meshes. Tapping the three constructors gives the first true inventory of Vaneth: 39,417 solids. It found 42 trade signs whose bracket never touched the board it was supposed to carry, hanging at eye level on every shopfront; the tavern light the owner reported by name, floating a metre above the bar; the same fault in the refuge's tool shelf; and 33 boxes built with no material at all, because compileDistrict never copied the accent colour off its spec and so every lot in all six authored wards drew its sign board with an undefined key. Gable ends also got windows: facade windows only ever did front and back, so any building standing side-on to its street showed a blank slab. Three false trails on the way, all recorded in PROJECT.md so they are not walked again — the largest being a stuck-NPC test that did not exclude residents who were indoors at home.
 
 ### Patch notes
 
-**State: r132 / 1.32.0, sealed 2026-09-22.** The owner's instruction was
-*"alright fix roads"*, meaning the road skeleton, which the Blender top-down
-had shown to be a survey drawing: two dead-straight cardinal avenues and a
-symmetric ±42/±124 lattice. Roads now bend. Both cardinals and all eight
-lattice lines are laid by `crookedAvenue`, which keeps both endpoints exact —
-so every gate, district and frontage authored against those numbers still
-lines up — and puts two to four kinks in between; the ring roads are
-`crookedRing` polygons rather than circles; the lattice offsets are uneven
-(−128/−46/38/119 across, −118/−37/44/132 down) so the quadrants stop being
-each other's mirror. `ringRoad()` is gone.
+**State: r133 / 1.33.0, sealed 2026-09-22.** The owner asked for a walk round
+the city to find "nonsensical clutter and broken npcs" and fix them. Both
+halves were done by measurement as well as by eye, and the headline is that
+**most of what was looked for was not there, and the one thing that was there
+had been invisible to every audit this project owns.**
 
-**Three real defects came out of doing it, and all three were seed
-dependence.** They are worth reading before touching this area again:
+**The instrument that was missing.** `aBox`, `aCyl` and `aCone` *merge* into
+one mesh per material. By the time the city is on screen there is no such
+thing as an individual prop: traversing the scene graph finds a handful of
+giant meshes and eight instanced meshes that are not the city at all. So every
+scene-graph audit of the city's props has been looking at nothing, and three
+separate tests written this session returned confident zeroes off the wrong
+geometry. `tools/trace-solids.js` taps the three constructors and
+`tools/audit-solids.js` reads the result — 39,417 solids, the first true
+inventory of what Vaneth is made of. **Read §6 before writing another
+geometry audit.**
 
-1. **The plan must not read the world seed.** The bends were drawn with
-   `terrainHash`, which mixes `WORLD_SEED`. The lot tables are baked against
-   one drawing of the roads, so on any other profile the roads moved and the
-   city did not: the smoke run, which has its own seed, put **244 colliders in
-   a carriageway** while the harness run showed 0. The harness alone would
-   never have caught this — the smoke test did, because it runs on a different
-   profile. Roads are now drawn by `planHash`, the same mix with the seed left
-   out, so the street plan is identical on every machine and every profile.
-2. **The citadel's corner bastions were never covered.** `CITADEL_CLEAR` is a
-   54 disc, but the four corner drums stand at radius 69 with a 3.5 collider
-   each, so they sit outside it. The old ±42 lattice missed them by seven
-   metres of luck. Side streets are now clipped against `PRECINCT_CLEAR` (78),
-   which encloses the bastions with margin; the cardinal avenues are the
-   gatehouse approach and keep the tight 54.
-3. **A street does not run through a terrace.** `LANE_MIN` makes every
-   carriageway 7 wide, and a ward row is spaced 14.3, so a lattice line
-   crossing an authored ward cannot thread between two rowhouses — it lands on
-   one. `layRoad` already stopped at an authored landmark hall
-   (`throughBuilding`); it now does the same for the six compiler wards
-   (`throughWard`, built on demand from `COMPILER_LOTS_BAKED`) when a lattice
-   line asks for it. The street stops at the ward and picks up on the far
-   side. **This replaced an earlier fix that nudged seven ward lots out of the
-   way and dropped two of them** — the wards are authored and the cross-streets
-   are new, so the street is what should give way, not the building.
+**What it found, and what was fixed:**
 
-**Numbers, read off runs.** Compiler lots standing in a carriageway: 7 → 0.
-`roadObstructions.inRoad`: 244 on the smoke seed → 1; 0 on three of four
-seeds tried. `roadOverlaps` 0, `blockedAnchors` 0, gate approaches 0 broken,
-`errors` empty, 303 of 326 residents moving over thirty seconds. The lot table
-was regenerated against the final network: **1,801 lots** (1,331 frontages +
-470 interiors, up from 1,699), 63 lane segments, 143 shops. Audits A 67 /
-B 0 / C 0 / dead 0; 6/6 variants built and 6/6 check.
+- **42 trade signs hanging in mid-air.** The bracket is 0.9 long centred on
+  the wall, so it reaches 0.45 out and occupies y 2.49–2.61. The board hung
+  0.75 out with its top at 2.425 — short of the arm horizontally *and* clear
+  of it vertically. They never touched, on every shopfront in the city, at eye
+  level. The arm is now 1.5 long and set proud, and the board meets it.
+- **"The lightbar."** The owner reported this one by name revisions ago. It is
+  the Cinder and Keg's bar light: 3.55 m of amber at y 2.45 with a metre of
+  clear air beneath it and nothing above. It now hangs off the ceiling beams.
+  The Westwall Refuge's tool shelf was the same fault and now stands on two
+  uprights.
+- **33 boxes built with no material at all.** `compilerLot` reads
+  `district.accent`, and `compileDistrict` never copied `accent` off the spec,
+  so every lot in all six authored wards was built with `accent === undefined`
+  and the sign board over each door got an undefined material key. One word.
+- **Blank slabs along the streets.** `facadeWindows` does the front and back
+  faces and has never touched the two gable ends, so any building standing
+  side-on to its street showed a bare wall the full height of it. The flanks
+  now carry windows — sparser than a frontage, and not on the ground floor.
+  Drawn from `planHash`, deliberately **not** `worldRandom()`: this runs once
+  per building across the whole city and taking draws from the world stream
+  here would reshuffle everything downstream of it.
 
-**Two things left open, deliberately, for the owner to call:**
+**What was looked for and is genuinely not there.** Worth recording so the
+next session does not spend the same hours: **0 residents wedged in geometry,
+0 persistently stuck, 0 persistent clumps** (12 pairs came within 1.15 m over
+50 s, each seen once or twice — people brushing past each other, which is what
+that should look like). **0 props standing in a carriageway** that are not
+meant to be: the 58 solids on paving are all castle and landmark — curtain
+buttresses in the citadel lane, the gatehouse, the Great Hall's doorposts.
+After the fixes above, **9 solids read as floating and all 9 are false
+positives**, roof lanterns sitting on roof apexes (see §6 for why).
 
-- **The city still moves with the seed in one place.** Which lots become
-  walk-in homes is still a seeded roll, so `doors` came out 151 / 169 / 201 on
-  three profiles. The single remaining `inRoad` collider is a consequence: one
-  house sits hard against a lane, and on the seeds where it becomes a walk-in
-  home, one 0.85-reach piece of its furniture is over the kerb. It is indoors
-  and not visible from the street. Baking that roll would fix it and would
-  also make the interior budget stable, but it changes how many interiors the
-  game builds, which is a call worth making deliberately rather than in
-  passing. `furnishHome`/`furnishShop`'s room mirroring was the same class of
-  bug and **is** fixed here — it now uses `planHash`.
-- **The world-seed UI still claims more than it does.** The owner already
-  asked about this: *"if the generator is gone why is the world seed thing
-  still there?"* Checked rather than assumed — `WORLD_SEED` is **not** dead. It
-  still drives terrain, the wilderness, plant life, resident naming and home
-  assignment. What it no longer drives is the city plan: the lots, the lanes,
-  the compiler wards and now the streets are all baked or `planHash`-drawn. So
-  "forge a new Vaneth" does something real, but not what it says — the city
-  itself comes out identical. The honest fix is to reword it, not delete it.
+**Three false trails, each of which looked like a finding for a while:**
+
+1. "36 NPCs standing inside solid geometry" — residents indoors at home. A
+   stuck/wedged test that does not exclude `npc.indoors` is measuring nothing.
+   A safety net to push buried residents out of geometry was written, found to
+   fire zero times because nothing is ever buried, and removed again.
+2. "53% of buildings turn their back on the street" — three different
+   orientation metrics disagreed with each other, and the collider's `ry` does
+   not always match the building's visual `ry`. No number is quoted for facade
+   orientation because none of them could be trusted; the blank-wall fix above
+   came from a screenshot instead.
+3. "2,174 floating" then "230 floating" — the first counted forest canopy, the
+   second omitted cylinders and cones. Both are the same trap this project
+   already fell into once at "899 floating".
+
+**Still open, unchanged from r132:** the market is thin — 8 to 15 people in a
+31 m plaza, averaging 11.1, with 49 of 287 outdoor residents having it on
+their round. It reads empty for somewhere the ward text calls "a dozen
+overlapping conversations". Raising it is an authoring decision, not a bug
+fix, so it is left for the owner to call. The seeded walk-in-home roll and the
+world-seed UI wording are also still open; see below.
 
 ### In the code
 
-- 1.66 MB (+23,946 bytes on r131).
-- 4 functions added: `crookedAvenue`, `crookedRing`, `planHash`, `throughWard`.
-- 1 function removed: `ringRoad`.
+- 1.66 MB (+1,589 bytes on r132).
+- No functions added or removed.
 
 ### Play it
 
