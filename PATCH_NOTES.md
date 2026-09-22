@@ -1,15 +1,13 @@
-**r127 — one shop everywhere** · 2026-09-21 · phase 5, world depth
-
-In its own panel header: *r127 one shop, everywhere*.
+**r128 — rooms you can see** · 2026-09-22 · phase 5, world depth
 
 ### Summary
 
-one shop, everywhere. The owner's own screenshots, fixed: the Great Hall's generic wall-and-floor clutter pass (barrels, crates, sacks — the same set any tavern gets) is skipped now that the hall has its own composed furniture, and the district compiler's 20 solid-box stalls ("a bell hangs on a string", forever, nobody behind the counter) are now the same walk-in room every other shop is — 13 of 20 open, the rest stay shut the same way a blocked terrace shop does. Caught and fixed in the same pass: one shop's own interior shelf was standing in a road at the end of a tightly packed compiler row; checked directly now, the same rule r125 wrote for street lanterns. Shops 113, shop sum 669314 — a real change, not drift; parcels and resident addresses untouched, and both numbers repeat exactly across two runs and a fresh seed.
+rooms you can see. The owner: "there's weird clipping in all the interiors." Not clipping — one point lamp per room, physical falloff, so the shelf beside it blew out and the floor three metres away was black. Every walk-in room gets a second light now: dim, wide, cool, high, budgeted exactly like the first and only alive while you are inside. Warm pool against cold fill, which is the grammar the owner's reference clips use. Found while fixing it: the street kit's glTF callback could reach shaderWarmMs before that `let` had been evaluated, killing every kit piece — door surrounds, frames, banners, the lot — with nothing but a console warning. Declared early now. That race means some sessions have been running with the kit missing.
 
 ### In the code
 
-- 1.70 MB (+1,503 bytes on r126).
-- No functions added or removed.
+- 1.70 MB (+2,211 bytes on r127).
+- 1 function added: `interiorFill`.
 
 ### Play it
 

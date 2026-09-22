@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r127 one shop, everywhere</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r128 rooms you can see</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4737,6 +4737,15 @@ renderer.info.autoReset=false;
 // guessing: r116-r118 chased 300 ms frames on the harness with nothing to
 // point at. `EMBER.frameCost` reads it.
 const FRAME_COST={nav:0,villagers:0,render:0,watch:0,shelter:0,meetings:0,walk:0,anchor:0,rooms:0};
+// Declared up here, not beside warmShaders() at the bottom where it used to
+// be. The street kit parses its glTF asynchronously and calls warmShaders()
+// from that callback, which can land before the bottom of this block has been
+// evaluated — a `let` down there is still in its temporal dead zone at that
+// moment, so every kit piece died with "Cannot access 'shaderWarmMs' before
+// initialization" and the city lost its door surrounds, frames and banners
+// with only a console warning to show for it. Nothing reads it before
+// warmShaders writes it, so the only thing that matters is that it exists.
+let shaderWarmMs=0;
 function renderFrame(){ const started=performance.now(); renderer.info.reset(); renderer.render(scene,camera); if(BLOOM.on)bloom.render(); FRAME_COST.render=performance.now()-started; }
 
 // lights
@@ -8535,6 +8544,27 @@ function wardHome(x,z,w,d,stories,key,ry,accent,shopLot=false){
   const collider=addBoxCollider(x,z,w,d,ry);
   pendingHomes.push({x,z,w,d,ry,stories,collider,shopLot,shop:null});
 }
+// A room used to be lit by exactly one small warm lamp. Under physical
+// falloff that is a hotspot and a void: the shelf beside the lamp blows out
+// under bloom while the floor three metres away reads pure black, which is
+// what the owner was seeing when they said the interiors looked wrong. The
+// reference clips in §6 never do this — their shadows are deep but always
+// *coloured*, so shape stays legible everywhere. This is that fill: one dim,
+// wide, cool light at the middle of the room, well above head height. It does
+// not compete with the warm lamp, it sets the floor of the exposure, and the
+// cold-against-warm is the same two-temperature reading the references get
+// from green windows against amber lanterns.
+//
+// Budgeted exactly like the room's own lamp: `home` is set by openHomes once
+// the record exists, and cullLights then gives it a slot only while the player
+// is inside this room. Two lights indoors instead of one.
+function interiorFill(home,x,z){
+  const fill=lampLight(0x8fa6d8,.16,9);
+  fill.position.set(x,2.35,z);
+  scene.add(fill);
+  lights.push({light:fill,base:.16,phase:0,home:null});
+  home.fillEntry=lights[lights.length-1];
+}
 // Bed and chest against the back wall, a hearth on the far side wall with a
 // lamp in it, a table and two stools, a shelf, a rug. Mirrored by a hash so a
 // terrace of homes does not repeat, and laid out to keep the line from the door
@@ -8560,6 +8590,7 @@ function furnishHome(home,at){
   // In the light budget only while you are inside this home; see cullLights.
   lights.push({light:lamp,base:.55,phase:terrainHash(Math.round(home.x*2),Math.round(home.z*2))*6,home:null});
   home.lampEntry=lights[lights.length-1];
+  interiorFill(home,home.x,home.z);
   // table and stools, on the bed side of the middle
   const tx=-a*.35, tz=b*.05;
   put(tx,tz,1.25,.08,.85,.78,'wood'); put(tx,tz,.18,.74,.18,.37,'wood');
@@ -8663,6 +8694,7 @@ function furnishShop(home,at){
   const lamp=lampLight(0xff9a4a,.6,5); lamp.position.set(lx,2.05,lz); scene.add(lamp);
   lights.push({light:lamp,base:.6,phase:terrainHash(Math.round(home.x*2),Math.round(home.z*2))*6,home:null});
   home.lampEntry=lights[lights.length-1];
+  interiorFill(home,home.x,home.z);
   // The keeper stands behind the counter, facing the door; the customer's place
   // is the room in front of it, and it is where "look over the counter" lives.
   const [kx,kz]=at(0,cz-.95), [cx,cz2]=at(0,cz+1.15);
@@ -8707,6 +8739,7 @@ function openHomes(){
       cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:home.shop?'shop':'home',doorX:dx,doorZ:dz,purpose,spots:home.spots,shop:home.shop||null,parts:home.parts||null};
     if(home.shop){ home.shop.record=record; home.shop.frontX=home.customer[0]; home.shop.frontZ=home.customer[1]; }
     home.lampEntry.home=record;
+    if(home.fillEntry)home.fillEntry.home=record;              // the room's cool fill, same budget rule
     // A shop has no swinging leaves: each door is two separate meshes, and
     // ninety-five shops of them were 190 draw calls at the north gate. The
     // instanced shutter covers a shut doorway and an open one is simply open;
@@ -8741,6 +8774,10 @@ function activateHomes(){
       for(const c of home.walls)c.open=true;
       const lamp=lights.indexOf(home.lampEntry); if(lamp>=0)lights.splice(lamp,1);
       scene.remove(home.lampEntry.light);
+      if(home.fillEntry){                                       // and its fill, or a shut room keeps a slot
+        const fill=lights.indexOf(home.fillEntry); if(fill>=0)lights.splice(fill,1);
+        scene.remove(home.fillEntry.light);
+      }
       home.record=null;
       shut.push(r.name+' @'+r.outsideX.toFixed(0)+','+r.outsideZ.toFixed(0));
       continue;
@@ -12714,7 +12751,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r127',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r128',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -12835,7 +12872,6 @@ function syncResidentBatch(){ if(residentBatch)residentBatch.sync(); }
 // and compiles it against the lights currently shown, so doing that once per
 // tier while the loader is still up moves the whole cost into loading. A layer
 // that adds lights calls EMBER.warmShaders() again once they exist.
-let shaderWarmMs=0;
 function warmShaders(){
   // Every tier is exactly its size in lights (r115), so warming a tier is
   // showing that many dark pads and nothing else.
