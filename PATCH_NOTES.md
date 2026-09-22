@@ -1,13 +1,15 @@
-**r129 — resident hands** · 2026-09-22 · phase 5, world depth
+**r130 — props and porters** · 2026-09-22 · phase 5, world depth
+
+In its own panel header: *r130 props & porters*.
 
 ### Summary
 
-resident hands. A reported close-up of Jarek Quarrier showed sleeves ending bluntly and a hammer hiding the wrist. Every animated arm now includes a low-poly species-toned palm and thumb, merged into its existing limb mesh; held props sit behind the grip. Scholar books now show a page face and sit below the chest. City/interior work untouched.
+props & porters. Every held prop now uses its corresponding wrist grip; the guard shield is a forearm item, and the far LOD does not leave nested props visible. Eight living carts remain, with unencumbered porters, 2.45 m trail, 2.25 m hard clearance and a pull pose. Forge/artisan aprons, scholar book/coat and watch armour were reshaped to remove dark board silhouettes. The QA harness now ignores benign closed-pipe EPIPE errors. Full runtime audit clean. <- current
 
 ### In the code
 
-- 1.70 MB (+2,977 bytes on r128).
-- No functions added or removed.
+- 1.64 MB (−67,859 bytes on r129).
+- 1 function added: `crookedLanes`.
 
 ### Play it
 
