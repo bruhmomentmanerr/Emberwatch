@@ -1,15 +1,13 @@
-**r130 — props and porters** · 2026-09-22 · phase 5, world depth
-
-In its own panel header: *r130 props & porters*.
+**r131 — the plan redrawn** · 2026-09-22 · phase 5, world depth
 
 ### Summary
 
-props & porters. Every held prop now uses its corresponding wrist grip; the guard shield is a forearm item, and the far LOD does not leave nested props visible. Eight living carts remain, with unencumbered porters, 2.45 m trail, 2.25 m hard clearance and a pull pose. Forge/artisan aprons, scholar book/coat and watch armour were reshaped to remove dark board silhouettes. The QA harness now ignores benign closed-pipe EPIPE errors. Full runtime audit clean. <- current
+the plan redrawn. A Blender top-down of the exported city showed what screenshots never had: Vaneth was a bullseye. Concentric rings, four dead-straight avenues, every block a rectangle, every house the same footprint, every block interior a void, and the four quadrants mirroring each other. The lot table is rebuilt against that. Nine hand-placed quarters give character by nearest seed rather than by angle, so no quarter is another's mirror; building width spread goes from 2.8 m to 10.9 m, sheds through halls; 1,054 buildings now stand inside the blocks that used to be empty; and 95 segments of crooked lane cut through the lattice, two or three to a block, by pattern — spine, court, fork or left solid. 1,513 lots, up from 1,325, denser in every ring. Two latent crashes found on the way: sync() read a const still in its dead zone, and the function it read had a `node` out of scope, so it had never once run successfully. Verified: nothing floating, nothing buried, no building in a road, no blocked anchor, 149 walk-in doors all clear.
 
 ### In the code
 
-- 1.64 MB (−67,859 bytes on r129).
-- 1 function added: `crookedLanes`.
+- 1.64 MB (−3 bytes on r130).
+- No functions added or removed.
 
 ### Play it
 
