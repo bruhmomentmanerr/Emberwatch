@@ -10,9 +10,10 @@
    world stages run. */
 const fs = require('fs'), path = require('path');
 
-const BASE = 'D:/_KEEP/Emberwatch/app/renderer/index.html';
-const SRC  = 'D:/_KEEP/Emberwatch/variants/src';
-const OUT  = 'D:/_KEEP/Emberwatch/variants';
+const ROOT = path.join(__dirname, '..');
+const BASE = path.join(ROOT, 'app', 'renderer', 'index.html');
+const SRC  = path.join(ROOT, 'variants', 'src');
+const OUT  = path.join(ROOT, 'variants');
 
 const VARIANTS = [
   { file: 'wardens.js',   out: 'emberwatch_wardens.html',
