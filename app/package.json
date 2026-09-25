@@ -1,0 +1,49 @@
+{
+  "name": "emberwatch",
+  "productName": "Emberwatch",
+  "version": "1.39.0",
+  "description": "Emberwatch — the black city of Vaneth, with live Puffco Peak Pro control",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist:dir": "electron-builder --win --x64 --dir",
+    "dist:portable": "electron-builder --win portable --x64",
+    "audit": "node ../tools/check-parse.js && node ../tools/audit-source.js && node ../tools/audit-dom.js && node ../tools/audit-dead.js && node ../tools/test-switch-frames.js && node ../tools/test-switch-b9.js",
+    "audit:all": "npm run audit && node ../variants/build-variants.js && node ../tools/check-variants.js"
+  },
+  "build": {
+    "appId": "com.emberwatch.app",
+    "productName": "Emberwatch",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "build/icon.ico"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Emberwatch-${version}-setup.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "shortcutName": "Emberwatch"
+    },
+    "portable": {
+      "artifactName": "Emberwatch-${version}-portable.${ext}"
+    },
+    "copyright": "Emberwatch"
+  },
+  "devDependencies": {
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3"
+  }
+}

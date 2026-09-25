@@ -1,0 +1,10 @@
+{
+  "name": "emberwatch-three-vendor",
+  "private": true,
+  "description": "Builds the Three.js engine bundle that is inlined into app/renderer/index.html. Not shipped; see tools/build-three.js.",
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "pngjs": "^7.0.0",
+    "three": "0.186.0"
+  }
+}

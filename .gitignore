@@ -1,0 +1,14 @@
+# Build output and installers — regenerable via `cd app && npm run dist`,
+# not source. Several files here sit over GitHub's 100MB hard limit.
+app/dist/
+
+# Dependencies — regenerable via `npm install` against package-lock.json.
+node_modules/
+app/node_modules/
+
+# Ad-hoc debug/working output from past sessions (harness screenshot dumps,
+# trace captures, Chromium harness profile cache) — not authored source,
+# omitted at the owner's request. Matched by name wherever it appears, since
+# tools/probes/work-visual-audit/ is the same category nested one level down.
+work/
+**/work-*/

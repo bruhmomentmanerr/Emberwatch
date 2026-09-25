@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>frame extractor</title>
+<!--
+  Pull still frames out of a video without installing anything.
+
+  ffmpeg is not on this machine, but Electron is (the harness runs it), and
+  Chromium decodes H.264 perfectly well. This page takes a video path and a
+  frame count, seeks to evenly spaced timestamps, draws each frame to a canvas
+  and hands the PNGs back through window.__harnessSave — the same hook the
+  glTF city export uses.
+
+    HARNESS_SAVE_DIR=<dir> HARNESS_VIDEO=<abs path to .mp4> HARNESS_FRAMES=8 \
+      app/node_modules/.bin/electron tools/harness tools/video-frames/extract.html \
+      tools/video-frames/probe-extract.js 60
+
+  The probe reads the env vars through the page, so the page itself stays a
+  plain, dumb canvas holder.
+-->
+<style>body{margin:0;background:#111;color:#ccc;font:13px system-ui}video,canvas{max-width:48vw;display:block}</style>
+<video id="v" muted playsinline></video>
+<canvas id="c"></canvas>
+<p id="status">idle</p>
+<script>
+  window.__extract = async (src, count, label) => {
+    const video = document.getElementById('v'), canvas = document.getElementById('c');
+    const status = document.getElementById('status');
+    const saved = [];
+    video.src = src;
+    // loadeddata, not loadedmetadata: dimensions can still be 0 at metadata
+    // time, and a 0x0 canvas makes toBlob hand back null with no error.
+    await new Promise((resolve, reject) => {
+      video.onloadeddata = resolve;
+      video.onerror = () => reject(new Error('could not load ' + src));
+      setTimeout(() => reject(new Error('timed out loading ' + src)), 30000);
+    });
+    for (let i = 0; i < 40 && !(video.videoWidth > 0); i++) await new Promise(r => setTimeout(r, 100));
+    const duration = video.duration;
+    if (!isFinite(duration) || duration <= 0) throw new Error('no duration: ' + duration);
+    if (!(video.videoWidth > 0)) throw new Error('no dimensions: ' + video.videoWidth + 'x' + video.videoHeight + ' readyState ' + video.readyState);
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    // Named after the real file, not the blob: URL the bytes arrived as.
+    const base = String(label || src).split(/[\\/]/).pop().replace(/\.[^.]+$/, '').slice(0, 12);
+    for (let i = 0; i < count; i++) {
+      // Skip the very first and last instant: a fade-in or a cut to black is
+      // not a useful style reference.
+      const t = duration * (0.06 + 0.88 * (i / Math.max(1, count - 1)));
+      video.currentTime = t;
+      await new Promise((resolve, reject) => {
+        video.onseeked = resolve;
+        video.onerror = () => reject(new Error('seek failed at ' + t));
+        setTimeout(resolve, 4000);
+      });
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      if (!blob) throw new Error('toBlob returned null at ' + t.toFixed(1) + 's — canvas ' + canvas.width + 'x' + canvas.height);
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const name = base + '-' + String(i).padStart(2, '0') + '-' + t.toFixed(1) + 's.png';
+      saved.push(window.__harnessSave(name, bytes));
+      status.textContent = 'saved ' + saved.length + ' of ' + count;
+    }
+    return { duration, width: canvas.width, height: canvas.height, saved };
+  };
+</script>
