@@ -1,12 +1,68 @@
-**r140 — modelled not assembled** · 1.40.0 · 2026-09-25 · phase 5, world depth
+**r141 — quiet road** · 1.41.0 · 2026-09-27 · phase 5, world depth
 
 ### Summary
 
-modelled not assembled. r136-r139 ("reference build", never archived) added a "visual canon" layer — ten vista sites scattered at the map's edges, each built around one preset camera angle — entirely as aBox/aCyl/aCone calls with hand-tuned rotations, the exact pattern this project moved away from for the city itself back at r121. The owner found it on foot: two motionless figures sitting on their own walkway outside a gate, eleven lamps where four belonged, and — worst — a bridge over no water at all, waterDepthAt() there returning a flat 0. The ruins turned out to have three separate, uncoordinated generators drawing overlapping stone in the same 16 m patch: the base game's own scatter, plus two new "rib" loops, plus an 18-rod ring, none aware the others existed. Every one of these was invisible to every audit this project owns — they parse, and audit-dead doesn't know a kneeling knight from a standing one. Fixed in place (the lamps thinned, the redundant ribs removed, the skywatch pair moved 11 m off their own path), and the bridge and three of the four posed figures rebuilt as actual Blender models: tools/assets/foxglove- bridge.py, oath-knight.py, hooded-watcher.py — each rendered to a PNG and looked at before it ever touched the game, which is the entire point. The first oath-knight render scattered across the frame from a wrong rotation axis; caught in the preview, fixed, re-rendered, confirmed, only then exported. The bridge now has a real river under it, built the same way Saltmere's was. PROJECT.md's "Making assets" section now states this as the standing rule for any posed figure or one-off landmark: model it, do not assemble it from primitives in the source file. Verified: 0 dead functions, 0 new road obstructions, 352 residents, 6/6 variants, smoke clean.
+quiet road. The owner: "in your screenshot alone, I'm seeing nonsense in the road." Three wrong answers before the right one. Not the standing- stones ring 26 m off — its crystal and hidden light pillar were both exactly where they were meant to be. Not ruinedRing()'s loose wall-rubble, though that had the same unchecked-scatter bug already fixed twice this session elsewhere (its rubble skipped the road/clearing check its own wall stub used, and six of this session's own new sites were never in WILD_CLEARINGS for it to check against) — a pixel diff against the pre-fix screenshot proved that fix changed nothing at this site. What it was: nine rain-oath-ring-stone paving nodes, added earlier this session as ring dressing, 5.4 m out, no rotation, 3.8 m apart — far enough apart that they never read as a ring, only as litter. Found by projecting all nine world positions through the exact screenshot camera and landing, pixel for pixel, on the nine visible discs; removed. Also rebuilt tools/assets/oath-knight.py's kneeling pose around a limb(a,b) helper — every jointed piece now derives its own length and rotation from the two joints it spans, after the hand-guessed version put the down leg's thigh and shin rotations on the wrong leg and the figure read as a scattered pile with a floating helmet. Verified: 0 dead functions, parse/audit/dom clean, 6/6 variants, smoke clean (bluetooth chooser installed, r141 in the window title).
+
+### Patch notes
+
+**State: r141 / 1.41.0, sealed 2026-09-27.** The owner sent a screenshot of
+the rain-oath knight and said, plainly: "in your screenshot alone, I'm seeing
+nonsense in the road. I really want to get rid of all the BS nonsense that we
+see in the road." That one sentence took most of a session to run down,
+because every fast, plausible answer turned out to be wrong, in order:
+
+1. *Is it the standing-stones ring 26 m away sharing the frame?* No — its own
+   `shrineCrystal` and hidden light-pillar were both exactly where the code
+   says, doing exactly what the code says. Working as designed.
+2. *Is it `ruinedRing()`'s loose wall-rubble, the same "two authors, no shared
+   geometry" bug already found twice this session at the ruins site and the
+   foxglove bridge?* A real bug either way — its rubble scatter checked
+   `onRoad`/`inWildClearing` for the wall stub but never for the loose stones
+   scattered up to 3.2 m past it, and the six sites this session added
+   (rain-oath, skywatch, overlook, the bridge) were never in `WILD_CLEARINGS`
+   for it to check against in the first place. Both are fixed. But a pixel
+   diff against the pre-fix screenshot proved, in black and white, that fixing
+   it changed **zero pixels** at this site. Wrong culprit.
+3. *Is the newly-Blender-modelled knight itself broken?* Yes, separately —
+   `getWorldPosition()` on a `dressPoints()`-baked static mesh reads the
+   mesh's own origin, not its vertices, so it reported the knight sitting at
+   (0,0,0) and looked like a bug that wasn't one. The real problem, caught by
+   rendering the model's own preview PNG rather than trusting the in-game
+   screenshot: the kneeling pose was built from ad hoc per-part offsets and
+   rotations, and the down leg's thigh and shin had the rotations that belong
+   to each other, so the figure read as a scattered pile of boxes with a
+   floating helmet. Rebuilt `tools/assets/oath-knight.py` around a `limb(a,b)`
+   helper — every jointed piece takes the two joints it spans and derives its
+   own length, center and rotation, so a hip-to-knee-to-foot chain is
+   connected by construction instead of by a hand-guessed number lining up.
+4. *So what is actually in the road?* Raycasting the exact screenshot camera
+   found nothing at the pixels the discs occupied — because the discs are
+   0.08 m tall, flush with the terrain, and a coarse grid steps over anything
+   that thin. The tell was `E.setPixel(1)` never being called before the
+   probe's raycasts, which left the probe's canvas a few percent off the
+   screenshot's real resolution — close enough to look right, far enough to
+   miss a thin object every time. Fixed the scale mismatch, then confirmed
+   with the one test that cannot lie: projected all nine `rain-oath-ring-stone`
+   paving-node world positions through the actual screenshot camera and got
+   nine screen coordinates that landed, pixel for pixel, on the nine visible
+   discs. They were mine — added earlier this session as ring dressing for
+   the rain-oath site, radius 5.4 m, no rotation, 3.8 m apart. Spaced that far
+   apart with nothing tying them together, they never read as a paved ring;
+   they read as litter. Removed. The causeway alone carries the site.
+
+Verified: 0 dead functions, `check-parse`/`audit-source`/`audit-dom` clean,
+smoke clean (bluetooth chooser installed, r141 in the window title), 6/6
+variants. The fix that actually mattered was one deleted `for` loop; getting
+there took a Blender preview re-render, a `WILD_CLEARINGS` registration a
+pre-existing generator never had, a per-piece exclusion check, and finally a
+screen-space projection check because nothing less direct would settle it.
+**Parsing is not evidence — screenshots are not always evidence either, once
+the thing you're looking for is thinner than your test's resolution.**
 
 ### In the code
 
-- 1.78 MB (+64,559 bytes on r139).
+- 1.78 MB (+1,360 bytes on r140).
 - No functions added or removed.
 
 ### Play it
