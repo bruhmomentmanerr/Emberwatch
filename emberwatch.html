@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r141 quiet road</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r142 walkaround</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5077,18 +5077,25 @@ const WILD_CLEARINGS=[
   {id:'stones',   name:'the Standing Stones', x:330,  z:330,  r:18},
   {id:'pond',     name:'Foxglove Pond',       x:-340, z:320,  r:22},
   {id:'graveyard',name:'the Old Graveyard',   x:-326, z:-334, r:24},
-  {id:'ruins',    name:'the Fallen Hall',     x:338,  z:-326, r:26},
-  // The four above predate the visual-canon layer (r136+) and are the only
-  // sites ruinedRing() ever checked against. Its loose wall-rubble scatter
-  // has no road check of its own, so it was free to drop broken stone slabs
-  // across the rain-oath causeway and the other new sites below, right where
-  // nothing was watching for it — this is what "nonsense in the road" was.
-  {id:'rain-oath',name:'the Rain Oath Causeway', x:318,  z:307,  r:20},
-  {id:'skywatch', name:'the Skywatch Ledger Walk', x:-63, z:432, r:14},
-  {id:'overlook', name:'the Lower Town Overlook',  x:-397,z:-214, r:12},
-  {id:'foxglove-bridge', name:'the Foxglove Bridge', x:-354,z:300, r:16}
+  {id:'ruins',    name:'the Fallen Hall',     x:338,  z:-326, r:26}
 ];
-function inWildClearing(x,z,pad=0){ return WILD_CLEARINGS.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+pad); }
+// r141 put the visual-canon sites straight into WILD_CLEARINGS to keep
+// ruinedRing()'s rubble off them. That array is not just a rubble-exclusion
+// list, though: the wilderness verge cairns and both signpost-arm systems
+// below walk it too, and the resident wayfinding registry turns every entry
+// into its own "wild-*" waypoint. Adding rain-oath there did stop the rubble —
+// and, unasked, also planted a brand-new cairn 2m from the kneeling knight,
+// pointed a gate signpost at it, and gave residents directions to it as if it
+// were a fifth wilderness landmark. Found on the very walkaround meant to
+// confirm the rubble fix, standing right where the "money shot" camera
+// looks. A separate list keeps the exclusion without any of that.
+const CANON_SITE_CLEARINGS=[
+  {id:'rain-oath',x:318,z:307,r:20},
+  {id:'skywatch', x:-63,z:432,r:14},
+  {id:'overlook', x:-397,z:-214,r:12},
+  {id:'foxglove-bridge',x:-354,z:300,r:16}
+];
+function inWildClearing(x,z,pad=0){ return WILD_CLEARINGS.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+pad) || CANON_SITE_CLEARINGS.some(c=>Math.hypot(x-c.x,z-c.z)<c.r+pad); }
 const POND={x:-340,z:320,r:17,level:-.22,deep:-1.6};
 const BROOK=[]; let BROOK_READY=false, BROOK_BOX=null;
 // What each landmark leaves behind for the interactions that run after the
@@ -7403,12 +7410,23 @@ function addSkywatchCanon(){
   const make=(id,x,z,winged=false)=>{
     const y=canonGroundY(x,z);
     dressPoints([{x,y,z,ry:Math.atan2(-x,-z)}],SKYWATCH_COMPANION_GLB,winged?KIT_WATCHER:KIT_STONE);
-    if(winged){ for(const side of[-1,1]){ const wing=new THREE.Mesh(new THREE.ConeGeometry(.28,.95,5),canonMat(0xd8e7ff)); wing.position.set(x+side*.32,y+.88,z-.20); wing.rotation.set(.55,0,side*.78); wing.scale.set(.85,1,.22); scene.add(wing); } }
+    // Was ConeGeometry(.28,.95,5) tilted .55/side*.78 and scaled (.85,1,.22) —
+    // on paper a "loose pair of cloth cones", in the actual frame two blades
+    // nearly a metre long flaring out from the head, reading as a giant
+    // triangular hat that blotted out the seated figure it was meant to
+    // accent. Same shape, cut to something that sits near the shoulder
+    // instead of spanning past it.
+    if(winged){ for(const side of[-1,1]){ const wing=new THREE.Mesh(new THREE.ConeGeometry(.14,.44,5),canonMat(0xd8e7ff)); wing.position.set(x+side*.20,y+.68,z-.12); wing.rotation.set(.4,0,side*.5); wing.scale.set(.85,1,.22); scene.add(wing); } }
     canonRecord('posed-figure',id,x,z,{purpose:'seated skywatch companion, eyes up to the moon, modelled'});
   };
   make('skywatch-winged-resident',baseX,baseZ,true); make('skywatch-hatted-resident',baseX+3.1,baseZ+1.8,false);
   const companionLight=lampLight(0x8b9dff,.45,11); companionLight.position.set(baseX+1.4,1.6,baseZ+1.1); scene.add(companionLight); lights.push({light:companionLight,base:.45,phase:1.9,fire:false});
-  canonBareTree('north-skywatch-moon-frame-left',baseX-7,baseZ+4,1.05,.18); canonBareTree('north-skywatch-moon-frame-right',baseX+8,baseZ+6,.92,-.12);
+  // Both were sized as if this were a background tree line (scale ~1, full
+  // 5.8m trunk) — from the vista camera 8-11m away that read as two entire
+  // dead trees crowding the seated pair, one of them stretched by the wide
+  // FOV near the frame edge into a wall of black branches. A foreground
+  // frame accent this close needs to be a fraction of that size.
+  canonBareTree('north-skywatch-moon-frame-left',baseX-7,baseZ+4,.35,.18); canonBareTree('north-skywatch-moon-frame-right',baseX+8,baseZ+6,.3,-.12);
   canonSetCapture('site-quiet-companion-skywatch',baseX-5,baseZ-7,baseX+1.4,baseZ+1.1,-.08,.25);
   VISUAL_CANON.sites.push({id:'site-quiet-companion-skywatch',x:baseX,z:baseZ});
 }
@@ -7420,13 +7438,16 @@ function addOverlookCanon(){
   dressPoints([{x,y,z,ry:1.06}],HOODED_WATCHER_GLB,KIT_WATCHER);
   addCollider(x,z,.5);
   const watcherLight=lampLight(0x6f86ff,.36,9); watcherLight.position.set(x+.45,y+1.25,z-.35); scene.add(watcherLight); lights.push({light:watcherLight,base:.36,phase:2.7,fire:false});
-  canonBareTree('lower-town-overlook-branch-frame',x-6,z+3,1.1,.30);
+  // At scale 1.1 and only 7m from the vista camera this was a full-size bare
+  // tree standing almost directly on the sightline to the watcher — it read
+  // as a solid black wall across the entire foreground, not a branch frame.
+  canonBareTree('lower-town-overlook-branch-frame',x-6,z+3,.4,.30);
   canonRecord('posed-figure','lower-town-overlook-hooded-watcher',x,z,{purpose:'dark foreground watcher above warm lower town, modelled'});
   canonSetCapture('vista-lower-town-overlook',x-7,z+10,x,z,.05,.4);
   VISUAL_CANON.sites.push({id:'vista-lower-town-overlook',x,z});
 }
 function addBridgeCastleCanon(){
-  const x=-354,z=300; canonBareTree('foxglove-bridge-moon-frame',x-10,z+12,.86,-.25);
+  const x=-354,z=300; canonBareTree('foxglove-bridge-moon-frame',x-10,z+12,.32,-.25);
   // The bridge itself was a flat cobble slab and two mismatched parapet stubs
   // over completely dry ground — waterDepthAt() here returned 0. Replaced with
   // a modelled stone arch (see tools/assets/foxglove-bridge.py) and a real
@@ -7515,7 +7536,10 @@ function addMapSpineCanon(){
   const hall=WILD_SITES.hall;
   if(hall){
     canonSegment('map-route','fallen-hall-procession-spine',hall.x-18,hall.z-14,hall.x-5,hall.z-5,2.4,.08,'cobble','broken procession path into the ritual floor',.04);
-    for(let i=0;i<10;i++){ const a=i/10*Math.PI*2+.18, x=hall.x+Math.cos(a)*9.4,z=hall.z+Math.sin(a)*9.4; canonPavingNode('fallen-hall-outer-circle-stone-'+i,x,z,.32,'stone','outer ritual-circle paver ties the floor into the map'); }
+    // Was ten paving nodes in a 9.4m ring, same shape as the rain-oath ring
+    // this session already found and removed: too small (0.64m) and too far
+    // apart (~5.9m gap) to read as a paved ring, so it read as ten stones
+    // dropped at random around the ritual floor instead.
   }
 
   // Rain oath: the kneeling figure gets a wet plinth and a route into it.
@@ -14288,7 +14312,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r141',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r142',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
