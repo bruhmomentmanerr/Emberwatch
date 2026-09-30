@@ -1,187 +1,147 @@
-**r143 — places under the moon** · 1.43.0 · 2026-09-30 · phase 5, world depth
+**r144 — market and cathedral** · 1.44.0 · 2026-09-30 · phase 5, world depth
 
 ### Summary
 
-places under the moon. Instruction: "design landmarks and places to explore … match that visual canon as close as possible, fix the npcs, populate the world, continue and fix the city rebuild." Every reference place is now somewhere you walk into, climb and look out from, each laid out in its own frame (mostly on the moon's bearing, so its proof shot holds the moon), the climbs with walk proofs: the Fallen Hall and the Veilscar falls (nave 5/5, stair to 15.05 m); the Oathfield (56 planted oath-blades, a lychgate, the winged angel; 10/10); the Watcher's Bluff over Lowmere (a 21 m crag above a lit hamlet, a watchtower beyond; 10/10); the Foxglove crossing (a humpbacked arch over the real brook, a gate tower); the Rain Oath (a causeway over a mere to a ring of stones, the knight remodelled); the Skywatch knoll (an armillary on its crown). New beyond the seven: Foxglove Mill, whose overshot wheel turns under its flume; the Lantern Grove, a bare oak hung with thirty lanterns; the High Step, a real climb up the inner wall by the south gate (8/8). New machinery: terrain landforms, walkable stairs and decks, a Blender kit (tube, leaf) and a vertex-alpha glow mask, landmark movers. Eleven residents live out there; role residents keep their pose and only glance at you; faces read at play distance and every role wears its part; talk and directions for every new place. Night sky rebuilt to the canon (cobalt/violet, one moon direction for disc, light and glint, staged meteor showers and omen, rain). One lane that ran into the back of a house rerouted: road obstructions 0. Removed the r138 stand-ins these replace. Installers not built (no Windows toolchain in the container). Verified: parse/audit/dead clean; runtime audit against the r142 archive, 16 wards / 96 dialogue branches none broken, draw calls 449 -> 436; walk proofs above; all 12 captures looked at (three reframed); 6/6 variants built and booted; smoke clean (r143 in the window title).
+market and cathedral. The city itself, after r143's places outside it. The Cinder Market re-authored as a table (tools/plan-market.py): 34 modelled stalls (draper, grocer, potter) in six rows along the avenue, lantern strings on poles across the avenue and two aisles, the hearth moved off the avenue's kerb into a court, the well its interaction always pointed at, sixteen keepers behind their counters. It replaces a ring of stalls laid by trigonometry and bays nudged by offRoad(), one of them into the tavern's wall. Lots fronting the main avenues and the market stand two to four storeys (74 raised). The cathedral - a box with two cylinders - is now the Cathedral of Hours, a modelled gothic church you walk into: aisles on an arcade, flying buttresses, twin 44 m spires with lit belfries, a rose over the portal, the apse, pews, the altar, its verger, a kneeler and a pilgrim; walk proof 9/9. Verified: parse/audit/dead clean; runtime audit against r143, 17 wards / 102 dialogue branches none broken, road obstructions 0, draw calls 436 -> 442; market probe 34/34 stalls, 16 keepers; all 14 captures looked at; 6/6 variants built and booted; smoke clean (r144 in the window title).
 
 ### Patch notes
 
-**State: r143 / 1.43.0, sealed 2026-09-30 ("places under the moon").** The
-owner's instruction: "design landmarks and places to explore, you have the
-visual canon … go wild just trying to match that visual canon as close as
-possible, fix the npcs, populate the world, continue and fix the city
-rebuild." Every reference place in `docs/REFERENCE-BUILD-MODE.md` is now a
-place you can walk into, climb and look out from, with its own proof capture,
-and the ones with a climb have a walk proof (`tools/probes/probe-walk.js`) run
-in the harness. Three places beyond the seven were added the same way. The
-r138 map-spine stand-ins they replace are gone.
+**State: r144 / 1.44.0, sealed 2026-09-30 ("market and cathedral").** Same
+instruction as r143 below; r143 built the places outside the walls, r144
+turned to the city itself — "continue and fix the city rebuild". The r142
+walkaround and the r143 street shots said the same three things about the
+inner city: the Cinder Market was an empty paved disc with a bonfire, the
+main avenues were wide roads lined with one-storey sheds, and from anywhere
+above street level the city was a flat field of red roofs with nothing
+standing up out of it. r144 answers each with one authored thing.
 
-**Next, in the owner's order:** the city itself — "continue and fix the city
-rebuild". The places are outside or on the edge of it; the inner city still
-has the wide empty streets, the bare market and the plain house fronts the
-r142 walkaround showed. See "What is still open" at the end of this section.
+**Next:** the rest of the city in the same way. The landmark halls (the Moon
+Archive, the Pilgrim Shrine, the Northwatch Guild, the Gilded Finch, the
+wall halls) are still `interiorHouse()` boxes with a cone on top; each wants
+the cathedral's treatment at a smaller scale. The avenues want light at
+their crossings (lamps belong at turns). The Rain Oath and the Skywatch
+still have no walk proof.
 
-### How the places are built (read before adding another)
+### The Cinder Market (authored)
 
-- **Frames.** Each place has one frame, `axisFrame(cx, cz, ox, oz)`: `s`
-  along the place's axis, `t` across it, `at(s,t)` to world, `local(lx,lz)`
-  for model-local offsets. A model placed with `ry: F.ry` has its local +Z
-  along `s` and +X along `-t`. Most places are laid on **the moon's bearing**
-  (`MOON_DIR` flattened), so the proof shot looks along `+s` and holds the
-  moon: `OATH`, `LOW`, `RAIN`, `SKY`, `GROVE`. `FALLEN` faces out from the city
-  (`placeFrame`); `FOX` and `MILL` sit across the brook (`brookLine`, 38 steps
-  from the source to the pond); `CIT` is radial at the inner wall's south gate.
-- **Landforms** (`landform`, `planAuthoredLandforms`): mesa, ramp and bowl
-  shapes laid over the terrain noise before `raiseTerrain`. They take no
-  randomness. **A later landform wins where two meet** — Lowmere's order is
-  shoulder, valley floor, bluff, stair ramp, landing, crag, lane. The terrain
-  grid smears any cliff over about one cell, so a steep edge always gets a rock
-  model in front of it, with the landform's edge set *behind* the model's face.
-- **Surfaces** (`addStair`, `addDeck`, `surfacesAt`): stairs, decks, ledges and
-  bridge humps the player (and role and wild residents) stand on. `surfaceAt`
-  takes the highest of terrain, wall walk, stairs and surfaces; captures stand
-  on it too (`canonSetCapture`), so a proof camera can no longer end up inside
-  a rock.
-- **Models** (`placeLandmark`): Blender scripts in `tools/assets/*.py` on the
-  kit (`_kit.py`: `box`, `jbox`, `span`, `cyl`, `tube`, `leaf`, `extrude`,
-  `rock`, `arch_wall`), packed by `pack-glb.js`, inlined by `inline-glb.js`.
-  One GLB, one merged mesh, box-projected world UVs, or `tex:'none'` for plain
-  vertex colour (the mill, the oak — a wood texture over a plaster colour read
-  as mud). Vertex-colour **alpha below 1 is a glow mask** (the material's
-  `glow` colour): the Oathfield's fullers, the lychgate lantern, lit windows,
-  the armillary's orb, the oak's lanterns. `opts.mover` keeps a piece in its
-  own frame and turns it every frame (the mill wheel, `updateLandmarkMovers`,
-  only within 200 m). Points take `rx`/`rz` (tilt and roll) as well as `ry`,
-  and `s` (scale).
-- **Clearings.** `CANON_SITE_CLEARINGS` is filled by `planAuthoredLandforms`,
-  one entry list per place; it keeps the forest and the ruined ring's rubble
-  off. Do not put new places in `WILD_CLEARINGS` (see r141/r142 below: that
-  array also plants cairns and signposts).
+It was a 31 m paved disc with the north avenue running through it, a ring of
+twelve stalls laid on trigonometry and eight bays nudged by `offRoad()` — one
+into the Cinder and Keg's west wall, so its keeper stood inside the tavern —
+and a stone fire drum on the avenue's kerb that had no collider.
 
-### The places (r143)
+- **A table, not a generator** (`docs/AUTHORED-CITY-DRESSING.md`):
+  `CINDER_MARKET_STALLS` (34), `CINDER_MARKET_POLES` (20),
+  `CINDER_MARKET_LIGHTS` (10), each record with an id, an exact transform
+  and a purpose. `tools/plan-market.py` does only the arithmetic of laying
+  rows along the avenue and prints the table; re-run it and paste if the
+  avenue moves. Six rows parallel to the avenue: one facing it on each side
+  (`e1a`, `w1a`), one back to back with that (`e1b`, `w1b`), one across an
+  aisle (`e3`, `w3`). The east rows break round a hearth court.
+- **`cinderMarket()`** tests every stall's footprint (4.7 x 3.2, nine
+  points) against the roads and everything that stood before the market,
+  then builds; a record that does not fit is left out and logged, never
+  moved. The Cinder and Keg and the brick house are built first so the test
+  sees them. Each stall gets two colliders — the counter and the back rack —
+  and the keeper's place between them stays open.
+- **Stalls are modelled** (`tools/assets/market-stall.py`): a draper, a
+  grocer and a potter on one booth frame (striped awning, scalloped valance,
+  side cloths, counter, stock, a lantern on a bracket off the front post).
+- **Light:** lantern strings between 3.9 m poles across the avenue and both
+  aisles, sagging half a metre; one real light per string, the lanterns
+  themselves only glow.
+- **The hearth** moved 4 m east off the avenue's kerb (`MARKET_HEARTH`), a
+  stone drum with an iron rim and a collider, two benches. **The well**
+  (`MARKET_WELL`) is built at last — the "listen at the market well"
+  interaction had always pointed at a well nobody made — and the
+  interaction stands at it.
+- **People:** sixteen keepers stand behind their counters facing their
+  customers (`vanethMarketKeepers`, eight of them new), four at the hearth,
+  four walkers starting in the aisles. `EMBER.market` exposes the tables and
+  what was built; `tools/probes/probe-cinder-market.js` checks it.
 
-| Place | Where | What | Proof (read off runs) |
-| --- | --- | --- | --- |
-| The Fallen Hall & the Veilscar | ruins clearing (338,-326) | modelled nave you walk into; a 15 m cliff, falls into a misted pool, a 40-tread stair, the wizard's shelf | `vista-ruin-waterfall`, `site-ritual-circle`, `vista-veilscar-ledge`; nave walk 5/5; stair walk up to 15.05 m, shelf 15.25 m |
-| The Oathfield | behind the graveyard, `OATH` | walled terrace, 56 planted oath-blades (glowing fullers, ribbons, three broken vows), lychgate from the graveyard's back gate, the winged angel with the moon between her wings | `site-memorial-field`, `vista-oathfield-angel`; walk graveyard → dais 10/10 |
-| The Watcher's Bluff over Lowmere | `LOW` (-468,-178), off the track | 21 m crag with a rock prow, ten-cottage hamlet round a green and a well, sunken lane, 56-tread stair, a watchtower on its own crag with its fire lit | `vista-lower-town-overlook`; walk track → prow 10/10, stair to 22.05 m |
-| The Foxglove crossing | `FOX` on the brook | the brook widened to a small river at the crossing; humpbacked arch, gate tower, lamps | `vista-river-bridge-castle` (the mill's gable in the distance) |
-| Foxglove Mill (new) | `MILL`, 40 m upstream | timber-framed mill house on a stone storey; an overshot wheel that turns under its flume on trestles; the water off the flume; a plank footbridge; the miller | shots from the footbridge, the yard and the wheel |
-| The Rain Oath | `RAIN` (382,322) | a mere, a kerbed causeway, an island ring of nine stones, the knight (remodelled) on a plinth facing the moon; rain wets it | `site-rain-oath` (no walk proof) |
-| The Skywatch knoll | `SKY` (-58,505) | a knoll, an armillary on its crown, the companions at the lip, a cobalt lamp line up the path | `site-quiet-companion-skywatch` (no walk proof) |
-| The Lantern Grove (new) | `GROVE` (500,-10), east past the track | a level clearing; a great bare oak hung with thirty lanterns (four real lights among the boughs, not thirty); eight sitting stones and a candle stone (one modelled boulder, `grove-stone`); the keeper | `vista-lantern-grove` and three more shots |
-| The High Step (new) | `CIT`, the inner wall's south gate | two flights and a landing up the wall's inner face to a watch landing on the wall walk; a guard, a pilgrim, a runner | `route-cliff-citadel-ascent`, `vista-high-step-head`; walk avenue → wall walk 8/8, to 12.9 m |
+### Main streets stand taller
 
-### Residents
+Half the lots fronting the two avenues through the centre were a single
+storey. `frontageStoreys()` (in `innerInfill`) raises a lot whose front faces
+a main avenue (a road 9.5 m or wider) or the Cinder Market to two to four
+storeys by a fixed hash — 74 lots. A home's room is one storey whatever the
+shell, so only the street changes; the extra storeys get their windows.
 
-- Role residents (`REFERENCE_BUILD_NPC_ROLES`) moved to their places. They
-  **keep their pose** when you come near and only turn their head, and only
-  if you are in front of them (|bearing| < 1.9 rad) — the greeting turn used
-  to spin a seated watcher round on his ledge to face the camera.
-- `WILD_RESIDENTS` (own stream, `wild-residents`): eleven people who live and
-  walk out there (Lowmere, the toll, the mill, the Oathfield, the Rain Oath,
-  the knoll, the grove, the track). They and the role figures stand on
-  `surfaceAt`, not `terrainAt`, beyond the city.
-- `VANETH_CONVERSATION` has entries for every new place; `VANETH_LANDMARKS`
-  lists them (`wild-*`) so residents can send you there.
+### The Cathedral of Hours (walk-in)
 
-### The city: one lane off a house's back
+The cathedral was a 12 x 22 box with a pyramid and two cylinders, standing
+on a collider circle that reached into the lane in front of it; it had no
+name. It is the Cathedral of Hours now — its bells turn the watches — and
+three Blender models on one transform (`tools/assets/cathedral.py`,
+`placeCathedral()`): the stone (textured), the glass and the furnishing
+(plain colour, glow mask).
 
-The one standing road warning — "1 collider(s) stand on a carriageway; worst
--129,118.2" — was a crooked lane whose end stopped at (-130,115.3). `onRoad`
-treats a lane's end as round, so its last 3.5 m ran into the back of the house
-at (-131.9,119.8) and counted the furniture inside as standing in the road.
-The row now bends south of the house onto the street at x -122 (a comment
-above `crookedLanes` says which row). `roadObstructions.inRoad` 1 → 0,
-`intruding` 229 → 229, road overlaps, blocked anchors and broken gate
-approaches all 0.
-
-**Trap for the next re-bake:** `tools/plan-city.js` plans lanes 2.8–4 m wide
-and validates lots against that, but the game lays every lane at
-`LANE_MIN` = 7. Lots planned against a 3 m lane can stand in a 7 m one. A
-re-bake has to plan lanes at `LANE_MIN` too.
-
-### Also in r143: the sky, faces, the harness
-
-- **The night sky to the canon.** One `MOON_DIR` drives the moonlight, the
-  disc drawn in the sky shader, the water glint and the hills' baked shading
-  (the moon used to be a disc pinned at a world position, so from the
-  wilderness it sat behind you while its light came from elsewhere).
-  Blue-black zenith, cobalt horizon, moonlit cloud; the aurora is a faint
-  cobalt-violet veil, not half the frame. Meteors and the sky-eye omen are
-  staged events (a shower from one radiant every ~9 minutes with foreshadow,
-  peak and aftermath; the omen one Still Hours in three); rain comes and goes
-  and wets the stone. `EMBER.sky` forces any of them for probes.
-- **Faces that read at play distance.** An eye was one dark box three
-  centimetres wide; each is now a white, an iris and a lid line, with heavier
-  brows and mouth, and ears on humans — all merged into the head mesh, no
-  draw calls. `villager()` takes `look {variant, species, build}`, so every
-  reference role wears its part (the wizard's tall hat and lit staff); role
-  props sit at the palm grip, and sitting or kneeling roles lower their body
-  (`poseDrop`). `tools/probes/probe-npc-studio.js` pins a lineup for review.
-- **The harness waits for real frames.** It used to shoot a fixed 1.5 s after
-  each teleport; in software rendering that was one standpoint behind (the
-  first shot was always the spawn). It now waits for three rendered frames.
-
-### Removed, and why
-
-The r138 map-spine stand-ins the places replace: the 24-blade scatter and the
-cone "winged witness" in the graveyard, and its 12-post ring; the flat citadel
-"ascent" through the north gate (cobbles, cross-step bands on the carriageway,
-gate spires); the overlook's 12 stand-in houses and ledge bands by the outer
-wall; the Foxglove river ribbon laid under the ground and its revetments,
-stepping stones and glint posts; the rain-oath strip causeway; the skywatch
-ledge walk and parapet. `canonSword`, `canonPost`, `canonRouteLamp`,
-`canonPavingNode` and `KIT_OATH` went with them.
+- Nave and clerestory on an arcade of five piers a side, two aisles, flying
+  buttresses with pinnacles, the west front between two towers whose
+  belfries glow and whose spires reach 44 m, a rose over a three-order
+  portal, the apse's five lancets, a flèche on the ridge.
+- Centre (89, -55.5), unrotated: the front faces the lane at z -34 across a
+  small parvis, the apse ends two metres short of the z -76 lane. The lots
+  already keep clear (`COMPILER_EXCLUSIONS` 89,-46 r22).
+- Colliders are traced from the script's plan numbers; the altar's dais is
+  two walkable decks. Four real lights inside, lamps either side of the
+  door. The verger, a kneeler and a pilgrim (role residents), talk and
+  directions for it, and "light a candle" at the votive rack.
+- Captures: `vista-cathedral-west-front`, `site-cathedral-nave`.
+- `inline-glb.js` finds markers by prefix, so the stone asset is
+  `CATHEDRAL_STONE`: a plain `CATHEDRAL` also matched `CATHEDRAL_GLASS`.
 
 ### Verified
 
-All read off runs on the sealed file, in the harness (software WebGL, its own
+Read off runs on the sealed file, in the harness (software WebGL, its own
 seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A 132, every new name a
-  word in a comment or an asset marker), `audit-dom`, `audit-dead` (565
+- `check-parse`, `audit-source` (B and C 0; section A's new names are all
+  words in comments or asset markers), `audit-dom`, `audit-dead` (569
   functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
-- Runtime audit (`tools/audit-runtime.js`, watch pinned to `labour`), r142
-  archive → r143: errors 0 → 0; villagers 352 → 363; draw calls 449 → 436;
-  triangles 1,715,330 → 1,798,426; colliders 10,543 → 11,475; dialogue 14
-  wards / 84 branches → 16 / 96, none failed to open, pushed away or broke;
-  residents moving over 30 s 167 → 168, worst cluster 1; road obstructions
-  in the carriageway 1 → 0 (intruding 229 → 229); blocked anchors 0; gate
-  approaches 4, broken 0; unreachable interactions none.
-- Walk proofs (`probe-walk.js`): Fallen Hall nave 5/5 and the Veilscar stair
-  to 15.05 m, shelf 15.25 m; the Oathfield 10/10; Lowmere track → prow 10/10
-  (stair to 22.05 m); the High Step 8/8 (to the walk at 12.9 m).
-- All 12 `VISUAL_CANON.captures` shot and looked at. Three were reframed
-  after looking: the overlook (the hooded watcher, two metres from the
-  camera, was a black wall across the left third), the memorial field (Sister
-  Amery's walk started two metres in front of the camera; it now starts
-  halfway up the way) and the High Step's head (turned half right along the
-  walk; square to the wall the gate tower took half the frame).
-- Variants: `build-variants.js` 6/6 (r0's `villager` swap follows the new
-  `look` parameter) and `check-variants.js` 6/6, all reporting r143.
-- Smoke: game booted, WebGL up, bridge wired, chooser installed, `requestDevice`
-  settles and the chooser closes after cancel, window title "Emberwatch —
-  r143". This container has no GPU and no Bluetooth adapter, so it took
-  `--use-gl=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist`
-  and, on Linux, `--enable-experimental-web-platform-features` for
-  `navigator.bluetooth` to exist at all.
+- Runtime audit (`tools/audit-runtime.js`, watch pinned to `labour`), r143
+  → r144: errors 0 → 0; villagers 363 → 374; draw calls 436 → 442 (three
+  stall models, three cathedral models); triangles 1,798,426 → 1,896,207;
+  colliders 11,475 → 11,690; dialogue 16 wards / 96 branches → 17 / 102,
+  none failed to open, pushed away or broke; residents moving over 30 s
+  168 → 184; road obstructions in the carriageway 0 → 0, intruding 229 →
+  229; blocked anchors 0; gate approaches 4, broken 0; unreachable
+  interactions none.
+- `probe-cinder-market.js`: 34 of 34 stalls built, none skipped, 20 poles,
+  10 strings, 10 lights; no stall footprint touches a road; all 16 keepers
+  within 0.9 m of their stall's spot. `innerBuilt.raised` 74.
+- Walk proof (`probe-walk.js`), the cathedral: lane → portal → narthex →
+  central aisle → before the dais → onto it (0.2 m, then 0.4 m) → through
+  the arcade → up the side aisle, 9/9. The collider map at 0.75 m shows the
+  aisle and apse walls closed and a 2.8 m door gap.
+- All 14 `VISUAL_CANON.captures` shot and looked at (two new:
+  `vista-cathedral-west-front`, `site-cathedral-nave`; the pilgrim was moved
+  out of the middle of the nave shot and the front shot tilted up to hold
+  the spires).
+- Variants: 6/6 built and 6/6 booted — after one fix: r0 neuters
+  `villager()`, and the keeper code read the last villager's `.g`; it now
+  checks one was made.
+- Smoke: game booted, WebGL up, bridge wired, chooser installed,
+  `requestDevice` settles, window title "Emberwatch — r144" (with this
+  container's software-GL and Linux Web Bluetooth flags, as for r143).
 - Not run: `npm run dist` (no Windows toolchain here).
 
-### What is still open
+### Known, and left
 
-- **The inner city** (the next job): wide streets with nothing in them, a bare
-  market, plain house fronts, back walls facing lanes.
-- The Rain Oath and the Skywatch knoll have captures but no walk proof.
-- The Windows installers were not built: the container this was done in has
-  no Windows toolchain. `cd app && npm run dist` on the owner's machine.
-- `plan-city.js`'s lane width (above).
+- The road audit's **`intruding` went 229 → 230**: the counter collider of
+  `cm-e1a-6`, a 4.6 x 0.63 box whose circle approximation (`hypot(hw,hd)`,
+  2.32 m) reaches the avenue although the box itself stops 1.8 m short of
+  it. Not a real intrusion.
+- The runtime audit's **worst resident cluster went 1 → 2**. Traced: once
+  the audit parks the player 100 m away, far residents freeze mid-walk, and
+  four of the eighteen who share the market's perimeter loop froze near its
+  south-west corner. Not visible in play; the loop is unchanged.
 
 ### In the code
 
-- 2.47 MB (+722,044 bytes on r142).
-- 38 functions added: `addDeck`, `addPool`, `addStair`, `applyLandforms`, `axisFrame`, `boxProjectUV`, `brookLine`, `fallMaterial`, `groundPath`, `hamletCottage`, `landform`, `landformLocal`, `landformSdf`, `landmarkMaterial`, `launchMeteor`, `mistAt`, `oathHash`, `placeCitadelAscent`, `placeFallenHall`, `placeFoxglove`, `placeFrame`, `placeLamp`, `placeLandmark`, `placeLanternGrove`, `placeLowmere`, `placeMill`, `placeOathfield`, `placeRainOath`, `placeSkywatch`, `planAuthoredLandforms`, `rainWanted`, `solidFlight`, `stairFlight`, `surfacesAt`, `updateLandmarkMovers`, `updateMists`, `updateRain`, `updateSkyEvents`.
-- 5 functions removed: `canonPavingNode`, `canonPost`, `canonRouteLamp`, `canonSword`, `spawnCanonMeteors`.
+- 2.83 MB (+377,774 bytes on r143).
+- 5 functions added: `cinderMarket`, `frontageStoreys`, `marketFootprintClear`, `marketStallSpot`, `placeCathedral`.
+- 1 function removed: `cathedral`.
 
 ### Play it
 
