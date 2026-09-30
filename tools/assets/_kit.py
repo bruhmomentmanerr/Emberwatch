@@ -169,6 +169,79 @@ class Asset:
         f.append(tuple(reversed(range(top, top + sides)))); cols.append(top_color or color)
         self.mesh(v, f, cols, at=(x, y, z), r=rot(rx, ry, 0))
 
+    def tube(self, pts, radii, color, sides=8, ref=(0, 0, 1), cap0=True, cap1=True, folds=0, amps=None, phase=0.0, cap_color=None):
+        # A limb, a neck, a robe: rings of `sides` vertices round a path of
+        # points. radii[i] is a radius or an (ru, rv) pair; `folds` ripples of
+        # amps[i] (a fraction of the radius) hang a robe in pleats. Each ring
+        # lies square to the path in a frame (u, v, t) with u = ref x t and
+        # v = t x u, so u x v = t: right-handed. With theta running from u to
+        # v, the side quad (i,j),(i,j+1),(i+1,j+1),(i+1,j) has normal
+        # tau x t = the outward radial (tau the ring's tangent) — outward. The
+        # last ring in order faces +t (end cap), the first reversed faces -t.
+        # `color` is one colour or one per segment between rings.
+        P = [Vector(p) for p in pts]
+        n, s = len(P), sides
+        ref = Vector(ref)
+        verts, faces, cols = [], [], []
+        for i in range(n):
+            t = (P[min(i + 1, n - 1)] - P[max(i - 1, 0)]).normalized()
+            r0 = ref if abs(t.dot(ref)) < .97 else Vector((1, 0, 0))
+            u = r0.cross(t).normalized()
+            v = t.cross(u)
+            rr = radii[i]
+            ru, rv = (rr, rr) if not isinstance(rr, (tuple, list)) else rr
+            amp = amps[i] if amps else 0.0
+            for j in range(s):
+                th = j / s * math.tau
+                k = 1.0 + (amp * math.sin(folds * th + phase) if folds else 0.0)
+                verts.append(P[i] + u * (math.cos(th) * ru * k) + v * (math.sin(th) * rv * k))
+        for i in range(n - 1):
+            c = color[i] if isinstance(color, list) else color
+            for j in range(s):
+                jj = (j + 1) % s
+                faces.append((i * s + j, i * s + jj, (i + 1) * s + jj, (i + 1) * s + j)); cols.append(c)
+        c0 = cap_color or (color[0] if isinstance(color, list) else color)
+        c1 = cap_color or (color[-1] if isinstance(color, list) else color)
+        if cap0:
+            faces.append(tuple(reversed(range(s)))); cols.append(c0)
+        if cap1:
+            faces.append(tuple(range((n - 1) * s, n * s))); cols.append(c1)
+        self.mesh([tuple(p) for p in verts], faces, cols)
+
+    def leaf(self, root, tip, width, thick, color, normal, segs=6, quill=.12, belly=.4, face_color=None, round_tip=.8):
+        # A flat tapering blade — a feather, a leaf — from root to tip, lying
+        # across `normal`, `width` at its widest (a `belly` of the way along)
+        # and `thick` through. Built as an outline in a local frame (x across,
+        # y along, z through) that is counter-clockwise seen from +z, then
+        # turned by R = (side, along, n): a proper rotation, since side =
+        # along x n gives side x along = n. So the +z cap faces `normal`.
+        root, tip = Vector(root), Vector(tip)
+        along = tip - root
+        L = along.length
+        if L < 1e-6:
+            return
+        along.normalize()
+        nrm = Vector(normal)
+        nrm = (nrm - along * nrm.dot(along)).normalized()
+        side = along.cross(nrm)
+        R = Matrix((side, along, nrm)).transposed()
+        prof = []
+        for k in range(segs + 1):
+            f = k / segs
+            if f <= belly:
+                w = quill + (1 - quill) * math.sin(f / belly * math.pi / 2)
+            else:
+                w = math.cos((f - belly) / (1 - belly) * math.pi / 2) ** round_tip   # < .8 rounds the tip
+            prof.append((w * width / 2, f * L))
+        right = prof[:-1]
+        outline = right + [(0.0, L)] + [(-x, y) for (x, y) in reversed(right)]
+        m = len(outline)
+        v = [(x, y, thick / 2) for (x, y) in outline] + [(x, y, -thick / 2) for (x, y) in outline]
+        f = [tuple(range(m)), tuple(reversed(range(m, 2 * m)))]
+        f += [(i, m + i, m + (i + 1) % m, (i + 1) % m) for i in range(m)]
+        cols = [face_color or color, color] + [color] * m
+        self.mesh(v, f, cols, at=root, r=R)
+
     def arch_wall(self, half_w, spring, rise, top, thick, color, at=(0, 0, 0), ry=0.0, segs=6, side_color=None):
         # The masonry above a pointed opening: from the arch curve up to `top`,
         # as one extruded outline (concave underneath). With two piers either
@@ -190,7 +263,9 @@ class Asset:
             except ValueError:
                 skipped += 1
                 continue
-            c = (color[0], color[1], color[2], 1.0)
+            # A fourth component is a glow mask, carried as alpha: 1 is plain,
+            # lower glows (placeLandmark reads 1 - alpha as emissive).
+            c = (color[0], color[1], color[2], color[3] if len(color) > 3 else 1.0)
             for loop in face.loops:
                 loop[col] = c
         bm.to_mesh(mesh)
