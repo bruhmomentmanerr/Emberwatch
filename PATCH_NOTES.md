@@ -1,141 +1,54 @@
-**r146 — avenues at night** · 1.46.0 · 2026-09-30 · phase 5, world depth
+**r147 — signs and lamps** · 1.47.0 · 2026-09-30 · phase 5, world depth
 
 ### Summary
 
-the avenues at night. Lit windows are leaded; warm pools of light on the paving under every lit ground-floor window, hall window and door lantern (one additive mesh); door lanterns' glass lit. Chimney stacks on three houses in five, sized to their roofs, modelled crowns and pots; the forty nearest smoke, leaning with the wind. The four old fixed smoke columns, which drifted off their sources, removed. The avenues: 25 houses facing them from the gaps and 14 lantern festoons across them, baked by tools/plan-avenues.py; lit windows in every back or side wall that faces a street. Verified: parse/audit/dead clean; runtime audit against r145, no errors, 102 dialogue branches none broken, road obstructions 0, six new draw calls; 14 captures looked at; 6/6 variants built and booted (r0 after a fix); smoke clean (r146 in the title).
+signs and lamps. Every shop's sign, a coloured board on a wooden arm, is its trade hung from a wrought-iron bracket: pretzel, cask, candles, shears, key, horseshoe, book, bottle (tools/assets/shop-signs.py), 143 of them, clear of the awnings. The street lamps, a pole with a glowing cube, are cast-iron lamp posts with four-paned lanterns (tools/assets/street-lamp.py), each lit one with a pool of light under it. The Cinder Market's strings sag as one tube and carry the festoon lanterns. Verified: parse/audit/dead clean; runtime audit against r146, no errors, 102 dialogue branches none broken, road obstructions 0; 14 captures looked at; 6/6 variants built and booted; smoke clean (r147 in the title).
 
 ### Patch notes
 
-**State: r146 / 1.46.0, sealed 2026-09-30 ("the avenues at night").** The
-owner's word this time: keep working, keep modelling, build systems where
-they give the most polish. r146 is the street after dark — light where
-people live, chimneys against the sky and smoke off them — and the two
-avenues through the centre, which from the street read as wide empty roads.
+**State: r147 / 1.47.0, sealed 2026-09-30 ("signs and lamps").** The same
+instruction as r146 — keep modelling, whatever gives the most polish —
+carried on to the two things every street has that were still boxes: the
+shop signs and the street lamps.
 
-**Next:** hanging shop signs — a wrought-iron bracket with the trade hung
-from it (pretzel, cask, candles, shears, key, horseshoe, book, bottle) in
-place of the plain accent-coloured board every shop has. Then the outer
-ring between the walls. The Windows installers for r143–r146 have not been
-built.
+**Next:** the outer ring between the walls; the towers of the Moon Archive
+and the Northwatch Guild, which are only outsides. The Windows installers
+for r143–r147 have not been built.
 
-### Lit windows are leaded
+### Hanging shop signs
 
-The window material was one flat emissive colour, so every lit window was a
-bright square with nothing in it — the most repeated shape in a night
-street. A 64 px canvas of leaded quarries (a frame, a mullion and a
-transom, lead cames between panes that are each a little warmer or dimmer)
-goes on `MATS.window` as map and emissive map: not one vertex added. It has
-its own fixed generator; the world's seeded stream is untouched.
+Every shop's sign was a board in the house's accent colour on a wooden
+arm — from the street a coloured card, the same on a baker's as on a
+bookseller's. Now the trade hangs from a wrought-iron bracket out of the
+wall (`tools/assets/shop-signs.py`): a pretzel, a cask, three lit candles
+on a shelf, open shears, a gilded key, a horseshoe, an open book, a lit
+bottle of green glass. `shopFront` records each sign in `SHOP_SIGNS`, just
+past the end of the awning (which spans 0.37 of the width either side of
+the door) so the emblem hangs clear of it and of the windows: over a house
+of two storeys or more at 3.45 m and 1.3 × size, to be read from across the
+street; over a single storey at 2.5 m and 0.85 ×, under the eaves.
+`placeShopSigns` lays each trade as one batch once every shop is built
+(eight draw calls; the apothecary's glass has its own green glow). The
+shop's lamp hangs off the bracket's end (`shop.lampY`). `shopFront` learnt
+the house's storeys from its callers for this.
 
-### Light on the street
+The first placement put the bracket inside the awning's span, where the
+emblem would have hung into the awning; shot, seen, moved.
 
-A lit window lit nothing, and a point-light budget of 5 or 14 cannot light
-two thousand windows. `LIGHT_POOLS`, laid by `streetLightPools()` as one
-additive mesh (one draw call, no light), puts a soft warm pool on the paving
-in front of every lit ground-floor window, every hall window, every door
-lantern and under every festoon (below). One texture holds both shapes, a
-pool thrown out from a wall and a round one; a record with `round` gets the
-second. The hooded door lanterns were drawn in the timber material — a brown
-box on a bracket — and their glass is lit now.
+### Street lamps
 
-**A CanvasTexture is flipped.** The first version drew the wall pool's
-bright end at the top of its canvas, which is the pool's far edge on the
-ground: every window's light lay a metre out in the street. The wall's edge
-is the canvas's bottom row.
+A street lamp was a tapered wooden pole with a glowing cube on it and a
+stick across. `placeCityLantern` now only records a lamp — its collider and
+its light, exactly as before — and `placeStreetLamps`, after `pruneLanterns`,
+lays a cast-iron lamp post with a four-paned lantern under a hood
+(`tools/assets/street-lamp.py`; lit and dark models) for every lamp that
+stands, with a pool of light under each lit one. The pools are laid last
+now, when every pool is known.
 
-### Chimneys, and their smoke
+### The Cinder Market's strings
 
-- `houseChimney()` gives three houses in five a stack, by a hash of the lot
-  (no roll): half on the ridge at its back end, as a terrace's stand at the
-  party wall, the rest up through the back slope. The shaft is sized to the
-  roof it pierces — `roofRiseAt()` works out `aRoof`'s hip or gable at any
-  point, `WARD_ROOF_FORM` maps `wardRoof`'s four roofs — a metre clear of it
-  and, off the ridge, half way up to the ridge as well. The shaft is a box in
-  the city's brick batch with its UVs at the brick texture's own size (the
-  old box stretched one tile over 0.7 × 2.3 m); the crown is modelled
-  (`tools/assets/chimney-crown.py`: a string course, two corbelled courses, a
-  mortared cap with soot, two or three clay pots; 104 and 132 triangles) and
-  laid as two batches. wardHouse, wardHome and cityHouse all call it.
-- The forges' tall stacks, the workshops' flues and the taverns' chimneys
-  are registered with the rest in `CHIMNEYS`: every chimney top that can
-  smoke.
-- `chimneySmoke()` / `updateChimneySmoke()`: the 40 chimneys nearest the
-  player smoke. A column is 16 soft points rising 8 m (a forge's 11 m, and
-  darker), leaning with one wind, spreading and thinning as it rises; the set
-  follows the player once a second, and a newly lit chimney fades in over two
-  seconds **of the clock** — faded by frames, it took half a minute on the
-  harness, whose frames are capped at 0.05 s and come every three seconds.
-  One draw call: points with their own size, alpha and shade in a small
-  shader fogged like the rest of the world.
-- The four fixed smoke columns in `buildCityAtmosphere` stood at points
-  written for a smaller city, and walked away from them: `+t*.018` moved each
-  column a metre a minute, forever. Removed. **`emberDiagnostics` read their
-  array** (`atmosphereParticles`), which parsed fine and threw at runtime —
-  the runtime audit caught it; it counts the motes and the smoke points now.
-
-### The avenues
-
-`tools/plan-avenues.py` reads a dump of the avenues' surroundings
-(`tools/probes/probe-avenue-dump.js`: the street plan, every house front,
-every collider within 26 m of a 10 m avenue, the interior doors and the
-interactions) and bakes two authored tables, both tested at build, left out
-and logged if they do not fit, never moved (`EMBER.avenues`):
-
-- **`AVENUE_FRONTAGE`** — houses facing an avenue from the gaps, fronts
-  2.6 m back from the kerb (the avenue's own fronts stand 2.3–3.7 m back),
-  rows of up to four with an alley after, clear of every crossing street's
-  kerb by 1.5 m (so a house can make a corner), every doorway, every
-  interaction, and out of the Cinder Market. `avenueFrontage()` builds them
-  as any infill house is built — `wardHouse` and `housePorch` — so the street
-  kit dresses them, `frontageStoreys` raises them and they get chimneys.
-- **`AVENUE_FESTOONS`** — strings of lanterns across the avenues between
-  iron poles 0.75 m back from either kerb (`tools/assets/festoon.py`: a
-  cast-iron post with a bracket arm, 186 triangles; a hanging lantern, 82),
-  kept 5 m off the crossings, which have lamps, and out of the market, which
-  has strings. Each string sags 0.85 m as a thin tube in the dark batch,
-  carries a lantern every 1.55 m at 1.3 × life size so it reads from down
-  the avenue, one real light at its middle and a round pool under it.
-
-Most of what lined the avenues turned out to be the sides and backs of
-houses standing close to them, not gaps: the planner's collider test turned
-most candidate footprints down, and it found room for 25 houses, not the
-hundred the plan view suggested. Hence —
-
-### Walls that face a street
-
-`wardHouse` windows its front wall only, so a house standing side-on or
-back-on to a street showed it a blank wall. `streetSideWindows()` gives a
-back or side wall with open ground in front of it and a carriageway within
-12 m, unbroken by anything standing between, windows on every storey — the
-upper ones out on the jetty where the house has one — lit, framed and
-pooled like a front's. Visual only: no collider, no roll. Everywhere in the
-city, not only on the avenues.
-
-### A second harness profile is a second world
-
-The first runtime audit of r146 ran on a second harness profile
-(`HARNESS_PROFILE`) and reported 90 more colliders and 3 more doors than
-r145, with about sixty homes open in different places. The world seed lives
-in the profile's localStorage and a fresh profile rolls a new one; on the
-standard profile the counts were r145's exactly. §3 says so now.
-
-### Known, and left
-
-- **The cost.** Nothing in the merged world is chunked: `mergeAll` makes one
-  mesh per material for the whole city, so every batch draws city-wide
-  whatever the camera sees, and r146's added triangles are paid in every
-  view. On the harness (software GL, median of 30 frames, r145 and r146
-  alternated twice, measured before the chimney pots lost their rims —
-  about 40,000 triangles fewer in the sealed file): the Cinder Market 3.9–4.1
-  → 4.3–4.4 s, the north avenue looking in 3.6 → 4.6–4.8 s, a west-ward
-  street 2.8–2.9 → 3.2 s, over the roofs 2.4 → 2.7–2.8 s. The software
-  renderer is vertex-bound, so this overstates what a GPU pays; it has not
-  been measured on hardware. Chunking the batches spatially would let the
-  frustum cull most of the city, at the price of draw calls — the lever, if
-  it is wanted.
-- The road-obstruction audit's `intruding` count went up by one: a new
-  corner house on the south avenue whose bounding circle (it measures boxes
-  by their diagonal) touches a side street. Its footprint keeps 0.9 m clear.
+Its lantern strings were stepped boxes with a box lantern every 1.5 m. They
+sag as one thin tube now and carry the avenues' festoon lanterns.
 
 ### Verified
 
@@ -143,37 +56,27 @@ Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
 - `check-parse`, `audit-source` (B and C 0; section A's new names are asset
-  markers and comment words), `audit-dom`, `audit-dead` (581 functions, 0
+  markers and comment words), `audit-dom`, `audit-dead` (583 functions, 0
   dead), `test-switch-frames`, `test-switch-b9`: clean.
-- Runtime audit, r145 → r146: errors 0 → 0; villagers 374 → 374; draw calls
-  442 → 448 (the six new meshes: two crown batches, the smoke, the pools,
-  the poles, the lanterns); triangles 1,910,147 → 2,165,811; colliders 11,876 →
-  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
-  residents moving over 30 s 182 → 169, the worst cluster per sample 2 →
-  3 (a separate five-sample run on the same build found no group of four);
-  road obstructions in the carriageway 0, intruding 229 → 230.
-- Built, from `EMBER`: frontage 25 of 25; festoons 14 of 14, 84 lanterns;
-  side windows on 499 walls, 1,510 windows; 5,818 light pools; 1,187 chimney
-  stacks (334 wide), 1,239 chimneys that can smoke (32 forges). Nothing left
-  out; the one crossing lamp r145 logged is still the only warning.
-- Shots looked at: each of the eight avenue segments from two standpoints
-  before and after, a festoon close up, six house fronts from across their
-  streets looking up at the chimneys, two views over the roofs, a street of
-  forges, its smoke darker and higher; all 14 captures, smoke over the town
-  in the city vistas.
-- Variants 6/6 built and 6/6 booted — after one fix: r0's transform cuts
-  every world stage from "planning the avenues" on, and the avenue tables and
-  builders had been put inside that range while `EMBER` still named them, so
-  r0 threw on boot. They are defined ahead of the assembly now, as
-  `innerInfill` is.
-- Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
-  settles, "Emberwatch — r146".
+- Runtime audit, r146 → r147: errors 0 → 0; villagers 374 → 374; draw
+  calls 448 → 458; triangles 2,165,811 → 2,222,751; colliders 11,931 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  230.
+- Built, from `EMBER`: 143 shop signs (grocer 33, ironmonger 27, chandler
+  21, draper 20, baker 17, apothecary 10, saddler 10, bookseller 5); 57
+  street lamps, all lit; the market's 10 strings.
+- Shots looked at: a sign of each trade from across its street (and an
+  apothecary's close up), three lamps from the road, the market strings from
+  the avenue and from a stall row; all 14 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r147".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 2.87 MB (+36,393 bytes on r145).
-- 9 functions added: `avenueFestoons`, `avenueFrontage`, `chimneySmoke`, `houseChimney`, `placeChimneys`, `roofRiseAt`, `streetLightPools`, `streetSideWindows`, `updateChimneySmoke`.
+- 2.94 MB (+75,743 bytes on r146).
+- 2 functions added: `placeShopSigns`, `placeStreetLamps`.
 
 ### Play it
 
