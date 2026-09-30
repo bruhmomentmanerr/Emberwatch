@@ -11,11 +11,16 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.35.0 / build r135 ("the crowd parts")**,
-2026-09-23. Archived, smoke-tested, six variants boot-check. The latest
-packaged pair is 1.35.0 (r135). r121 was never packaged; r122
+Current sealed source: **1.42.0 / build r142 ("walkaround")**,
+2026-09-28. Archived, smoke-tested, six variants boot-check. The latest
+packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
-stamp, so the version skips from 1.30.0 to 1.32.0.
+stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
+build") were never archived** — the live file carried their stamp but
+`revisions/` jumps straight from r135 to r140. That work (the visual-canon
+layer, resident pose/role additions) survives inside r140's own archive, just
+without its own intermediate checkpoints; nothing has been reconstructed or
+guessed at.
 
 > **PROJECT.md** is the single-file rundown of everything here — architecture,
 > conventions, traps, how to ship. Start there; this file is the timeline.
@@ -914,6 +919,109 @@ stamp, so the version skips from 1.30.0 to 1.32.0.
                           twenty-metre slab, a throne and two tables shoved
                           against it now has a dais, trestle tables with
                           benches, two hearths, banners and wall sconces.
+    Sep 25     r140       modelled not assembled. r136-r139 ("reference
+                          build", never archived) added a "visual canon"
+                          layer — ten vista sites scattered at the map's
+                          edges, each built around one preset camera angle —
+                          entirely as aBox/aCyl/aCone calls with hand-tuned
+                          rotations, the exact pattern this project moved away
+                          from for the city itself back at r121. The owner
+                          found it on foot: two motionless figures sitting on
+                          their own walkway outside a gate, eleven lamps where
+                          four belonged, and — worst — a bridge over no water
+                          at all, waterDepthAt() there returning a flat 0. The
+                          ruins turned out to have three separate,
+                          uncoordinated generators drawing overlapping stone
+                          in the same 16 m patch: the base game's own scatter,
+                          plus two new "rib" loops, plus an 18-rod ring, none
+                          aware the others existed. Every one of these was
+                          invisible to every audit this project owns — they
+                          parse, and audit-dead doesn't know a kneeling knight
+                          from a standing one. Fixed in place (the lamps
+                          thinned, the redundant ribs removed, the skywatch
+                          pair moved 11 m off their own path), and the bridge
+                          and three of the four posed figures rebuilt as
+                          actual Blender models: tools/assets/foxglove-
+                          bridge.py, oath-knight.py, hooded-watcher.py — each
+                          rendered to a PNG and looked at before it ever
+                          touched the game, which is the entire point. The
+                          first oath-knight render scattered across the frame
+                          from a wrong rotation axis; caught in the preview,
+                          fixed, re-rendered, confirmed, only then exported.
+                          The bridge now has a real river under it, built the
+                          same way Saltmere's was. PROJECT.md's "Making
+                          assets" section now states this as the standing
+                          rule for any posed figure or one-off landmark:
+                          model it, do not assemble it from primitives in
+                          the source file.
+                          Verified: 0 dead functions, 0 new road obstructions,
+                          352 residents, 6/6 variants, smoke clean.
+    Sep 27     r141       quiet road. The owner: "in your screenshot alone,
+                          I'm seeing nonsense in the road." Three wrong
+                          answers before the right one. Not the standing-
+                          stones ring 26 m off — its crystal and hidden light
+                          pillar were both exactly where they were meant to
+                          be. Not ruinedRing()'s loose wall-rubble, though
+                          that had the same unchecked-scatter bug already
+                          fixed twice this session elsewhere (its rubble
+                          skipped the road/clearing check its own wall stub
+                          used, and six of this session's own new sites were
+                          never in WILD_CLEARINGS for it to check against) —
+                          a pixel diff against the pre-fix screenshot proved
+                          that fix changed nothing at this site. What it was:
+                          nine rain-oath-ring-stone paving nodes, added
+                          earlier this session as ring dressing, 5.4 m out,
+                          no rotation, 3.8 m apart — far enough apart that
+                          they never read as a ring, only as litter. Found by
+                          projecting all nine world positions through the
+                          exact screenshot camera and landing, pixel for
+                          pixel, on the nine visible discs; removed. Also
+                          rebuilt tools/assets/oath-knight.py's kneeling pose
+                          around a limb(a,b) helper — every jointed piece now
+                          derives its own length and rotation from the two
+                          joints it spans, after the hand-guessed version put
+                          the down leg's thigh and shin rotations on the
+                          wrong leg and the figure read as a scattered pile
+                          with a floating helmet.
+                          Verified: 0 dead functions, parse/audit/dom clean,
+                          6/6 variants, smoke clean (bluetooth chooser
+                          installed, r141 in the window title).
+    Sep 28     r142       walkaround. Instruction: visit every visual-canon
+                          site in person and check it against what the code
+                          claims, because "the code can say something and
+                          eyes can say otherwise." Visited all 8 stored
+                          VISUAL_CANON.captures cameras and read each frame
+                          against its own one-line target description. Four
+                          real bugs, none visible in any diagnostic. Biggest:
+                          r141's own WILD_CLEARINGS fix turned out to also
+                          feed a wilderness-cairn placer and two signpost
+                          pickers, not just the rubble check it was written
+                          for — registering the four new canon sites there
+                          silently planted a cairn 2m from the rain-oath
+                          knight, inside the very shot r141 had just cleaned.
+                          Split into a second array, CANON_SITE_CLEARINGS,
+                          read only by the rubble/tree check. Also found: the
+                          same sparse-ring-reads-as-litter shape from r141
+                          repeated at the ruins (fallen-hall-outer-circle-
+                          stone, removed); a "frame the vista with bare
+                          branches" tree at three sites sized like a full
+                          background tree at 7-11m from its own camera,
+                          reading as a solid black wall across the frame at
+                          the overlook (cut to ~1/3 scale at all three);
+                          and the skywatch companion's optional wing pair
+                          rendering as two blade shapes nearly a metre long,
+                          burying the seated figure it was meant to accent
+                          (cut down, tilt narrowed). Checked and confirmed
+                          NOT broken: the foxglove river mesh (present,
+                          correctly placed, just dark at night), the ruins'
+                          waterfall veil color (#8fb7ff confirmed — a
+                          magenta read was ambient bleed), and three
+                          reference NPCs absent from their site's wide vista
+                          shot but present and correctly posed on direct
+                          approach — a camera-framing gap, not a missing NPC.
+                          Verified: parse/audit/dead clean, 6/6 variants,
+                          smoke clean (bluetooth chooser installed, r142 in
+                          the window title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested
