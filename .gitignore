@@ -12,3 +12,6 @@ app/node_modules/
 # tools/probes/work-visual-audit/ is the same category nested one level down.
 work/
 **/work-*/
+
+# Python bytecode from the Blender asset scripts (tools/assets/_kit.py).
+__pycache__/
