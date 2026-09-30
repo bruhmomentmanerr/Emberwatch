@@ -121,7 +121,18 @@ app.whenReady().then(() => {
           E.player.x=s.x;E.player.z=s.z;E.player.vy=0;E.player.onGround=true;
           E.player.y=s.y!==undefined?s.y:(E.terrainAt?E.terrainAt(s.x,s.z):0);
           E.look(s.yaw,s.pitch||0);})()`, true);
-        await new Promise(r => setTimeout(r, 1500));
+        // A fixed wait is not enough under software rendering: the first frame
+        // at a new standpoint can compile programs for a new light count and
+        // take longer than 1.5 s, so the capture grabbed the previous frame —
+        // every run's first shot came back as the spawn view. Wait until three
+        // frames have been drawn at the new position, then settle briefly.
+        const framesAt = () => win.webContents.executeJavaScript('window.EMBER?window.EMBER.renderer.info.render.frame:0', true);
+        const from = await framesAt();
+        for (let waited = 0; waited < 30000; waited += 100) {
+          if ((await framesAt()) >= from + 3) break;
+          await new Promise(r => setTimeout(r, 100));
+        }
+        await new Promise(r => setTimeout(r, 700));
         const image = await win.webContents.capturePage();
         const file = path.join(shotsDir, shot.name + '.png');
         fs.writeFileSync(file, image.toPNG());

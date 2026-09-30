@@ -4570,7 +4570,10 @@ const CONFIG = {
   // and performance modes for slower machines instead of making softness the
   // default look.
   fogDensity: 0.0054, renderScale: 0.98,
-  colors: { nightFog:0x091722, nightGround:0x25392f, nightHemi:0x39799a, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
+  // Night is the visual canon's cobalt and blue-black (r143). It was a teal
+  // fog over a green-black bounce, which put the whole city under the one
+  // colour the canon never names.
+  colors: { nightFog:0x0b1230, nightGround:0x221e36, nightHemi:0x4459aa, duskFog:0x40291f, duskGround:0x2c2a1c, duskHemi:0xffa765 }
 };
 const C=CONFIG.colors;
 const scene=new THREE.Scene(); let lighting='night';
@@ -4637,7 +4640,7 @@ const BLOOM={on:true,threshold:.93,knee:.07,strength:.48,radius:.16};
 // little extra saturation and a lens-like edge falloff. This is deliberately
 // a look layer rather than a fake texture, so actual material colours remain
 // meaningful to the game and the effect costs one full-screen draw.
-const CINEMATIC_LOOK={contrast:1.06,saturation:1.10,shadowTeal:new THREE.Color(0x0b3040),vignette:.09};
+const CINEMATIC_LOOK={contrast:1.06,saturation:1.10,shadowTeal:new THREE.Color(0x0e1848),vignette:.09};
 const bloom=(()=>{
   const MIPS=5, size=new THREE.Vector2();
   const quadCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1), quadScene=new THREE.Scene();
@@ -4781,10 +4784,18 @@ function lampLight(color,power,range,reach=range){
   return light;
 }
 const hemi=new THREE.HemisphereLight(C.nightHemi,C.nightGround,2.7); scene.add(hemi);
-const moon=new THREE.DirectionalLight(0xb8c4ff,2.65); moon.position.set(-60,90,-30); moon.castShadow=true;
-moon.shadow.mapSize.set(2048,2048); const scam=moon.shadow.camera; scam.left=-120;scam.right=120;scam.top=120;scam.bottom=-120;scam.far=260; moon.shadow.bias=-0.0004; moon.shadow.normalBias=.018; moon.shadow.radius=2; scene.add(moon);
-const moonDisc=new THREE.Mesh(new THREE.CircleGeometry(9,28),new THREE.MeshBasicMaterial({color:0xd9ccff,fog:false})); moonDisc.position.set(-110,80,-150); scene.add(moonDisc);
-const moon2=new THREE.Mesh(new THREE.CircleGeometry(4,24),new THREE.MeshBasicMaterial({color:0xd98a6a,fog:false})); moon2.position.set(90,64,-160); scene.add(moon2);
+// The moon is a direction, not a place. It used to be a disc hung at a fixed
+// world position (-110,80,-150): from the middle of the city that read as the
+// moon, but 400 m out at the Fallen Hall it swung behind the viewer or under
+// the treeline, and the light shading the stone came from another quarter of
+// the sky entirely (-60,90,-30). One vector now drives the light, the disc the
+// sky shader draws, the water's glint and the hills' baked shading, so the moon
+// hangs in the same place wherever you stand and the light on the stone comes
+// from it. South-south-east and low: from the north gate it rises over the
+// city ahead of you. The small ember moon keeps to the north-west.
+const MOON_DIR=new THREE.Vector3(.39,.38,-.84).normalize(), MOON2_DIR=new THREE.Vector3(-.50,.60,.62).normalize(), MOON_DISTANCE=160;
+const moon=new THREE.DirectionalLight(0xc2caff,2.65); moon.position.copy(MOON_DIR).multiplyScalar(MOON_DISTANCE); moon.castShadow=true;
+moon.shadow.mapSize.set(2048,2048); const scam=moon.shadow.camera; scam.left=-120;scam.right=120;scam.top=120;scam.bottom=-120;scam.far=320; moon.shadow.bias=-0.0004; moon.shadow.normalBias=.018; moon.shadow.radius=2; scene.add(moon);
 
 // helpers — Vaneth is generated from one browser-local seed.  The seed is
 // written both here and into the save file, so a restored position cannot
@@ -5612,7 +5623,7 @@ let lightCullAt=-1;
 // steps so the shadow map is redrawn only when a step is taken — a few times
 // a minute at a walk, never while standing — and the player is always within
 // 34 m of the middle of it. The light keeps its angle; only the square moves.
-const MOON_SNAP=48, MOON_OFFSET=[-60,90,-30];
+const MOON_SNAP=48, MOON_OFFSET=[MOON_DIR.x*MOON_DISTANCE,MOON_DIR.y*MOON_DISTANCE,MOON_DIR.z*MOON_DISTANCE];
 let moonCentreX=0, moonCentreZ=0;
 function followMoonShadow(){
   const x=Math.round(player.x/MOON_SNAP)*MOON_SNAP, z=Math.round(player.z/MOON_SNAP)*MOON_SNAP;
@@ -7564,20 +7575,32 @@ function addReferenceBuildPlaces(){
   canonPlace('place-rain-oath','Rain Oath Causeway',318,307,'weather-ritual','wet causeway and kneeling oath site that responds to rain and sky events',['oath-knight','rain-pilgrim']);
   canonPlace('place-north-skywatch','North Skywatch Ledge',-58,424,'skywatch','quiet companion ledge for moon-watching and rare omen reactions',['skywatch-companion','look-up-witness']);
 }
+// The eye in the sky is an event now, not a fixture. It used to hang at a
+// fixed world point (108,95,-298) in fogged, lit materials: from most of the
+// map the fog ate it, and where it did show it was there all night, every
+// night — the constant spectacle the canon says makes a world smaller. It is
+// built once here, hidden, and opened by updateSkyEvents() for a minute of
+// the Still Hours on one watch in three, riding the sky like the moon does.
+const OMEN_DIR=new THREE.Vector3(.62,.44,.65).normalize();
 function addSkyOmenCanon(){
-  const group=new THREE.Group(), smoke=canonMat(0x5d50ff,{transparent:true,opacity:.30,depthWrite:false,emissive:0x4130ff,emissiveIntensity:.75}), iris=canonMat(0x766cff,{transparent:true,opacity:.70,depthWrite:false,emissive:0x5d50ff,emissiveIntensity:1.5}), dark=new THREE.MeshBasicMaterial({color:0x02020a,transparent:true,opacity:.86,depthWrite:false,fog:false});
-  for(let i=0;i<9;i++){ const ring=new THREE.Mesh(new THREE.TorusGeometry(18+i*2.8,.35+i*.10,8,56),smoke); ring.scale.y=.34+.02*i; ring.rotation.z=i*.27; group.add(ring); }
-  const eye=new THREE.Mesh(new THREE.CircleGeometry(16,48),iris), pupil=new THREE.Mesh(new THREE.CircleGeometry(5.6,36),dark);
-  eye.scale.y=.38; pupil.position.z=.06; pupil.scale.y=.45; group.add(eye,pupil);
-  group.position.set(108,95,-298); group.rotation.set(-.15,.34,.04); group.renderOrder=2; scene.add(group);
-  canonRecord('sky-event','distant-violet-watchful-sky',108,-298,{purpose:'rare enormous eye-shaped cloud omen over city skyline'});
+  const group=new THREE.Group(), mats=[];
+  const veil=(color,opacity)=>{ const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}); m.userData.peak=opacity; mats.push(m); return m; };
+  const smoke=veil(0x4a3cc8,.30), iris=veil(0x6d62ff,.62);
+  for(let i=0;i<9;i++){ const ring=new THREE.Mesh(new THREE.TorusGeometry(54+i*8.4,1.05+i*.3,8,56),smoke); ring.scale.y=.34+.02*i; ring.rotation.z=i*.27; group.add(ring); }
+  const eye=new THREE.Mesh(new THREE.CircleGeometry(48,48),iris);
+  const pupilMat=new THREE.MeshBasicMaterial({color:0x010108,transparent:true,opacity:0,depthWrite:false,fog:false}); pupilMat.userData.peak=.88; mats.push(pupilMat);
+  const pupil=new THREE.Mesh(new THREE.CircleGeometry(16.8,36),pupilMat);
+  eye.scale.y=.38; pupil.position.z=.2; pupil.scale.y=.45; group.add(eye,pupil);
+  group.renderOrder=-1; group.visible=false; group.frustumCulled=false; scene.add(group);
+  VISUAL_CANON.omen={group,mats,level:0};
+  canonRecord('sky-event','distant-violet-watchful-sky',OMEN_DIR.x,OMEN_DIR.z,{purpose:'rare staged eye-shaped cloud omen; one Still Hours in three, about a minute'});
 }
+// The halo ring and the painted glint strip on the pond are gone: the sky
+// shader draws the moon's halo at infinity, and the water shader's own glint
+// follows the real moon direction, so a fixed strip on the pond only ever
+// pointed the right way from one spot.
 function addMoonCanon(){
-  const halo=new THREE.Mesh(new THREE.RingGeometry(10.5,18.5,48).rotateZ(.1),new THREE.MeshBasicMaterial({color:0x637bff,transparent:true,opacity:.18,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
-  halo.position.copy(moonDisc.position); scene.add(halo);
-  const glint=new THREE.Mesh(new THREE.PlaneGeometry(15,90,1,1).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xb6caff,transparent:true,opacity:.12,depthWrite:false,blending:THREE.AdditiveBlending}));
-  glint.position.set(POND.x,POND.level+.045,POND.z-2); glint.rotation.y=-.18; glint.renderOrder=5; scene.add(glint);
-  canonRecord('moon','moon-halo-and-foxglove-glint',POND.x,POND.z,{purpose:'moon becomes a compositional object and water carries its path'});
+  canonRecord('moon','moon-sky-anchor',POND.x,POND.z,{purpose:'moon drawn in the sky at MOON_DIR; the water glint and the light follow it'});
 }
 function addVisualSpectacleCanon(){
   addSkyOmenCanon(); addMoonCanon();
@@ -7586,24 +7609,86 @@ function addVisualSpectacleCanon(){
   // outside a gate that already has its own. Four, further apart.
   for(let i=0;i<4;i++){ const x=-22+i*14,z=394+Math.sin(i)*5; aCyl(.10,.13,2.6,5,x,1.3,z,'stone'); aBox(.42,.42,.42,x,2.92,z,'arcane'); canonRecord('skywatch-lamp','north-skywatch-cobalt-lamp-'+i,x,z,{purpose:'ritual lamp line leading to companion skywatch'}); }
 }
+// Rain is weather now, not a fixture: it comes in, falls for a couple of
+// minutes and passes, on a fixed rhythm (so two runs of a probe see the same
+// sky at the same second). While it falls the stone and the paving go wet —
+// their roughness drops, so the moon and the lamps show in the streets — which
+// is the canon's "weather should change material response, not just add
+// particles". It stays out of rooms.
+const WEATHER_CYCLE=440, RAIN_FROM=250, RAIN_TO=390, WET_KEYS=['cobble','city','stone','wall','wall2','slate','roof','brick'];
 function buildCanonRain(){
   const count=260, pos=new Float32Array(count*6), rng=canonRand(0x71a17), geom=new THREE.BufferGeometry();
   for(let i=0;i<count;i++){ const a=rng()*Math.PI*2, r=12+rng()*50, y=2+rng()*34, x=Math.cos(a)*r, z=Math.sin(a)*r, at=i*6; pos[at]=x;pos[at+1]=y;pos[at+2]=z;pos[at+3]=x-.16;pos[at+4]=y-1.6;pos[at+5]=z+.08; }
   geom.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  const lines=new THREE.LineSegments(geom,new THREE.LineBasicMaterial({color:0x9bbcff,transparent:true,opacity:.20,depthWrite:false,fog:true}));
-  lines.frustumCulled=false; scene.add(lines); VISUAL_CANON.rain={lines,pos,count,speed:22};
+  const lines=new THREE.LineSegments(geom,new THREE.LineBasicMaterial({color:0x9bbcff,transparent:true,opacity:0,depthWrite:false,fog:true}));
+  lines.frustumCulled=false; lines.visible=false; scene.add(lines);
+  VISUAL_CANON.rain={lines,pos,count,speed:22,level:0,dry:Object.fromEntries(WET_KEYS.filter(k=>MATS[k]).map(k=>[k,MATS[k].roughness]))};
 }
-function spawnCanonMeteors(t){
-  const material=new THREE.MeshBasicMaterial({color:0x76bfff,transparent:true,opacity:.82,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
-  for(let i=0;i<7;i++){ const mesh=new THREE.Mesh(new THREE.CylinderGeometry(.035,.07,28,6),material.clone()); mesh.rotation.set(Math.PI*.42,0,-.76); mesh.position.set(-180+i*54,100+i*5,-260+i*18); scene.add(mesh); VISUAL_CANON.meteors.push({mesh,age:0,life:5.8+i*.18,dx:30+i*3,dy:-18,dz:18}); }
-  VISUAL_CANON.events.meteors=true; VISUAL_CANON.events.lastMeteorAt=t;
+function rainWanted(t){ const c=(t+37)%WEATHER_CYCLE; return c<RAIN_FROM||c>RAIN_TO?0:Math.min(1,(c-RAIN_FROM)/20,(RAIN_TO-c)/20); }
+function updateRain(t,dt){
+  const r=VISUAL_CANON.rain; if(!r)return;
+  const want=r.forced!==undefined?r.forced:rainWanted(t);
+  r.level+=(want-r.level)*Math.min(1,dt*.8); if(Math.abs(r.level-want)<.002)r.level=want;
+  for(const k in r.dry)MATS[k].roughness=r.dry[k]-(r.dry[k]-.58)*r.level;
+  r.lines.visible=r.level>.01&&!activeInterior; r.lines.material.opacity=.22*r.level;
+  if(!r.lines.visible)return;
+  const p=r.pos; r.lines.position.set(player.x,0,player.z);
+  for(let i=0;i<r.count;i++){ const at=i*6; p[at+1]-=r.speed*dt; p[at+4]-=r.speed*dt; if(p[at+1]<1){ const seed=(i*37)%101, a=seed*.061+t*.03, d=16+((seed*17)%44); p[at]=Math.cos(a)*d; p[at+2]=Math.sin(a)*d; p[at+1]=30+((seed*13)%12); p[at+3]=p[at]-.16; p[at+5]=p[at+2]+.08; p[at+4]=p[at+1]-1.6; } }
+  r.lines.geometry.attributes.position.needsUpdate=true;
+}
+// Meteors come as a shower, rarely, and it has shape: a lone streak or two
+// (foreshadow), then a dozen from one radiant (peak), then a quiet stretch in
+// which the people who saw it are still looking up (aftermath). They used to
+// fall every seven seconds all night, with everyone within fifty metres
+// staring at the sky the whole time — the flag that marked a shower as seen
+// reset itself as soon as the reaction window closed. Streaks ride the sky
+// like the moon, so they fall in the same part of it wherever you stand.
+const METEOR_RADIANT=new THREE.Vector3(-.30,.80,-.52).normalize(), SHOWER_EVERY=560, METEOR_UP=new THREE.Vector3(0,1,0);
+let meteorGeometry=null, meteorMaterial=null;
+function launchMeteor(t,bright){
+  // At 420 m a streak thinner than about 0.6 m is under a pixel wide and
+  // simply is not there; the tail tapers to nothing so it still reads as a
+  // streak rather than a rod.
+  if(!meteorGeometry){ meteorGeometry=new THREE.CylinderGeometry(0,.95,1,6).translate(0,-.5,0); meteorMaterial=new THREE.MeshBasicMaterial({color:0xd4dcff,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}); }
+  const e=VISUAL_CANON.events, k=e.launched++, a=(k*2.399)%(Math.PI*2), s=.28+((k*.618)%1)*.55;
+  const side=new THREE.Vector3(Math.cos(a),0,Math.sin(a)).multiplyScalar(s);
+  const dir=METEOR_RADIANT.clone().add(side).add(new THREE.Vector3(0,-s*.35,0)).normalize(); if(dir.y<.2){dir.y=.2;dir.normalize();}
+  const vel=dir.clone().sub(METEOR_RADIANT); vel.y=Math.min(vel.y,-.18); vel.normalize();
+  const mesh=new THREE.Mesh(meteorGeometry,meteorMaterial.clone()); mesh.frustumCulled=false; mesh.renderOrder=-1;
+  mesh.quaternion.setFromUnitVectors(METEOR_UP,vel.clone().negate()); mesh.scale.set(1,bright?46:30,1); scene.add(mesh);
+  VISUAL_CANON.meteors.push({mesh,dir,vel,age:0,life:bright?2.4:1.7});
+  e.lastMeteorAt=t;
+}
+function updateSkyEvents(t,dt){
+  const e=VISUAL_CANON.events;
+  if(e.launched===undefined){ e.launched=0; e.nextShowerAt=150; e.showerAt=-1; e.lastMeteorAt=e.lastMeteorAt??-99; }
+  if(e.showerAt<0&&t>=e.nextShowerAt){ e.showerAt=t; e.fired=0; }
+  if(e.showerAt>=0){
+    const s=t-e.showerAt, plan=[1.5,5.2,8.0,8.8,9.9,10.6,11.8,12.4,13.9,14.5,15.8,17.0,18.6,20.4];
+    while(e.fired<plan.length&&s>=plan[e.fired]){ launchMeteor(t,e.fired===2||e.fired===7||e.fired===11); e.fired++; }
+    e.phase=s<8?'foreshadow':s<21?'peak':s<34?'aftermath':'quiet';
+    if(s>=34){ e.showerAt=-1; e.nextShowerAt=t+SHOWER_EVERY; }
+  }else e.phase='quiet';
+  e.meteors=e.phase==='peak'||e.phase==='aftermath';
+  for(let i=VISUAL_CANON.meteors.length-1;i>=0;i--){ const m=VISUAL_CANON.meteors[i]; m.age+=dt;
+    m.mesh.position.copy(camera.position).addScaledVector(m.dir,420).addScaledVector(m.vel,m.age*70);
+    m.mesh.material.opacity=Math.max(0,.9*(1-m.age/m.life));
+    if(m.age>=m.life){ scene.remove(m.mesh); m.mesh.material.dispose(); VISUAL_CANON.meteors.splice(i,1); } }
+  // The omen: one Still Hours in three, rising over twelve seconds, held for
+  // half a minute, fading over twelve. Witnesses look up only while it shows.
+  const o=VISUAL_CANON.omen;
+  if(o){
+    const day=Math.floor((t+watchOffset)/(WATCH_SECONDS*WATCHES.length)), w=watchAt(t), into=(t+watchOffset)%WATCH_SECONDS;
+    const want=o.forced!==undefined?o.forced:(w&&w.id==='still'&&day%3===1&&into>40&&into<94)?Math.min(1,(into-40)/12,(94-into)/12):0;
+    o.level+=(want-o.level)*Math.min(1,dt*1.5); if(o.level<.003)o.level=0;
+    o.group.visible=o.level>0;
+    if(o.group.visible){ o.group.position.copy(camera.position).addScaledVector(OMEN_DIR,600); o.group.lookAt(camera.position); for(const m of o.mats)m.opacity=m.userData.peak*o.level; }
+    if(o.level>.35)e.lastMeteorAt=Math.max(e.lastMeteorAt,t);
+  }
 }
 function updateVisualCanon(t,dt){
-  if(VISUAL_CANON.rain){ const r=VISUAL_CANON.rain, p=r.pos; r.lines.position.set(player.x,0,player.z);
-    for(let i=0;i<r.count;i++){ const at=i*6; p[at+1]-=r.speed*dt; p[at+4]-=r.speed*dt; if(p[at+1]<1){ const seed=(i*37)%101, a=seed*.061+t*.03, d=16+((seed*17)%44); p[at]=Math.cos(a)*d; p[at+2]=Math.sin(a)*d; p[at+1]=30+((seed*13)%12); p[at+3]=p[at]-.16; p[at+5]=p[at+2]+.08; p[at+4]=p[at+1]-1.6; } }
-    r.lines.geometry.attributes.position.needsUpdate=true; }
-  if(!VISUAL_CANON.events.meteors&&t>24)spawnCanonMeteors(t);
-  for(let i=VISUAL_CANON.meteors.length-1;i>=0;i--){ const m=VISUAL_CANON.meteors[i]; m.age+=dt; m.mesh.position.x+=m.dx*dt; m.mesh.position.y+=m.dy*dt; m.mesh.position.z+=m.dz*dt; m.mesh.material.opacity=Math.max(0,.82*(1-m.age/m.life)); if(m.age>=m.life){ scene.remove(m.mesh); m.mesh.geometry.dispose(); m.mesh.material.dispose(); VISUAL_CANON.meteors.splice(i,1); } }
+  updateRain(t,dt);
+  updateSkyEvents(t,dt);
   if(t-VISUAL_CANON.events.lastMeteorAt<7){
     for(const npc of villagers){
       if(npc.isFar||npc.indoors||!npc.parts)continue;
@@ -11121,42 +11206,56 @@ stG.setAttribute('position',new THREE.BufferAttribute(stP,3));
 const starField=new THREE.Points(stG,new THREE.PointsMaterial({map:softPointTexture('rgba(255,255,255,.96)','rgba(215,210,255,.24)'),color:0xdcd2ff,size:.52,transparent:true,opacity:.78,alphaTest:.02,depthWrite:false,fog:false}));
 scene.add(starField);
 
-// ---------- aurora sky ----------
-// A skydome that rides the camera, drawn behind everything and unfogged. The
-// ribbons are generated in the shader, so the whole sky is one draw call and
-// costs nothing on the CPU. Its colours are written straight to the screen, as
-// they always were: the uniforms take each hex unchanged, with no sRGB decode, so
-// the aurora and its meeting with the fog look exactly as authored under the
-// physical lighting of r111. The starfield rides along too: it used to be a
-// fixed sphere at r=440, which on the enlarged map put stars only a hundred
-// units away on one side of the city and a kilometre away on the other.
+// ---------- the night sky ----------
+// A skydome that rides the camera, drawn behind everything and unfogged: one
+// draw call, nothing on the CPU. Its colours are written straight to the
+// screen, as they always were: the uniforms take each hex unchanged, with no
+// sRGB decode. The starfield rides along too: it used to be a fixed sphere at
+// r=440, which on the enlarged map put stars only a hundred units away on one
+// side of the city and a kilometre away on the other.
+//
+// Since r143 it is the visual canon's night rather than a teal aurora. The
+// canon's palette is cobalt, violet, blue-black, a pale moon and scarce warm
+// light; the aurora was saturated teal and green across more than half of
+// every frame, the one colour the canon never names. Four changes:
+//  - blue-black at the zenith, cobalt-violet at the horizon;
+//  - the moon drawn here, at MOON_DIR, so it is always at infinity and always
+//    where the moonlight comes from, with the air round it lit;
+//  - low cloud banks that drift across it, dark, their edges catching the moon;
+//  - the aurora kept, as faint cobalt-to-violet veils, so the identity of the
+//    place survives without washing the frame.
 const auroraUniforms={
   uTime:{value:0},
   uFog:{value:new THREE.Color().setHex(C.nightFog,THREE.LinearSRGBColorSpace)},
-  uZenith:{value:new THREE.Color().setHex(0x0a0616,THREE.LinearSRGBColorSpace)},
-  uHorizon:{value:new THREE.Color().setHex(0x1a1030,THREE.LinearSRGBColorSpace)},
-  uIntensity:{value:1}
+  uZenith:{value:new THREE.Color().setHex(0x03040c,THREE.LinearSRGBColorSpace)},
+  uHorizon:{value:new THREE.Color().setHex(0x161c44,THREE.LinearSRGBColorSpace)},
+  uIntensity:{value:1},
+  uCloud:{value:1},
+  uMoonLit:{value:1},
+  uMoonDir:{value:MOON_DIR.clone()},
+  uMoon2Dir:{value:MOON2_DIR.clone()}
 };
 const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.ShaderMaterial({
   side:THREE.BackSide, depthWrite:false, fog:false, uniforms:auroraUniforms,
   vertexShader:`varying vec3 vDir; void main(){ vDir=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
   fragmentShader:`
-    precision mediump float;
+    precision highp float;
     varying vec3 vDir;
-    uniform float uTime,uIntensity; uniform vec3 uFog,uZenith,uHorizon;
+    uniform float uTime,uIntensity,uCloud,uMoonLit; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
     float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y); }
     float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<4;i++){ v+=a*noise(p); p*=2.03; a*=0.5; } return v; }
-    // Deliberately stylised, not photoreal. The smooth version read as a
-    // stock aurora photo bolted onto a pixel-art game. Three things fix that:
-    // the sky direction is snapped to a coarse grid so the whole thing renders
-    // in chunky blocks matching the game's pixelation, the glow is posterised
-    // into hard steps so bands have crisp edges instead of soft gradients, and
-    // the palette is pushed to saturated fantasy teal/violet/magenta.
+    // Where d falls on a disc of angular radius r centred on c: xy across its
+    // face (-1..1), z the distance from its centre in radii (large when behind).
+    vec3 skyDisc(vec3 d,vec3 c,float r){
+      vec3 u=normalize(cross(c,vec3(0.0,1.0,0.0))), v=cross(u,c);
+      vec2 p=vec2(dot(d,u),dot(d,v))/r;
+      return vec3(p,dot(d,c)>0.0?length(p):9.0);
+    }
     void main(){
       vec3 d=normalize(vDir);
-      float el=d.y;
+      float el=d.y, up=clamp(el,0.0,1.0);
       // Everything is sampled from the direction vector's horizontal component
       // rather than from atan(z,x). An azimuth angle wraps from +PI to -PI, and
       // the noise either side of that line does not agree — which is the seam
@@ -11164,29 +11263,58 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
       // continuous in every direction, so the curtains close on themselves.
       vec2 h=d.xz;
       float t=uTime*0.085;
-      vec3 sky=mix(uHorizon,uZenith,pow(clamp(el,0.0,1.0),0.65));
-      // Four curtains, each drifting on its own vector so they slide across
-      // one another instead of moving as one sheet.
+      vec3 sky=mix(uHorizon,uZenith,pow(up,0.5));
+      // The moon lights the air round it: a wide cool bloom, strongest low.
+      float md=max(dot(d,uMoonDir),0.0);
+      vec3 moonAir=vec3(0.62,0.70,1.0);
+      sky+=moonAir*(pow(md,5.0)*0.08+pow(md,60.0)*0.20)*uMoonLit;
+      // Three thin veils, each drifting on its own vector so they slide across
+      // one another instead of moving as one sheet. Cobalt low, violet high.
       float glow=0.0;
-      for(int i=0;i<4;i++){
+      for(int i=0;i<3;i++){
         float fi=float(i);
         vec2 drift=vec2(t*(0.5+fi*0.22),-t*(0.34+fi*0.16));
         float warp=fbm(h*2.4+drift+fi*7.3)-0.5;
         float sway=fbm(h*0.9-drift*0.6+fi*3.1)-0.5;
-        float centre=0.22+fi*0.115+warp*0.34+sway*0.16;
-        float width=0.052+0.020*fi;
+        float centre=0.32+fi*0.13+warp*0.30+sway*0.14;
+        float width=0.040+0.016*fi;
         float ribbon=exp(-pow((el-centre)/width,2.0));
-        float flicker=0.45+0.70*fbm(h*9.0-drift*3.0+fi*5.0);
-        glow+=ribbon*flicker*(1.0-fi*0.18);
+        float flicker=0.40+0.70*fbm(h*9.0-drift*3.0+fi*5.0);
+        glow+=ribbon*flicker*(1.0-fi*0.2);
       }
       // Fine vertical striations, still seam-free because they use h as well.
-      glow*=0.42+0.86*fbm(h*26.0+vec2(0.0,-t*2.2));
-      glow=max(glow,0.0);
-      vec3 tint=mix(vec3(0.10,1.00,0.58),vec3(0.18,0.66,1.00),smoothstep(0.16,0.50,el));
-      tint=mix(tint,vec3(0.86,0.26,1.00),smoothstep(0.40,0.80,el)*0.85);
-      sky+=tint*glow*uIntensity*1.06;
+      glow*=0.35+0.90*fbm(h*26.0+vec2(0.0,-t*2.2));
+      vec3 tint=mix(vec3(0.16,0.26,0.90),vec3(0.46,0.26,0.98),smoothstep(0.28,0.56,el));
+      tint=mix(tint,vec3(0.70,0.28,0.88),smoothstep(0.52,0.86,el)*0.6);
+      sky+=tint*max(glow,0.0)*uIntensity*0.34;
+      // The moons, drawn into the dome so they always sit at infinity. The
+      // great moon is pale and carries darker seas; the ember moon is small.
+      vec3 m=skyDisc(d,uMoonDir,0.054);
+      if(m.z<1.0){
+        float limb=sqrt(max(0.0,1.0-m.z*m.z));
+        float seas=smoothstep(0.44,0.62,fbm(m.xy*2.2+vec2(3.1,7.7)));
+        vec3 face=mix(vec3(0.95,0.95,0.99),vec3(0.56,0.60,0.78),seas*0.75)*(0.80+0.20*limb);
+        sky=mix(sky,face*uMoonLit,smoothstep(1.0,0.965,m.z));
+      }
+      vec3 m2=skyDisc(d,uMoon2Dir,0.017);
+      if(m2.z<1.0){
+        float limb2=sqrt(max(0.0,1.0-m2.z*m2.z));
+        sky=mix(sky,vec3(0.86,0.46,0.34)*(0.70+0.32*limb2),smoothstep(1.0,0.93,m2.z));
+      }
+      sky+=vec3(0.86,0.46,0.34)*pow(max(dot(d,uMoon2Dir),0.0),900.0)*0.22;
+      // Cloud banks low in the sky, projected onto a plane so they flatten
+      // toward the horizon. Dark bodies; their thinning edges catch the moon,
+      // strongly on the side facing it. They pass in front of both moons.
+      vec2 cp=h/(up+0.20)*0.85+vec2(t*0.22,-t*0.07);
+      float c=fbm(cp*1.35+vec2(11.0,3.0));
+      float band=smoothstep(0.012,0.12,el)*(1.0-smoothstep(0.30,0.58,el));
+      float body=smoothstep(0.50,0.68,c)*band;
+      float rim=(smoothstep(0.46,0.54,c)-smoothstep(0.54,0.64,c))*band;
+      vec3 cloud=mix(uZenith,uHorizon,0.62)*0.92;
+      sky=mix(sky,cloud,body*0.9*uCloud);
+      sky+=moonAir*rim*(0.05+0.75*pow(md,9.0))*uCloud*uMoonLit;
       // Settle into the fog colour at the skyline so the dome meets the terrain.
-      sky=mix(uFog,sky,smoothstep(-0.02,0.24,el));
+      sky=mix(uFog,sky,smoothstep(-0.02,0.20,el));
       gl_FragColor=vec4(sky,1.0);
     }`
 }));
@@ -14269,14 +14397,14 @@ document.getElementById('vol').oninput=e=>audio.volume=+e.target.value;
 // colour from below. They were one value until r111, when a lavender bounce
 // under physical light turned every street purple.
 const LIGHTING={
-  night:{fog:C.nightFog,ground:0x8f87b2,hemi:C.nightHemi,bounce:C.nightGround,hemiPower:2.25,moon:0xb8c4ff,moonPower:2.2},
+  night:{fog:C.nightFog,ground:0x8f87b2,hemi:C.nightHemi,bounce:C.nightGround,hemiPower:2.25,moon:0xc2caff,moonPower:2.3},
   dusk:{fog:C.duskFog,ground:0xd69a72,hemi:C.duskHemi,bounce:0xd69a72,hemiPower:1.5,moon:0xffc49b,moonPower:1.86},
   ember:{fog:0x2b1015,ground:0xc75d42,hemi:0xff9a78,bounce:0x7a4a40,hemiPower:1.5,moon:0xff8b5c,moonPower:1.8}
 };
 // Aurora settings per lighting mode: full show at night, a faint remnant at
 // dusk, and a dim warm-tinted one under ember so the sky still agrees with the
 // fog rather than fighting it.
-const SKY_MODES={ night:{zenith:0x0a0616,horizon:0x1a1030,intensity:1}, dusk:{zenith:0x241633,horizon:0x40291f,intensity:.34}, ember:{zenith:0x1d0a12,horizon:0x2b1015,intensity:.5} };
+const SKY_MODES={ night:{zenith:0x03040c,horizon:0x161c44,intensity:1,cloud:1}, dusk:{zenith:0x241633,horizon:0x40291f,intensity:.34,cloud:.7}, ember:{zenith:0x1d0a12,horizon:0x2b1015,intensity:.5,cloud:.8} };
 // A HemisphereLight has no occlusion. It lights every surface from its
 // normal, and a roof over your head means nothing to it: the inside of every
 // hall in Vaneth was being flooded with 2.25 of open night sky, which is why
@@ -14299,7 +14427,7 @@ function updateInteriorLight(dt){
   moon.intensity=mode.moonPower*(1-interiorDim*.88);
 }
 function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=name in LIGHTING?name:'night'; scene.fog.color.setHex(next.fog); scene.background.setHex(next.fog); hemi.color.setHex(next.hemi); hemi.groundColor.setHex(next.bounce); hemi.intensity=next.hemiPower; moon.color.setHex(next.moon); moon.intensity=next.moonPower; ground.material.color.setHex(next.ground);
-  const sky=SKY_MODES[lighting]||SKY_MODES.night; auroraUniforms.uFog.value.setHex(next.fog,THREE.LinearSRGBColorSpace); auroraUniforms.uZenith.value.setHex(sky.zenith,THREE.LinearSRGBColorSpace); auroraUniforms.uHorizon.value.setHex(sky.horizon,THREE.LinearSRGBColorSpace); auroraUniforms.uIntensity.value=sky.intensity;
+  const sky=SKY_MODES[lighting]||SKY_MODES.night; auroraUniforms.uFog.value.setHex(next.fog,THREE.LinearSRGBColorSpace); auroraUniforms.uZenith.value.setHex(sky.zenith,THREE.LinearSRGBColorSpace); auroraUniforms.uHorizon.value.setHex(sky.horizon,THREE.LinearSRGBColorSpace); auroraUniforms.uIntensity.value=sky.intensity; auroraUniforms.uCloud.value=sky.cloud;
   starField.material.opacity=lighting==='night'?.8:.35;
   document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
 document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting(savedGameState?.lighting||'night');
@@ -14312,7 +14440,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r142',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r142',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -14505,6 +14633,10 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // bell's retasking, shelter the doors, meetings the ember watch's pauses,
   // walk the per-resident step, villagers all of it, render draw and bloom.
   frameCost:()=>({...FRAME_COST}),
+  // Weather and the rare sky events on demand (r143): a probe cannot wait
+  // seven minutes for a shower. undefined hands a control back to the clock.
+  sky:{rain:v=>{if(VISUAL_CANON.rain)VISUAL_CANON.rain.forced=v;},omen:v=>{if(VISUAL_CANON.omen)VISUAL_CANON.omen.forced=v;},
+    shower:()=>{const e=VISUAL_CANON.events;e.nextShowerAt=clock.getElapsed();e.showerAt=-1;},moonDir:MOON_DIR},
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
@@ -14582,7 +14714,6 @@ function loop(){ requestAnimationFrame(loop);
     // Two frequencies: the slow breath of the fire and the fast snap of it.
     fire.light.intensity=(fire.base+Math.sin(t*7+fire.phase)*.22+Math.sin(t*23+fire.phase*2)*.09)*fire.light.userData.lampScale;
   }
-  moonDisc.lookAt(camera.position); moon2.lookAt(camera.position);
   // Sky and stars ride with the camera so the dome never goes off-centre and
   // the starfield keeps a constant apparent distance across the larger map.
   auroraUniforms.uTime.value=t;

@@ -9,6 +9,10 @@
   if (!E) return { error: 'EMBER missing' };
   E.setWatch('still');
   E.setPixel(1);
+  // Since r143 rain and the omen come and go on the clock, and jumping straight
+  // to the Still Hours lands on an omen night. Pin both off so every run of
+  // this probe photographs the same sky.
+  if (E.sky) { E.sky.rain(0); E.sky.omen(0); }
   await wait(900);
 
   const style = document.getElementById('visualCanonCleanCapture') || document.createElement('style');
