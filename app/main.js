@@ -17,7 +17,7 @@ protocol.registerSchemesAsPrivileged([
 // Bump this whenever renderer/index.html is replaced with a newer revision.
 // It shows in the window title and taskbar so a running build is identifiable
 // at a glance without opening the Puffco panel to read its header.
-const BUILD_REVISION = 'r148';
+const BUILD_REVISION = 'r149';
 
 let mainWindow = null;
 // Electron hands us a callback to pick a device with. We hold it while the
