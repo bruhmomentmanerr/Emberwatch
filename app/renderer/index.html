@@ -10772,7 +10772,11 @@ function lodVillagers(t){
     for(const part of npc.lodHide)part.visible=!far;
   }
 }
-function villager(name,x,z,robe,line,route=[],districtOverride){
+// look (r143) lets an authored role choose what it wears and who it is — a
+// ruin wizard in a scholar's coat rather than whatever outfit the letters of
+// its name happened to roll. {variant, species, build}. Everyone else still
+// gets the signature's pick.
+function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
   // Snap the resident and every patrol stop onto walkable ground first. These
   // coordinates were authored against a much smaller city and a good number
   // now land inside the new wards' geometry.
@@ -10807,14 +10811,14 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   // Hooded travellers are a rare silhouette. The other seven jobs carry the
   // everyday visual language of a city: tunics, aprons, vests, dresses and
   // uniforms, so the street no longer resolves into a row of cloaks.
-  const signature=[...name].reduce((value,char)=>((value*31)+char.charCodeAt(0))>>>0,7),variant=((signature>>>9)%16===0)?0:1+(signature%7),bodyType=(signature>>>23)%NPC_BUILD.length;
+  const signature=[...name].reduce((value,char)=>((value*31)+char.charCodeAt(0))>>>0,7),variant=Number.isInteger(look?.variant)?look.variant:((signature>>>9)%16===0)?0:1+(signature%7),bodyType=Number.isInteger(look?.build)?look.build:(signature>>>23)%NPC_BUILD.length;
   // signature was forced unsigned via >>>0, but a signed >> on a value above
   // 0x7fffffff sign-extends back to negative, which turns %5/%4 negative and
   // indexes these palettes out of bounds (a silent `undefined` material color
   // — about half of residents were getting the Three.js default white instead
   // of their trim/skin/hair tone). Use unsigned >>> throughout so the shifted
   // value stays non-negative like signature itself.
-  const species=(signature>>>19)%NPC_STATURE.length,profile=NPC_PROFILE[species],build=NPC_BUILD[bodyType],g=new THREE.Group(),cloth=npcMaterial(robe),under=npcMaterial([0x3d536c,0x76583a,0x4a6b57,0x77505e,0x6b6036,0x394b62][(signature>>>27)%6]),trim=npcMaterial([0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5]),skin=npcMaterial((species===4?[0x72875d,0x637b59,0x81986d]:species===3?[0x827774,0x6e6666,0x8e8179]:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30])[(signature>>>5)%(species===4?3:species===3?3:5)]),hair=npcMaterial([0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4]),leather=npcMaterial(0x382519),speciesAccent=npcMaterial([0x965439,0x6c4b35,0x42665e,0x5d6870,0x487348][species]),smokeRoll=(signature>>>16)%7,smokes=species===0?smokeRoll<5:smokeRoll<2;
+  const species=Number.isInteger(look?.species)?look.species:(signature>>>19)%NPC_STATURE.length,profile=NPC_PROFILE[species],build=NPC_BUILD[bodyType],g=new THREE.Group(),cloth=npcMaterial(robe),under=npcMaterial([0x3d536c,0x76583a,0x4a6b57,0x77505e,0x6b6036,0x394b62][(signature>>>27)%6]),trim=npcMaterial([0x40324d,0x7a5d31,0x35485d,0x62383f,0x35534c][(signature>>>3)%5]),skin=npcMaterial((species===4?[0x72875d,0x637b59,0x81986d]:species===3?[0x827774,0x6e6666,0x8e8179]:[0xe0ae8a,0xb97858,0x8d553f,0xf0c4a4,0x6f3f30])[(signature>>>5)%(species===4?3:species===3?3:5)]),hair=npcMaterial([0x201614,0x4a2b1e,0x7a5535,0x16131b][(signature>>>8)%4]),leather=npcMaterial(0x382519),speciesAccent=npcMaterial([0x965439,0x6c4b35,0x42665e,0x5d6870,0x487348][species]),smokeRoll=(signature>>>16)%7,smokes=species===0?smokeRoll<5:smokeRoll<2;
   const headPivot=new THREE.Group(),leftArm=new THREE.Group(),rightArm=new THREE.Group(),leftLeg=new THREE.Group(),rightLeg=new THREE.Group(),faceStyle=signature%6;
   const canonStyle={
     glasses:((signature>>>12)%8===0)||(variant===7&&((signature>>>6)%4===0)),
@@ -10828,14 +10832,29 @@ function villager(name,x,z,robe,line,route=[],districtOverride){
   for(const tag of styleTags)if(Object.prototype.hasOwnProperty.call(NPC_STYLE_COUNTS,tag))NPC_STYLE_COUNTS[tag]++;
   const face=new THREE.Mesh(new THREE.SphereGeometry(.27,8,7),skin); face.position.y=.15; face.scale.set(profile.head[0],profile.head[1]*.93,profile.head[2]*.96); headPivot.position.y=profile.headY+.07; headPivot.scale.setScalar(.86); headPivot.add(face);
   const eyeMaterial=npcEyeMaterials[(signature>>>11)%npcEyeMaterials.length],mouthMaterial=npcMouthMaterials[(signature>>>14)%npcMouthMaterials.length],eyeScale=[1,.82,1.18,.72,1.05,.9][faceStyle],eyeLift=[.255,.24,.27,.248,.262,.25][faceStyle];
-  const leftEye=new THREE.Mesh(new THREE.BoxGeometry(.03,.038,.012),eyeMaterial),rightEye=leftEye.clone();
-  const eyeSpread=[.095,.083,.09,.098,.088][species],eyeFront=.254*profile.head[2];
-  leftEye.position.set(-eyeSpread,eyeLift-.065,eyeFront); rightEye.position.set(eyeSpread,eyeLift-.065,eyeFront); leftEye.scale.set(eyeScale*1.25,eyeScale*1.25,1); rightEye.scale.set(eyeScale*1.25,eyeScale*1.25,1);
-  const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.088,.016,.012),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.088,.016,.012),hair);
-  const browTilt=[-.08,.1,-.18,.04,-.04,.17][faceStyle]; leftBrow.position.set(-eyeSpread,.27,eyeFront+.004); rightBrow.position.set(eyeSpread,.27,eyeFront+.004); leftBrow.rotation.z=browTilt; rightBrow.rotation.z=-browTilt;
-  const mouthLift=[.42,-.18,.05,.28,-.38,.12][faceStyle],mouth=new THREE.Mesh(new THREE.BoxGeometry(.092,.015,.012),mouthMaterial);mouth.position.set(0,.07,eyeFront+.004);mouth.rotation.z=mouthLift*.12;
+  // Eyes that read from across a street (r143). A lone dark box three
+  // centimetres wide is four pixels at five metres, so residents had dots for
+  // eyes, and the canon asks for faces that read at play distance. Each eye is
+  // a pale white with an iris set in front and a lid line over it, and the
+  // brows and mouth are heavier. It all merges into the head like the rest of
+  // the face: vertices, no draw calls.
+  const eyeSpread=[.095,.083,.09,.098,.088][species],eyeFront=.254*profile.head[2],eyeY=eyeLift-.065;
+  const eyeWhite=npcMaterial(species===4?0xd8e2b8:species===3?0xd6d2cc:0xeee8e0),lid=npcMaterial(species===4?0x3e5134:0x2a1d1b),lidTilt=[.10,-.06,.16,0,.06,-.12][faceStyle];
+  const leftWhite=new THREE.Mesh(new THREE.BoxGeometry(.078,.054,.012),eyeWhite),rightWhite=leftWhite.clone();
+  const leftEye=new THREE.Mesh(new THREE.BoxGeometry(.036,.046,.012),eyeMaterial),rightEye=leftEye.clone();
+  const leftLid=new THREE.Mesh(new THREE.BoxGeometry(.086,.016,.014),lid),rightLid=leftLid.clone();
+  for(const [white,iris,lidMesh,side] of [[leftWhite,leftEye,leftLid,-1],[rightWhite,rightEye,rightLid,1]]){
+    white.position.set(side*eyeSpread,eyeY,eyeFront-.004); white.scale.set(eyeScale,eyeScale,1);
+    iris.position.set(side*(eyeSpread-.004),eyeY-.004,eyeFront+.004); iris.scale.set(eyeScale,eyeScale,1);
+    lidMesh.position.set(side*eyeSpread,eyeY+.03*eyeScale,eyeFront+.006); lidMesh.rotation.z=side*lidTilt; lidMesh.scale.x=eyeScale;
+  }
+  const leftBrow=new THREE.Mesh(new THREE.BoxGeometry(.098,.024,.016),hair),rightBrow=new THREE.Mesh(new THREE.BoxGeometry(.098,.024,.016),hair);
+  const browTilt=[-.08,.1,-.18,.04,-.04,.17][faceStyle]; leftBrow.position.set(-eyeSpread,eyeY+.075,eyeFront+.004); rightBrow.position.set(eyeSpread,eyeY+.075,eyeFront+.004); leftBrow.rotation.z=browTilt; rightBrow.rotation.z=-browTilt;
+  const mouthLift=[.42,-.18,.05,.28,-.38,.12][faceStyle],mouth=new THREE.Mesh(new THREE.BoxGeometry(.118,.024,.014),mouthMaterial);mouth.position.set(0,.07,eyeFront+.002);mouth.rotation.z=mouthLift*.12;
   const nose=new THREE.Mesh(new THREE.SphereGeometry(species===0?.075:.055,6,5),skin);nose.position.set(0,.145,eyeFront+.03);nose.scale.set(species===3?1.3:1,1,species===0?1.12:.85);
-  headPivot.add(leftEye,rightEye,leftBrow,rightBrow,mouth,nose);
+  headPivot.add(leftWhite,rightWhite,leftEye,rightEye,leftLid,rightLid,leftBrow,rightBrow,mouth,nose);
+  // Humans were the one people with no ears at all: a bald sphere from the side.
+  if(species===1)for(const side of[-1,1]){const ear=new THREE.Mesh(new THREE.SphereGeometry(.06,5,4),skin);ear.position.set(side*.262*profile.head[0],.15,.0);ear.scale.set(.5,1,.7);headPivot.add(ear);}
   if(species===0){
     // Broad cheeks, little side ears and a pointed beard make a gnome readable
     // even when the outfit happens to be a guard's coat rather than a tall hat.
@@ -11145,54 +11164,87 @@ for(const [name,hx,hz,robe,lineIdx,route,district] of OUTER_RESIDENTS_BAKED){
   villager(name,hx,hz,robe,OUTER_LINES[lineIdx],route,district);
 }
 
+// look: what each role wears and who they are (r143). They used to take the
+// outfit their name happened to roll: the citadel guard stood watch in an
+// artisan's apron, the ruin wizard in a watch uniform with a guard's shield,
+// the skywatch companion in a forge apron. variant indexes NPC_OUTFITS,
+// species NPC_PEOPLES, build NPC_BUILD.
 const REFERENCE_BUILD_NPC_ROLES=[
-  {id:'npc-lower-town-cliff-watcher',place:'place-lower-town-overlook',role:'cliff-watcher',pose:'sit-watch',name:'Corvin Cliffwatch',x:-397,z:-214,robe:0x171b2b,line:'I keep the roofs below me and the moon above me. If either changes, I notice.',face:[-382,-245],district:'Lower-Town Overlook',prop:'bow',tags:['foreground-silhouette','town-below']},
-  {id:'npc-citadel-stair-guard',place:'place-citadel-ascent',role:'citadel-guard',pose:'guard-watch',name:'Maer of the High Step',x:-10,z:243,robe:0x52677f,line:'The climb is part of the oath. No one reaches the gate unchanged.',face:[0,205],district:'Citadel Ascent',prop:'spear',tags:['gate','parapet','lamp']},
-  {id:'npc-citadel-pilgrim-climber',place:'place-citadel-ascent',role:'pilgrim-climber',pose:'look-up',name:'Sova Moonstep',x:7,z:260,robe:0x85735e,line:'I count each landing when the moon is bright. It keeps fear from catching up.',face:[0,204],district:'Citadel Ascent',prop:'lantern',tags:['ascent','pilgrim']},
-  {id:'npc-foxglove-bridge-resident',place:'place-foxglove-bridge',role:'bridge-resident',pose:'lean-watch',name:'Tallow of Foxglove Bank',x:-357,z:303,robe:0x445f74,line:'Water remembers every light. Even the ones people swear were never lit.',face:[-344,294],district:'Foxglove Bridge',prop:'lantern',tags:['bridge','river','reflection']},
-  {id:'npc-old-graveyard-mourner',place:'place-old-graveyard-oathfield',role:'mourner',pose:'kneel-mourn',name:'Elen of the Twenty-Sixth Blade',x:-326,z:-343,robe:0x786d8c,line:'Some names are too heavy for stone, so we planted steel instead.',face:[-326,-339],district:'Old Graveyard Oathfield',prop:'flower',tags:['memorial','kneel','oath']},
-  {id:'npc-old-graveyard-caretaker',place:'place-old-graveyard-oathfield',role:'caretaker',pose:'tend-blades',name:'Keeper Voss',x:-337,z:-352,robe:0x53624d,line:'A sword left alone becomes a warning. A sword tended becomes a promise.',face:[-326,-348],district:'Old Graveyard Oathfield',prop:'staff',tags:['memorial','caretaker']},
-  {id:'npc-fallen-hall-ruin-wizard',place:'place-fallen-hall-ruin',role:'ruin-wizard',pose:'staff-watch',name:'Orren of the Broken Hall',x:340,z:-356,robe:0x2d273f,line:'The ruin does not sleep. It only waits for someone patient enough to hear it.',face:[350,-344],district:'Fallen Hall Ruin',prop:'staff-glow',tags:['wizard','ruin','moon']},
-  {id:'npc-rain-oath-pilgrim',place:'place-rain-oath',role:'rain-pilgrim',pose:'bow-rain',name:'Mira Rainbound',x:309,z:316,robe:0x586b86,line:'Rain makes every vow public. The city hears it hit the stone.',face:[318,307],district:'Rain Oath Causeway',prop:'hood',tags:['rain','oath','kneel']},
-  {id:'npc-skywatch-lookout',place:'place-north-skywatch',role:'skywatch-companion',pose:'look-up',name:'Lysa Star-Eyed',x:-51,z:421,robe:0x6b5276,line:'Do not stare at the sky like it is empty. It hates being underestimated.',face:[-42,400],district:'North Skywatch Ledge',prop:'spyglass',tags:['skywatch','companion','moon']},
-  {id:'npc-collapse-runner-witness',place:'place-citadel-ascent',role:'runner-witness',pose:'run-warn',name:'Nell Red-Sock',x:18,z:220,robe:0x76527a,line:'If the towers groan, run downhill and shout before you breathe.',face:[0,190],district:'Citadel Ascent',prop:'none',tags:['runner','warning','event-witness']}
+  {id:'npc-lower-town-cliff-watcher',place:'place-lower-town-overlook',role:'cliff-watcher',pose:'sit-watch',name:'Corvin Cliffwatch',x:-397,z:-214,robe:0x171b2b,line:'I keep the roofs below me and the moon above me. If either changes, I notice.',face:[-382,-245],district:'Lower-Town Overlook',prop:'bow',look:{variant:0,species:1,build:0},tags:['foreground-silhouette','town-below']},
+  {id:'npc-citadel-stair-guard',place:'place-citadel-ascent',role:'citadel-guard',pose:'guard-watch',name:'Maer of the High Step',x:-10,z:243,robe:0x52677f,line:'The climb is part of the oath. No one reaches the gate unchanged.',face:[0,205],district:'Citadel Ascent',prop:'none',look:{variant:2,species:3,build:2},tags:['gate','parapet','lamp']},
+  {id:'npc-citadel-pilgrim-climber',place:'place-citadel-ascent',role:'pilgrim-climber',pose:'look-up',name:'Sova Moonstep',x:7,z:260,robe:0x85735e,line:'I count each landing when the moon is bright. It keeps fear from catching up.',face:[0,204],district:'Citadel Ascent',prop:'lantern',look:{variant:0,species:2,build:1},tags:['ascent','pilgrim']},
+  {id:'npc-foxglove-bridge-resident',place:'place-foxglove-bridge',role:'bridge-resident',pose:'lean-watch',name:'Tallow of Foxglove Bank',x:-357,z:303,robe:0x445f74,line:'Water remembers every light. Even the ones people swear were never lit.',face:[-344,294],district:'Foxglove Bridge',prop:'none',look:{variant:4,species:0,build:1},tags:['bridge','river','reflection']},
+  {id:'npc-old-graveyard-mourner',place:'place-old-graveyard-oathfield',role:'mourner',pose:'kneel-mourn',name:'Elen of the Twenty-Sixth Blade',x:-326,z:-343,robe:0x786d8c,line:'Some names are too heavy for stone, so we planted steel instead.',face:[-326,-339],district:'Old Graveyard Oathfield',prop:'flower',look:{variant:5,species:1,build:0},tags:['memorial','kneel','oath']},
+  {id:'npc-old-graveyard-caretaker',place:'place-old-graveyard-oathfield',role:'caretaker',pose:'tend-blades',name:'Keeper Voss',x:-337,z:-352,robe:0x53624d,line:'A sword left alone becomes a warning. A sword tended becomes a promise.',face:[-326,-348],district:'Old Graveyard Oathfield',prop:'staff',look:{variant:1,species:4,build:2},tags:['memorial','caretaker']},
+  {id:'npc-fallen-hall-ruin-wizard',place:'place-fallen-hall-ruin',role:'ruin-wizard',pose:'staff-watch',name:'Orren of the Broken Hall',x:340,z:-356,robe:0x2d273f,line:'The ruin does not sleep. It only waits for someone patient enough to hear it.',face:[350,-344],district:'Fallen Hall Ruin',prop:'staff-glow',look:{variant:7,species:2,build:0},hat:'wizard',tags:['wizard','ruin','moon']},
+  {id:'npc-rain-oath-pilgrim',place:'place-rain-oath',role:'rain-pilgrim',pose:'bow-rain',name:'Mira Rainbound',x:309,z:316,robe:0x586b86,line:'Rain makes every vow public. The city hears it hit the stone.',face:[318,307],district:'Rain Oath Causeway',prop:'none',look:{variant:0,species:3,build:1},tags:['rain','oath','kneel']},
+  {id:'npc-skywatch-lookout',place:'place-north-skywatch',role:'skywatch-companion',pose:'look-up',name:'Lysa Star-Eyed',x:-51,z:421,robe:0x6b5276,line:'Do not stare at the sky like it is empty. It hates being underestimated.',face:[-42,400],district:'North Skywatch Ledge',prop:'spyglass',look:{variant:7,species:2,build:1},tags:['skywatch','companion','moon']},
+  {id:'npc-collapse-runner-witness',place:'place-citadel-ascent',role:'runner-witness',pose:'run-warn',name:'Nell Red-Sock',x:18,z:220,robe:0x76527a,line:'If the towers groan, run downhill and shout before you breathe.',face:[0,190],district:'Citadel Ascent',prop:'none',look:{variant:1,species:1,build:0},tags:['runner','warning','event-witness']}
 ];
+// A role's own things sit where the body holds them (r143): a staff or a
+// lantern in the palm's grip, a bow across the back, a hat on the head pivot.
+// They were children of the whole figure at fixed offsets, so the wizard's
+// staff stood a hand's width off his fingers and the bow floated at the hip.
+// `upright` counter-rotates a held staff against the arm's pose so it stands
+// straight while the arm holds it forward.
+const ROLE_STAFF_ARM=-.34;
 function addReferenceRoleProp(npc,role){
-  const localMat=key=>key==='glow'?new THREE.MeshStandardMaterial({color:0x9fb7ff,emissive:0x5f78ff,emissiveIntensity:1.4,roughness:.5}):npcMaterial(key);
-  let item=null;
-  if(role.prop==='spear'||role.prop==='staff'||role.prop==='staff-glow'){
-    item=new THREE.Group();
-    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.025,.04,1.85,5),role.prop==='staff-glow'?localMat('glow'):npcMaterial(0x3a291c));
-    shaft.position.set(.42,.78,.18); shaft.rotation.z=-.18; item.add(shaft);
-    if(role.prop==='spear'){ const tip=new THREE.Mesh(new THREE.ConeGeometry(.075,.24,5),npcMaterial(0xa5b4c2)); tip.position.set(.25,1.66,.18); tip.rotation.z=-.18; item.add(tip); }
-    if(role.prop==='staff-glow'){ const orb=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),localMat('glow')); orb.position.set(.24,1.68,.18); item.add(orb); }
+  const glowMat=()=>new THREE.MeshStandardMaterial({color:0x9fb7ff,emissive:0x5f78ff,emissiveIntensity:1.6,roughness:.5});
+  const grip=side=>(side<0?npc.parts.leftArm:npc.parts.rightArm).userData.grip||npc.g;
+  const hold=(item,side)=>{ item.name='reference-role-prop-'+role.id; grip(side).add(item); npc.lodHide?.push(item); return item; };
+  if(role.prop==='staff'||role.prop==='staff-glow'){
+    // The grip sits at the palm. A staff taller than its bearer stands on the
+    // ground a little ahead of the feet: most of it rises above the hand.
+    const staff=new THREE.Group(), wood=npcMaterial(role.prop==='staff-glow'?0x2b2438:0x4a3522);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.028,.036,1.95,6),wood); shaft.position.y=.36; staff.add(shaft);
+    if(role.prop==='staff-glow'){
+      const cage=new THREE.Mesh(new THREE.TorusGeometry(.085,.014,5,10),wood); cage.position.y=1.40; staff.add(cage);
+      const orb=new THREE.Mesh(new THREE.OctahedronGeometry(.075,0),glowMat()); orb.position.y=1.40; staff.add(orb);
+      const light=lampLight(0x8ea4ff,.34,7); light.position.set(0,1.42,0); staff.add(light); lights.push({light,base:.34,phase:1.3,fire:true,child:true});
+    }
+    staff.rotation.x=-ROLE_STAFF_ARM; staff.userData.upright=true; hold(staff,1);
   }else if(role.prop==='lantern'){
-    item=new THREE.Group();
-    const box=new THREE.Mesh(new THREE.BoxGeometry(.18,.22,.18),new THREE.MeshStandardMaterial({color:0xffb25c,emissive:0xff8a2a,emissiveIntensity:1.2,roughness:.75}));
-    box.position.set(.34,.78,.22); item.add(box);
-    const light=lampLight(0xff9d45,.34,7); light.position.set(role.x,terrainAt(role.x,role.z)+1.18,role.z); scene.add(light); lights.push({light,base:.34,phase:role.id.length*.11,fire:true});
-  }else if(role.prop==='bow'||role.prop==='spyglass'||role.prop==='flower'||role.prop==='hood'){
-    item=new THREE.Group();
-    if(role.prop==='bow'){ const bow=new THREE.Mesh(new THREE.TorusGeometry(.36,.014,4,16,Math.PI*1.22),npcMaterial(0x3a291c)); bow.position.set(.36,1.02,-.08); bow.rotation.set(Math.PI*.5,0,.55); item.add(bow); }
-    else if(role.prop==='spyglass'){ const glass=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.42,7),npcMaterial(0x8d7343)); glass.position.set(.24,1.20,.24); glass.rotation.set(Math.PI*.5,.22,-.3); item.add(glass); }
-    else if(role.prop==='flower'){ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.012,.016,.34,5),npcMaterial(0x4f7b4d)); stem.position.set(.22,.78,.20); stem.rotation.z=-.32; const bloom=new THREE.Mesh(new THREE.SphereGeometry(.045,6,5),npcMaterial(0xbba7ff)); bloom.position.set(.12,.93,.20); item.add(stem,bloom); }
-    else { const hood=new THREE.Mesh(new THREE.ConeGeometry(.34,.52,7),npcMaterial(0x1b2134)); hood.position.set(0,1.68,-.04); hood.rotation.z=.08; item.add(hood); }
+    const lantern=new THREE.Group();
+    const bail=new THREE.Mesh(new THREE.TorusGeometry(.06,.01,4,8,Math.PI),npcMaterial(0x1d1a22)); bail.position.y=-.04; lantern.add(bail);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(.1,.08,6),npcMaterial(0x1d1a22)); cap.position.y=-.12; lantern.add(cap);
+    const glass=new THREE.Mesh(new THREE.BoxGeometry(.13,.17,.13),new THREE.MeshStandardMaterial({color:0xffb25c,emissive:0xff8a2a,emissiveIntensity:1.25,roughness:.75})); glass.position.y=-.25; lantern.add(glass);
+    const base=new THREE.Mesh(new THREE.BoxGeometry(.15,.03,.15),npcMaterial(0x1d1a22)); base.position.y=-.35; lantern.add(base);
+    const light=lampLight(0xff9d45,.34,7); light.position.set(0,-.25,0); lantern.add(light); lights.push({light,base:.34,phase:role.id.length*.11,fire:true,child:true});
+    hold(lantern,-1);
+  }else if(role.prop==='spyglass'){
+    const glass=new THREE.Group(), brass=npcMaterial(0x9a7a45);
+    const tube=new THREE.Mesh(new THREE.CylinderGeometry(.03,.042,.44,7),brass); tube.rotation.x=Math.PI*.5; tube.position.set(0,.02,.16); glass.add(tube);
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(.046,.046,.05,7),npcMaterial(0x3a2a1a)); ring.rotation.x=Math.PI*.5; ring.position.set(0,.02,.05); glass.add(ring);
+    hold(glass,1);
+  }else if(role.prop==='flower'){
+    const posy=new THREE.Group();
+    for(let i=0;i<3;i++){ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.009,.012,.30,4),npcMaterial(0x46703f)); stem.position.set((i-1)*.025,.10,.03); stem.rotation.z=(i-1)*.22; posy.add(stem);
+      const bloom=new THREE.Mesh(new THREE.SphereGeometry(.038,6,5),npcMaterial(i===1?0xd8d0ff:0xa998f0)); bloom.position.set((i-1)*.06,.26,.03); posy.add(bloom); }
+    hold(posy,-1);
+  }else if(role.prop==='bow'){
+    // Slung across the back, string outward, not hovering at the hip.
+    const bow=new THREE.Mesh(new THREE.TorusGeometry(.42,.016,4,16,Math.PI*1.1),npcMaterial(0x3a291c));
+    bow.position.set(0,1.02,-.30); bow.rotation.set(0,0,Math.PI*.5+.35); bow.name='reference-role-prop-'+role.id; npc.g.add(bow); npc.lodHide?.push(bow);
   }
-  if(!item)return;
-  item.name='reference-role-prop-'+role.id;
-  npc.g.add(item);
-  npc.lodHide?.push(item);
+  if(role.hat==='wizard'){
+    // A tall hat is most of a wizard's silhouette against the sky.
+    const felt=npcMaterial(0x221c36), band=npcMaterial(0x6e5aa8);
+    const brim=new THREE.Mesh(new THREE.CylinderGeometry(.40,.42,.04,10),felt); brim.position.y=.36;
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(.23,.72,8),felt); crown.position.set(0,.72,-.05); crown.rotation.x=-.20;
+    const ribbon=new THREE.Mesh(new THREE.CylinderGeometry(.215,.23,.06,8),band); ribbon.position.set(0,.43,-.012);
+    for(const m of[brim,crown,ribbon]){ m.name='reference-role-hat-'+role.id; npc.parts.headPivot.add(m); npc.lodHide?.push(m); }
+  }
 }
 function addReferenceBuildNpcRoles(){
   for(const role of REFERENCE_BUILD_NPC_ROLES){
     const before=villagers.length;
-    villager(role.name,role.x,role.z,role.robe,role.line,[],role.district);
+    villager(role.name,role.x,role.z,role.robe,role.line,[],role.district,role.look);
     const npc=villagers[villagers.length-1]; if(!npc||villagers.length===before)continue;
     npc.referenceBuild=true; npc.referenceRole=role.role; npc.referencePlaceId=role.place; npc.referencePose=role.pose; npc.referenceTags=role.tags||[];
     npc.activityAnchor={x:role.face[0],z:role.face[1]}; npc.route=[]; npc.routeLoop=[]; npc.goalIndex=0; npc.errandIndex=0; npc.pauseLeft=9999; npc.visualCanonPose=role.pose;
     npc.g.rotation.y=Math.atan2(role.face[0]-npc.g.position.x,role.face[1]-npc.g.position.z);
     addReferenceRoleProp(npc,role);
-    canonRecord('reference-npc-role',role.id,npc.g.position.x,npc.g.position.z,{place:role.place,role:role.role,pose:role.pose,name:role.name,tags:role.tags||[],purpose:'NPC role bound to reference-build place, not a decorative passerby'});
+    canonRecord('reference-npc-role',role.id,npc.g.position.x,npc.g.position.z,{place:role.place,role:role.role,pose:role.pose,name:role.name,outfit:npc.outfit,people:npc.people,tags:role.tags||[],purpose:'NPC role bound to reference-build place, not a decorative passerby'});
   }
 }
 useWorldStream('reference-build-npc-roles');
@@ -12585,35 +12637,50 @@ function applyReferenceBuildNpcPose(npc,t,movingNpc){
   if(!npc.referenceBuild||!npc.parts||npc.isFar)return;
   const p=npc.parts, breath=Math.sin(t*1.2+npc.phase)*.06, pose=npc.referencePose;
   npc.visualCanonPose=pose;
+  // Legs are one segment from hip (0.54 up, in the figure's own units) to
+  // sole, so sitting and kneeling are made by lowering the whole figure
+  // (poseDrop, applied where its height is set) and angling each leg until its
+  // foot meets the ground: a leg at angle a from vertical ends 0.54·cos a below
+  // the hip. The drop is in world metres, so it takes the figure's own scale.
+  const drop=d=>{ npc.poseDrop=d*npc.g.scale.y; };
+  drop(0);
   if(pose==='sit-watch'){
-    p.leftLeg.rotation.x=-1.34; p.rightLeg.rotation.x=-1.18;
-    p.leftArm.rotation.x=-.55+breath; p.rightArm.rotation.x=-.38-breath*.5;
-    p.headPivot.rotation.x=-.08; p.headPivot.rotation.y=.10+breath*.7;
+    // Seated on the ground, legs out, forearms on the knees, eyes on the horizon.
+    drop(.44);
+    p.leftLeg.rotation.x=-1.40; p.rightLeg.rotation.x=-1.30;
+    p.leftArm.rotation.x=-.62+breath; p.rightArm.rotation.x=-.50-breath*.5;
+    p.headPivot.rotation.x=-.12; p.headPivot.rotation.y=.10+breath*.7;
   }else if(pose==='guard-watch'){
     p.leftLeg.rotation.x=.04; p.rightLeg.rotation.x=-.04;
-    p.leftArm.rotation.x=-.26; p.rightArm.rotation.x=-.62+breath*.4;
+    p.leftArm.rotation.x=-.45; p.rightArm.rotation.x=-.30+breath*.4;
     p.headPivot.rotation.x=-.03; p.headPivot.rotation.y=Math.sin(t*.55+npc.phase)*.08;
   }else if(pose==='look-up'){
     p.leftLeg.rotation.x=-.08; p.rightLeg.rotation.x=.07;
-    p.leftArm.rotation.x=-.20+breath*.4; p.rightArm.rotation.x=-.08-breath*.4;
-    p.headPivot.rotation.x=-.34; p.headPivot.rotation.y=Math.sin(t*.62+npc.phase)*.08;
+    p.leftArm.rotation.x=-.34+breath*.4; p.rightArm.rotation.x=-.10-breath*.4;
+    p.headPivot.rotation.x=-.44; p.headPivot.rotation.y=Math.sin(t*.62+npc.phase)*.08;
   }else if(pose==='lean-watch'){
     p.leftLeg.rotation.x=-.20; p.rightLeg.rotation.x=.10;
     p.leftArm.rotation.x=-.72; p.rightArm.rotation.x=-.32;
     p.headPivot.rotation.x=-.12; p.headPivot.rotation.y=.18+breath;
     npc.g.rotation.z=Math.sin(t*.45+npc.phase)*.018;
   }else if(pose==='kneel-mourn'||pose==='bow-rain'){
-    p.leftLeg.rotation.x=-1.42; p.rightLeg.rotation.x=-.58;
-    p.leftArm.rotation.x=-.92+breath; p.rightArm.rotation.x=-.88-breath;
-    p.headPivot.rotation.x=pose==='bow-rain'?.42:.32; p.headPivot.rotation.y=0;
+    // One foot planted ahead, the other knee down behind, hands together low.
+    drop(.26);
+    p.leftLeg.rotation.x=-1.02; p.rightLeg.rotation.x=1.02;
+    p.leftArm.rotation.x=-.70+breath; p.rightArm.rotation.x=-.66-breath;
+    p.headPivot.rotation.x=pose==='bow-rain'?.46:.36; p.headPivot.rotation.y=0;
   }else if(pose==='tend-blades'){
-    p.leftLeg.rotation.x=-.34; p.rightLeg.rotation.x=-.16;
-    p.leftArm.rotation.x=-1.10+breath; p.rightArm.rotation.x=-.76-breath;
-    p.headPivot.rotation.x=.24; p.headPivot.rotation.y=.08;
+    // Crouched at a blade, reaching to it.
+    drop(.16);
+    p.leftLeg.rotation.x=-.80; p.rightLeg.rotation.x=.55;
+    p.leftArm.rotation.x=-1.10+breath; p.rightArm.rotation.x=-.84-breath;
+    p.headPivot.rotation.x=.30; p.headPivot.rotation.y=.08;
   }else if(pose==='staff-watch'){
+    // The staff hand holds at ROLE_STAFF_ARM, the angle the staff is counter-
+    // rotated by, so the staff itself stands straight.
     p.leftLeg.rotation.x=-.06; p.rightLeg.rotation.x=.05;
-    p.leftArm.rotation.x=-.22; p.rightArm.rotation.x=-.72+breath*.3;
-    p.headPivot.rotation.x=-.18; p.headPivot.rotation.y=Math.sin(t*.35+npc.phase)*.05;
+    p.leftArm.rotation.x=-.12; p.rightArm.rotation.x=ROLE_STAFF_ARM+breath*.1;
+    p.headPivot.rotation.x=-.14; p.headPivot.rotation.y=Math.sin(t*.35+npc.phase)*.05;
   }else if(pose==='run-warn'){
     const sprint=Math.sin(t*8.5+npc.phase);
     p.leftLeg.rotation.x=-sprint*.95; p.rightLeg.rotation.x=sprint*.95;
@@ -12935,7 +13002,10 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
       }
     }
     const speciesBob=[.085,.05,.032,.018,.075][npc.species]||.05;
-    npc.g.position.set(x,(x*x+z*z>WILD_GROUND_R2?terrainAt(x,z):0)+sway*speciesBob,z); npc.lastX=x;npc.lastZ=z;
+    // poseDrop (r143): someone sitting or kneeling is lower than someone
+    // standing. The pose code swung their legs forward and left the body at
+    // full height, so the seated watchers sat on air.
+    npc.g.position.set(x,(x*x+z*z>WILD_GROUND_R2?terrainAt(x,z):0)+sway*speciesBob-(npc.isFar?0:(npc.poseDrop||0)),z); npc.lastX=x;npc.lastZ=z;
     if(npc.cart)carryCart(npc,dt);
     if(npc.meetingWith&&!movingNpc){
       const mx=npc.meetingWith.g.position.x-x, mz=npc.meetingWith.g.position.z-z;
