@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.45.0 / build r145 ("halls and crossings")**,
+Current sealed source: **1.46.0 / build r146 ("the avenues at night")**,
 2026-09-30. Archived, smoke-tested, six variants boot-check. Not packaged
-yet (nor are r143 and r144): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+yet (nor are r143 to r145): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r145'
+                      the strain-archive lookups work. BUILD_REVISION = 'r146'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 3.0 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r145-halls-and-crossings.html
+                      emberwatch_3_r146-avenues-at-night.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r145, minus the revisions
+                    Phase 5 currently contains r70-r146, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r145-halls-and-crossings.html
+                    emberwatch_3_r146-avenues-at-night.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1107,6 +1107,24 @@ guessed at.
                           none broken, road obstructions 0, draw calls
                           unchanged; 14 captures looked at; 6/6 variants
                           built and booted; smoke clean (r145 in the title).
+    Sep 30     r146       the avenues at night. Lit windows are leaded;
+                          warm pools of light on the paving under every lit
+                          ground-floor window, hall window and door lantern
+                          (one additive mesh); door lanterns' glass lit.
+                          Chimney stacks on three houses in five, sized to
+                          their roofs, modelled crowns and pots; the forty
+                          nearest smoke, leaning with the wind. The four old
+                          fixed smoke columns, which drifted off their
+                          sources, removed. The avenues: 25 houses facing
+                          them from the gaps and 14 lantern festoons across
+                          them, baked by tools/plan-avenues.py; lit windows
+                          in every back or side wall that faces a street.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r145, no errors, 102 dialogue branches
+                          none broken, road obstructions 0, six new draw
+                          calls; 14 captures looked at; 6/6 variants built
+                          and booted (r0 after a fix); smoke clean (r146 in
+                          the title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

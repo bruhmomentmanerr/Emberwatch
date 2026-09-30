@@ -6,6 +6,42 @@ estimated.
 
 ---
 
+## 2026-09-30 — night · r146 "The avenues at night"
+
+**What was wrong.** A night street is lit windows, the light they throw,
+chimneys against the sky and the smoke off them. Every lit window was a
+flat bright square that lit nothing; a chimney was a plain box on a third
+of the houses; four smoke columns stood where no chimney had been for
+several revisions, and walked away from those at a metre a minute. The two
+avenues through the centre read as wide empty roads: most of the houses
+beside them turned a side or a back to them, with gaps between, and their
+walls were blank.
+
+**What changed.** Leaded windows, and a pool of warm light on the paving
+under every lit ground-floor window and door lantern. Chimney stacks sized
+to their roofs with modelled crowns and pots on three houses in five, and
+the forty nearest the player smoke. Along the avenues, 25 new houses facing
+them and 14 strings of lanterns across them; every back or side wall that
+faces a street has lit windows. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Runtime audit against r145: no errors, 17 wards and 102 dialogue branches
+  none broken, road obstructions 0; draw calls 442 → 448, the six new meshes.
+- Every avenue segment shot before and after; chimneys and smoke from six
+  streets and over the roofs; all 14 captures looked at.
+- The runtime audit caught one real break the parser could not: the
+  diagnostics still read the old smoke columns' array. Variants caught
+  another: r0 cuts the world stages, and the avenue tables had gone in with
+  them.
+- Variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r146. Frame time on the harness is 8–30% up (more triangles, and nothing
+in the merged world is culled); not measured on hardware.
+
+---
+
 ## 2026-09-30 — last · r145 "Halls and crossings"
 
 **What was wrong.** The city's eleven landmark halls — its taverns, its
