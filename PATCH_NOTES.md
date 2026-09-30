@@ -1,70 +1,82 @@
-**r148 — torchlit walls** · 1.48.0 · 2026-09-30 · phase 5, world depth
+**r149 — the bell tower** · 1.49.0 · 2026-09-30 · phase 5, world depth
 
 ### Summary
 
-torchlit walls. Both town walls were unlit stone between the gates and their towers dark drums: a torch in an iron sconce three times between each pair of towers on the outer faces and once on the inner wall's inner face (tools/assets/wall- sconce.py), a pool at the foot and a wash up the stone, the middle one of each span a real light; arrow slits lit up every tower. Light washes up the wall are a second kind of light pool, used by the houses' door lanterns too. Verified: parse/audit/dead clean; runtime audit against r147, no errors, 102 dialogue branches none broken, road obstructions 0; 14 captures looked at; 6/6 variants built and booted; smoke clean (r148 in the title).
+the bell tower. The Cathedral of Hours' east tower, a solid block, is hollow and climbable: a door from the east aisle, a stone newel stair of ten flights to a belfry at 19 m, open arches, two bells, a lantern; a new capture from the belfry over the roofs. Walkable surfaces can be stacked: one marked so counts only within 1.5 m of the walker, so a stair can pass over itself. Verified: parse/audit/dead clean; walked door to belfry 14/14; runtime audit against r148, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r149 in the title).
 
 ### Patch notes
 
-**State: r148 / 1.48.0, sealed 2026-09-30 ("torchlit walls").** Still the
-same instruction. r148 went to the outer ring between the walls, which r145
-left as reading least finished: its houses and streets had caught up with
-the city's, but the ring road along the inner wall ran beside twelve metres
-of unlit stone, and both walls' towers were dark drums.
+**State: r149 / 1.49.0, sealed 2026-09-30 ("the bell tower").** Same
+instruction again. With the city lit at night, the payoff for all of it is a
+place high enough to look down on it, so r149 made one: the Cathedral of
+Hours' east tower, climbed from inside.
 
 **Next:** the towers of the Moon Archive and the Northwatch Guild, which are
-only outsides; stairs up to the outer wall's walk. The Windows installers
-for r143–r148 have not been built.
+still only outsides — stacked surfaces (below) make their stairs
+straightforward now; stairs up to the outer wall's walk. The Windows
+installers for r143–r149 have not been built.
 
-### Torches on the walls
+### The bell tower
 
-`wallLights()` walks the segments `citadelWall` laid — one `WALL_WALKS`
-record per wall, so a build without walls (r0) places nothing — and hangs a
-torch in an iron sconce (`tools/assets/wall-sconce.py`, 102 triangles, at
-1.6 × so it reads on a twelve-metre face) three times between each pair of
-towers on the outer face of both walls, and once on the inner wall's inner
-face, where the city's last streets run. A sconce is left out wherever
-something already stands against the wall there. Each has a pool at the
-wall's foot and a wash up the stone; the middle torch of each span is a
-real, flickering light in the same tiered budget as every lamp. Arrow slits
-are lit up every tower, on the taper of its drum (at a fixed radius the
-lower ones sank into the stone).
+The east tower of the west front was a solid block of stone under its spire.
+It is hollow now (`tools/assets/cathedral.py`, the `BELL_*` numbers): a door
+from the east aisle into its foot; a square newel stair of stone steps
+winding up the inside walls — ten flights of eight, 1.9 m each, a landing at
+every corner — to a timber belfry floor at 19 m; open pointed arches on all
+four faces (the west tower keeps its louvres, and its lit glow is what you
+see across from the west arches); two bronze bells in a timber frame, a
+lantern, and a lamp half way up the shaft. `cathedralBellTower()` lays the
+walls as colliders with the door gap, and the steps, landings and floor as
+surfaces from the same numbers. A new capture, `vista-cathedral-belfry`,
+looks out of a south arch over the roofs, the chimney smoke and the citadel.
 
-### Light washes
+Two things found by walking it: the flights are a metre wide, and with a
+body's half-metre radius the middle of a flight touched a wall collider set
+on the masonry's face — the climb stalled on the third step. The colliders
+sit 15 cm inside the masonry now. And the door was widened from 1.2 to 1.5 m
+for the same reason.
 
-A lamp on a wall lights the wall. The pool system (`LIGHT_POOLS`) learnt a
-second kind of record: `wash`, a soft round glow standing up the wall the
-light hangs on, centred at `y`. The wall torches use it, and so do the
-hooded door lanterns on the houses, which now warm the fronts they hang on
-as well as the step below.
+### Stacked surfaces
+
+`surfaceAt` took the highest walkable surface under you, which is right for
+a deck or a rampart stair and impossible for a stair that passes over
+itself: on the first flight you would have been lifted to the fifth. A
+`SURFACES` record can now be marked `stacked`; given the walker's height
+(`surfaceAt`'s new third argument, which only the player passes), a stacked
+surface more than 1.5 m (`STACK_REACH`) above them does not count. Every
+unmarked surface and every caller without a height — residents, captures —
+behaves exactly as before. This is what any multi-storey interior needs.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are an
-  asset marker and comment words), `audit-dom`, `audit-dead` (584
-  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
-- Runtime audit, r147 → r148: errors 0 → 0; villagers 374 → 374; draw
-  calls 458 → 459; triangles 2,222,751 → 2,243,105; colliders 11,931 →
-  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  comment words), `audit-dom`, `audit-dead` (585 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Walked: from the east aisle through the tower door, up all ten flights
+  and onto the belfry floor, 14/14 legs; each flight's top read 1.9, 3.8,
+  … 19.0 m, the floor 19.0.
+- Runtime audit, r148 → r149: errors 0 → 0; villagers 374 → 374; draw
+  calls 459 → 459; triangles 2,243,105 → 2,244,877; colliders 11,931 →
+  11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
   failed; road obstructions in the carriageway 0 → 0, intruding 230 →
-  230.
-- Built, from `EMBER.wallLights`: 147 sconces (64 of them real lights), 180
-  lit slits, 9 sconce places left out where something stands against the
-  wall; light pools and washes 6,675 in all.
-- Shots looked at: a sconce close up and from the ring road, a tower with
-  its slits, a house front with its door lantern, the ring roads and the
-  four inner gates from outside; all 14 captures.
+  231 — the new one is the tower's front-wall collider, which replaced
+  its single block: the audit measures a box by its bounding circle, and that
+  circle reaches the lane before the cathedral, but the box itself stops at
+  the façade, as the block did.
+- Shots looked at: the tower door from the aisle, the foot of the stair, a
+  flight half way up, the bells, the view from three arches; all 15
+  captures, the new belfry one among them.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r148".
+  chooser installed, `requestDevice` settles, "Emberwatch — r149".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 2.95 MB (+7,104 bytes on r147).
-- 1 function added: `wallLights`.
+- 2.99 MB (+35,632 bytes on r148).
+- 1 function added: `cathedralBellTower`.
 
 ### Play it
 
