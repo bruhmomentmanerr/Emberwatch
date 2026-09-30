@@ -98,7 +98,10 @@ corners and its centre against the rebuilt road/collider plan. It may return
 | `gate-south-side-lamps` | south gate shoulders | Two lamps at the sides of the gate; no road-centre bar or post | retained |
 | `gate-east-side-lamps` | east gate shoulders | Two lamps at the sides of the gate; no road-centre bar or post | retained |
 | `gate-west-side-lamps` | west gate shoulders | Two lamps at the sides of the gate; no road-centre bar or post | retained |
-| `cinder-market-stalls` | `marketDistrict()` | Existing fixed market architecture and the r134 named people; no loose clutter added by the dressing pass | map-owned, preserved |
+| `cinder-market-stalls` | `marketDistrict()` | The r134 ring of twelve stalls and eight bays | **retired r144**: laid by trigonometry and nudged by `offRoad()`, one bay stood inside the Cinder and Keg's wall; replaced by the table below |
+| `cm-e1a-*`, `cm-e1b-*`, `cm-e3-*`, `cm-w1a-*`, `cm-w1b-*`, `cm-w3-*` | the north avenue through the Cinder Market | `CINDER_MARKET_STALLS`, 34 records baked by `tools/plan-market.py`: six rows parallel to the avenue (one facing it each side, one back to back with that, one across an aisle), each record with trade, exact transform and purpose; footprint 4.7 x 3.2, tested at nine points against roads and colliders, left out and logged if it does not fit | r144, map-owned |
+| `cm-pole-*`, `cm-lights-*` | gaps between stalls on each row's front line | `CINDER_MARKET_POLES` (20) and `CINDER_MARKET_LIGHTS` (10): 3.9 m poles, lantern strings between facing poles across the avenue and both aisles, one real light per string | r144, map-owned |
+| `MARKET_HEARTH`, `MARKET_WELL` | the hearth court the east rows break round | the fire drum moved 4 m off the avenue's kerb (it stood on it, with no collider); the well the "listen at the market well" interaction always pointed at, now built | r144, map-owned |
 | `city-front-kit` | building frontages | Existing façade-attached windows, awnings, and trim | preserved for this pass; re-audit against the rebuilt plan later |
 
 There are intentionally **no** loose market crates, free-standing signboards,
