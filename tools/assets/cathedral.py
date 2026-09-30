@@ -410,21 +410,30 @@ for px in (btx - 2.0, btx + 1.0):                              # the frame's pos
 f.box(3.3, .26, .3, btx - .5, BELL_FLOOR + 4.3, fz, WOOD)
 
 
-def bell(x, y, z, k):
-    # y is the crown; the bell hangs below it
-    f.box(.18 * k, .2 * k, .18 * k, x, y - .1 * k, z, BRONZE2)                       # the canons
-    f.cyl(.34 * k, .26 * k, .26 * k, x, y - .33 * k, z, BRONZE, sides=10)           # the shoulder
-    f.cyl(.47 * k, .34 * k, .6 * k, x, y - .76 * k, z, BRONZE, sides=10, cap=False)  # the waist
-    f.cyl(.62 * k, .47 * k, .34 * k, x, y - 1.23 * k, z, BRONZE, sides=10, cap=False)  # the sound bow
-    f.cyl(.64 * k, .62 * k, .07 * k, x, y - 1.43 * k, z, BRONZE2, sides=10, cap=False)
-    f.cyl(.03 * k, .03 * k, .9 * k, x, y - .95 * k, z, IRON, sides=4)              # clapper
-    f.cyl(.09 * k, .09 * k, .16 * k, x, y - 1.36 * k, z, IRON, sides=6)
-
-
-bell(btx - 1.25, BELL_FLOOR + 4.17, fz, 1.0)
-bell(btx + .25, BELL_FLOOR + 4.17, fz, .75)
+# The bells themselves are their own model (cathedral-bell, below): the game
+# swings them when the watch turns, so they cannot be merged into this one.
 f.box(.03, .5, .03, btx - .5, BELL_FLOOR + 3.9, btz - .6, IRON)                  # the lantern's chain
 f.box(.2, .06, .2, btx - .5, BELL_FLOOR + 3.62, btz - .6, IRON)
 f.box(.16, .24, .16, btx - .5, BELL_FLOOR + 3.47, btz - .6, CANDLE)
 f.finish(cam_at=(6.0, 5.0, 14.0), cam_look=(0, 1.5, -2.0), res=(800, 600), lens=30,
          extra_views=[('bells', (btx + 2.0, BELL_FLOOR + 1.6, btz - 2.0), (btx - .8, BELL_FLOOR + 2.6, fz))])
+
+# ---- the bell ---------------------------------------------------------------------
+# One bell, hung from its headstock: the origin is the pivot it swings on,
+# under the frame's beam, and the bell hangs below. The game lays two, the
+# second at three quarters the size (placeCathedral, cathedralBellTower).
+b = Asset('cathedral-bell', seed=1447)
+b.box(.9, .2, .22, 0, .02, 0, WOOD2)                                      # the headstock
+for s in (-1, 1):
+    b.cyl(.05, .05, .14, s * .52, .02, 0, IRON, sides=6, rz=math.pi / 2)    # its gudgeons, the pins it swings on
+    b.box(.05, .35, .12, s * .2, -.07, 0, IRON)                            # the straps down to the crown
+b.box(.18, .2, .18, 0, -.1, 0, BRONZE2)                                   # the canons
+b.cyl(.34, .26, .26, 0, -.33, 0, BRONZE, sides=10)                        # the shoulder
+b.cyl(.47, .34, .6, 0, -.76, 0, BRONZE, sides=10, cap=False)              # the waist
+b.cyl(.62, .47, .34, 0, -1.23, 0, BRONZE, sides=10, cap=False)            # the sound bow
+b.cyl(.64, .62, .07, 0, -1.43, 0, BRONZE2, sides=10, cap=False)
+b.cyl(.365, .365, .04, 0, -.47, 0, BRONZE2, sides=10, cap=False)         # the mouldings that band it
+b.cyl(.5, .5, .05, 0, -1.07, 0, BRONZE2, sides=10, cap=False)
+b.cyl(.03, .03, .9, 0, -.95, 0, IRON, sides=4)                            # the clapper
+b.cyl(.09, .09, .16, 0, -1.36, 0, IRON, sides=6)
+b.finish(cam_at=(2.2, -.4, 2.6), cam_look=(0, -.7, 0), res=(400, 460), lens=35)
