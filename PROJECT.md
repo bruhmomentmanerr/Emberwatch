@@ -4,13 +4,14 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r148 / 1.48.0**, sealed 2026-09-30 as "torchlit walls": torches
-in sconces along both town walls, lit slits up their towers, light washing
-up the walls lamps hang on (§0). Before it, r147 / 1.47.0 ("signs and
-lamps", §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0
-("halls and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w)
-and r143 / 1.43.0 ("places under the moon", §0x). None of the six is
-packaged yet; the latest packaged pair is r142 / 1.42.0
+Current: **r149 / 1.49.0**, sealed 2026-09-30 as "the bell tower": the
+cathedral's east tower hollow and climbable to its bells, on a new rule for
+stacked walkable surfaces (§0). Before it, r148 / 1.48.0 ("torchlit
+walls", §0s), r147 / 1.47.0 ("signs and lamps", §0t), r146 / 1.46.0 ("the
+avenues at night", §0u), r145 / 1.45.0 ("halls and crossings", §0v), r144 /
+1.44.0 ("market and cathedral", §0w) and r143 / 1.43.0 ("places under the
+moon", §0x). None of the seven is packaged yet; the latest packaged pair is
+r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
 2026-09-25 as the first true reference-build chunk: named places plus
@@ -228,7 +229,78 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-30, r148)
+## 0. Start here — where the last session left off (2026-09-30, r149)
+
+**State: r149 / 1.49.0, sealed 2026-09-30 ("the bell tower").** Same
+instruction again. With the city lit at night, the payoff for all of it is a
+place high enough to look down on it, so r149 made one: the Cathedral of
+Hours' east tower, climbed from inside.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides — stacked surfaces (below) make their stairs
+straightforward now; stairs up to the outer wall's walk. The Windows
+installers for r143–r149 have not been built.
+
+### The bell tower
+
+The east tower of the west front was a solid block of stone under its spire.
+It is hollow now (`tools/assets/cathedral.py`, the `BELL_*` numbers): a door
+from the east aisle into its foot; a square newel stair of stone steps
+winding up the inside walls — ten flights of eight, 1.9 m each, a landing at
+every corner — to a timber belfry floor at 19 m; open pointed arches on all
+four faces (the west tower keeps its louvres, and its lit glow is what you
+see across from the west arches); two bronze bells in a timber frame, a
+lantern, and a lamp half way up the shaft. `cathedralBellTower()` lays the
+walls as colliders with the door gap, and the steps, landings and floor as
+surfaces from the same numbers. A new capture, `vista-cathedral-belfry`,
+looks out of a south arch over the roofs, the chimney smoke and the citadel.
+
+Two things found by walking it: the flights are a metre wide, and with a
+body's half-metre radius the middle of a flight touched a wall collider set
+on the masonry's face — the climb stalled on the third step. The colliders
+sit 15 cm inside the masonry now. And the door was widened from 1.2 to 1.5 m
+for the same reason.
+
+### Stacked surfaces
+
+`surfaceAt` took the highest walkable surface under you, which is right for
+a deck or a rampart stair and impossible for a stair that passes over
+itself: on the first flight you would have been lifted to the fifth. A
+`SURFACES` record can now be marked `stacked`; given the walker's height
+(`surfaceAt`'s new third argument, which only the player passes), a stacked
+surface more than 1.5 m (`STACK_REACH`) above them does not count. Every
+unmarked surface and every caller without a height — residents, captures —
+behaves exactly as before. This is what any multi-storey interior needs.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  comment words), `audit-dom`, `audit-dead` (585 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Walked: from the east aisle through the tower door, up all ten flights
+  and onto the belfry floor, 14/14 legs; each flight's top read 1.9, 3.8,
+  … 19.0 m, the floor 19.0.
+- Runtime audit, r148 → r149: errors 0 → 0; villagers 374 → 374; draw
+  calls 459 → 459; triangles 2,243,105 → 2,244,877; colliders 11,931 →
+  11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  231 — the new one is the tower's front-wall collider, which replaced
+  its single block: the audit measures a box by its bounding circle, and that
+  circle reaches the lane before the cathedral, but the box itself stops at
+  the façade, as the block did.
+- Shots looked at: the tower door from the aisle, the foot of the stair, a
+  flight half way up, the bells, the view from three arches; all 15
+  captures, the new belfry one among them.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r149".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0s. r148 — where the session before that left off (2026-09-30)
 
 **State: r148 / 1.48.0, sealed 2026-09-30 ("torchlit walls").** Still the
 same instruction. r148 went to the outer ring between the walls, which r145

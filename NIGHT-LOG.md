@@ -6,6 +6,33 @@ estimated.
 
 ---
 
+## 2026-09-30 — small hours · r149 "The bell tower"
+
+**What was wrong.** Nowhere high to stand and look at the lit city. The
+cathedral's towers were solid; and the game's rule for what you stand on —
+the highest surface under you — could not have carried a stair that passes
+over itself.
+
+**What changed.** The cathedral's east tower is hollow, with a stone stair
+winding up its walls to a belfry at 19 m: open arches, two bells, a lantern,
+the city below. Walkable surfaces can be stacked now, counting only when
+they are within reach of the walker. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Walked, door to belfry, 14/14; the first walk stalled on the third step
+  (a wall collider on the masonry's face, a metre-wide flight, a half-metre
+  body), which moved the colliders inside the stone.
+- Runtime audit against r148: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 459 → 459.
+- The belfry view first looked straight at the other tower; it looks out of
+  a south arch now. All captures looked at; variants 6/6 and 6/6; smoke
+  clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r149.
+
+---
+
 ## 2026-09-30 — later still · r148 "Torchlit walls"
 
 **What was wrong.** The ring between the walls had caught up with the city
