@@ -6,6 +6,36 @@ estimated.
 
 ---
 
+## 2026-09-30 — last · r145 "Halls and crossings"
+
+**What was wrong.** The city's eleven landmark halls — its taverns, its
+archives, its guild, its shrine and chapel — were seven-metre boxes under a
+four-sided cone so flat it read as a lid, and from the street they were
+warehouses. The main avenues had no light where streets crossed them. And
+the Rain Oath, which r143 had photographed but never walked, could not be
+walked dry: its causeway sagged half a metre under the mere in the middle.
+
+**What changed.** Each hall has a steep roof with its gable over the door,
+buttresses, tall lit windows and one feature that says what it is. The
+avenues' 23 crossings have a lamp on two corners each. The causeway is a
+stone embankment walked as a deck, and the island's ring is decked too.
+PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Walked, not photographed: the Rain Oath 13/13 once its causeway was an
+  embankment (it had dipped to -0.79 m under water), the Skywatch 8/8.
+- Every hall shot from its street; one room checked from inside.
+- 45 of 46 crossing lamps placed, the one that did not fit logged.
+- Runtime audit against r144: no errors, 17 wards and 102 dialogue branches
+  none broken, road obstructions 0, draw calls unchanged; all 14 captures
+  looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r145.
+
+---
+
 ## 2026-09-30 — later · r144 "Market and cathedral"
 
 The same instruction as r143; this shift took its last clause, "continue and

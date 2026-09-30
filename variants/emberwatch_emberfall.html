@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r144 market and cathedral</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r145 halls and crossings</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -6327,6 +6327,70 @@ function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   if(stories>1){ const bx=frontX-si*.42,bz=frontZ-co*.42; aBox(w*.46,.14,.68,bx,h*.57,bz,'wood',ry); aBox(.1,.75,.1,bx-si*w*.21,h*.57+.38,bz,'wood',ry); aBox(.1,.75,.1,bx+si*w*.21,h*.57+.38,bz,'wood',ry); }
   addBoxCollider(x,z,w,d,ry);
 }
+// Lamps at the main avenues' crossings (r145), baked by tools/plan-crossings.py
+// from the live street plan: two opposite corners of every place a street, a
+// lane or the citadel ring crosses one of the two avenues through the centre,
+// 1.2 m back from both kerbs — 23 crossings, none in the market or at the
+// gates, which have their own. Lamps belong at turns, not along a street like
+// fence posts. Each is tested against what stands there by the time it is
+// placed and left out (and logged) if it does not fit, never moved;
+// pruneLanterns still thins any that end up at a door or beside another lamp.
+const AVENUE_CROSSING_LAMPS=[
+  {id:'avenue-crossing-1-aa',x:-7.50,z:-115.72},
+  {id:'avenue-crossing-1-bb',x:5.01,z:-125.92},
+  {id:'avenue-crossing-2-aa',x:-136.11,z:9.64},
+  {id:'avenue-crossing-2-bb',x:-127.28,z:-3.65},
+  {id:'avenue-crossing-3-aa',x:113.73,z:11.16},
+  {id:'avenue-crossing-3-bb',x:121.95,z:-0.92},
+  {id:'avenue-crossing-4-aa',x:188.92,z:9.51},
+  {id:'avenue-crossing-4-ab',x:200.84,z:8.74},
+  {id:'avenue-crossing-5-aa',x:252.59,z:6.20},
+  {id:'avenue-crossing-5-bb',x:261.05,z:-6.20},
+  {id:'avenue-crossing-6-aa',x:266.05,z:6.20},
+  {id:'avenue-crossing-6-bb',x:280.92,z:-6.20},
+  {id:'avenue-crossing-7-aa',x:304.84,z:6.20},
+  {id:'avenue-crossing-7-bb',x:317.54,z:-6.20},
+  {id:'avenue-crossing-8-aa',x:344.22,z:6.20},
+  {id:'avenue-crossing-8-bb',x:355.69,z:-6.20},
+  {id:'avenue-crossing-9-aa',x:-6.20,z:253.04},
+  {id:'avenue-crossing-9-ba',x:6.20,z:254.18},
+  {id:'avenue-crossing-10-aa',x:-6.20,z:297.30},
+  {id:'avenue-crossing-10-bb',x:6.20,z:307.75},
+  {id:'avenue-crossing-11-aa',x:-6.20,z:341.20},
+  {id:'avenue-crossing-11-bb',x:6.20,z:353.51},
+  {id:'avenue-crossing-12-bb',x:-259.46,z:6.20},
+  {id:'avenue-crossing-12-ba',x:-250.03,z:6.20},
+  {id:'avenue-crossing-13-aa',x:-259.31,z:-6.20},
+  {id:'avenue-crossing-13-bb',x:-272.80,z:6.20},
+  {id:'avenue-crossing-14-aa',x:-300.67,z:-6.20},
+  {id:'avenue-crossing-14-bb',x:-312.26,z:6.20},
+  {id:'avenue-crossing-15-aa',x:-349.78,z:-6.20},
+  {id:'avenue-crossing-15-bb',x:-360.18,z:6.20},
+  {id:'avenue-crossing-16-aa',x:6.20,z:-250.90},
+  {id:'avenue-crossing-16-bb',x:-6.20,z:-260.08},
+  {id:'avenue-crossing-17-aa',x:6.20,z:-263.08},
+  {id:'avenue-crossing-17-bb',x:-6.20,z:-276.38},
+  {id:'avenue-crossing-18-aa',x:6.20,z:-305.56},
+  {id:'avenue-crossing-18-bb',x:-6.20,z:-315.76},
+  {id:'avenue-crossing-19-aa',x:6.20,z:-343.44},
+  {id:'avenue-crossing-19-bb',x:-6.20,z:-354.75},
+  {id:'avenue-crossing-20-aa',x:-4.76,z:-51.92},
+  {id:'avenue-crossing-20-bb',x:7.29,z:-61.05},
+  {id:'avenue-crossing-21-aa',x:-6.82,z:51.69},
+  {id:'avenue-crossing-21-bb',x:4.86,z:61.29},
+  {id:'avenue-crossing-22-aa',x:-52.06,z:1.69},
+  {id:'avenue-crossing-22-bb',x:-60.64,z:-9.95},
+  {id:'avenue-crossing-23-aa',x:51.46,z:8.58},
+  {id:'avenue-crossing-23-bb',x:61.42,z:-3.42},
+];
+const AVENUE_LAMPS={placed:0,skipped:[]};
+function avenueCrossingLamps(){
+  for(const lamp of AVENUE_CROSSING_LAMPS){
+    if(onRoad(lamp.x,lamp.z,.3)||colliderBlocked(lamp.x,lamp.z,.55)){ AVENUE_LAMPS.skipped.push(lamp.id); continue; }
+    authoredLantern(lamp.id,lamp.x,lamp.z,true); AVENUE_LAMPS.placed++;
+  }
+  if(AVENUE_LAMPS.skipped.length)console.warn('Avenue lamps left out (no room): '+AVENUE_LAMPS.skipped.join(', '));
+}
 function gateApproaches(){
   // Gate light is a deliberate pair of verge fixtures, not a road-centre
   // marker.  The old amber bars and alternating posts were raw geometry with
@@ -6609,6 +6673,100 @@ function landmarkDoorstep(x,front){
   for(let t=from;t<=to;t+=1.6)if(colliderBlocked(x,t,2.6))return;
   layRoad(x,from,x,to,5);
 }
+// World-space triangles as one piece of the batch (r145). Each face is turned
+// to face away from `centre` — the rule aRoof uses, so no case can come out
+// inside out — and UVs are projected in world units, so a texture keeps its
+// scale whatever the piece's size.
+function aTris(tris,k,centre){
+  const pos=[],nor=[],uv=[],idx=[];
+  for(const t of tris){
+    const ux=t[1][0]-t[0][0],uy=t[1][1]-t[0][1],uz=t[1][2]-t[0][2], vx=t[2][0]-t[0][0],vy=t[2][1]-t[0][1],vz=t[2][2]-t[0][2];
+    let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx; const len=Math.hypot(nx,ny,nz)||1; nx/=len; ny/=len; nz/=len;
+    const cx=(t[0][0]+t[1][0]+t[2][0])/3-centre[0], cy=(t[0][1]+t[1][1]+t[2][1])/3-centre[1], cz=(t[0][2]+t[1][2]+t[2][2])/3-centre[2];
+    const flip=(cx*nx+cy*ny+cz*nz)<0; if(flip){ nx=-nx; ny=-ny; nz=-nz; }
+    const order=flip?[t[0],t[2],t[1]]:t;
+    let tx=-nz,tz=nx; const tl=Math.hypot(tx,tz); if(tl<1e-6){ tx=1; tz=0; } else { tx/=tl; tz/=tl; }
+    const sx=-tz*ny, sy=tz*nx-tx*nz, sz=tx*ny;
+    for(const v of order){ const base=pos.length/3; pos.push(v[0],v[1],v[2]); nor.push(nx,ny,nz); uv.push((v[0]*tx+v[2]*tz)/TEX_TILE,(v[0]*sx+v[1]*sy+v[2]*sz)/TEX_TILE); idx.push(base); }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx);
+  collect(k,g);
+}
+// The landmark halls' outsides (r145). Eleven of them — the Cinder and Keg,
+// the Southgate Rest, the scriptorium and the refuge in the wall, the Moon
+// Archive, the Pilgrim Shrine, the Northwatch Guild, the Gilded Finch, the
+// Wayhouse, the Cold Assay, the New Chapel — were a box of wall seven metres
+// high under a four-sided cone so flat it read as a lid: from the street,
+// warehouses with a sign over the door. Now a steep roof whose gable stands
+// over the door, buttresses, tall lit windows, and one thing that says what
+// the hall is: a chimney and a timbered gable for a tavern, a lit lantern
+// turret for an archive, a crenellated tower for a guild, a bell-cote for a
+// shrine or chapel. The room inside, its door and its wall colliders are
+// untouched: everything here is outside the walls or above the ceiling.
+function hallExterior(x,z,w,d,h,kind,WK){
+  const front=z+d/2, back=z-d/2, rise=Math.min(9,w*.42), over=.55, overZ=.45;
+  const drop=over*rise/(w/2), ye=h-drop, yr=h+rise, z0=back-overZ, z1=front+overZ;
+  const L=x-w/2-over, R=x+w/2+over;
+  // The roof: two slopes and their undersides, a ridge.
+  const slopes=[[[L,ye,z0],[L,ye,z1],[x,yr,z1]],[[L,ye,z0],[x,yr,z1],[x,yr,z0]],[[R,ye,z0],[x,yr,z1],[R,ye,z1]],[[R,ye,z0],[x,yr,z0],[x,yr,z1]]];
+  aTris(slopes,'slate',[x,h,z]);
+  aTris(slopes.map(t=>t.map(v=>[v[0],v[1]-.18,v[2]])),'slate',[x,yr+40,z]);
+  aBox(.3,.3,d+2*overZ+.1,x,yr+.05,z,'dark');
+  // The gables, front and back: a prism of wall under each end of the roof.
+  for(const gz of[front,back]){ const a=gz-.21,b=gz+.21, gl=x-w/2, gr=x+w/2;
+    aTris([[[gl,h,a],[gr,h,a],[x,yr-.05,a]],[[gl,h,b],[gr,h,b],[x,yr-.05,b]],
+      [[gl,h,a],[x,yr-.05,a],[x,yr-.05,b]],[[gl,h,a],[x,yr-.05,b],[gl,h,b]],
+      [[gr,h,a],[x,yr-.05,b],[x,yr-.05,a]],[[gr,h,a],[gr,h,b],[x,yr-.05,b]]],WK,[x,h+rise/3,gz]); }
+  // A plinth course, and buttresses: stepped, at the corners and down each side.
+  aBox(w+.5,.55,d+.5,x,.27,z,'stone');
+  // A buttress or chimney whose footprint would touch a road is left out, not
+  // moved: a lane may end at a hall's back wall.
+  const buttress=(bx,bz,ox,oz)=>{ // ox/oz: which way is out
+    if(onRoad(bx+ox*.5,bz+oz*.5,.75))return;
+    aBox(ox?1.0:1.1,3.4,oz?1.0:1.1,bx+ox*.5,1.7,bz+oz*.5,'stone');
+    aBox(ox?.65:.9,h-3.2,oz?.65:.9,bx+ox*.33,3.4+(h-3.4)/2-.1,bz+oz*.33,'stone');
+    addCollider(bx+ox*.45,bz+oz*.45,.5); };
+  for(const sx of[-1,1]){ buttress(x+sx*w/2,back+.6,sx,0); buttress(x+sx*w/2,front-.6,sx,0);
+    for(let k=1;k<3;k++)buttress(x+sx*w/2,back+d*k/3,sx,0); }
+  for(let k=1;k<3;k++)buttress(x-w/2+w*k/3,back,0,-1);
+  // Tall windows, lit: three down each side between the buttresses, three at
+  // the back, two either side of the door, and one high in the front gable.
+  const win=(wx,wz,face,y0=2.0,hh=3.3)=>{ const alongX=face==='z';
+    aBox(alongX?1.05:.1,hh,alongX?.1:1.05,wx,y0+hh/2,wz,'window');
+    aBox(alongX?1.35:.3,.18,alongX?.3:1.35,wx,y0-.09,wz,'stone');
+    aBox(alongX?1.35:.3,.22,alongX?.3:1.35,wx,y0+hh+.11,wz,'stone'); };
+  for(const sx of[-1,1])for(let k=0;k<3;k++)win(x+sx*(w/2+.22),back+d*(k+.5)/3,'x');
+  for(const ox of[-1,0,1])win(x+ox*w/3,back-.22,'z');                 // (the back buttresses stand at thirds between)
+  for(const ox of[-1,1])win(x+ox*w*.3,front+.22,'z',1.9,3.0);
+  win(x,front+.23,'z',h+rise*.22,rise*.3);
+  // What the hall is.
+  if(kind==='tavern'){
+    // A chimney up the east wall, and the front gable half-timbered.
+    const cx=x+w/2+.62, cz=z-d/5; if(!onRoad(cx,cz,1.0)){ aBox(1.25,h+rise*.75,1.15,cx,(h+rise*.75)/2,cz,'brick'); aBox(1.5,.3,1.4,cx,h+rise*.75+.15,cz,'stone'); addBoxCollider(cx,cz,1.25,1.15,0); }
+    for(let k=-3;k<=3;k++){ const fx=x+k*w/8, top=h+rise*(1-Math.abs(fx-x)/(w/2))-.35;
+      if(top>h+.4)aBox(.24,top-h,.12,fx,(h+top)/2,front+.27,'wood'); }
+    aBox(w*.8,.22,.12,x,h+rise*.42,front+.27,'wood'); aBox(w-.2,.26,.12,x,h+.13,front+.27,'wood');
+  } else if(kind==='archive'){
+    // A lantern turret on the front corner, above the ceiling: lit all round.
+    const tx=x+w/2-1.6, tz=front-1.6, top=h+rise+3.5;
+    aBox(3.1,top-h,3.1,tx,(h+top)/2,tz,'stone'); aBox(3.4,.3,3.4,tx,top,tz,'stone');
+    for(const [ox,oz] of[[1,0],[-1,0],[0,1],[0,-1]])aBox(oz?1.0:.1,1.8,ox?1.0:.1,tx+ox*1.57,top-1.5,tz+oz*1.57,'window');
+    aCone(2.4,3.2,4,tx,top+1.75,tz,'slate',Math.PI/4);
+  } else if(kind==='guild'){
+    // A square tower on the front corner, crenellated, over the roof.
+    const tx=x-w/2+1.9, tz=front-1.9, top=h+rise+5.5;
+    aBox(3.8,top-h,3.8,tx,(h+top)/2,tz,'stone'); aBox(4.2,.35,4.2,tx,top,tz,'stone');
+    for(let i=0;i<4;i++)for(const s of[-1,1]){ const o=-1.6+i*1.07; aBox(.55,.7,.55,tx+o,top+.5,tz+s*1.8,'stone'); aBox(.55,.7,.55,tx+s*1.8,top+.5,tz+o,'stone'); }
+    for(const [ox,oz] of[[1,0],[-1,0],[0,1],[0,-1]])aBox(oz?.6:.1,1.6,ox?.6:.1,tx+ox*1.92,top-3,tz+oz*1.92,'window');
+  } else if(kind==='shrine'||kind==='chapel'){
+    // A bell-cote astride the front gable's peak, the bell in its arch.
+    const by=yr-.2, bz=front;
+    for(const s of[-1,1])aBox(.35,2.3,.45,x+s*.75,by+1.15,bz,'stone');
+    aBox(1.9,.35,.55,x,by+2.45,bz,'stone'); aCone(1.2,1.4,4,x,by+3.3,bz,'slate',Math.PI/4);
+    aCyl(.12,.32,.55,8,x,by+1.5,bz,'dark'); aBox(.08,.25,.08,x,by+2.1,bz,'dark');
+  }
+}
 function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doorW=3;
   // The royal hall is built against the foot of the keep, so it takes the
   // keep's stone rather than the tan house wall — two different materials
@@ -6625,10 +6783,9 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doo
   // tall, so the wall picks up again just above them.
   const DOOR_H=2.5; aBox(doorW,h-DOOR_H,.42,x,DOOR_H+(h-DOOR_H)/2,front,WK);
   aBox(w-.6,.16,d-.6,x,.16,z,'cobble'); landmarkDoorstep(x,front); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark');
-  // The keep carries its own tower above this storey, so it asks for no cottage
-  // roof — the cone is sized off max(w,d) and on a 34-wide hall it would spread
-  // twenty-five units into the bailey.
-  if(capped)aCone(Math.max(w,d)*.74,3.2,4,x,h+1.5,z,'slate',Math.PI/4);
+  // The keep carries its own tower above this storey, so it asks for no roof
+  // of its own; every other hall gets its outside from hallExterior (r145).
+  if(capped)hallExterior(x,z,w,d,h,kind,WK);
   wallColl(x-w/2,z-d/2,x+w/2,z-d/2,.7); wallColl(x-w/2,z-d/2,x-w/2,z+d/2,.7); wallColl(x+w/2,z-d/2,x+w/2,z+d/2,.7); wallColl(x-w/2,front,x-doorW/2,front,.7); wallColl(x+doorW/2,front,x+w/2,front,.7);
   const signColor=kind==='royal'?'arcane':'amber'; aBox(doorW+.44,.24,.55,x,2.45,front+.03,'wood'); aBox(.22,2.35,.55,x-doorW/2-.08,1.17,front+.03,'wood'); aBox(.22,2.35,.55,x+doorW/2+.08,1.17,front+.03,'wood'); aBox(2.5,.22,.7,x,2.78,front+.08,signColor); aBox(2.2,.14,.72,x,2.95,front+.1,'dark');
   for(let ix=-1;ix<=1;ix+=2){ const lamp=lampLight(kind==='royal'?0xa78cff:0xffb060,1.2,12); lamp.position.set(x+ix*(w*.31),3,z); scene.add(lamp); lights.push({light:lamp,base:1.2,phase:rand(0,6)}); }
@@ -19256,15 +19413,26 @@ function placeRainOath(){
   const F=RAIN, R=RAINOATH, at=F.at;
   // The mere's water, run a little under its banks.
   { const [x,z]=at(R.mereS,0), water=new THREE.Mesh(new THREE.CircleGeometry(R.mereR-.5,56).rotateX(-Math.PI/2),waterMaterial(.1)); water.position.set(x,R.level,z); water.renderOrder=2; scene.add(water); }
-  // The causeway: flagged, kerbed both sides in darker stone.
+  // The causeway: a stone embankment across the mere, flagged, kerbed both
+  // sides in darker stone, and walked on as a deck (r145). It used to be a
+  // landform alone, and a strip 2.7 m wide is narrower than the terrain grid
+  // can hold: it sagged to 0.8 m below the water in the middle, flags and
+  // all, and the walk to the knight waded (probe-walk, minY -0.79).
+  const CY=.34;
+  { const [x,z]=at((R.causeS0+R.causeS1)/2,0), len=R.causeS1-R.causeS0;
+    aBox(2.9,1.95,len+.4,x,CY-.98,z,'stone',F.ry); addDeck('rain-oath-causeway',x,z,F.ry,1.35,len/2+.2,CY); }
   for(let s=R.causeS0+.4,n=0;s<R.causeS1-.2;s+=.9,n++){
-    for(const side of[-1,1]){ const h=oathHash(n+1200,side+5), [x,z]=at(s+(h-.5)*.06,side*.6); aBox(1.15,.1,.8,x,terrainAt(x,z)+.03,z,'stone',F.ry+(h-.5)*.05); }
-    for(const side of[-1,1]){ const [x,z]=at(s,side*1.28); aBox(.36,.42,.84,x,terrainAt(x,z)+.09,z,'dark',F.ry); } }
+    for(const side of[-1,1]){ const h=oathHash(n+1200,side+5), [x,z]=at(s+(h-.5)*.06,side*.6); aBox(1.15,.1,.8,x,CY,z,'stone',F.ry+(h-.5)*.05); }
+    for(const side of[-1,1]){ const [x,z]=at(s,side*1.28); aBox(.36,.42,.84,x,CY+.16,z,'dark',F.ry); } }
   // The island's ring and plinth, and the knight on it facing the moon.
   { const [x,z]=at(0,0);
     placeLandmark('rain-oath-ring',RAIN_OATH_RING_GLB,[{x,y:R.island,z,ry:F.ry}],{tex:'stone',name:'rain-ring',tile:3,glow:0x5a78ff});
     placeLandmark('oath-knight',OATH_KNIGHT_GLB,[{x,y:R.plinth,z,ry:F.ry}],{tex:'none',name:'oath-knight',metal:.35,rough:.5,glow:0x4a68ff});
     addCollider(x,z,1.7);
+    // The ring's paving is walked at its own height: the island's landform
+    // sagged to 0.1 under it on one side. Two turned squares make an octagon
+    // that stays inside the stones and on the island's top.
+    addDeck('rain-oath-island',x,z,F.ry,4.4,4.4,R.island); addDeck('rain-oath-island-turned',x,z,F.ry+Math.PI/4,4.4,4.4,R.island);
     for(let k=1;k<10;k++){ const ang=-Math.PI/2+k/10*Math.PI*2, [sx,sz]=F.local(Math.cos(ang)*5.7,Math.sin(ang)*5.7); addCollider(sx,sz,.7); }
     for(const side of[-1,1]){ const ang=-Math.PI/2+side*.5, [sx,sz]=F.local(Math.cos(ang)*5.9,Math.sin(ang)*5.9); addCollider(sx,sz,.75); }
     const [lx,lz]=at(-2.2,0), light=lampLight(0x527cff,.9,12); light.position.set(lx,R.island+2.3,lz); scene.add(light); lights.push({light,base:.9,phase:1.7,fire:true});
@@ -20579,6 +20747,7 @@ LMSG.textContent='breaking the long avenues…'; useWorldStream('avenue-breaks')
 // be laid knowing what they have to stop short of. This used to run at the end
 // of outerWards, which no longer exists.
 emitKerbs();
+useWorldStream('avenue-lamps'); avenueCrossingLamps();
 LMSG.textContent='lighting the new quarters…'; useWorldStream('outer-dressing'); outerQuarterDressing();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 LMSG.textContent='engraving the visual canon…'; useWorldStream('visual-canon'); addVisualCanonLayer();
@@ -24887,7 +25056,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r144',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r145',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -25047,6 +25216,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // The Cinder Market's authored table and what was built from it (r144):
   // tools/probes/probe-cinder-market.js.
   market:{stalls:CINDER_MARKET_STALLS,poles:CINDER_MARKET_POLES,lines:CINDER_MARKET_LIGHTS,built:CINDER_MARKET,hearth:MARKET_HEARTH,well:MARKET_WELL},
+  avenueLamps:{table:AVENUE_CROSSING_LAMPS,built:AVENUE_LAMPS},
   // The grade is read from CINEMATIC_LOOK every frame, so handing the object
   // out makes the whole look tunable at runtime: a probe can sweep contrast,
   // saturation, shadow tint, vignette, fog and exposure and photograph each
@@ -25197,7 +25367,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Emberfall — variant layer over base r144 -->
+<!-- Emberwatch — Emberfall — variant layer over base r145 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBERFALL                                      variant layer

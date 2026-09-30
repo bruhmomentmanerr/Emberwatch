@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.44.0 / build r144 ("market and cathedral")**,
+Current sealed source: **1.45.0 / build r145 ("halls and crossings")**,
 2026-09-30. Archived, smoke-tested, six variants boot-check. Not packaged
-yet (nor is r143): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+yet (nor are r143 and r144): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r144'
+                      the strain-archive lookups work. BUILD_REVISION = 'r145'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
-        index.html    THE GAME. About 2.9 MB. Byte-identical to
+        index.html    THE GAME. About 3.0 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r144-market-and-cathedral.html
+                      emberwatch_3_r145-halls-and-crossings.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r144, minus the revisions
+                    Phase 5 currently contains r70-r145, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r144-market-and-cathedral.html
+                    emberwatch_3_r145-halls-and-crossings.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1088,6 +1088,25 @@ guessed at.
                           436 -> 442; market probe 34/34 stalls, 16 keepers;
                           all 14 captures looked at; 6/6 variants built and
                           booted; smoke clean (r144 in the window title).
+    Sep 30     r145       halls and crossings. The eleven landmark halls,
+                          boxes under a flat four-sided cone, get steep roofs
+                          whose gables stand over their doors, buttresses,
+                          tall lit windows and a feature by kind (a chimney
+                          and timbered gable for a tavern, a lantern turret
+                          for an archive, a tower for a guild, a bell-cote
+                          for the shrine and chapel); rooms untouched. Lamps
+                          on two corners of each of the main avenues' 23
+                          crossings, baked from the live street plan by
+                          tools/plan-crossings.py (45 of 46 fit). Walking the
+                          Rain Oath, which r143 had only photographed, found
+                          its causeway half a metre under the mere: it is a
+                          stone embankment walked as a deck now (13/13), and
+                          the Skywatch knoll walks 8/8.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r144, no errors, 102 dialogue branches
+                          none broken, road obstructions 0, draw calls
+                          unchanged; 14 captures looked at; 6/6 variants
+                          built and booted; smoke clean (r145 in the title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

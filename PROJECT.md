@@ -4,11 +4,11 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r144 / 1.44.0**, sealed 2026-09-30 as "market and cathedral": the
-Cinder Market authored, the main streets taller, the Cathedral of Hours
-modelled and walk-in (§0). Before it, r143 / 1.43.0 ("places under the
-moon"): every reference place rebuilt as somewhere you walk into, climb and
-look out from (§0x). Neither is packaged yet; the latest packaged pair is r142 / 1.42.0
+Current: **r145 / 1.45.0**, sealed 2026-09-30 as "halls and crossings": the
+landmark halls given real outsides, lamps at the avenues' crossings, the
+Rain Oath's causeway raised out of the water (§0). Before it, r144 / 1.44.0
+("market and cathedral", §0w) and r143 / 1.43.0 ("places under the moon",
+§0x). None of the three is packaged yet; the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
 2026-09-25 as the first true reference-build chunk: named places plus
@@ -226,7 +226,96 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-30, later)
+## 0. Start here — where the last session left off (2026-09-30, last)
+
+**State: r145 / 1.45.0, sealed 2026-09-30 ("halls and crossings").** The
+same instruction again; r145 carried r144's city work on to the landmark
+halls and the avenues' crossings, and closed r143's two missing walk proofs
+— one of which turned out to be a real bug.
+
+**Next:** the outer ring between the walls reads least finished now (the
+gate approaches and ring lanes past the inner wall), and the remaining
+places without an interior of their own (the Moon Archive and the Northwatch
+Guild are rooms, but their towers are only outside). The Windows installers
+for r143–r145 have not been built.
+
+### The landmark halls
+
+Eleven halls — the Cinder and Keg, the Southgate Rest, the Eastwall
+Scriptorium and Westwall Refuge, the Moon Archive, the Pilgrim Shrine, the
+Northwatch Guild, the Gilded Finch, the Wayhouse, the Cold Assay, the New
+Chapel — were `interiorHouse()` boxes seven metres high under a four-sided
+cone so flat it read as a lid: warehouses with a sign over the door.
+`hallExterior()` gives each:
+
+- a steep roof whose gable stands over the door, built as real triangles by
+  a new helper, `aTris(tris, key, centre)` (faces turned away from `centre`,
+  the rule `aRoof` uses; UVs projected in world units), with gable walls
+  under both ends — `aRoof` always runs its ridge along the longer side;
+- a plinth course, stepped buttresses (corners, sides, back), tall lit
+  windows down each side and at the back, two beside the door and one high
+  in the gable;
+- one feature by kind: a chimney and a half-timbered gable for a `tavern`,
+  a lit lantern turret for an `archive`, a crenellated tower for a `guild`,
+  a bell-cote with its bell for a `shrine` or `chapel`. Turrets and towers
+  stand on the wall-tops, above the room's ceiling.
+
+The room, its door and its wall colliders are untouched. A buttress or a
+chimney whose footprint would touch a road is left out, not moved (one lane
+ends at the Gilded Finch's back wall). The Great Hall (`capped` false) is
+the keep's and gets none of it.
+
+### The Rain Oath's causeway was under water
+
+r143 gave the Rain Oath a capture and no walk. Walking it found the
+causeway sagging to 0.8 m below the mere's surface in the middle, flags and
+all: it was a landform 2.7 m wide, narrower than the terrain grid can hold
+(see r143's note on cliffs — the same smear). It is a stone embankment now
+(`placeRainOath`), flagged and kerbed on its top, walked as a deck at 0.34
+m; the island's paving, which also sagged to 0.1 m on one side, is an
+octagon of two turned decks at 0.5 m inside the stones. **Any landform
+narrower than about three metres wants a deck, not terrain.**
+
+### Lamps at the avenues' crossings
+
+`tools/plan-crossings.py` reads the live street plan (dumped from
+`EMBER.kit.roads` and `EMBER.kit.rings`) and bakes `AVENUE_CROSSING_LAMPS`:
+a lamp on two opposite corners of every place a street, a lane or the
+citadel ring crosses — or ends on — one of the two 10 m avenues, 1.2 m back
+from both kerbs; none in the market square or at the four inner gates,
+which have their own pairs. `avenueCrossingLamps()` places each with
+`authoredLantern` after the kerbs, when everything else stands, and leaves
+out (and logs) any that does not fit. `EMBER.avenueLamps` exposes both.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, its own
+seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are asset
+  markers and comment words), `audit-dom`, `audit-dead` (572 functions, 0
+  dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r144 → r145: errors 0 → 0; villagers 374 → 374; draw calls
+  442 → 442 (the halls merge into the existing batches); triangles
+  1,896,207 → 1,910,147; colliders 11,690 → 11,876; dialogue 17 wards / 102
+  branches, none failed; residents moving over 30 s 184 → 182; road
+  obstructions in the carriageway 0, intruding 229 → 229.
+- Walk proofs: the Rain Oath 13/13 (path → causeway at 0.34 m → into the
+  ring → round the knight at 0.5 m → back); before the embankment the
+  causeway dipped to -0.79 m. The Skywatch 8/8 (the track at r 442 → up the
+  path → the crown at 10.9 m → round the armillary).
+- Crossing lamps: 46 records, 45 placed, 1 left out and logged
+  (`avenue-crossing-21-aa`); none pruned.
+- All 14 captures shot and looked at; the eleven halls shot from their
+  streets, the Cinder and Keg's room from inside (unchanged).
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r145" (software
+  GL and Linux Web Bluetooth flags, as before).
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0w. r144 — where the session before that left off (2026-09-30)
 
 **State: r144 / 1.44.0, sealed 2026-09-30 ("market and cathedral").** Same
 instruction as r143 below; r143 built the places outside the walls, r144
