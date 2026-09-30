@@ -6,6 +6,33 @@ estimated.
 
 ---
 
+## 2026-09-30 — late · r147 "Signs and lamps"
+
+**What was wrong.** Two things every street has were still boxes. A shop's
+sign was a board in its house's accent colour on a wooden arm — the same on
+a baker's as a bookseller's — and a street lamp was a wooden pole with a
+glowing cube on top. The market's lantern strings were stepped boxes.
+
+**What changed.** The trade hangs from a wrought-iron bracket over every
+shop — pretzel, cask, candles, shears, key, horseshoe, book, bottle — just
+past the awning, larger over the taller houses. The lamps are cast-iron
+posts with four-paned lanterns and a pool of light under each. The market's
+strings sag and carry proper lanterns. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Runtime audit against r146: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 448 → 458.
+- A sign of each trade shot from across its street; the first placement
+  hung the emblems into the awnings, which the shots showed, and they were
+  moved. Three lamps from the road, the market strings from two sides, all
+  14 captures.
+- Variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r147.
+
+---
+
 ## 2026-09-30 — night · r146 "The avenues at night"
 
 **What was wrong.** A night street is lit windows, the light they throw,

@@ -4,13 +4,12 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r146 / 1.46.0**, sealed 2026-09-30 as "the avenues at night":
-leaded lit windows and pools of their light on the paving, chimneys and
-their smoke, houses and lantern festoons along the two avenues, windows in
-every wall that faces a street (§0). Before it, r145 / 1.45.0 ("halls and
-crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143 /
-1.43.0 ("places under the moon", §0x). None of the four is packaged yet;
-the latest packaged pair is r142 / 1.42.0
+Current: **r147 / 1.47.0**, sealed 2026-09-30 as "signs and lamps": every
+shop's trade hung from an iron bracket, modelled street lamps, the market's
+strings re-hung (§0). Before it, r146 / 1.46.0 ("the avenues at night",
+§0u), r145 / 1.45.0 ("halls and crossings", §0v), r144 / 1.44.0 ("market
+and cathedral", §0w) and r143 / 1.43.0 ("places under the moon", §0x). None
+of the five is packaged yet; the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
 2026-09-25 as the first true reference-build chunk: named places plus
@@ -228,7 +227,78 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-30, r146)
+## 0. Start here — where the last session left off (2026-09-30, r147)
+
+**State: r147 / 1.47.0, sealed 2026-09-30 ("signs and lamps").** The same
+instruction as r146 — keep modelling, whatever gives the most polish —
+carried on to the two things every street has that were still boxes: the
+shop signs and the street lamps.
+
+**Next:** the outer ring between the walls; the towers of the Moon Archive
+and the Northwatch Guild, which are only outsides. The Windows installers
+for r143–r147 have not been built.
+
+### Hanging shop signs
+
+Every shop's sign was a board in the house's accent colour on a wooden
+arm — from the street a coloured card, the same on a baker's as on a
+bookseller's. Now the trade hangs from a wrought-iron bracket out of the
+wall (`tools/assets/shop-signs.py`): a pretzel, a cask, three lit candles
+on a shelf, open shears, a gilded key, a horseshoe, an open book, a lit
+bottle of green glass. `shopFront` records each sign in `SHOP_SIGNS`, just
+past the end of the awning (which spans 0.37 of the width either side of
+the door) so the emblem hangs clear of it and of the windows: over a house
+of two storeys or more at 3.45 m and 1.3 × size, to be read from across the
+street; over a single storey at 2.5 m and 0.85 ×, under the eaves.
+`placeShopSigns` lays each trade as one batch once every shop is built
+(eight draw calls; the apothecary's glass has its own green glow). The
+shop's lamp hangs off the bracket's end (`shop.lampY`). `shopFront` learnt
+the house's storeys from its callers for this.
+
+The first placement put the bracket inside the awning's span, where the
+emblem would have hung into the awning; shot, seen, moved.
+
+### Street lamps
+
+A street lamp was a tapered wooden pole with a glowing cube on it and a
+stick across. `placeCityLantern` now only records a lamp — its collider and
+its light, exactly as before — and `placeStreetLamps`, after `pruneLanterns`,
+lays a cast-iron lamp post with a four-paned lantern under a hood
+(`tools/assets/street-lamp.py`; lit and dark models) for every lamp that
+stands, with a pool of light under each lit one. The pools are laid last
+now, when every pool is known.
+
+### The Cinder Market's strings
+
+Its lantern strings were stepped boxes with a box lantern every 1.5 m. They
+sag as one thin tube now and carry the avenues' festoon lanterns.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are asset
+  markers and comment words), `audit-dom`, `audit-dead` (583 functions, 0
+  dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r146 → r147: errors 0 → 0; villagers 374 → 374; draw
+  calls 448 → 458; triangles 2,165,811 → 2,222,751; colliders 11,931 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  230.
+- Built, from `EMBER`: 143 shop signs (grocer 33, ironmonger 27, chandler
+  21, draper 20, baker 17, apothecary 10, saddler 10, bookseller 5); 57
+  street lamps, all lit; the market's 10 strings.
+- Shots looked at: a sign of each trade from across its street (and an
+  apothecary's close up), three lamps from the road, the market strings from
+  the avenue and from a stall row; all 14 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r147".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0u. r146 — where the session before that left off (2026-09-30)
 
 **State: r146 / 1.46.0, sealed 2026-09-30 ("the avenues at night").** The
 owner's word this time: keep working, keep modelling, build systems where
