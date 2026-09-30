@@ -1,6 +1,6 @@
 # Emberwatch — variant editions
 
-Six alternate readings of the same city, all built on base **r135**. r0 is
+Six alternate readings of the same city, all built on base **r142**. r0 is
 the exception and is not a reading of the city at all: it is a small forest
 camp at night, rebuilt in r135 with its own materials (bark, canvas, rock,
 ash, iron, forest floor and two needle tones) because every object in it used

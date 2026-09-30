@@ -219,7 +219,125 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-23)
+## 0. Start here — where the last session left off (2026-09-28)
+
+**State: r142 / 1.42.0, sealed 2026-09-28.** r141 below fixed the one
+complaint it was given. The next session's instruction was broader and more
+pointed: "do visual walkaround make sure npcs match visual canon and sites
+make sense visually — the code can say something and eyes can say otherwise."
+So: every one of the 8 `VISUAL_CANON.captures` cameras, visited with its own
+stored position and look direction (not a guessed angle), screenshotted, and
+read against the one-line `target` description already written for it. Four
+real problems turned up, none of them visible in any diagnostic:
+
+1. **r141's own `WILD_CLEARINGS` fix had a side effect nobody checked for.**
+   That array turned out to drive five different systems, not one — a
+   wilderness-verge cairn placer and two separate signpost-arm pickers among
+   them. Registering the four new canon sites there to protect them from
+   `ruinedRing()`'s rubble also, silently, gave each of them a cairn and a
+   signpost pointing at them as if they were ordinary wilderness landmarks.
+   One cairn landed 2m from the rain-oath knight — inside the exact "money
+   shot" frame the previous session had just finished cleaning up, put there
+   by the cleanup itself. Fixed by splitting it into a second array,
+   `CANON_SITE_CLEARINGS`, that only `inWildClearing()` (the rubble/tree
+   check) reads, leaving `WILD_CLEARINGS` itself — and everything else that
+   walks it — exactly as it was.
+2. **The same "sparse ring of small pavers reads as litter" shape r141 fixed
+   at the rain-oath site also existed at the ruins**, `fallen-hall-outer-
+   circle-stone`: ten 0.64m stones on a 9.4m ring, ~5.9m apart. Visible in the
+   very screenshot taken to confirm the rain-oath fix was clean. Removed.
+3. **`canonBareTree()` — a "frame the vista with bare branches" accent used at
+   three sites — was sized and placed as if it were a background tree**, full
+   scale, standing 7-11m from its own vista camera. From that camera it
+   didn't frame anything; it was a solid black wall across the entire
+   foreground, at the overlook completely blocking the "warm lower-town
+   roofs" the shot exists to show. Cut to roughly a third of scale everywhere
+   it's used (skywatch's two, the overlook's one, the bridge's one).
+4. **The skywatch companion's optional wing pair** — two cones meant to be
+   "loose cloth", `ConeGeometry(.28,.95,5)` tilted .55/.78 rad and scaled
+   `(.85,1,.22)` — rendered as two blade shapes nearly a metre long flaring
+   past the shoulders, reading as a giant triangular hat and burying the
+   seated figure it was supposed to accent. Cut to `ConeGeometry(.14,.44,5)`
+   at a tighter tilt so it sits near the shoulder instead of spanning past it.
+
+Checked and NOT wrong, worth recording so it isn't re-litigated: the
+foxglove-bridge river mesh (4-vertex quad, `#8fb7ff`, correct position,
+`visible:true`) — it is just genuinely hard to see against dark ground at
+night, not missing. The ruins' waterfall-veil material — confirmed `#8fb7ff`
+in the scene graph; a screenshot that reads it as magenta is ambient-light
+bleed, not a wrong color. Three reference NPCs (the graveyard's mourner and
+caretaker, the ruins' wizard) that don't appear in their site's wide vista
+shot — all three are present and correctly posed when visited directly; a
+scenic camera simply wasn't framed to include them, which is not the same
+bug as an NPC that isn't there.
+
+Verified: `check-parse`/`audit-source`/`audit-dom`/`audit-dead` all clean,
+6/6 variants, smoke clean (bluetooth chooser installed, r142 in the window
+title). **Diagnostics can only tell you the counts are right — they cannot
+tell you a cairn is sitting on top of your money shot, or that a wing cone
+reads as a party hat. For anything visual, go stand where the camera stands.**
+
+---
+
+## 0z. r141 — where the session before that left off (2026-09-27)
+
+**State: r141 / 1.41.0, sealed 2026-09-27.** The owner sent a screenshot of
+the rain-oath knight and said, plainly: "in your screenshot alone, I'm seeing
+nonsense in the road. I really want to get rid of all the BS nonsense that we
+see in the road." That one sentence took most of a session to run down,
+because every fast, plausible answer turned out to be wrong, in order:
+
+1. *Is it the standing-stones ring 26 m away sharing the frame?* No — its own
+   `shrineCrystal` and hidden light-pillar were both exactly where the code
+   says, doing exactly what the code says. Working as designed.
+2. *Is it `ruinedRing()`'s loose wall-rubble, the same "two authors, no shared
+   geometry" bug already found twice this session at the ruins site and the
+   foxglove bridge?* A real bug either way — its rubble scatter checked
+   `onRoad`/`inWildClearing` for the wall stub but never for the loose stones
+   scattered up to 3.2 m past it, and the six sites this session added
+   (rain-oath, skywatch, overlook, the bridge) were never in `WILD_CLEARINGS`
+   for it to check against in the first place. Both are fixed. But a pixel
+   diff against the pre-fix screenshot proved, in black and white, that fixing
+   it changed **zero pixels** at this site. Wrong culprit.
+3. *Is the newly-Blender-modelled knight itself broken?* Yes, separately —
+   `getWorldPosition()` on a `dressPoints()`-baked static mesh reads the
+   mesh's own origin, not its vertices, so it reported the knight sitting at
+   (0,0,0) and looked like a bug that wasn't one. The real problem, caught by
+   rendering the model's own preview PNG rather than trusting the in-game
+   screenshot: the kneeling pose was built from ad hoc per-part offsets and
+   rotations, and the down leg's thigh and shin had the rotations that belong
+   to each other, so the figure read as a scattered pile of boxes with a
+   floating helmet. Rebuilt `tools/assets/oath-knight.py` around a `limb(a,b)`
+   helper — every jointed piece takes the two joints it spans and derives its
+   own length, center and rotation, so a hip-to-knee-to-foot chain is
+   connected by construction instead of by a hand-guessed number lining up.
+4. *So what is actually in the road?* Raycasting the exact screenshot camera
+   found nothing at the pixels the discs occupied — because the discs are
+   0.08 m tall, flush with the terrain, and a coarse grid steps over anything
+   that thin. The tell was `E.setPixel(1)` never being called before the
+   probe's raycasts, which left the probe's canvas a few percent off the
+   screenshot's real resolution — close enough to look right, far enough to
+   miss a thin object every time. Fixed the scale mismatch, then confirmed
+   with the one test that cannot lie: projected all nine `rain-oath-ring-stone`
+   paving-node world positions through the actual screenshot camera and got
+   nine screen coordinates that landed, pixel for pixel, on the nine visible
+   discs. They were mine — added earlier this session as ring dressing for
+   the rain-oath site, radius 5.4 m, no rotation, 3.8 m apart. Spaced that far
+   apart with nothing tying them together, they never read as a paved ring;
+   they read as litter. Removed. The causeway alone carries the site.
+
+Verified: 0 dead functions, `check-parse`/`audit-source`/`audit-dom` clean,
+smoke clean (bluetooth chooser installed, r141 in the window title), 6/6
+variants. The fix that actually mattered was one deleted `for` loop; getting
+there took a Blender preview re-render, a `WILD_CLEARINGS` registration a
+pre-existing generator never had, a per-piece exclusion check, and finally a
+screen-space projection check because nothing less direct would settle it.
+**Parsing is not evidence — screenshots are not always evidence either, once
+the thing you're looking for is thinner than your test's resolution.**
+
+---
+
+## 0a. r135 — where the session before that left off (2026-09-23)
 
 **State: r135 / 1.35.0, sealed 2026-09-23.** The owner went AFK in the market
 and came back unable to move: the crowd had closed around them. They also
@@ -2237,6 +2355,37 @@ Symmetric pieces (the quoins, the awning valance, the arch infill) are immune.
 **What has been tried already.** `assets/` now holds only two UI concept PNGs
 (5.3 MB). The 435 MB `assets/75.glb` the reinstall notes describe is in D:'s
 Recycle Bin — deleted on 2026-08-31, not moved. Nothing in the build loads it.
+
+**The rule this section exists to enforce (2026-09-25).** The "visual canon"
+layer added in r136-r139 (memorial field, rain-oath, the ruins, skywatch,
+overlook, the foxglove bridge — `addVisualCanonLayer()`) went back to raw
+`aBox`/`aCyl`/`aCone` calls with hand-tuned rotations instead of using the
+pipeline above, and it cost exactly what this section already warned about:
+a bridge over no water, three uncoordinated generators drawing overlapping
+stone in the same 16 m patch, eleven lamps where four belonged, two figures
+sitting on their own walkway, and a kneeling knight that did not kneel. None
+of that showed up as a parse error or a failed audit — every one of those was
+invisible until someone stood where a player actually stands and looked. That
+is the entire argument for modelling in Blender instead of composing
+primitives in the source file: a model gets **rendered and looked at, once,
+in isolation, before it ever reaches the city**, the same way
+`tools/harness` makes the game itself verify at runtime instead of trusting
+that it parses. A stack of primitive calls in a 900KB file has no equivalent
+check — the first time anyone sees whether eight rotations add up to
+"kneeling" is in the shipped game.
+
+**So: any posed figure, landmark, or structural piece for the visual canon —
+or anything else meant to read as one specific, particular thing rather than
+a repeated architectural detail — is modelled, not assembled from primitives
+in the source.** `tools/assets/oath-knight.py`, `hooded-watcher.py` and
+`foxglove-bridge.py` are the worked examples: build with `bmesh`, **render a
+preview to a PNG and look at it before exporting**, fix what is wrong there
+(the first oath-knight attempt scattered across the frame from a rotation-
+axis mistake — caught in the preview, not in the game), export `.glb`, verify
+axis bounds per the rule above, inline via `tools/assets/inline-glb.js`, place
+with `dressPoints` and one `KIT_`-prefixed material. Background dressing that
+repeats at scale and was never the thing that broke — trees, rubble scatter,
+paving nodes — is unaffected by this rule and stays procedural.
 
 ### The city programme — what "fleshed out and alive" means here (2026-09-19)
 
