@@ -17,6 +17,12 @@
 # door faces +Z; y=0 is the floor. The footprint is x -10..10, z -15.6..15.6.
 # Colliders are traced from these numbers in index.html (placeCathedral).
 #
+# The east tower (r149) is hollow and climbable: a door from the east aisle,
+# a square newel stair of stone steps winding up its inside walls — ten
+# flights of eight, 19 m — to a timber belfry floor under open pointed arches,
+# with two bells in a frame. Its plan is the BELL_* numbers below, which the
+# game reads again to lay the steps it walks on (placeCathedral).
+#
 #   python tools/assets/cathedral.py
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -41,6 +47,13 @@ ARCADE_TOP, CLER_TOP = 8.0, 16.0
 AISLE_H = 8.0
 RIDGE = 23.0
 APSE_R = 5.6
+
+# The climbable (east, +x) tower, in the tower's own offsets from its middle.
+BELL_IN = 2.2                     # the shaft's inner half-width
+BELL_W = 1.0                      # a flight's width, and a corner landing's
+BELL_RISE, BELL_STEPS, BELL_FLIGHTS = 1.9, 8, 10
+BELL_FLOOR = BELL_RISE * BELL_FLIGHTS          # 19.0
+BELL_DOOR = (-1.6, -.1, 2.4)      # the door in its south wall: x from, x to, height (a body's width either side of the middle)
 
 
 # ---- the stone ------------------------------------------------------------------
@@ -172,6 +185,82 @@ for k in range(facets):
     e1 = (p1[0] * 1.08, CLER_TOP + .4, BACK + (p1[1] - BACK) * 1.08)
     s.mesh([e0, e1, apex], [(0, 2, 1), (0, 1, 2)], SLATE)
 
+# The climbable tower's shell. Each stage is four walls round the same shaft
+# (BELL_IN), thinner as the stage steps in; the ground stage has the door, the
+# belfry stage a pair of pointed openings on each face.
+def climbable_stage(tx, tz, half, y0, y1, stage):
+    t = half - BELL_IN
+    for sz in (-1, 1):                                  # south and north walls, full width
+        zc = tz + sz * (BELL_IN + t / 2)
+        if stage == 0 and sz == -1:
+            d0, d1, dh = BELL_DOOR
+            s.box(d0 + half, y1 - y0, t, tx + (-half + d0) / 2, (y0 + y1) / 2, zc, STONE)
+            s.box(half - d1, y1 - y0, t, tx + (d1 + half) / 2, (y0 + y1) / 2, zc, STONE)
+            s.box(d1 - d0, y1 - dh, t, tx + (d0 + d1) / 2, (dh + y1) / 2, zc, STONE)
+            s.box(d1 - d0 + .3, .25, t + .1, tx + (d0 + d1) / 2, dh + .12, zc, STONE2)      # its lintel
+            continue
+        if stage == 2:
+            belfry_face(tx, zc, half, t, y0, y1, 'z')
+            continue
+        s.box(2 * half, y1 - y0, t, tx, (y0 + y1) / 2, zc, STONE)
+    for sx in (-1, 1):                                  # east and west walls, between them
+        xc = tx + sx * (BELL_IN + t / 2)
+        if stage == 2:
+            belfry_face(xc, tz, BELL_IN, t, y0, y1, 'x')
+            continue
+        s.box(t, y1 - y0, 2 * BELL_IN, xc, (y0 + y1) / 2, tz, STONE)
+
+
+def belfry_face(cx, cz, half, t, y0, y1, axis):
+    # sill to 19.6, piers either side of two openings (1.2 wide at +-1.3), the
+    # pointed heads from 23.2, solid again above
+    SILL, SPRING, RISE = BELL_FLOOR + .6, 23.2, .6
+    along = (lambda a, w, h, y: s.box(w, h, t, cx + a, y, cz, STONE)) if axis == 'z' else \
+            (lambda a, w, h, y: s.box(t, h, w, cx, y, cz + a, STONE))
+    along(0, 2 * half, SILL - y0, (y0 + SILL) / 2)
+    for a0, a1 in ((-half, -1.9), (-.7, .7), (1.9, half)):
+        along((a0 + a1) / 2, a1 - a0, SPRING + RISE - SILL, (SILL + SPRING + RISE) / 2)
+    along(0, 2 * half, y1 - (SPRING + RISE), (SPRING + RISE + y1) / 2)
+    for a in (-1.3, 1.3):
+        if axis == 'z':
+            s.arch_wall(.6, SPRING, RISE, SPRING + RISE, t, STONE, at=(cx + a, 0, cz))
+        else:
+            s.arch_wall(.6, SPRING, RISE, SPRING + RISE, t, STONE, at=(cx, 0, cz + a), ry=math.pi / 2)
+
+
+def ring_course(tx, tz, half, y):
+    for sz in (-1, 1):
+        s.box(2 * half + .3, .35, .5, tx, y, tz + sz * (half - .1), STONE2)
+    for sx in (-1, 1):
+        s.box(.5, .35, 2 * half + .3, tx + sx * (half - .1), y, tz, STONE2)
+
+
+# The stair: flight k runs along a wall (south, east, north, west, round and
+# up), eight steps of 0.24 over 2.4 m, between corner landings; the tenth
+# arrives at the belfry floor. Stone blocks 0.3 deep under each tread.
+def bell_stair(tx, tz):
+    c, L = BELL_IN - BELL_W / 2, 2 * BELL_IN - 2 * BELL_W
+    run, rise = L / BELL_STEPS, BELL_RISE / BELL_STEPS
+    dirs = [((1, 0), (0, -1)), ((0, 1), (1, 0)), ((-1, 0), (0, 1)), ((0, -1), (-1, 0))]   # travel, which wall
+    corners = [(1, -1), (1, 1), (-1, 1), (-1, -1)]
+    for k in range(BELL_FLIGHTS):
+        (ux, uz), (wx, wz) = dirs[k % 4]
+        h0 = k * BELL_RISE
+        for j in range(BELL_STEPS):
+            a = -L / 2 + (j + .5) * run
+            top = h0 + (j + 1) * rise
+            x, z = tx + ux * a + wx * c, tz + uz * a + wz * c
+            s.box(run + .02 if ux else BELL_W, .3, BELL_W if ux else run + .02, x, top - .15, z, STONE2)
+        cx, cz = corners[k % 4]
+        if k < BELL_FLIGHTS - 1:
+            s.box(BELL_W, .3, BELL_W, tx + cx * c, h0 + BELL_RISE - .15, tz + cz * c, STONE2)
+    # The belfry floor, boards over the shaft but for the stair's last two
+    # flights (south and east) and the landing between them.
+    f0, f1 = BELL_IN - BELL_W, BELL_IN
+    s.box(BELL_IN + f0, .25, BELL_IN + f0, tx + (f0 - BELL_IN) / 2, BELL_FLOOR - .125, tz + (BELL_IN - f0) / 2, (0.40, 0.28, 0.18))
+    s.box(BELL_W, .25, BELL_W, tx + c, BELL_FLOOR - .125, tz + c, (0.40, 0.28, 0.18))
+
+
 # The west front: the towers, and between them the portal and the rose.
 for side in (-1, 1):
     tx = side * (TOWER_X0 + TOWER_X1) / 2
@@ -181,15 +270,25 @@ for side in (-1, 1):
     stages = [(0, 9.0), (9.0, 17.5), (17.5, 26.0)]
     for i, (y0, y1) in enumerate(stages):
         inset = i * .35
+        if side == 1:
+            climbable_stage(tx, tz, (TW - inset) / 2, y0, y1, i)
+            if i < 2:          # the string course round a hollow shaft is a ring, not a floor
+                ring_course(tx, tz, (TW - inset) / 2, y1)
+            else:
+                s.box(TW - inset + .3, .35, TD - inset + .3, tx, y1, tz, STONE2)
+            continue
         s.box(TW - inset, y1 - y0, TD - inset, tx, (y0 + y1) / 2, tz, STONE)
         s.box(TW - inset + .3, .35, TD - inset + .3, tx, y1, tz, STONE2)
+    if side == 1:
+        bell_stair(tx, tz)
     # corner buttresses up the first two stages
     for cx in (-1, 1):
         for cz in (-1, 1):
             s.box(1.0, 17.0, 1.0, tx + cx * (TW / 2 + .2), 8.5, tz + cz * (TD / 2 + .2), STONE2, taper=.8)
     # the belfry: a tall pair of openings on each face, dark louvres, lit within
+    # (the climbable tower's are open, and you stand in its belfry instead)
     fz_off, fx_off = (TD - .7) / 2 + .04, (TW - .7) / 2 + .04
-    for n in (-1, 1):
+    for n in ((-1, 1) if side == -1 else ()):
         for o in (-1, 1):
             g.box(.9, 5.0, .06, tx + o * 1.3, 21.2, tz + n * fz_off, (0.8, 0.6, 0.45, .5))
             g.box(.06, 5.0, .9, tx + n * fx_off, 21.2, tz + o * 1.3, (0.8, 0.6, 0.45, .5))
@@ -238,7 +337,8 @@ s.cyl(.3, .0, 2.0, 0, RIDGE + 1.0, wall_z, STONE2, sides=4, ry=math.pi / 4)
 s.extrude([(-run, CLER_TOP + .4), (run, CLER_TOP + .4), (0, RIDGE)], .6, STONE, at=(0, 0, BACK - .3))
 
 s.finish(cam_at=(30.0, 18.0, 46.0), cam_look=(0, 14.0, 0), res=(900, 900), lens=30, sun=(50, 0, 140),
-         extra_views=[('side', (46.0, 10.0, -4.0), (0, 12.0, -2.0)), ('inside', (1.5, 2.0, 13.0), (0, 5.0, -12.0))])
+         extra_views=[('side', (46.0, 10.0, -4.0), (0, 12.0, -2.0)), ('inside', (1.5, 2.0, 13.0), (0, 5.0, -12.0)),
+                      ('belfry', (16.0, 21.0, 22.0), (7.0, 20.0, 12.5))])
 g.finish(cam_at=(30.0, 18.0, 46.0), cam_look=(0, 14.0, 0), res=(600, 600), lens=30)
 
 # ---- the furnishing -----------------------------------------------------------------
@@ -297,4 +397,34 @@ for zc in (6.0, .5, -5.0):
         ang = k / 3 * math.tau
         f.span((math.cos(ang) * 1.1, 7.0, zc + math.sin(ang) * 1.1), (0, 9.2, zc), .03, .03, IRON)
     f.box(.03, 6.6, .03, 0, 9.2 + 3.3, zc, IRON)
-f.finish(cam_at=(6.0, 5.0, 14.0), cam_look=(0, 1.5, -2.0), res=(800, 600), lens=30)
+# The bells (r149), in a timber frame on the east tower's belfry floor, and a
+# lantern for whoever climbs up to them.
+BRONZE = (0.55, 0.40, 0.19)
+BRONZE2 = (0.42, 0.30, 0.14)
+btx, btz = (TOWER_X0 + TOWER_X1) / 2, (TOWER_Z0 + FRONT) / 2
+fz = btz + .8
+for px in (btx - 2.0, btx + 1.0):                              # the frame's posts and the beam
+    f.box(.22, 4.4, .22, px, BELL_FLOOR + 2.2, fz, WOOD2)
+    f.span((px, BELL_FLOOR, fz - .9), (px, BELL_FLOOR + 1.6, fz), .14, .14, WOOD2)
+    f.span((px, BELL_FLOOR, fz + .9), (px, BELL_FLOOR + 1.6, fz), .14, .14, WOOD2)
+f.box(3.3, .26, .3, btx - .5, BELL_FLOOR + 4.3, fz, WOOD)
+
+
+def bell(x, y, z, k):
+    # y is the crown; the bell hangs below it
+    f.box(.18 * k, .2 * k, .18 * k, x, y - .1 * k, z, BRONZE2)                       # the canons
+    f.cyl(.34 * k, .26 * k, .26 * k, x, y - .33 * k, z, BRONZE, sides=10)           # the shoulder
+    f.cyl(.47 * k, .34 * k, .6 * k, x, y - .76 * k, z, BRONZE, sides=10, cap=False)  # the waist
+    f.cyl(.62 * k, .47 * k, .34 * k, x, y - 1.23 * k, z, BRONZE, sides=10, cap=False)  # the sound bow
+    f.cyl(.64 * k, .62 * k, .07 * k, x, y - 1.43 * k, z, BRONZE2, sides=10, cap=False)
+    f.cyl(.03 * k, .03 * k, .9 * k, x, y - .95 * k, z, IRON, sides=4)              # clapper
+    f.cyl(.09 * k, .09 * k, .16 * k, x, y - 1.36 * k, z, IRON, sides=6)
+
+
+bell(btx - 1.25, BELL_FLOOR + 4.17, fz, 1.0)
+bell(btx + .25, BELL_FLOOR + 4.17, fz, .75)
+f.box(.03, .5, .03, btx - .5, BELL_FLOOR + 3.9, btz - .6, IRON)                  # the lantern's chain
+f.box(.2, .06, .2, btx - .5, BELL_FLOOR + 3.62, btz - .6, IRON)
+f.box(.16, .24, .16, btx - .5, BELL_FLOOR + 3.47, btz - .6, CANDLE)
+f.finish(cam_at=(6.0, 5.0, 14.0), cam_look=(0, 1.5, -2.0), res=(800, 600), lens=30,
+         extra_views=[('bells', (btx + 2.0, BELL_FLOOR + 1.6, btz - 2.0), (btx - .8, BELL_FLOOR + 2.6, fz))])
