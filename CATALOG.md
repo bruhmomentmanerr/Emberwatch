@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.42.0 / build r142 ("walkaround")**,
-2026-09-28. Archived, smoke-tested, six variants boot-check. The latest
-packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+Current sealed source: **1.43.0 / build r143 ("places under the moon")**,
+2026-09-30. Archived, smoke-tested, six variants boot-check. Not packaged
+yet: the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r130'
+                      the strain-archive lookups work. BUILD_REVISION = 'r143'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
-        index.html    THE GAME. About 1.43 MB. Byte-identical to
+        index.html    THE GAME. About 2.6 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r130-props-and-porters.html
+                      emberwatch_3_r143-places-under-the-moon.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,11 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r130, minus the revisions
+                    Phase 5 currently contains r70-r143, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
-                    reach (r87, r89-r92, r102). The live build:
-                    emberwatch_3_r130-props-and-porters.html
+                    reach (r87, r89-r92, r102), and r136-r139, which were never
+                    archived (see above). The live build:
+                    emberwatch_3_r143-places-under-the-moon.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1022,6 +1023,46 @@ guessed at.
                           Verified: parse/audit/dead clean, 6/6 variants,
                           smoke clean (bluetooth chooser installed, r142 in
                           the window title).
+    Sep 30     r143       places under the moon. Instruction: "design
+                          landmarks and places to explore … match that visual
+                          canon as close as possible, fix the npcs, populate
+                          the world, continue and fix the city rebuild." Every
+                          reference place is now somewhere you walk into,
+                          climb and look out from, each laid out in its own
+                          frame (mostly on the moon's bearing, so its proof
+                          shot holds the moon), the climbs with walk proofs:
+                          the Fallen Hall and the Veilscar falls (nave 5/5,
+                          stair to 15.05 m); the Oathfield (56 planted
+                          oath-blades, a lychgate, the winged angel; 10/10);
+                          the Watcher's Bluff over Lowmere (a 21 m crag above
+                          a lit hamlet, a watchtower beyond; 10/10); the
+                          Foxglove crossing (a humpbacked arch over the real
+                          brook, a gate tower); the Rain Oath (a causeway over
+                          a mere to a ring of stones, the knight remodelled);
+                          the Skywatch knoll (an armillary on its crown). New
+                          beyond the seven: Foxglove Mill, whose overshot
+                          wheel turns under its flume; the Lantern Grove, a
+                          bare oak hung with thirty lanterns; the High Step, a
+                          real climb up the inner wall by the south gate
+                          (8/8). New machinery: terrain landforms, walkable
+                          stairs and decks, a Blender kit (tube, leaf) and a
+                          vertex-alpha glow mask, landmark movers. Eleven
+                          residents live out there; role residents keep their
+                          pose and only glance at you; faces read at play
+                          distance and every role wears its part; talk and
+                          directions for every new place. Night sky rebuilt
+                          to the canon (cobalt/violet, one moon direction for
+                          disc, light and glint, staged meteor showers and
+                          omen, rain). One lane that ran into the back of a
+                          house rerouted: road obstructions 0. Removed the
+                          r138 stand-ins these replace. Installers not built
+                          (no Windows toolchain in the container).
+                          Verified: parse/audit/dead clean; runtime audit
+                          against the r142 archive, 16 wards / 96 dialogue
+                          branches none broken, draw calls 449 -> 436; walk
+                          proofs above; all 12 captures looked at (three
+                          reframed); 6/6 variants built and booted; smoke
+                          clean (r143 in the window title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

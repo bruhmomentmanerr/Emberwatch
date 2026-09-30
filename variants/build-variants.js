@@ -280,8 +280,9 @@ function bareWorld(html) {
   // world stages so cutting those did not stop them: 58 were still being made
   // and updated every frame against an empty nav grid. Neutering villager()
   // itself is one edit and stops all of them, wherever they are called from.
-  swap('function villager(name,x,z,robe,line,route=[],districtOverride){',
-       'function villager(){ return; }\nfunction villagerDisabledForR0(name,x,z,robe,line,route=[],districtOverride){',
+  // (r143 gave villager() an optional look parameter; the match follows it.)
+  swap('function villager(name,x,z,robe,line,route=[],districtOverride,look=null){',
+       'function villager(){ return; }\nfunction villagerDisabledForR0(name,x,z,robe,line,route=[],districtOverride,look=null){',
        'villager');
 
   // r0 is a campfire at night. The base restores whatever lighting mode was

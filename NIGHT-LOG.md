@@ -6,6 +6,57 @@ estimated.
 
 ---
 
+## 2026-09-30 — r143 "Places under the moon"
+
+The owner, before leaving it running: "design landmarks and places to explore,
+you have the visual canon … go wild just trying to match that visual canon as
+close as possible, fix the npcs, populate the world, continue and fix the city
+rebuild."
+
+**What was wrong.** The seven reference places of the visual canon existed as
+r138 map-spine stand-ins: a scatter of 24 swords and a cone "angel" in the
+graveyard, twelve stand-in boxes for a lower town by the outer wall, a flat
+strip of cobbles through the north gate called a citadel ascent, a river
+painted as a ribbon under the ground, a strip causeway to the rain-oath
+knight. From each proof camera they read as props, and none of them could be
+walked into, climbed or looked out from. The sky was a teal-green aurora over
+half of every frame with the moon pinned at a world position, so from the
+wilderness it sat behind you while its light came from elsewhere. Residents'
+eyes were one dark box three centimetres wide, and the reference roles wore
+whatever outfit their name rolled.
+
+**What changed.** Each place was rebuilt in its own frame, most on the moon's
+bearing so the proof shot holds the moon, out of three new pieces of
+machinery: terrain landforms laid before the noise is raised, walkable stairs
+and decks (`surfaceAt`), and modelled landmarks from a Blender kit, packed and
+inlined. The Fallen Hall and the Veilscar falls; the Oathfield with 56 planted
+oath-blades and the winged angel; the Watcher's Bluff, a 21 m crag above the
+lit hamlet of Lowmere; the Foxglove crossing and, upstream, a mill whose wheel
+turns; the Rain Oath's causeway and ring; the Skywatch knoll's armillary; the
+Lantern Grove; the High Step up the inner wall. Eleven people live out there
+now, with talk and directions for every place. The sky was rebuilt round one
+moon direction, with meteors and the omen as staged events. Faces were given
+eyes, and every role wears its part. The details are in PROJECT.md §0.
+
+**What proved it.**
+
+- Every capture camera visited and looked at, not assumed: all 12, three
+  reframed after looking.
+- Walked, not teleported, with `tools/probes/probe-walk.js`: the nave 5/5 and
+  the Veilscar stair to 15.05 m; the Oathfield 10/10; Lowmere's stair and
+  prow 10/10 (22.05 m); the High Step 8/8 (12.9 m).
+- Runtime audit against the r142 archive: no errors; 16 wards and 96 dialogue
+  branches walked, none broken; draw calls 449 → 436 with the new places in;
+  the last road obstruction (a lane ending inside a house's back wall) 1 → 0.
+- Audits clean (B/C 0, 0 dead functions), variants 6/6 built and 6/6 booted,
+  smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain in the container).
+The inner city — its empty avenues, bare market and plain house fronts — is
+next.
+
+---
+
 ## 2026-09-06 — second shift · r105 "The whole protocol"
 
 **The Dr. Dabber is reverse engineered.** Not most of it — all of it. Every
