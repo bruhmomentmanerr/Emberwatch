@@ -4,12 +4,13 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r147 / 1.47.0**, sealed 2026-09-30 as "signs and lamps": every
-shop's trade hung from an iron bracket, modelled street lamps, the market's
-strings re-hung (§0). Before it, r146 / 1.46.0 ("the avenues at night",
-§0u), r145 / 1.45.0 ("halls and crossings", §0v), r144 / 1.44.0 ("market
-and cathedral", §0w) and r143 / 1.43.0 ("places under the moon", §0x). None
-of the five is packaged yet; the latest packaged pair is r142 / 1.42.0
+Current: **r148 / 1.48.0**, sealed 2026-09-30 as "torchlit walls": torches
+in sconces along both town walls, lit slits up their towers, light washing
+up the walls lamps hang on (§0). Before it, r147 / 1.47.0 ("signs and
+lamps", §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0
+("halls and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w)
+and r143 / 1.43.0 ("places under the moon", §0x). None of the six is
+packaged yet; the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
 2026-09-25 as the first true reference-build chunk: named places plus
@@ -227,7 +228,66 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-30, r147)
+## 0. Start here — where the last session left off (2026-09-30, r148)
+
+**State: r148 / 1.48.0, sealed 2026-09-30 ("torchlit walls").** Still the
+same instruction. r148 went to the outer ring between the walls, which r145
+left as reading least finished: its houses and streets had caught up with
+the city's, but the ring road along the inner wall ran beside twelve metres
+of unlit stone, and both walls' towers were dark drums.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+only outsides; stairs up to the outer wall's walk. The Windows installers
+for r143–r148 have not been built.
+
+### Torches on the walls
+
+`wallLights()` walks the segments `citadelWall` laid — one `WALL_WALKS`
+record per wall, so a build without walls (r0) places nothing — and hangs a
+torch in an iron sconce (`tools/assets/wall-sconce.py`, 102 triangles, at
+1.6 × so it reads on a twelve-metre face) three times between each pair of
+towers on the outer face of both walls, and once on the inner wall's inner
+face, where the city's last streets run. A sconce is left out wherever
+something already stands against the wall there. Each has a pool at the
+wall's foot and a wash up the stone; the middle torch of each span is a
+real, flickering light in the same tiered budget as every lamp. Arrow slits
+are lit up every tower, on the taper of its drum (at a fixed radius the
+lower ones sank into the stone).
+
+### Light washes
+
+A lamp on a wall lights the wall. The pool system (`LIGHT_POOLS`) learnt a
+second kind of record: `wash`, a soft round glow standing up the wall the
+light hangs on, centred at `y`. The wall torches use it, and so do the
+hooded door lanterns on the houses, which now warm the fronts they hang on
+as well as the step below.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are an
+  asset marker and comment words), `audit-dom`, `audit-dead` (584
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r147 → r148: errors 0 → 0; villagers 374 → 374; draw
+  calls 458 → 459; triangles 2,222,751 → 2,243,105; colliders 11,931 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  230.
+- Built, from `EMBER.wallLights`: 147 sconces (64 of them real lights), 180
+  lit slits, 9 sconce places left out where something stands against the
+  wall; light pools and washes 6,675 in all.
+- Shots looked at: a sconce close up and from the ring road, a tower with
+  its slits, a house front with its door lantern, the ring roads and the
+  four inner gates from outside; all 14 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r148".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0t. r147 — where the session before that left off (2026-09-30)
 
 **State: r147 / 1.47.0, sealed 2026-09-30 ("signs and lamps").** The same
 instruction as r146 — keep modelling, whatever gives the most polish —

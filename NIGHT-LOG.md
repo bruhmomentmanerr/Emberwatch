@@ -6,6 +6,31 @@ estimated.
 
 ---
 
+## 2026-09-30 — later still · r148 "Torchlit walls"
+
+**What was wrong.** The ring between the walls had caught up with the city
+— houses, lit windows, chimneys — except along the walls themselves: the
+ring road beside the inner wall ran past twelve metres of unlit stone, and
+the towers of both walls were dark drums.
+
+**What changed.** Torches in iron sconces along both walls, each washing
+the stone above it and pooling light below, the middle one of each span a
+real light; lit arrow slits up every tower. The same wash now warms the
+house fronts behind the door lanterns. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Runtime audit against r147: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 458 → 459.
+- The first torches, at life size with only a pool below, did not read on a
+  twelve-metre wall at all; they were shot, enlarged and given the wash, and
+  shot again. The first slits sank into the towers' taper.
+- All 14 captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r148.
+
+---
+
 ## 2026-09-30 — late · r147 "Signs and lamps"
 
 **What was wrong.** Two things every street has were still boxes. A shop's
