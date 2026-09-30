@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r147 signs and lamps</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r148 torchlit walls</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4919,7 +4919,7 @@ MATS.foliage.color.setHex(0x2d8c48);MATS.foliage.emissive.setHex(0x0b2d1a);MATS.
 // ground in front of each lit ground-floor window, each hall window and each
 // door lantern, and under each festoon on the avenues: additive, one merged
 // mesh, one draw call, no light.
-const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?}: filled by the builders, laid by streetLightPools
+const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?, wash?, y?}: filled by the builders, laid by streetLightPools
 function streetLightPools(){
   // Two pools side by side on one texture: one thrown out from a wall (left;
   // a CanvasTexture is flipped, so the wall's edge is the canvas's bottom row)
@@ -4937,9 +4937,15 @@ function streetLightPools(){
   const pos=[], uv=[], col=[], idx=[];
   for(const p of LIGHT_POOLS){
     const co=Math.cos(p.ry), si=Math.sin(p.ry), base=pos.length/3, r=!!p.round, z0=r?-p.out/2:0, z1=r?p.out/2:p.out, u0=r?.5:0, u1=r?1:.5;
-    for(const [lx,lz] of[[-p.along/2,z0],[p.along/2,z0],[p.along/2,z1],[-p.along/2,z1]])
-      pos.push(p.x+lx*co+lz*si,.135,p.z-lx*si+lz*co);
-    uv.push(u0,0,u1,0,u1,1,u0,1); for(let i=0;i<4;i++)col.push(p.k,p.k,p.k);
+    // (r148) A wash stands up the wall a light hangs on instead of lying on
+    // the ground: `along` the wall, `out` up it, centred at height y, a hand's
+    // breadth off the face (which faces ry). Round, like a string's pool.
+    if(p.wash){ for(const [lx,ly] of[[-p.along/2,-p.out/2],[p.along/2,-p.out/2],[p.along/2,p.out/2],[-p.along/2,p.out/2]])
+        pos.push(p.x+lx*co+.06*si,p.y+ly,p.z-lx*si+.06*co);
+      uv.push(.5,0,1,0,1,1,.5,1); }
+    else { for(const [lx,lz] of[[-p.along/2,z0],[p.along/2,z0],[p.along/2,z1],[-p.along/2,z1]])
+        pos.push(p.x+lx*co+lz*si,.135,p.z-lx*si+lz*co);
+      uv.push(u0,0,u1,0,u1,1,u0,1); } for(let i=0;i<4;i++)col.push(p.k,p.k,p.k);
     idx.push(base,base+2,base+1,base,base+3,base+2);
   }
   const geo=new THREE.BufferGeometry();
@@ -5063,6 +5069,48 @@ function placeStreetLamps(){
   placeLandmark('street-lamp',STREET_LAMP_LIT_GLB,lit,{tex:'none',name:'street-lamp',metal:.3,rough:.55,glow:0xffb060});
   placeLandmark('street-lamp-dark',STREET_LAMP_DARK_GLB,dark,{tex:'none',name:'street-lamp-dark',metal:.3,rough:.55});
   return {lit:lit.length,dark:dark.length};
+}
+// The walls at night (r148). Between the gates both town walls were twelve
+// and fourteen metres of unlit stone, the ring roads along them the darkest
+// streets in Vaneth, and the towers dark drums. wallLights() walks the same
+// segments citadelWall laid (one WALL_WALKS record per wall, so a build with
+// no walls places nothing): a torch in an iron sconce (tools/assets/
+// wall-sconce.py) on the outer face three times between each pair of towers,
+// and once on the inner wall's inner face, where the city's last streets run,
+// each with a pool of its light at the foot of the wall — left out wherever
+// something already stands against the wall there — and lit arrow slits up
+// every tower. The middle torch of each span is a real light (the tiered
+// budget decides, as for every lamp); no roll.
+const WALL_LIGHTS={sconces:0,lit:0,slits:0,againstSomething:0};
+function wallLights(){
+  const pts=[];
+  for(const walk of WALL_WALKS){
+    const R=walk.r, H=walk.top-.9, seg=Math.max(160,Math.round(R*.67)), gateDeg=(GATE_HALF_WIDTH/R)*180/Math.PI+3;
+    const inner=R<OUTER_WALL_R-1;
+    for(let i=0;i<seg;i++){
+      const a=(i+.5)/seg*Math.PI*2, deg=(a*180/Math.PI)%360;
+      if([0,90,180,270,360].some(g=>Math.abs(deg-g)<gateDeg))continue;
+      const ox=Math.cos(a), oz=Math.sin(a);
+      if(i%8===0){                                          // a tower: slits up it
+        for(const side of inner?[1,-1]:[1])for(const y of[4.5,9,H+2.5]){ const r=R-.05+side*(2.57-.3*y/(H+5));   // on the taper
+          aBox(.16,.9,.12,ox*r,y,oz*r,'window',Math.atan2(ox*side,oz*side)); WALL_LIGHTS.slits++; }
+        continue; }
+      const faces=[]; if(i%8===2||i%8===4||i%8===6)faces.push(1); if(inner&&i%8===4)faces.push(-1);
+      for(const side of faces){
+        const nx=ox*side, nz=oz*side, r=R+side*1.02;
+        if(colliderBlocked(ox*(R+side*2.3),oz*(R+side*2.3),.3)||colliderBlocked(ox*(R+side*4),oz*(R+side*4),.3)){ WALL_LIGHTS.againstSomething++; continue; }
+        pts.push({x:ox*r,y:4.2,z:oz*r,ry:Math.atan2(nx,nz),s:1.6});
+        LIGHT_POOLS.push({x:ox*r,z:oz*r,ry:Math.atan2(nx,nz),along:4,out:6.5,k:1.7});
+        LIGHT_POOLS.push({x:ox*r,y:4.9,z:oz*r,ry:Math.atan2(nx,nz),along:5.5,out:6,k:2.4,wash:true});
+        // the middle torch of each span is a real light, in the same budget as every lamp
+        if(i%8===4){ const lamp=lampLight(0xff9a40,.8,11); lamp.position.set(ox*(r+side*.75),5.2,oz*(r+side*.75)); scene.add(lamp);
+          lights.push({light:lamp,base:.8,phase:i*.37+R,fire:true}); WALL_LIGHTS.lit++; }
+        WALL_LIGHTS.sconces++;
+      }
+    }
+  }
+  placeLandmark('wall-sconce',WALL_SCONCE_GLB,pts,{tex:'none',name:'wall-sconce',metal:.3,rough:.6,glow:0xff9a40});
+  return WALL_LIGHTS;
 }
 const SHOP_SIGNS=[];                     // {x, y, z, ry, kind}
 function placeShopSigns(){
@@ -19922,6 +19970,43 @@ const STREET_LAMP_DARK_GLB =
   'pgCjAKYApwChAKUApgChAKYAogCgAKMApwCgAKcApACoAKwAqQCpAKwAqgCqAKwAqwCrAKwAqACoAKkAqgCoAKoAqwCtALMArgCu' +
   'ALMArwCvALMAsACwALMAsQCxALMAsgCyALMArQCyAK0ArgCuAK8AsACwALEAsgCuALAAsgA=';
 // <<< ASSET STREET_LAMP_DARK
+// >>> ASSET WALL_SCONCE (built by tools/assets/wall-sconce.py, packed by tools/assets/pack-glb.js)
+const WALL_SCONCE_GLB =
+  'Z2xURgIAAADICQAAJAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJ3YWxsLXNjb25jZSIsInRyYW5zbGF0' +
+  'aW9uIjpbMCwwLjIxNDk5OTk4ODY3NTExNzUsMC4yNjg5NzExNDUxNTMwNDU2NV0sInNjYWxlIjpbMC4xMDAwMDAwMDE0OTAxMTYx' +
+  'MiwwLjYxNDk5OTk5NDYzNTU4MiwwLjI2ODk3MTE0NTE1MzA0NTY1XX1dLCJtZXNoZXMiOlt7Im5hbWUiOiJ3YWxsLXNjb25jZSIs' +
+  'InByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIkNPTE9SXzAiOjF9LCJpbmRpY2VzIjoyfV19XSwiYWNj' +
+  'ZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTIyLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6Njcs' +
+  'InR5cGUiOiJWRUMzIiwibWluIjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2NywzMjc2NywzMjc2N119LHsiYnVm' +
+  'ZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjY3LCJ0eXBlIjoiVkVDNCJ9' +
+  'LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjMwNiwidHlwZSI6IlNDQUxBUiJ9XSwiYnVmZmVy' +
+  'Vmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6NTM2LCJieXRlU3RyaWRlIjo4LCJ0YXJnZXQi' +
+  'OjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6NTM2LCJieXRlTGVuZ3RoIjoyNjgsImJ5dGVTdHJpZGUiOjQsInRhcmdl' +
+  'dCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo4MDQsImJ5dGVMZW5ndGgiOjYxMiwidGFyZ2V0IjozNDk2M31dLCJi' +
+  'dWZmZXJzIjpbeyJieXRlTGVuZ3RoIjoxNDE2fV19iAUAAEJJTgABgAGAAYAAAP9/AYABgAAA/38BgAqTAAABgAGACpMAAAGAEegB' +
+  'gAAA/38R6AGAAAD/fxHoCpMAAAGAEegKkwAAmRk4jWqYAABn5jiNapgAAGfmF5SqjQAAmRkXlKqNAACZGVXDP00AAGfmVcM/TQAA' +
+  'Z+Y0yn9CAACZGTTKf0IAAM0caMpIjgAAM+NoykiOAAAz48bTSI4AAM0cxtNIjgAAzRxoyuhaAAAz42jK6FoAADPjxtPoWgAAzRzG' +
+  '0+haAAAyc8TG6FoAAJk5xMb/fwAAZ8bExv9/AADOjMTG6FoAAGfGxMbRNQAAmTnExtE1AADMTL7f6FoAAGYmvt+icwAAmtm+36Jz' +
+  'AAA0s77f6FoAAJrZvt8uQgAAZia+3y5CAADMLDO46FoAANgNM7i/agAAwtszuLJkAADC2zO4HlEAANgNM7gRSwAAZiZCIOhaAADe' +
+  'C0IgfGgAAO/gQiBMYwAA7+BCIIRSAADeC0IgVE0AAABA7xfoWgAAxxPvF4lxAAA5zO8X5GgAADnM7xfrTAAAxxPvF0dEAABmRhI1' +
+  '6FoAAMEVEjXMcwAADMcSNUpqAAAMxxI1hUsAAMEVEjUDQgAA/18SNehaAACqHRI12XwAAFayEjXibwAAVrISNe1FAACqHRI19jgA' +
+  'AAAA/3/oWgAAzEwnN6pfAAAzEyc3FHUAAJrZJzeqXwAAMxMnN0BKAAAzExppql8AAAQEBf8EBAX/BAQF/wQEBf8EBAX/BAQF/wQE' +
+  'Bf8EBAX/BAQF/wQEBf8EBAX/BAQF/wQEBf8EBAX/BAQF/wQEBf8EBAX/BAQF/wQEBf8EBAX/BAQF/wQEBf8EBAX/BAQF/wgICf8I' +
+  'CAn/CAgJ/wgICf8ICAn/CAgJ/wgICf8ICAn/CAgJ/wgICf8ICAn/CAgJ/xgKBP8YCgT/GAoE/xgKBP8YCgT/GAoE/xgKBP8YCgT/' +
+  'GAoE/xgKBP8CAQH/AgEB/wIBAf8CAQH/AgEB/wIBAf8CAQH/AgEB/wIBAf8CAQH//2QTDf9kEw3/ZBMN/2QTDf9kEw3/ZBMN/7E3' +
+  'Df+xNw3/sTcN/7E3Df+xNw0AAAEAAgAAAAIAAwAEAAcABgAEAAYABQAAAAQABQAAAAUAAQADAAIABgADAAYABwABAAUABgABAAYA' +
+  'AgAAAAMABwAAAAcABAAIAAkACgAIAAoACwAMAA8ADgAMAA4ADQAIAAwADQAIAA0ACQALAAoADgALAA4ADwAJAA0ADgAJAA4ACgAI' +
+  'AAsADwAIAA8ADAAQABEAEgAQABIAEwAUABcAFgAUABYAFQAQABQAFQAQABUAEQATABIAFgATABYAFwARABUAFgARABYAEgAQABMA' +
+  'FwAQABcAFAAYAB4AHwAYAB8AGQAZAB8AIAAZACAAGgAaACAAIQAaACEAGwAbACEAIgAbACIAHAAcACIAIwAcACMAHQAdACMAHgAd' +
+  'AB4AGAAdABgAGQAZABoAGwAbABwAHQAZABsAHQAeACMAIgAiACEAIAAgAB8AHgAiACAAHgAkACkAKgAkACoAJQAlACoAKwAlACsA' +
+  'JgAmACsALAAmACwAJwAnACwALQAnAC0AKAAoAC0AKQAoACkAJAAoACQAJQAlACYAJwAlACcAKAApAC0ALAAsACsAKgAsACoAKQAu' +
+  'ADMANAAuADQALwAvADQANQAvADUAMAAwADUANgAwADYAMQAxADYANwAxADcAMgAyADcAMwAyADMALgAyAC4ALwAvADAAMQAvADEA' +
+  'MgAzADcANgA2ADUANAA2ADQAMwA4AD0AOQA5AD0AOgA6AD0AOwA7AD0APAA8AD0AOAA8ADgAOQA5ADoAOwA5ADsAPAA+AEIAPwA/' +
+  'AEIAQABAAEIAQQBBAEIAPgA+AD8AQAA+AEAAQQA=';
+// <<< ASSET WALL_SCONCE
 
 // ============================================================
 //  AUTHORED PLACES (r143)
@@ -20710,7 +20795,8 @@ function dressCityFronts(){
   // on a bracket; its glass is lit now, and it throws a pool on the step.
   for(const p of lanternPoints){ const co=Math.cos(p.ry), si=Math.sin(p.ry);
     aBox(.33,.4,.33,p.x+.52*co+.54*si,2.64,p.z-.52*si+.54*co,'window',p.ry);
-    LIGHT_POOLS.push({x:p.x+.52*co,z:p.z-.52*si,ry:p.ry,along:2.6,out:3,k:1.25}); }
+    LIGHT_POOLS.push({x:p.x+.52*co,z:p.z-.52*si,ry:p.ry,along:2.6,out:3,k:1.25});
+    LIGHT_POOLS.push({x:p.x+.52*co,y:2.7,z:p.z-.52*si,ry:p.ry,along:3,out:3.2,k:1.3,wash:true}); }
   for(const w of CITY_WINDOWS)if(w.y<3)LIGHT_POOLS.push({x:w.x,z:w.z,ry:w.ry,along:1.7,out:2.5,k:1});
 }
 // Lot yards, added at r124. One in seven lots loses the fill
@@ -21929,6 +22015,7 @@ LMSG.textContent='engraving the visual canon…'; useWorldStream('visual-canon')
 const CHIMNEY_REPORT=placeChimneys();
 const SHOP_SIGN_REPORT=placeShopSigns();
 const LOT_YARDS=dressLotYards(), ROAD_ENDS=dressRoadEnds(), LANTERN_PRUNE=pruneLanterns();
+const WALL_LIGHT_REPORT=wallLights();
 const STREET_LAMPS=placeStreetLamps();
 const STREET_POOLS=streetLightPools();          // last: every pool is known by now
 // The compiler performs an early access pass, but hand-authored infill is
@@ -26235,7 +26322,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r147',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r148',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -26401,6 +26488,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   chimneys:CHIMNEY_REPORT,
   shopSigns:SHOP_SIGN_REPORT,
   streetLamps:STREET_LAMPS,
+  wallLights:WALL_LIGHT_REPORT,
   // The grade is read from CINEMATIC_LOOK every frame, so handing the object
   // out makes the whole look tunable at runtime: a probe can sweep contrast,
   // saturation, shadow tint, vignette, fog and exposure and photograph each
@@ -26551,7 +26639,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Heatline — variant layer over base r147 -->
+<!-- Emberwatch — Heatline — variant layer over base r148 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — HEATLINE                                       variant layer
