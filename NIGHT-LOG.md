@@ -6,6 +6,46 @@ estimated.
 
 ---
 
+## 2026-09-30 — later · r144 "Market and cathedral"
+
+The same instruction as r143; this shift took its last clause, "continue and
+fix the city rebuild".
+
+**What was wrong.** From the street, the inner city's two busiest places
+read as empty. The Cinder Market was a 31 m paved disc with the avenue
+through it: a ring of twelve stalls laid on trigonometry, eight bays each
+nudged to the nearest clear spot by `offRoad()` — one into the tavern's west
+wall, its keeper standing inside the tavern — and a stone fire drum on the
+avenue's kerb that you could walk through. Half the lots along the two main
+avenues were a single storey. From above, the city was a flat field of roofs:
+the only tall thing that was not a wall tower was the cathedral, a box with a
+pyramid and two cylinders.
+
+**What changed.** The market is a table of 34 named stalls in six rows along
+the avenue, three modelled trades, lantern strings across the avenue and the
+aisles, the hearth moved into a court with the well beside it, and sixteen
+keepers behind their counters. Lots fronting the main avenues stand two to
+four storeys. The cathedral is the Cathedral of Hours: a modelled gothic
+church with a walkable nave, aisles, apse and altar, twin 44 m spires, and
+three people inside. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- The market checked in the running game (`probe-cinder-market.js`): 34/34
+  stalls, none on a road, 16 keepers at their counters; shot from the
+  avenue, both aisles, the hearth court and close up at two counters.
+- The cathedral walked, not teleported: through the portal, up the nave,
+  onto the dais and out along the aisle, 9/9; its collider outline mapped.
+- Runtime audit against r143: no errors; 17 wards and 102 dialogue branches,
+  none broken; road obstructions still 0.
+- All 14 capture cameras looked at; audits clean; variants 6/6 built and
+  6/6 booted; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here). The city's
+other landmark halls are still boxes with cones for roofs.
+
+---
+
 ## 2026-09-30 — r143 "Places under the moon"
 
 The owner, before leaving it running: "design landmarks and places to explore,

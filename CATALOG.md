@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.43.0 / build r143 ("places under the moon")**,
+Current sealed source: **1.44.0 / build r144 ("market and cathedral")**,
 2026-09-30. Archived, smoke-tested, six variants boot-check. Not packaged
-yet: the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+yet (nor is r143): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r143'
+                      the strain-archive lookups work. BUILD_REVISION = 'r144'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
-        index.html    THE GAME. About 2.6 MB. Byte-identical to
+        index.html    THE GAME. About 2.9 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r143-places-under-the-moon.html
+                      emberwatch_3_r144-market-and-cathedral.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r143, minus the revisions
+                    Phase 5 currently contains r70-r144, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r143-places-under-the-moon.html
+                    emberwatch_3_r144-market-and-cathedral.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1063,6 +1063,31 @@ guessed at.
                           proofs above; all 12 captures looked at (three
                           reframed); 6/6 variants built and booted; smoke
                           clean (r143 in the window title).
+    Sep 30     r144       market and cathedral. The city itself, after r143's
+                          places outside it. The Cinder Market re-authored as
+                          a table (tools/plan-market.py): 34 modelled stalls
+                          (draper, grocer, potter) in six rows along the
+                          avenue, lantern strings on poles across the avenue
+                          and two aisles, the hearth moved off the avenue's
+                          kerb into a court, the well its interaction always
+                          pointed at, sixteen keepers behind their counters.
+                          It replaces a ring of stalls laid by trigonometry
+                          and bays nudged by offRoad(), one of them into the
+                          tavern's wall. Lots fronting the main avenues and
+                          the market stand two to four storeys (74 raised).
+                          The cathedral - a box with two cylinders - is now
+                          the Cathedral of Hours, a modelled gothic church
+                          you walk into: aisles on an arcade, flying
+                          buttresses, twin 44 m spires with lit belfries, a
+                          rose over the portal, the apse, pews, the altar,
+                          its verger, a kneeler and a pilgrim; walk proof
+                          9/9.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r143, 17 wards / 102 dialogue branches
+                          none broken, road obstructions 0, draw calls
+                          436 -> 442; market probe 34/34 stalls, 16 keepers;
+                          all 14 captures looked at; 6/6 variants built and
+                          booted; smoke clean (r144 in the window title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested
