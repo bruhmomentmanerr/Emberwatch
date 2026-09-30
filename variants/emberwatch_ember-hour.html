@@ -212,7 +212,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r145 halls and crossings</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r146 avenues at night</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4896,6 +4896,150 @@ const TX={ground:makeTex(0x202d24,{pattern:'ground',density:.032,jitter:6,repeat
 const MATS={ wall:sm(TX.wall), wall2:sm(TX.wall2), brick:sm(TX.brick), roof:sm(TX.roof), slate:sm(TX.slate), stone:sm(TX.stone),
   cobble:sm(TX.cobble), city:sm(TX.city), dirt:sm(TX.dirt), wood:sm(TX.wood), cloth:sm(TX.cloth), dark:sm(TX.dark), foliage:new THREE.MeshStandardMaterial({color:0x3f7140,roughness:1,flatShading:true}), window:em(0xffcf8a,0.95), arcane:em(0x9d7bff,1.1), amber:em(0xffa64d,1.0) };
 MATS.foliage.color.setHex(0x2d8c48);MATS.foliage.emissive.setHex(0x0b2d1a);MATS.foliage.emissiveIntensity=.46;
+// Lit windows are leaded (r146). The window material was one flat emissive
+// colour, so every lit window in the city was a bright square with nothing in
+// it — the most repeated shape in a night street. A small canvas of leaded
+// quarries (a frame, a mullion and a transom, lead cames between panes that
+// are each a little warmer or dimmer) goes on as both map and emissive map:
+// the lead stays dark, the panes glow, and not one vertex is added. Its own
+// fixed generator, so the world's seeded stream is untouched.
+{ const S=64, c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d');
+  let seed=4051; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  g.fillStyle='#1d140c'; g.fillRect(0,0,S,S);
+  const cols=4, rows=5, F=3, pw=(S-2*F)/cols, ph=(S-2*F)/rows;
+  for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){ const k=.76+rnd()*.24;      // the material brings the warmth
+    g.fillStyle='rgb('+Math.round(255*k)+','+Math.round(246*k)+','+Math.round(228*k*k)+')';
+    g.fillRect(Math.round(F+i*pw+1),Math.round(F+j*ph+1),Math.round(pw-2),Math.round(ph-2)); }
+  g.fillStyle='#1d140c'; g.fillRect(S/2-2,0,4,S); g.fillRect(0,Math.round(F+2*ph-2),S,4);
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4;
+  MATS.window.map=tex; MATS.window.emissiveMap=tex; MATS.window.needsUpdate=true; }
+// Light on the street (r146). A lit window lit nothing: the cobbles under it
+// were as dark as anywhere else, and a point-light budget of five or fourteen
+// lamps cannot light two thousand windows. A soft warm pool is laid on the
+// ground in front of each lit ground-floor window, each hall window and each
+// door lantern, and under each festoon on the avenues: additive, one merged
+// mesh, one draw call, no light.
+const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?}: filled by the builders, laid by streetLightPools
+function streetLightPools(){
+  // Two pools side by side on one texture: one thrown out from a wall (left;
+  // a CanvasTexture is flipped, so the wall's edge is the canvas's bottom row)
+  // and a round one under a string of lanterns (right).
+  const S=64, c=document.createElement('canvas'); c.width=2*S; c.height=S; const g=c.getContext('2d');
+  g.save(); g.beginPath(); g.rect(0,0,S,S); g.clip(); g.translate(S/2,S*.8); g.scale(1,1.7);
+  const grad=g.createRadialGradient(0,0,0,0,0,S*.5);
+  grad.addColorStop(0,'rgba(255,214,160,1)'); grad.addColorStop(.35,'rgba(255,176,104,.55)'); grad.addColorStop(1,'rgba(255,150,70,0)');
+  g.fillStyle=grad; g.fillRect(-S,-S,2*S,2*S); g.restore();
+  g.save(); g.beginPath(); g.rect(S,0,S,S); g.clip();
+  const round=g.createRadialGradient(1.5*S,S/2,0,1.5*S,S/2,S*.5);
+  round.addColorStop(0,'rgba(255,214,160,.9)'); round.addColorStop(.4,'rgba(255,176,104,.45)'); round.addColorStop(1,'rgba(255,150,70,0)');
+  g.fillStyle=round; g.fillRect(S,0,S,S); g.restore();
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  const pos=[], uv=[], col=[], idx=[];
+  for(const p of LIGHT_POOLS){
+    const co=Math.cos(p.ry), si=Math.sin(p.ry), base=pos.length/3, r=!!p.round, z0=r?-p.out/2:0, z1=r?p.out/2:p.out, u0=r?.5:0, u1=r?1:.5;
+    for(const [lx,lz] of[[-p.along/2,z0],[p.along/2,z0],[p.along/2,z1],[-p.along/2,z1]])
+      pos.push(p.x+lx*co+lz*si,.135,p.z-lx*si+lz*co);
+    uv.push(u0,0,u1,0,u1,1,u0,1); for(let i=0;i<4;i++)col.push(p.k,p.k,p.k);
+    idx.push(base,base+2,base+1,base,base+3,base+2);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); geo.setIndex(idx); geo.computeBoundingSphere();
+  const mat=new THREE.MeshBasicMaterial({map:tex,color:0xffc890,vertexColors:true,transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; scene.add(mesh);
+  return {pools:LIGHT_POOLS.length};
+}
+// Chimneys (r146). A chimney was a plain brick box on a third of the houses,
+// its bricks stretched to fit, and four smoke columns stood at fixed points
+// that had not had a chimney under them for several revisions. Seen from a
+// night street a chimney is a shape against the moonlit sky, so it is worth a
+// real one. houseChimney() gives three houses in five a stack, by a hash of
+// the lot (no roll is spent): half stand on the ridge at its back end, as a
+// terrace's do at the party wall, the rest come up through the back slope;
+// either way the shaft is sized to the roof it pierces, worked out from the
+// same hip or gable aRoof lays. The shaft is a brick box in the city's brick
+// batch with its bricks at their true size; its crown, corbelled with clay
+// pots, is modelled (tools/assets/chimney-crown.py) and laid as two batches.
+// Every chimney that can smoke, these and the forges', workshops' and
+// taverns', goes in CHIMNEYS.
+const CHIMNEYS=[];                       // {x, z, top, forge?}: every chimney that can smoke
+const CHIMNEY_CROWNS=[[],[]];            // placement points for the one-flue and the wide crown
+// How far above its eaves a roof laid by aRoof stands at local (lx, lz).
+function roofRiseAt(w,d,rise,over,gable,lx,lz){
+  const longZ=d>=w, hw=w/2+over, hd=d/2+over;
+  const [a,b,ha,hb]=longZ?[Math.abs(lx),Math.abs(lz),hw,hd]:[Math.abs(lz),Math.abs(lx),hd,hw];   // across the ridge, along it
+  const r=gable?hb:Math.max(0,hb-ha), side=1-a/ha, end=gable||b<=r?1:1-(b-r)/(hb-r);
+  return rise*Math.max(0,Math.min(side,end));
+}
+// wardRoof's four roofs as aRoof's rise, overhang and gable.
+const WARD_ROOF_FORM=(kind,w,d)=>kind===0?[2.2,.5,false]:kind===1?[3.1,.42,true]:kind===2?[1.55,.75,false]:Math.max(w,d)<10.5?[2.7,.45,true]:[1.7,.5,false];
+function houseChimney(x,z,w,d,h,ry,seed,rise,over,gable){
+  const co=Math.cos(ry), si=Math.sin(ry), longZ=d>=w, wide=seed%7<2;
+  const ridge=terrainHash(Math.round(x*3)+517,Math.round(z*3)-211)<.5;
+  const [lx,lz]=ridge?(longZ?[0,-(d/2-.6)]:[(seed%2?1:-1)*(w/2-.6),0]):[w*.34,-d*.2];
+  // A metre clear of the roof where it comes through, and off the ridge half
+  // way up to the ridge as well, so no stack is a stub low on a slope.
+  const local=roofRiseAt(w,d,rise,over,gable,lx,lz), top=h+local+1+.5*(rise-local), base=h-.05, tall=top-base;
+  // A wide stack runs along the ridge.
+  const [sw,sd]=wide?(longZ?[.7,1.3]:[1.3,.7]):[.76,.76];
+  const cx=x+co*lx+si*lz, cz=z-si*lx+co*lz;
+  // Box UVs scaled to the brick texture's own size, not stretched per face.
+  const g=new THREE.BoxGeometry(sw,tall,sd), uv=g.attributes.uv, faces=[[sd,tall],[sd,tall],[sw,sd],[sw,sd],[sw,tall],[sw,tall]];
+  for(let f=0;f<6;f++)for(let i=0;i<4;i++){ const k=(f*4+i)*2; uv.array[k]*=faces[f][0]/1.1; uv.array[k+1]*=faces[f][1]/1.1; }
+  g.rotateY(ry); g.translate(cx,base+tall/2,cz); collect('brick',g);
+  CHIMNEY_CROWNS[wide?1:0].push({x:cx,y:top,z:cz,ry:wide&&longZ?ry+Math.PI/2:ry});
+  CHIMNEYS.push({x:cx,z:cz,top:top+.9});
+}
+function placeChimneys(){
+  placeLandmark('chimney-crown',CHIMNEY_SINGLE_GLB,CHIMNEY_CROWNS[0],{tex:'none',name:'chimney-crown'});
+  placeLandmark('chimney-crown-double',CHIMNEY_DOUBLE_GLB,CHIMNEY_CROWNS[1],{tex:'none',name:'chimney-crown'});
+  chimneySmoke();
+  return {stacks:CHIMNEY_CROWNS[0].length+CHIMNEY_CROWNS[1].length,wide:CHIMNEY_CROWNS[1].length,smoking:CHIMNEYS.length,forges:CHIMNEYS.filter(c=>c.forge).length};
+}
+// Smoke. The chimneys nearest the player smoke, forty of them, each column
+// leaning with the one wind and spreading and thinning as it rises; the set
+// follows the player once a second, and a newly lit chimney fades in rather
+// than appearing. A forge smokes darker and higher. One draw call: points
+// with their own size, alpha and shade (a small shader, fogged like the rest
+// of the world).
+const SMOKE={slots:40,per:16,wind:[.8,-.45],slot:[],nextPick:0,points:null};
+function chimneySmoke(){
+  const N=SMOKE.slots*SMOKE.per, geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(N*3),3));
+  geo.setAttribute('alpha',new THREE.BufferAttribute(new Float32Array(N),1));
+  geo.setAttribute('size',new THREE.BufferAttribute(new Float32Array(N),1));
+  geo.setAttribute('shade',new THREE.BufferAttribute(new Float32Array(N),1));
+  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:true,
+    uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{map:{value:null},color:{value:new THREE.Color(0x8e93a8)},scale:{value:400}}]),
+    vertexShader:'attribute float alpha;attribute float size;attribute float shade;varying float vA;varying float vS;uniform float scale;\n#include <fog_pars_vertex>\nvoid main(){vec4 mvPosition=modelViewMatrix*vec4(position,1.);vA=alpha;vS=shade;gl_PointSize=size*scale/max(1.,-mvPosition.z);gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
+    fragmentShader:'uniform sampler2D map;uniform vec3 color;varying float vA;varying float vS;\n#include <fog_pars_fragment>\nvoid main(){vec4 t=texture2D(map,gl_PointCoord);gl_FragColor=vec4(color*vS,t.a*vA);\n#include <colorspace_fragment>\n#include <fog_fragment>\n}'});
+  mat.uniforms.map.value=softPointTexture('rgba(255,255,255,.8)','rgba(255,255,255,.3)');
+  SMOKE.points=new THREE.Points(geo,mat); SMOKE.points.frustumCulled=false; SMOKE.points.renderOrder=2; scene.add(SMOKE.points);
+  for(let s=0;s<SMOKE.slots;s++){ const slot={c:null,since:0,life:[],age:[]}; SMOKE.slot.push(slot);
+    for(let i=0;i<SMOKE.per;i++){ const life=7+((i*37+s*11)%10)*.3; slot.life.push(life); slot.age.push(life*i/SMOKE.per); } }
+}
+function updateChimneySmoke(t,dt){
+  if(!SMOKE.points)return;
+  if(t>=SMOKE.nextPick){ SMOKE.nextPick=t+1;
+    const near=CHIMNEYS.map(c=>[c,(c.x-player.x)**2+(c.z-player.z)**2]).filter(e=>e[1]<130*130).sort((a,b)=>a[1]-b[1]).slice(0,SMOKE.slots).map(e=>e[0]);
+    const want=new Set(near), free=[];
+    for(const slot of SMOKE.slot){ if(slot.c&&want.has(slot.c))want.delete(slot.c); else { slot.c=null; free.push(slot); } }
+    for(const c of want){ const slot=free.shift(); if(!slot)break; slot.c=c; slot.since=t; } }
+  const geo=SMOKE.points.geometry, P=geo.attributes.position.array, A=geo.attributes.alpha.array, Z=geo.attributes.size.array, S=geo.attributes.shade.array;
+  SMOKE.points.material.uniforms.scale.value=renderer.domElement.height*.5/Math.tan(camera.fov*Math.PI/360);
+  let k=0;
+  for(const slot of SMOKE.slot){
+    const c=slot.c, fade=Math.min(1,(t-slot.since)*.5);        // by the clock, not by capped frames
+    for(let i=0;i<SMOKE.per;i++,k++){
+      if(!c){ A[k]=0; continue; }
+      slot.age[i]+=dt; if(slot.age[i]>slot.life[i])slot.age[i]-=slot.life[i];
+      const f=slot.age[i]/slot.life[i], up=c.forge?11:8, lean=f*f*(c.forge?9:7), sway=Math.sin(t*.7+i*1.7+c.x)*.35*f;
+      P[k*3]=c.x+SMOKE.wind[0]*lean+sway; P[k*3+1]=c.top+f*up; P[k*3+2]=c.z+SMOKE.wind[1]*lean+Math.cos(t*.6+i+c.z)*.25*f;
+      A[k]=(f<.12?f/.12:1-(f-.12)/.88)*(c.forge?.3:.2)*fade; Z[k]=(c.forge?1.6:1.1)+f*(c.forge?6:4.2); S[k]=c.forge?.62:1;
+    }
+  }
+  geo.attributes.position.needsUpdate=true; geo.attributes.alpha.needsUpdate=true; geo.attributes.size.needsUpdate=true; geo.attributes.shade.needsUpdate=true;
+}
 // Hundreds of road rectangles meet at the same elevation. World-coordinate
 // paving UVs keep their pattern aligned; a slight polygon offset prevents the
 // shared edges from flickering while the roads remain a solid depth surface.
@@ -6323,6 +6467,7 @@ function cityHouse(x,z,w,d,stories,key='wall',ry=0,accent='amber'){
   const h=stories*2.7,co=Math.cos(ry),si=Math.sin(ry),frontX=x+si*d*.5,frontZ=z+co*d*.5;
   const gabled=(w+z)%2<1;
   aBox(w,h,d,x,h/2,z,key,ry); aRoof(w,d,2.5,x,h,z,'roof',ry,gabled,.55); roofDormers(x,z,w,d,h,2.5,ry,.55,gabled,key);
+  { const seed=Math.abs(Math.round(x*7.3+z*3.1))%100; if(seed%5<3)houseChimney(x,z,w,d,h,ry,seed,2.5,.55,gabled); }
   facadeWindows(x,z,w,d,h,ry); aBox(1.15,2.05,.16,frontX,1.02,frontZ,'wood',ry); aBox(1.9,.18,.7,frontX,2.27,frontZ,accent,ry); aBox(1.6,.14,.72,frontX,2.45,frontZ,'dark',ry);
   if(stories>1){ const bx=frontX-si*.42,bz=frontZ-co*.42; aBox(w*.46,.14,.68,bx,h*.57,bz,'wood',ry); aBox(.1,.75,.1,bx-si*w*.21,h*.57+.38,bz,'wood',ry); aBox(.1,.75,.1,bx+si*w*.21,h*.57+.38,bz,'wood',ry); }
   addBoxCollider(x,z,w,d,ry);
@@ -6736,14 +6881,14 @@ function hallExterior(x,z,w,d,h,kind,WK){
     aBox(alongX?1.05:.1,hh,alongX?.1:1.05,wx,y0+hh/2,wz,'window');
     aBox(alongX?1.35:.3,.18,alongX?.3:1.35,wx,y0-.09,wz,'stone');
     aBox(alongX?1.35:.3,.22,alongX?.3:1.35,wx,y0+hh+.11,wz,'stone'); };
-  for(const sx of[-1,1])for(let k=0;k<3;k++)win(x+sx*(w/2+.22),back+d*(k+.5)/3,'x');
+  for(const sx of[-1,1])for(let k=0;k<3;k++){ win(x+sx*(w/2+.22),back+d*(k+.5)/3,'x'); LIGHT_POOLS.push({x:x+sx*(w/2+.22),z:back+d*(k+.5)/3,ry:sx*Math.PI/2,along:1.6,out:2.6,k:.9}); }
   for(const ox of[-1,0,1])win(x+ox*w/3,back-.22,'z');                 // (the back buttresses stand at thirds between)
-  for(const ox of[-1,1])win(x+ox*w*.3,front+.22,'z',1.9,3.0);
+  for(const ox of[-1,1]){ win(x+ox*w*.3,front+.22,'z',1.9,3.0); LIGHT_POOLS.push({x:x+ox*w*.3,z:front+.22,ry:0,along:1.6,out:2.8,k:.9}); }
   win(x,front+.23,'z',h+rise*.22,rise*.3);
   // What the hall is.
   if(kind==='tavern'){
     // A chimney up the east wall, and the front gable half-timbered.
-    const cx=x+w/2+.62, cz=z-d/5; if(!onRoad(cx,cz,1.0)){ aBox(1.25,h+rise*.75,1.15,cx,(h+rise*.75)/2,cz,'brick'); aBox(1.5,.3,1.4,cx,h+rise*.75+.15,cz,'stone'); addBoxCollider(cx,cz,1.25,1.15,0); }
+    const cx=x+w/2+.62, cz=z-d/5; if(!onRoad(cx,cz,1.0)){ aBox(1.25,h+rise*.75,1.15,cx,(h+rise*.75)/2,cz,'brick'); aBox(1.5,.3,1.4,cx,h+rise*.75+.15,cz,'stone'); addBoxCollider(cx,cz,1.25,1.15,0); CHIMNEYS.push({x:cx,z:cz,top:h+rise*.75+.4}); }
     for(let k=-3;k<=3;k++){ const fx=x+k*w/8, top=h+rise*(1-Math.abs(fx-x)/(w/2))-.35;
       if(top>h+.4)aBox(.24,top-h,.12,fx,(h+top)/2,front+.27,'wood'); }
     aBox(w*.8,.22,.12,x,h+rise*.42,front+.27,'wood'); aBox(w-.2,.26,.12,x,h+.13,front+.27,'wood');
@@ -7094,7 +7239,7 @@ function compilerArchetype(archetype,lot){
   if(archetype==='rowhouse'){
     aBox(w*1.11,.42,d*1.08,x,h*.64,z,key,ry);aBox(w*.54,.12,.78,front.x, h*.62,front.z,'wood',ry);
   }else if(archetype==='workshop'){
-    const chimneyX=x+front.sideX*w*.32,chimneyZ=z+front.sideZ*w*.32;aCyl(.32,.45,h+1.55,6,chimneyX,(h+1.55)/2,chimneyZ,'stone');aBox(w*.36,.48,.82,x-front.sideX*w*.28,.35,z-front.sideZ*d*.24,'wood',ry);
+    const chimneyX=x+front.sideX*w*.32,chimneyZ=z+front.sideZ*w*.32;aCyl(.32,.45,h+1.55,6,chimneyX,(h+1.55)/2,chimneyZ,'stone');CHIMNEYS.push({x:chimneyX,z:chimneyZ,top:h+1.65});aBox(w*.36,.48,.82,x-front.sideX*w*.28,.35,z-front.sideZ*d*.24,'wood',ry);
   }else if(archetype==='archive'){
     for(const side of[-1,1])aBox(.42,h*.78,.56,x+front.sideX*side*w*.41,h*.39,z+front.sideZ*side*w*.41,'stone',ry);aBox(w*.42,.16,.18,front.x,h*.66,front.z,'arcane',ry);
   }else if(archetype==='tavern'){
@@ -8020,6 +8165,7 @@ function updateVisualCanon(t,dt){
   updateSkyEvents(t,dt);
   updateMists(t);
   updateLandmarkMovers(dt);
+  updateChimneySmoke(t,dt);
   if(t-VISUAL_CANON.events.lastMeteorAt<7){
     for(const npc of villagers){
       if(npc.isFar||npc.indoors||!npc.parts)continue;
@@ -8087,13 +8233,9 @@ function buildCityAtmosphere(){
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
   const motes=new THREE.Points(geometry,new THREE.PointsMaterial({map:softPointTexture('rgba(255,255,255,.84)','rgba(255,255,255,.23)'),size:.22,vertexColors:true,transparent:true,opacity:.48,alphaTest:.02,depthWrite:false,blending:THREE.NormalBlending,sizeAttenuation:true}));motes.frustumCulled=false;scene.add(motes);
 
-  const chimneys=[[-181,-121],[-160,-82],[-38,MARKET_Z+6],[70,-183]],smokeCount=96,smokePositions=new Float32Array(smokeCount*3),smoke=[];
-  for(let i=0;i<smokeCount;i++){const emitterIndex=i%chimneys.length,source=chimneys[emitterIndex],phase=next()*Math.PI*2,radius=next()*.7,y=4+next()*9;smokePositions[i*3]=source[0]+Math.cos(phase)*radius;smokePositions[i*3+1]=y;smokePositions[i*3+2]=source[1]+Math.sin(phase)*radius;smoke.push({emitterIndex,phase,radius,y,rise:.55+next()*.55,drift:.08+next()*.12});}
-  const smokeGeometry=new THREE.BufferGeometry();smokeGeometry.setAttribute('position',new THREE.BufferAttribute(smokePositions,3));const haze=new THREE.Points(smokeGeometry,new THREE.PointsMaterial({map:softPointTexture('rgba(210,196,186,.38)','rgba(150,142,138,.09)'),color:0xb8a9a4,size:.92,transparent:true,opacity:.18,alphaTest:.015,depthWrite:false,sizeAttenuation:true}));haze.frustumCulled=false;scene.add(haze);
-  cityAtmosphere={emitters,particles,motes,chimneys,smoke,haze};
+  cityAtmosphere={emitters,particles,motes};
 }
-function updateCityAtmosphere(t,dt){if(!cityAtmosphere)return;const motePosition=cityAtmosphere.motes.geometry.attributes.position;cityAtmosphere.particles.forEach((particle,index)=>{const emitter=cityAtmosphere.emitters[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>emitter.max)particle.y=emitter.min;const angle=particle.phase+t*particle.drift*.08;motePosition.setXYZ(index,emitter.x+Math.cos(angle)*particle.radius+Math.sin(t*.21+particle.phase)*.18,particle.y,emitter.z+Math.sin(angle)*particle.radius);});motePosition.needsUpdate=true;
-  const smokePosition=cityAtmosphere.haze.geometry.attributes.position;cityAtmosphere.smoke.forEach((particle,index)=>{const source=cityAtmosphere.chimneys[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>14){particle.y=4;particle.radius=.1;}else particle.radius+=dt*.08;const angle=particle.phase+t*particle.drift;smokePosition.setXYZ(index,source[0]+Math.cos(angle)*particle.radius+t*.018,particle.y,source[1]+Math.sin(angle)*particle.radius);});smokePosition.needsUpdate=true;}
+function updateCityAtmosphere(t,dt){if(!cityAtmosphere)return;const motePosition=cityAtmosphere.motes.geometry.attributes.position;cityAtmosphere.particles.forEach((particle,index)=>{const emitter=cityAtmosphere.emitters[particle.emitterIndex];particle.y+=particle.rise*dt;if(particle.y>emitter.max)particle.y=emitter.min;const angle=particle.phase+t*particle.drift*.08;motePosition.setXYZ(index,emitter.x+Math.cos(angle)*particle.radius+Math.sin(t*.21+particle.phase)*.18,particle.y,emitter.z+Math.sin(angle)*particle.radius);});motePosition.needsUpdate=true;}
 // Things stand in the streets — monuments, market stalls, signboards, and the
 // hand-authored clutter whose coordinates were written for a much smaller city.
 // Nothing ever stopped it: roads carry no colliders, so colliderBlocked cannot
@@ -8297,7 +8439,7 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
   wardRoof(roofKind,x,z,w,d,h,ry,key);
   aBox(1.0,1.9,.14,x+si*front,.95,z+co*front,'wood',ry);
   aBox(1.5,.16,.5,x+si*front,2.12,z+co*front,accent,ry);
-  if(seed%3===0){ const cx=x+co*w*.34-si*d*.2,cz=z-si*w*.34-co*d*.2; aBox(.7,2.3,.7,cx,h+1.1,cz,'brick',ry); }
+  if(seed%5<3)houseChimney(x,z,w,d,h,ry,seed,...WARD_ROOF_FORM(roofKind,w,d));
   if(roofKind===1&&seed%4===0)aBox(.9,1.0,.8,x+si*(d*.34),h+1.2,z+co*(d*.34),key,ry);            // dormer
   for(let s=0;s<stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
     const cols=seed%7<3?3:2,spread=w*.31;
@@ -18892,6 +19034,163 @@ const CATHEDRAL_FURNISHING_GLB =
   'ggeJB4YHigeLB4wHigeMB40HjgeRB5AHjgeQB48HigeOB48HigePB4sHjQeMB5AHjQeQB5EHiwePB5AHiweQB4wHigeNB5EHigeR' +
   'B44HkgeTB5QHkgeUB5UHlgeZB5gHlgeYB5cHkgeWB5cHkgeXB5MHlQeUB5gHlQeYB5kHkweXB5gHkweYB5QHkgeVB5kHkgeZB5YH';
 // <<< ASSET CATHEDRAL_FURNISHING
+// >>> ASSET CHIMNEY_SINGLE (built by tools/assets/chimney-crown.py, packed by tools/assets/pack-glb.js)
+const CHIMNEY_SINGLE_GLB =
+  'Z2xURgIAAAAICQAAGAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJjaGltbmV5LWNyb3duIiwidHJhbnNs' +
+  'YXRpb24iOlswLDAuMDg1MDAwMDA4MzQ0NjUwMjcsMF0sInNjYWxlIjpbMC40OTAwMDAwMDk1MzY3NDMxNiwwLjcwNTAwMDAxMzEx' +
+  'MzAyMTksMC40OTAwMDAwMDk1MzY3NDMxNl19XSwibWVzaGVzIjpbeyJuYW1lIjoiY2hpbW5leS1jcm93biIsInByaW1pdGl2ZXMi' +
+  'Olt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIkNPTE9SXzAiOjF9LCJpbmRpY2VzIjoyfV19XSwiYWNjZXNzb3JzIjpbeyJi' +
+  'dWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTIyLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6NjYsInR5cGUiOiJWRUMz' +
+  'IiwibWluIjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2NywzMjc2NywzMjc2N119LHsiYnVmZmVyVmlldyI6MSwi' +
+  'Y29tcG9uZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjY2LCJ0eXBlIjoiVkVDNCJ9LHsiYnVmZmVyVmll' +
+  'dyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjIyMiwidHlwZSI6IlNDQUxBUiJ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1' +
+  'ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6NTI4LCJieXRlU3RyaWRlIjo4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1' +
+  'ZmZlciI6MCwiYnl0ZU9mZnNldCI6NTI4LCJieXRlTGVuZ3RoIjoyNjQsImJ5dGVTdHJpZGUiOjQsInRhcmdldCI6MzQ5NjJ9LHsi' +
+  'YnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo3OTIsImJ5dGVMZW5ndGgiOjQ0NCwidGFyZ2V0IjozNDk2M31dLCJidWZmZXJzIjpbeyJi' +
+  'eXRlTGVuZ3RoIjoxMjM2fV191AQAAEJJTgBKkgGASpIAALZtAYBKkgAAtm0BgLZtAABKkgGAtm0AAEqSypVKkgAAtm3KlUqSAAC2' +
+  'bcqVtm0AAEqSypW2bQAArY+R8K2PAABTcJHwrY8AAFNwkfBTcAAArY+R8FNwAACtjywIrY8AAFNwLAitjwAAU3AsCFNwAACtjywI' +
+  'U3AAAAGALAgBgAAA/38sCAGAAAD/fywI/38AAAGALAj/fwAAAYCWIQGAAAD/f5YhAYAAAP9/liH/fwAAAYCWIf9/AADXh5Yh14cA' +
+  'ACl4liHXhwAAKXiWISl4AADXh5YhKXgAANeHeyzXhwAAKXh7LNeHAAApeHssKXgAANeHeywpeAAAzKk1LcypAAA0VjUtzKkAADRW' +
+  'NS00VgAAzKk1LTRWAAAq+HssAAAAAOXeeyzIIgAAArZ7LH8VAAACtnssgeoAAOXeeyw43QAAovH/fwAAAADg3P9/khwAAEq7/3+o' +
+  'EQAASrv/f1juAADg3P9/buMAAKLx/38AAAAA4Nz/f5IcAABKu/9/qBEAAEq7/39Y7gAA4Nz/f27jAACXU3ss1gcAAFI6eyyeKgAA' +
+  'bxF7LFUdAABvEXssV/IAAFI6eywO5QAAD03XbdYHAABNONdtaCQAALcW121+GQAAtxbXbS72AABNONdtROsAAA9N123WBwAATTjX' +
+  'bWgkAAC3FtdtfhkAALcW120u9gAATTjXbUTrAABGQUb/RkFG/0ZBRv9GQUb/RkFG/0ZBRv9GQUb/RkFG/yILCP8iCwj/IgsI/yIL' +
+  'CP8iCwj/IgsI/yILCP8iCwj/IgsI/yILCP8iCwj/IgsI/yILCP8iCwj/IgsI/yILCP8wLC3/MCwt/zAsLf8wLC3/MCwt/zAsLf8w' +
+  'LC3/MCwt/wICAv8CAgL/AgIC/wICAv9rIg7/ayIO/2siDv9rIg7/ayIO/2siDv9rIg7/ayIO/2siDv9rIg7/AgIC/wICAv8CAgL/' +
+  'AgIC/wICAv9IFwr/SBcK/0gXCv9IFwr/SBcK/0gXCv9IFwr/SBcK/0gXCv9IFwr/AgIC/wICAv8CAgL/AgIC/wICAv8AAAEAAgAA' +
+  'AAIAAwAEAAcABgAEAAYABQAAAAQABQAAAAUAAQADAAIABgADAAYABwABAAUABgABAAYAAgAAAAMABwAAAAcABAAIAAkACgAIAAoA' +
+  'CwAMAA8ADgAMAA4ADQAIAAwADQAIAA0ACQALAAoADgALAA4ADwAJAA0ADgAJAA4ACgAIAAsADwAIAA8ADAAQABEAEgAQABIAEwAU' +
+  'ABcAFgAUABYAFQAQABQAFQAQABUAEQATABIAFgATABYAFwARABUAFgARABYAEgAQABMAFwAQABcAFAAcAB8AHgAcAB4AHQAYABwA' +
+  'HQAYAB0AGQAbABoAHgAbAB4AHwAZAB0AHgAZAB4AGgAYABsAHwAYAB8AHAAjACIAIQAjACEAIAAkACkAKgAkACoAJQAlACoAKwAl' +
+  'ACsAJgAmACsALAAmACwAJwAnACwALQAnAC0AKAAoAC0AKQAoACkAJAAuADIAMQAxADAALwAxAC8ALgAzADgAOQAzADkANAA0ADkA' +
+  'OgA0ADoANQA1ADoAOwA1ADsANgA2ADsAPAA2ADwANwA3ADwAOAA3ADgAMwA9AEEAQABAAD8APgBAAD4APQA=';
+// <<< ASSET CHIMNEY_SINGLE
+// >>> ASSET CHIMNEY_DOUBLE (built by tools/assets/chimney-crown.py, packed by tools/assets/pack-glb.js)
+const CHIMNEY_DOUBLE_GLB =
+  'Z2xURgIAAAAcCgAAKAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJjaGltbmV5LWNyb3duLWRvdWJsZSIs' +
+  'InRyYW5zbGF0aW9uIjpbMCwwLjExNTAwMDAwOTUzNjc0MzE2LDBdLCJzY2FsZSI6WzAuNzU5OTk5OTkwNDYzMjU2OCwwLjczNTAw' +
+  'MDAxNDMwNTExNDcsMC40NjAwMDAwMDgzNDQ2NTAyN119XSwibWVzaGVzIjpbeyJuYW1lIjoiY2hpbW5leS1jcm93bi1kb3VibGUi' +
+  'LCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJDT0xPUl8wIjoxfSwiaW5kaWNlcyI6Mn1dfV0sImFj' +
+  'Y2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyMiwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjgx' +
+  'LCJ0eXBlIjoiVkVDMyIsIm1pbiI6Wy0zMjc2NywtMzI3NjcsLTMyNzY3XSwibWF4IjpbMzI3NjcsMzI3NjcsMzI3NjddfSx7ImJ1' +
+  'ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjEsIm5vcm1hbGl6ZWQiOnRydWUsImNvdW50Ijo4MSwidHlwZSI6IlZFQzQi' +
+  'fSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUxMjMsImNvdW50IjoyNjEsInR5cGUiOiJTQ0FMQVIifV0sImJ1ZmZl' +
+  'clZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjAsImJ5dGVMZW5ndGgiOjY0OCwiYnl0ZVN0cmlkZSI6OCwidGFyZ2V0' +
+  'IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjY0OCwiYnl0ZUxlbmd0aCI6MzI0LCJieXRlU3RyaWRlIjo0LCJ0YXJn' +
+  'ZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6OTcyLCJieXRlTGVuZ3RoIjo1MjIsInRhcmdldCI6MzQ5NjN9XSwi' +
+  'YnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6MTQ5Nn1dfSAgINgFAABCSU4Ay4sBgHuTAAA1dAGAe5MAADV0AYCFbAAAy4sBgIVsAADL' +
+  'i+eUe5MAADV055R7kwAANXTnlIVsAADLi+eUhWwAAByK+euzkAAA5HX567OQAADkdfnrTW8AAByK+etNbwAAHIqdArOQAADkdZ0C' +
+  's5AAAOR1nQJNbwAAHIqdAk1vAAABgJ0CAYAAAP9/nQIBgAAA/3+dAv9/AAABgJ0C/38AAAGA/hoBgAAA/3/+GgGAAAD/f/4a/38A' +
+  'AAGA/hr/fwAADoX+GlqIAADyev4aWogAAPJ6/hqmdwAADoX+GqZ3AAAOhXElWogAAPJ6cSVaiAAA8npxJaZ3AAAOhXElpncAAPOa' +
+  'IyaGrAAADWUjJoasAAANZSMmelMAAPOaIyZ6UwAA2NBxJQAAAACNwHElDCUAADGmcSXmFgAAMaZxJRrpAACNwHEl9NoAAKLMGWsA' +
+  'AAAAQL8Za28eAACZqRlrzxIAAJmpGWsx7QAAQL8Za5HhAACizBlrAAAAAEC/GWtvHgAAmakZa88SAACZqRlrMe0AAEC/GWuR4QAA' +
+  'lBdxJVkIAABJB3ElZS0AAO3scSU/HwAA7exxJXPxAABJB3ElTeMAAF4T/39ZCAAA/AX/f8gmAABV8P9/KBsAAFXw/3+K9QAA/AX/' +
+  'f+rpAABeE/9/WQgAAPwF/3/IJgAAVfD/fygbAABV8P9/ivUAAPwF/3/q6QAAUF5xJW/6AAAFTnElfB8AAKkzcSVVEQAAqTNxJYrj' +
+  'AAAFTnElY9UAABpaImRv+gAAuEwiZN4YAAARNyJkPg0AABE3ImSg5wAAuEwiZAHcAAAaWiJkb/oAALhMImTeGAAAETciZD4NAAAR' +
+  'NyJkoOcAALhMImQB3AAARkFG/0ZBRv9GQUb/RkFG/0ZBRv9GQUb/RkFG/0ZBRv8iCwj/IgsI/yILCP8iCwj/IgsI/yILCP8iCwj/' +
+  'IgsI/yILCP8iCwj/IgsI/yILCP8iCwj/IgsI/yILCP8iCwj/MCwt/zAsLf8wLC3/MCwt/zAsLf8wLC3/MCwt/zAsLf8CAgL/AgIC' +
+  '/wICAv8CAgL/ayIO/2siDv9rIg7/ayIO/2siDv9rIg7/ayIO/2siDv9rIg7/ayIO/wICAv8CAgL/AgIC/wICAv8CAgL/SBcK/0gX' +
+  'Cv9IFwr/SBcK/0gXCv9IFwr/SBcK/0gXCv9IFwr/SBcK/wICAv8CAgL/AgIC/wICAv8CAgL/ayIO/2siDv9rIg7/ayIO/2siDv9r' +
+  'Ig7/ayIO/2siDv9rIg7/ayIO/wICAv8CAgL/AgIC/wICAv8CAgL/AAABAAIAAAACAAMABAAHAAYABAAGAAUAAAAEAAUAAAAFAAEA' +
+  'AwACAAYAAwAGAAcAAQAFAAYAAQAGAAIAAAADAAcAAAAHAAQACAAJAAoACAAKAAsADAAPAA4ADAAOAA0ACAAMAA0ACAANAAkACwAK' +
+  'AA4ACwAOAA8ACQANAA4ACQAOAAoACAALAA8ACAAPAAwAEAARABIAEAASABMAFAAXABYAFAAWABUAEAAUABUAEAAVABEAEwASABYA' +
+  'EwAWABcAEQAVABYAEQAWABIAEAATABcAEAAXABQAHAAfAB4AHAAeAB0AGAAcAB0AGAAdABkAGwAaAB4AGwAeAB8AGQAdAB4AGQAe' +
+  'ABoAGAAbAB8AGAAfABwAIwAiACEAIwAhACAAJAApACoAJAAqACUAJQAqACsAJQArACYAJgArACwAJgAsACcAJwAsAC0AJwAtACgA' +
+  'KAAtACkAKAApACQALgAyADEAMQAwAC8AMQAvAC4AMwA4ADkAMwA5ADQANAA5ADoANAA6ADUANQA6ADsANQA7ADYANgA7ADwANgA8' +
+  'ADcANwA8ADgANwA4ADMAPQBBAEAAQAA/AD4AQAA+AD0AQgBHAEgAQgBIAEMAQwBIAEkAQwBJAEQARABJAEoARABKAEUARQBKAEsA' +
+  'RQBLAEYARgBLAEcARgBHAEIATABQAE8ATwBOAE0ATwBNAEwAAAA=';
+// <<< ASSET CHIMNEY_DOUBLE
+// >>> ASSET FESTOON_POLE (built by tools/assets/festoon.py, packed by tools/assets/pack-glb.js)
+const FESTOON_POLE_GLB =
+  'Z2xURgIAAAAgDgAALAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJmZXN0b29uLXBvbGUiLCJ0cmFuc2xh' +
+  'dGlvbiI6WzAsMi43MTUwMDAxNTI1ODc4OTA2LDAuMTQwMTU1NDQ5NTA5NjIwNjddLCJzY2FsZSI6WzAuMTg5OTk5OTk3NjE1ODE0' +
+  'MiwyLjcxNTAwMDE1MjU4Nzg5MDYsMC4zMzAxNTU0NDcxMjU0MzQ5XX1dLCJtZXNoZXMiOlt7Im5hbWUiOiJmZXN0b29uLXBvbGUi' +
+  'LCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJDT0xPUl8wIjoxfSwiaW5kaWNlcyI6Mn1dfV0sImFj' +
+  'Y2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyMiwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjEx' +
+  'NywidHlwZSI6IlZFQzMiLCJtaW4iOlstMzI3NjcsLTMyNzY3LC0zMjc2N10sIm1heCI6WzMyNzY3LDMyNzY3LDMyNzY3XX0seyJi' +
+  'dWZmZXJWaWV3IjoxLCJjb21wb25lbnRUeXBlIjo1MTIxLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6MTE3LCJ0eXBlIjoiVkVD' +
+  'NCJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjU1OCwidHlwZSI6IlNDQUxBUiJ9XSwiYnVm' +
+  'ZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6OTM2LCJieXRlU3RyaWRlIjo4LCJ0YXJn' +
+  'ZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6OTM2LCJieXRlTGVuZ3RoIjo0NjgsImJ5dGVTdHJpZGUiOjQsInRh' +
+  'cmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0IjoxNDA0LCJieXRlTGVuZ3RoIjoxMTE2LCJ0YXJnZXQiOjM0OTYz' +
+  'fV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjI1MjB9XX0gICDYCQAAQklOAP9/AYCqyQAAgloBgMD9AAAAAAGAUxMAAH6lAYDA' +
+  '/QAAAYABgKrJAAB+pQGAlJUAAAAAAYABgAAAgloBgJSVAAANZc6TqskAAHRHzpPJ8gAAAADOk9EDAACMuM6TyfIAAPOazpOqyQAA' +
+  'jLjOk4ugAAAAAM6Tg48AAHRHzpOLoAAAhnLOk6rJAAD7UM6TRPgAAAAAzpOSCwAABa/Ok0T4AAB6jc6TqskAAAWvzpMQmwAAAADO' +
+  'k8KHAAD7UM6TEJsAAIZyopaqyQAA+1CilkT4AAAAAKKWkgsAAAWvopZE+AAAeo2ilqrJAAAFr6KWEJsAAAAAopbChwAA+1CilhCb' +
+  'AACGMqKWqskAALojopY53gAAAACilr7mAABG3KKWOd4AAHrNopaqyQAARtyilhu1AAAAAKKWlqwAALojopYbtQAAayh/b6rJAACV' +
+  'HH9vHdoAAAAAf2/t4AAAa+N/bx3aAACV139vqskAAGvjf283uQAAAAB/b2eyAACVHH9vN7kAAF5D+vOqyQAAoy/68xTlAAAAAPrz' +
+  'b/AAAF3Q+vMU5QAAorz686rJAABd0PrzQK4AAAAA+vPlogAAoy/680CuAABeQ8D3qskAAKMvwPcU5QAAAADA92/wAABd0MD3FOUA' +
+  'AKK8wPeqyQAAXdDA90CuAAAAAMD35aIAAKMvwPdArgAAoTzKbqrJAADfKspuVuIAAAAAym6O7AAAIdXKblbiAABfw8puqskAACHV' +
+  'ym7+sAAAAADKbsamAADfKspu/rAAAKE8F3KqyQAA3yoXclbiAAAAABdyjuwAACHVF3JW4gAAX8MXcqrJAAAh1Rdy/rAAAAAAF3LG' +
+  'pgAA3yoXcv6wAAAoL9pxqskAAFgh2nHa3AAAAADacc3kAACo3tpx2twAANjQ2nGqyQAAqN7acXm2AAAAANpxh64AAFgh2nF5tgAA' +
+  'AAD/f6rJAAAoD05oqskAANjwTmiqyQAA2PBtaqrJAAAoD21qqskAACgPTmjgfwAA2PBOaOB/AADY8G1q4H8AACgPbWrgfwAAGwqp' +
+  'VADWAADl9alUANYAAOX1iFXVzAAAGwqIVdXMAAAbCv1nEFIAAOX1/WcQUgAA5fXcaORIAAAbCtxo5EgAAJQXp2Q/dAAAygunZP9/' +
+  'AAA29Kdk/38AAGzop2Q/dAAANvSnZH5oAADKC6dkfmgAAJQXXmk/dAAAygteaf9/AAA29F5p/38AAGzoXmk/dAAANvReaX5oAADK' +
+  'C15pfmgAAAUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8KCQv/' +
+  'CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/BQUG/wUFBv8FBQb/BQUG' +
+  '/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJ' +
+  'C/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/woJC/8K' +
+  'CQv/CgkL/woJC/8KCQv/CgkL/woJC/8KCQv/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/' +
+  'BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL' +
+  '/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL/wAACAAJAAAACQABAAEACQAKAAEACgACAAIACgALAAIACwADAAMACwAMAAMADAAEAAQA' +
+  'DAANAAQADQAFAAUADQAOAAUADgAGAAYADgAPAAYADwAHAAcADwAIAAcACAAAAAcAAAABAAEAAgADAAMABAAFAAUABgAHAAcAAQAD' +
+  'AAMABQAHAAgADwAOAA4ADQAMAAwACwAKAAoACQAIAAgADgAMAAwACgAIABAAGAAZABAAGQARABEAGQAaABEAGgASABIAGgAbABIA' +
+  'GwATABMAGwAcABMAHAAUABQAHAAdABQAHQAVABUAHQAeABUAHgAWABYAHgAfABYAHwAXABcAHwAYABcAGAAQABcAEAARABEAEgAT' +
+  'ABMAFAAVABUAFgAXABcAEQATABMAFQAXABgAHwAeAB4AHQAcABwAGwAaABoAGQAYABgAHgAcABwAGgAYACAAKAApACAAKQAhACEA' +
+  'KQAqACEAKgAiACIAKgArACIAKwAjACMAKwAsACMALAAkACQALAAtACQALQAlACUALQAuACUALgAmACYALgAvACYALwAnACcALwAo' +
+  'ACcAKAAgADAAOAA5ADAAOQAxADEAOQA6ADEAOgAyADIAOgA7ADIAOwAzADMAOwA8ADMAPAA0ADQAPAA9ADQAPQA1ADUAPQA+ADUA' +
+  'PgA2ADYAPgA/ADYAPwA3ADcAPwA4ADcAOAAwADcAMAAxADEAMgAzADMANAA1ADUANgA3ADcAMQAzADMANQA3ADgAPwA+AD4APQA8' +
+  'ADwAOwA6ADoAOQA4ADgAPgA8ADwAOgA4AEAASABJAEAASQBBAEEASQBKAEEASgBCAEIASgBLAEIASwBDAEMASwBMAEMATABEAEQA' +
+  'TABNAEQATQBFAEUATQBOAEUATgBGAEYATgBPAEYATwBHAEcATwBIAEcASABAAEcAQABBAEEAQgBDAEMARABFAEUARgBHAEcAQQBD' +
+  'AEMARQBHAEgATwBOAE4ATQBMAEwASwBKAEoASQBIAEgATgBMAEwASgBIAFAAWABRAFEAWABSAFIAWABTAFMAWABUAFQAWABVAFUA' +
+  'WABWAFYAWABXAFcAWABQAFcAUABRAFEAUgBTAFMAVABVAFUAVgBXAFcAUQBTAFMAVQBXAFkAWgBbAFkAWwBcAF0AYABfAF0AXwBe' +
+  'AFkAXQBeAFkAXgBaAFwAWwBfAFwAXwBgAFoAXgBfAFoAXwBbAFkAXABgAFkAYABdAGEAYgBjAGEAYwBkAGUAaABnAGUAZwBmAGEA' +
+  'ZQBmAGEAZgBiAGQAYwBnAGQAZwBoAGIAZgBnAGIAZwBjAGEAZABoAGEAaABlAGkAbwBwAGkAcABqAGoAcABxAGoAcQBrAGsAcQBy' +
+  'AGsAcgBsAGwAcgBzAGwAcwBtAG0AcwB0AG0AdABuAG4AdABvAG4AbwBpAG4AaQBqAGoAawBsAGwAbQBuAGoAbABuAG8AdABzAHMA' +
+  'cgBxAHEAcABvAHMAcQBvAA==';
+// <<< ASSET FESTOON_POLE
+// >>> ASSET FESTOON_LANTERN (built by tools/assets/festoon.py, packed by tools/assets/pack-glb.js)
+const FESTOON_LANTERN_GLB =
+  'Z2xURgIAAACMCAAAIAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJmZXN0b29uLWxhbnRlcm4iLCJ0cmFu' +
+  'c2xhdGlvbiI6WzAsLTAuMjA3MjQ5OTk5MDQ2MzI1NjgsMF0sInNjYWxlIjpbMC4wOTQ5OTk5OTg4MDc5MDcxLDAuMjA3MjQ5OTk5' +
+  'MDQ2MzI1NjgsMC4wODIyNzI0MTAzOTI3NjEyM119XSwibWVzaGVzIjpbeyJuYW1lIjoiZmVzdG9vbi1sYW50ZXJuIiwicHJpbWl0' +
+  'aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MCwiQ09MT1JfMCI6MX0sImluZGljZXMiOjJ9XX1dLCJhY2Nlc3NvcnMi' +
+  'Olt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjIsIm5vcm1hbGl6ZWQiOnRydWUsImNvdW50Ijo1MSwidHlwZSI6' +
+  'IlZFQzMiLCJtaW4iOlstMzI3NjcsLTMyNzY3LC0zMjc2N10sIm1heCI6WzMyNzY3LDMyNzY3LDMyNzY3XX0seyJidWZmZXJWaWV3' +
+  'IjoxLCJjb21wb25lbnRUeXBlIjo1MTIxLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6NTEsInR5cGUiOiJWRUM0In0seyJidWZm' +
+  'ZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MjQ2LCJ0eXBlIjoiU0NBTEFSIn1dLCJidWZmZXJWaWV3cyI6' +
+  'W3siYnVmZmVyIjowLCJieXRlT2Zmc2V0IjowLCJieXRlTGVuZ3RoIjo0MDgsImJ5dGVTdHJpZGUiOjgsInRhcmdldCI6MzQ5NjJ9' +
+  'LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo0MDgsImJ5dGVMZW5ndGgiOjIwNCwiYnl0ZVN0cmlkZSI6NCwidGFyZ2V0IjozNDk2' +
+  'Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjYxMiwiYnl0ZUxlbmd0aCI6NDkyLCJ0YXJnZXQiOjM0OTYzfV0sImJ1ZmZlcnMi' +
+  'Olt7ImJ5dGVMZW5ndGgiOjExMDR9XX0gICBQBAAAQklOAJL2PUIc9QAAbgk9Qhz1AABuCT1C5AoAAJL2PULkCgAAkvb/fxz1AABu' +
+  'Cf9/HPUAAG4J/3/kCgAAkvb/f+QKAABCedQQAAAAAKE81BBCeQAAX8PUEEJ5AAC+htQQAAAAAF/D1BC+hgAAoTzUEL6GAAAAAD1C' +
+  'AAAAAP9/egQAAAAAAEB6BP9/AAABwHoE/38AAAGAegQAAAAAAcB6BAGAAAAAQHoEAYAAAP9/1BAAAAAAAEDUEP9/AAABwNQQ/38A' +
+  'AAGA1BAAAAAAAcDUEAGAAAAAQNQQAYAAAOxYfZsAAAAAdix9m+xYAACK032b7FgAABSnfZsAAAAAitN9mxSnAAB2LH2bFKcAAOxY' +
+  'egQAAAAAdix6BOxYAACK03oE7FgAABSnegQAAAAAitN6BBSnAAB2LHoEFKcAAA1lAYAAAAAAhjIBgA1lAAB6zQGADWUAAPOaAYAA' +
+  'AAAAes0BgPOaAACGMgGA85oAAKE8zJsAAAAAUR7Mm6E8AACv4cyboTwAAF/DzJsAAAAAr+HMm1/DAABRHsybX8MAAAUFBv8FBQb/' +
+  'BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL' +
+  '/woJC/8KCQv/CgkL/woJC/8KCQv/CgkL//+SLBr/kiwa/5IsGv+SLBr/kiwa/5IsGv+SLBr/kiwa/5IsGv+SLBr/kiwa/5IsGgUF' +
+  'Bv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wUFBv8FBQb/BQUG/wAAAQACAAAAAgADAAQABwAGAAQABgAFAAAABAAF' +
+  'AAAABQABAAMAAgAGAAMABgAHAAEABQAGAAEABgACAAAAAwAHAAAABwAEAAgADgAJAAkADgAKAAoADgALAAsADgAMAAwADgANAA0A' +
+  'DgAIAA0ACAAJAAkACgALAAsADAANAAkACwANAA8AFQAWAA8AFgAQABAAFgAXABAAFwARABEAFwAYABEAGAASABIAGAAZABIAGQAT' +
+  'ABMAGQAaABMAGgAUABQAGgAVABQAFQAPABQADwAQABAAEQASABIAEwAUABAAEgAUABUAGgAZABkAGAAXABcAFgAVABkAFwAVABsA' +
+  'IQAiABsAIgAcABwAIgAjABwAIwAdAB0AIwAkAB0AJAAeAB4AJAAlAB4AJQAfAB8AJQAmAB8AJgAgACAAJgAhACAAIQAbACAAGwAc' +
+  'ABwAHQAeAB4AHwAgABwAHgAgACEAJgAlACUAJAAjACMAIgAhACUAIwAhACcALQAuACcALgAoACgALgAvACgALwApACkALwAwACkA' +
+  'MAAqACoAMAAxACoAMQArACsAMQAyACsAMgAsACwAMgAtACwALQAnACwAJwAoACgAKQAqACoAKwAsACgAKgAsAC0AMgAxADEAMAAv' +
+  'AC8ALgAtADEALwAtAA==';
+// <<< ASSET FESTOON_LANTERN
 
 // ============================================================
 //  AUTHORED PLACES (r143)
@@ -19671,10 +19970,17 @@ function dressCityFronts(){
   // A hooded lantern is silhouette and warmth, not a new point light. Existing
   // lamps retain sole ownership of the fixed lighting budget.
   const lanterns=CITY_FRONTS.filter(front=>terrainHash(Math.round(front.x*5)-971,Math.round(front.z*5)+231)<.28);
-  dressPoints(lanterns.map(front=>{
+  const lanternPoints=lanterns.map(front=>{
     const out=front.d*.5+.08;
     return {x:front.x+Math.sin(front.ry)*out,y:0,z:front.z+Math.cos(front.ry)*out,ry:front.ry};
-  }),HOODED_LANTERN_GLB,KIT_TIMBER);
+  });
+  dressPoints(lanternPoints,HOODED_LANTERN_GLB,KIT_TIMBER);
+  // (r146) The lantern was drawn in the timber material, so it was a brown box
+  // on a bracket; its glass is lit now, and it throws a pool on the step.
+  for(const p of lanternPoints){ const co=Math.cos(p.ry), si=Math.sin(p.ry);
+    aBox(.33,.4,.33,p.x+.52*co+.54*si,2.64,p.z-.52*si+.54*co,'window',p.ry);
+    LIGHT_POOLS.push({x:p.x+.52*co,z:p.z-.52*si,ry:p.ry,along:2.6,out:3,k:1.25}); }
+  for(const w of CITY_WINDOWS)if(w.y<3)LIGHT_POOLS.push({x:w.x,z:w.z,ry:w.ry,along:1.7,out:2.5,k:1});
 }
 // Lot yards, added at r124. One in seven lots loses the fill
 // roll and stands empty, and an empty lot is a rectangle of bare ground the
@@ -20100,6 +20406,7 @@ function quarterTrade(kind,x,z,w,d,ry,accent){
     const [cx,cz]=at(w*.38,-.35);
     aBox(1.15,7.4,1.15,cx,3.7,cz,'brick',ry);
     aBox(1.45,.5,1.45,cx,7.6,cz,'stone',ry);
+    CHIMNEYS.push({x:cx,z:cz,top:8,forge:true});
     if(free(w*.38,1.5,.9)){
       const [fx,fz]=at(w*.38,1.35);
       aBox(1.5,.7,1.2,fx,.35,fz,'stone',ry);
@@ -20247,7 +20554,7 @@ function wardHome(x,z,w,d,stories,key,ry,accent,shopLot=false){
   { const [jx,jz]=at(HOME_DOOR_W/2+.07,front); aBox(.14,HOME_DOOR_H,.3,jx,HOME_DOOR_H/2,jz,'wood',ry); }
   aBox(HOME_DOOR_W+.44,.18,.34,x+si*front,HOME_DOOR_H+.09,z+co*front,'wood',ry);
   aBox(1.5,.16,.5,x+si*front,HOME_DOOR_H+.32,z+co*front,accent,ry);
-  if(seed%3===0){ const cx=x+co*w*.34-si*d*.2,cz=z-si*w*.34-co*d*.2; aBox(.7,2.3,.7,cx,h+1.1,cz,'brick',ry); }
+  if(seed%5<3)houseChimney(x,z,w,d,h,ry,seed,...WARD_ROOF_FORM(roofKind,w,d));
   if(roofKind===1&&seed%4===0)aBox(.9,1.0,.8,x+si*(d*.34),h+1.2,z+co*(d*.34),key,ry);
   for(let s=0;s<stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
     const cols=seed%7<3?3:2,spread=w*.31;
@@ -20703,6 +21010,138 @@ function avenueBreaks(){
   });
   return placed;
 }
+// (Defined here, ahead of the assembly, so a variant that cuts the world
+// stages — r0 — still has the names EMBER reads.)
+// The avenues (r146), baked by tools/plan-avenues.py from the live street
+// plan. The two avenues through the centre are the city's main streets, and
+// from the street they read as a wide empty road: most of the houses beside
+// them turned a side or a back to the avenue, gaps lay between those, and
+// after dark the only light on the way was at the crossings.
+//
+// Frontage: houses facing the avenue from the gaps, their fronts 2.6 m back
+// from the kerb as the avenue's own fronts stand, in rows of up to four with
+// an alley after, clear of every crossing, doorway and interaction. Built as
+// any infill house is (wardHouse and its porch), so the street kit dresses
+// them with the rest and frontageStoreys raises them as it raises the
+// avenue's own; no roll is taken.
+//
+// Festoons: a string of lanterns across the avenue every 22 m or so, between
+// two iron poles 0.75 m back from either kerb (tools/assets/festoon.py), as
+// the Cinder Market's strings hang between its stalls. One real light at each
+// string's middle, a pool of light on the paving under it.
+//
+// Every record is tested against what stands there when it is built and left
+// out (and logged) if it does not fit, never moved.
+const AVENUE_FRONTAGE=[
+  {id:'avenue-front-n2-r-1',x:10.69,z:-152.38,w:9.0,d:8.0,ry:-1.5812,key:'wall2',accent:'arcane'},
+  {id:'avenue-front-n1-l-1',x:-10.77,z:-87.60,w:9.0,d:6.4,ry:1.6104,key:'brick',accent:'amber'},
+  {id:'avenue-front-n1-l-2',x:-10.56,z:-72.09,w:9.0,d:7.2,ry:1.6104,key:'wall',accent:'amber'},
+  {id:'avenue-front-n1-r-1',x:10.85,z:-87.45,w:9.0,d:6.4,ry:-1.5312,key:'wall2',accent:'amber'},
+  {id:'avenue-front-s1-l-1',x:-13.29,z:65.03,w:9.0,d:8.0,ry:1.4915,key:'wall',accent:'amber'},
+  {id:'avenue-front-s1-l-2',x:-14.05,z:74.50,w:9.0,d:8.0,ry:1.4915,key:'wall',accent:'arcane'},
+  {id:'avenue-front-s1-r-1',x:9.95,z:65.38,w:9.0,d:8.0,ry:-1.6501,key:'brick',accent:'amber'},
+  {id:'avenue-front-s1-r-2',x:9.20,z:74.85,w:9.0,d:8.0,ry:-1.6501,key:'wall',accent:'amber'},
+  {id:'avenue-front-s2-l-1',x:-16.57,z:141.36,w:6.6,d:8.0,ry:1.6210,key:'wall2',accent:'amber'},
+  {id:'avenue-front-s2-l-2',x:-15.25,z:167.62,w:9.0,d:8.0,ry:1.6210,key:'brick',accent:'amber'},
+  {id:'avenue-front-s2-l-3',x:-14.78,z:177.11,w:9.0,d:8.0,ry:1.6210,key:'wall',accent:'amber'},
+  {id:'avenue-front-s2-l-4',x:-12.77,z:201.14,w:8.2,d:6.4,ry:1.6210,key:'wall2',accent:'amber'},
+  {id:'avenue-front-s2-r-1',x:6.37,z:143.51,w:8.2,d:7.2,ry:-1.5206,key:'wall',accent:'amber'},
+  {id:'avenue-front-s2-r-2',x:8.57,z:179.34,w:6.6,d:8.0,ry:-1.5206,key:'wall2',accent:'arcane'},
+  {id:'avenue-front-s2-r-3',x:9.43,z:196.62,w:9.0,d:8.0,ry:-1.5206,key:'brick',accent:'amber'},
+  {id:'avenue-front-w2-r-1',x:-176.56,z:-8.86,w:9.0,d:8.0,ry:-0.0433,key:'wall',accent:'amber'},
+  {id:'avenue-front-w2-r-2',x:-167.07,z:-8.45,w:9.0,d:8.0,ry:-0.0433,key:'wall2',accent:'amber'},
+  {id:'avenue-front-w2-r-3',x:-153.81,z:-7.07,w:6.6,d:6.4,ry:-0.0433,key:'brick',accent:'amber'},
+  {id:'avenue-front-w1-r-1',x:-90.30,z:-12.17,w:9.0,d:7.2,ry:0.0943,key:'wall',accent:'arcane'},
+  {id:'avenue-front-e1-l-1',x:64.45,z:14.52,w:9.0,d:8.0,ry:3.1003,key:'wall2',accent:'amber'},
+  {id:'avenue-front-e1-l-2',x:101.52,z:16.06,w:8.2,d:8.0,ry:3.1003,key:'wall',accent:'amber'},
+  {id:'avenue-front-e1-r-1',x:65.51,z:-8.65,w:8.2,d:8.0,ry:-0.0413,key:'wall2',accent:'arcane'},
+  {id:'avenue-front-e1-r-2',x:128.02,z:-5.27,w:9.0,d:6.4,ry:-0.0413,key:'brick',accent:'amber'},
+  {id:'avenue-front-e2-l-1',x:162.16,z:15.85,w:9.0,d:6.4,ry:-3.0771,key:'wall',accent:'amber'},
+  {id:'avenue-front-e2-r-1',x:172.19,z:-7.24,w:9.0,d:8.0,ry:0.0645,key:'wall2',accent:'amber'},
+];
+const AVENUE_FESTOONS=[
+  {id:'avenue-festoon-n2-1',a:{x:-6.37,z:-180.06},b:{x:5.12,z:-179.94}},
+  {id:'avenue-festoon-n2-2',a:{x:-6.64,z:-155.06},b:{x:4.86,z:-154.94}},
+  {id:'avenue-festoon-n1-1',a:{x:-6.56,z:-108.78},b:{x:4.93,z:-109.24}},
+  {id:'avenue-festoon-n1-2',a:{x:-5.61,z:-84.76},b:{x:5.88,z:-85.22}},
+  {id:'avenue-festoon-s2-1',a:{x:-10.17,z:152.29},b:{x:1.32,z:151.71}},
+  {id:'avenue-festoon-s2-2',a:{x:-8.66,z:182.29},b:{x:2.83,z:181.71}},
+  {id:'avenue-festoon-w2-1',a:{x:-178.91,z:8.40},b:{x:-178.42,z:-3.09}},
+  {id:'avenue-festoon-w1-1',a:{x:-109.75,z:6.70},b:{x:-110.83,z:-4.75}},
+  {id:'avenue-festoon-w1-2',a:{x:-84.00,z:4.26},b:{x:-85.09,z:-7.19}},
+  {id:'avenue-festoon-e1-1',a:{x:86.38,z:9.58},b:{x:86.86,z:-1.91}},
+  {id:'avenue-festoon-e1-2',a:{x:108.08,z:10.47},b:{x:108.55,z:-1.02}},
+  {id:'avenue-festoon-e1-3',a:{x:133.76,z:11.53},b:{x:134.24,z:0.04}},
+  {id:'avenue-festoon-e2-1',a:{x:154.35,z:11.29},b:{x:153.61,z:-0.18}},
+  {id:'avenue-festoon-e2-2',a:{x:181.03,z:9.57},b:{x:180.29,z:-1.90}},
+];
+const AVENUE_BUILT={houses:0,festoons:0,lanterns:0,skipped:[],sideWindows:null};
+function avenueFrontage(){
+  for(const f of AVENUE_FRONTAGE){
+    const co=Math.cos(f.ry), si=Math.sin(f.ry); let clear=true;
+    for(let i=0;i<=4&&clear;i++)for(let j=0;j<=4&&clear;j++){
+      const lx=-f.w/2+f.w*i/4, lz=-f.d/2+f.d*j/4, px=f.x+lx*co+lz*si, pz=f.z-lx*si+lz*co;
+      if(colliderBlocked(px,pz,.2)||onRoad(px,pz,.3))clear=false; }
+    if(!clear){ AVENUE_BUILT.skipped.push(f.id); console.warn('Avenue frontage: '+f.id+' does not fit; left out'); continue; }
+    const stories=frontageStoreys(f.x,f.z,f.d,f.ry,2);
+    wardHouse(f.x,f.z,f.w,f.d,stories,f.key,f.ry,f.accent);
+    housePorch(f.x,f.z,f.w,f.d,f.ry,f.accent,stories);
+    AVENUE_BUILT.houses++;
+  }
+}
+function avenueFestoons(){
+  const poles=[], lanterns=[], HOOK=.44, TOP=4.95, SAG=.85;
+  for(const f of AVENUE_FESTOONS){
+    if([f.a,f.b].some(p=>onRoad(p.x,p.z,.2)||colliderBlocked(p.x,p.z,.15))){ AVENUE_BUILT.skipped.push(f.id); console.warn('Avenue festoon: '+f.id+' does not fit; left out'); continue; }
+    const dx=f.b.x-f.a.x, dz=f.b.z-f.a.z, len=Math.hypot(dx,dz), ux=dx/len, uz=dz/len, ry=Math.atan2(ux,uz);
+    // each pole's arm reaches toward the other
+    poles.push({x:f.a.x,y:0,z:f.a.z,ry},{x:f.b.x,y:0,z:f.b.z,ry:ry+Math.PI});
+    addCollider(f.a.x,f.a.z,.2); addCollider(f.b.x,f.b.z,.2);
+    const ax=f.a.x+ux*HOOK, az=f.a.z+uz*HOOK, span=len-2*HOOK, at=s=>new THREE.Vector3(ax+ux*span*s,TOP-SAG*4*s*(1-s),az+uz*span*s);
+    // the string itself, a thin tube along the sag, in the dark batch
+    const pts=[]; for(let i=0;i<=12;i++)pts.push(at(i/12));
+    collect('dark',new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.018,4,false));
+    const count=Math.max(4,Math.round(span/1.55));
+    for(let i=1;i<count;i++){ const p=at(i/count); lanterns.push({x:p.x,y:p.y,z:p.z,ry:ry+i*.7,s:1.3}); }      // a little over life size, to read from down the avenue
+    const mid=at(.5), lamp=lampLight(0xffab5a,.55,13); lamp.position.set(mid.x,mid.y-.6,mid.z); scene.add(lamp);
+    lights.push({light:lamp,base:.55,phase:f.id.length*.7+f.a.x,fire:true});
+    LIGHT_POOLS.push({x:mid.x,z:mid.z,ry,along:span*.95,out:7.5,k:1.15,round:true});
+    AVENUE_BUILT.festoons++; AVENUE_BUILT.lanterns+=count-1;
+  }
+  placeLandmark('festoon-pole',FESTOON_POLE_GLB,poles,{tex:'none',name:'festoon-pole',metal:.35,rough:.55});
+  placeLandmark('festoon-lantern',FESTOON_LANTERN_GLB,lanterns,{tex:'none',name:'festoon-lantern',rough:.6,glow:0xffa050});
+}
+// Walls that face a street (r146). wardHouse puts its windows in its front
+// wall only, so a house standing side-on or back-on to a street showed that
+// street a blank wall — along the avenues, most of what lined them. A back
+// or side wall with open ground in front of it and a carriageway within 12 m
+// of it, unbroken by anything standing between, gets windows on every storey
+// (the upper ones out on the jetty where the house has one); they are lit,
+// framed and pooled like any front window. Visual only: no collider, no roll.
+function streetSideWindows(){
+  const report=AVENUE_BUILT.sideWindows={walls:0,windows:0};
+  for(const f of CITY_FRONTS){
+    const co=Math.cos(f.ry), si=Math.sin(f.ry), h=f.stories*2.7;
+    const seed=Math.abs(Math.round(f.x*7.3+f.z*3.1))%100, jetty=f.stories>1&&seed%5<2;
+    // back, right and left: outward normal, distance out to the wall, its length, its window ry, how far a jetty stands proud of it
+    for(const [nx,nz,half,len,wry,jut] of[[-si,-co,f.d/2,f.w,f.ry+Math.PI,.35],[co,-si,f.w/2,f.d,f.ry+Math.PI/2,f.w*.03],[-co,si,f.w/2,f.d,f.ry-Math.PI/2,f.w*.03]]){
+      if(len<3.4)continue;
+      const cx=f.x+nx*half, cz=f.z+nz*half;
+      if(colliderBlocked(cx+nx*1.2,cz+nz*1.2,.1))continue;             // a neighbour stands against it
+      let street=false;
+      for(let k=1.5;k<=12&&!street;k+=1.5){ const px=cx+nx*k, pz=cz+nz*k; if(onRoad(px,pz,0))street=true; else if(colliderBlocked(px,pz,0))break; }
+      if(!street)continue;
+      report.walls++;
+      const cols=Math.max(1,Math.floor((len-1.4)/2.4)), ax=-nz, az=nx;
+      for(let s=0;s<f.stories;s++){ const wy=1.55+s*2.7; if(wy>h-.6)break;
+        const out=.05+(jetty&&wy>h-2.5?jut:0);
+        for(let c=0;c<cols;c++){ const along=(c-(cols-1)/2)*2.4, wx=cx+nx*out+ax*along, wz=cz+nz*out+az*along;
+          CITY_WINDOWS.push({x:wx,y:wy,z:wz,ry:wry,accent:f.accent});
+          aBox(.5,.66,.06,wx,wy,wz,'window',wry); report.windows++; } }
+    }
+  }
+  return report;
+}
 // ---------- ASSEMBLE ----------
 const CITY_LANES=[[-204,-194.32,-187.49,-188.58,3.1],[-187.49,-188.58,-172.42,-180.38,3.1],[-198,-118,-188.68,-108.5,3],[-133.42,-118,-141.8,-109.58,3.14],[-141.8,-109.58,-147.05,-98.46,3.14],[-204,-16.37,-190.89,-21.53,3.53],[-190.89,-21.53,-176.75,-19.19,3.53],[-204,26.94,-189.57,26.42,2.94],[-203.77,6,-189.82,11.7,3.18],[-189.82,11.7,-179.05,22.87,3.18],[-179.05,22.87,-192.79,23.51,2.71],[-168.48,48,-160.97,61.23,2.81],[-160.97,61.23,-157.92,76.24,2.81],[-157.92,76.24,-149.56,89.14,2.81],[-149.56,89.14,-146.05,103.96,2.81],[-146.05,103.96,-140.56,118,2.81],[-146.05,103.96,-153.86,92.22,3.19],[-204,53.25,-192.76,59.41,3.72],[-192.76,59.41,-184.88,70.05,3.72],[-163.38,83.66,-151.01,92.91,2.81],[-151.01,92.91,-142.61,106.34,2.81],[-142.61,106.34,-125.5,113.3,2.81],[-163.38,83.66,-173.08,94.73,3.31],[-173.08,94.73,-179.58,108.37,3.31],[-179.58,108.37,-191.06,118,3.31],[-204,178.74,-190.91,172.34,3.94],[-204,155.48,-190.26,161.93,3.85],[-118,-176.65,-105.1,-166.71,3.73],[-60.78,-146.66,-75.24,-145.45,2.51],[-94.44,-118,-88.84,-104.23,3.12],[-74.86,-77.66,-66,-74.87,3.12],[-118,-59.26,-105.95,-74.01,3.41],[-85.58,-118,-85.57,-106.23,3.5],[-80.39,-71.4,-71.34,-59.4,3],[-118,-72.22,-98.58,-75.6,2.87],[-98.58,-75.6,-78.92,-76.92,2.87],[-118,28.6,-103.85,27.54,3.59],[-103.85,27.54,-89.78,27.66,3.59],[-89.78,27.66,-76.02,31.98,3.59],[-118,15.33,-101.37,20.7,2.97],[-101.37,20.7,-84.09,23.32,2.97],[-118,163.8,-102.25,167.16,3.5],[-102.25,167.16,-86.86,171.92,3.5],[-20.33,-118,-19.2,-103.95,3.25],[-19.2,-103.95,-22.46,-90.04,3.25],[-22.46,-90.04,-19.36,-75.93,3.25],[24.4,-204,27.27,-194.1,3.28],[27.27,-194.1,23.48,-184.14,3.28],[48,-86.67,58.16,-88.26,3.19],[130,-182.79,140.87,-177.57,3.59],[140.87,-177.57,150.79,-170.31,3.59],[130,-130.11,140.56,-133.37,3.42],[133.76,-130,143.28,-137.9,2.9],[130,-112.93,139.38,-103.39,3.75],[130,-67.44,142.82,-73.39,3.63],[130,-54.66,143.49,-64.74,3.17],[197.02,6,187.4,20.05,3.49],[187.4,20.05,181.45,36,3.49],[130,105.81,138.4,95.99,2.91],[138.4,95.99,150.84,91.62,2.91],[150.84,91.62,160.36,83.31,2.91],[130,167.33,142.76,169.89,2.96],[171.27,130,172.33,145.88,3.07]];
 // Narrow crooked lanes cut through the authored lattice, laid with the rest of
@@ -20735,7 +21174,7 @@ LMSG.textContent='cutting the forest tracks…'; useWorldStream('wild-tracks');w
 LMSG.textContent='shaping the hills…'; planAuthoredLandforms(); raiseTerrain();
 LMSG.textContent='raising the wilderness…'; useWorldStream('wilderness');const outerBuilt=wilderness();
 LMSG.textContent='raising the new halls…'; useWorldStream('new-landmarks');newQuarterLandmarks();
-LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();dressCityFronts();const homesOpened=openHomes();
+LMSG.textContent='filling the old quarters…'; useWorldStream('inner-infill');const innerBuilt=innerInfill();avenueFrontage();avenueFestoons();streetSideWindows();dressCityFronts();const homesOpened=openHomes();
 // The monuments walk themselves out to the verge, but they used to do it before
 // innerInfill laid its lanes, so a monument that had cleared every road in
 // existence could end up standing in one that arrived afterwards. Three of them
@@ -20751,6 +21190,8 @@ useWorldStream('avenue-lamps'); avenueCrossingLamps();
 LMSG.textContent='lighting the new quarters…'; useWorldStream('outer-dressing'); outerQuarterDressing();
 LMSG.textContent='lighting the streets…'; makeVanethLively();
 LMSG.textContent='engraving the visual canon…'; useWorldStream('visual-canon'); addVisualCanonLayer();
+const STREET_POOLS=streetLightPools();
+const CHIMNEY_REPORT=placeChimneys();
 const LOT_YARDS=dressLotYards(), ROAD_ENDS=dressRoadEnds(), LANTERN_PRUNE=pruneLanterns();
 // The compiler performs an early access pass, but hand-authored infill is
 // assembled afterwards and can obstruct a previously safe doorstep. Resolve
@@ -25056,7 +25497,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r145',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+cityAtmosphere.smoke.length:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r146',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -25217,6 +25658,9 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // tools/probes/probe-cinder-market.js.
   market:{stalls:CINDER_MARKET_STALLS,poles:CINDER_MARKET_POLES,lines:CINDER_MARKET_LIGHTS,built:CINDER_MARKET,hearth:MARKET_HEARTH,well:MARKET_WELL},
   avenueLamps:{table:AVENUE_CROSSING_LAMPS,built:AVENUE_LAMPS},
+  avenues:{frontage:AVENUE_FRONTAGE,festoons:AVENUE_FESTOONS,built:AVENUE_BUILT},
+  streetPools:STREET_POOLS,
+  chimneys:CHIMNEY_REPORT,
   // The grade is read from CINEMATIC_LOOK every frame, so handing the object
   // out makes the whole look tunable at runtime: a probe can sweep contrast,
   // saturation, shadow tint, vignette, fog and exposure and photograph each
@@ -25367,7 +25811,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Ember Hour — variant layer over base r145 -->
+<!-- Emberwatch — Ember Hour — variant layer over base r146 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBER HOUR                                     variant layer
