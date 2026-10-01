@@ -4,16 +4,19 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r153 / 1.53.0**, sealed 2026-10-01 as "the city culled": the
+Current: **r154 / 1.54.0**, sealed 2026-10-01 as "the Moon Archive": the
+city's library fitted out as one — bookcases, a ladder, reading tables,
+lamps, a moon window and the archive's instrument (§0). Before it, r153 /
+1.53.0 ("the city culled", §0n): the
 city's static geometry laid in 72 m squares that are culled against the view
-— a quarter to nearly half fewer triangles drawn in the city (§0). Before
+— a quarter to nearly half fewer triangles drawn in the city. Before
 it, r152 / 1.52.0
 ("the forest at night", §0o), r151 / 1.51.0 ("the city heard", §0p), r150 / 1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0
 ("the bell tower", §0r),
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the eleven is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the twelve is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -232,7 +235,91 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r153)
+## 0. Start here — where the last session left off (2026-10-01, r154)
+
+**State: r154 / 1.54.0, sealed 2026-10-01 ("the Moon Archive").** Same
+instruction. With the city culled (r153) there is room to model rooms
+properly, and the Moon Archive — the city's library, whose archivist tells
+you it "remembers names the city has lost" — was a 20 by 16 m hall holding a
+rug, two plain shelves, a table and a stone block with a glowing top.
+
+**Next:** the Eastwall Scriptorium and the Cold Assay are archives too, and
+still the old furnishing; the library model's bookcases would suit both.
+The towers of the Moon Archive and the Northwatch Guild; stairs up to the
+outer wall's walk. The Windows installers for r143–r154 have not been built.
+
+### A library
+
+`tools/assets/moon-archive.py` builds two models laid at the room's middle
+by `placeMoonArchive()`:
+
+- `moon-archive` (10,680 triangles, warm glow): bookcases full to the
+  cornice — three bays either side of the back wall's window, four down each
+  side wall, the door end left clear — every shelf laid book by book in runs
+  of one binding, a gap now and then, the odd one leaning; a rolling ladder
+  on its brass rail; a map chest with scrolls under the window; two long
+  reading tables down the room with their benches, candles, open books and
+  a stack; a lamp of candles hung over each; a lectern with the register on
+  it and a celestial globe either side of the instrument.
+- `moon-archive-moon` (1,100 triangles, cool glow): the round window of
+  moon-glass in a stone ring with lead tracery, and the archive's
+  instrument where the old block stood — a pale moon in three brass rings on
+  a stone plinth, a soft blue lamp over it.
+
+The colliders are the script's numbers. The archivist's place (local 0, 1)
+and the shelves she reads at (0, −2.5) are clear; the instrument's
+interaction ("touch the archive instrument") is where it was, 0.6 m from the
+new moon.
+
+Two things found on the way. The first book pass was 14,760 triangles and
+packed to 202 KB, over `inline-glb`'s 200 KB limit; runs of two to four
+volumes of a binding brought it to 146 KB. And the moon-glass, written
+glowing at 0.88, burnt the instrument and the window to white under the
+bloom; it glows at 0.45 now.
+
+### The room filler leaves it alone
+
+`dressInterior` fills every hall's free floor and walls with what a
+storeroom holds — chests, barrels, sacks, crates, racks, stools — by a
+seeded hand of its own. In the library it set four chests a metre and a half
+in front of the back bookcases, barrels against the side ones and a stool by
+the lectern; and probes teleported into the archive's corners were thrown
+out of the building, because they landed inside a chest's collider (the
+same happened on r153, before the fit-out). The Moon Archive is furnished
+by hand now and the filler skips it; it draws from its own generator, so
+nothing else in the city moves. `EMBER.collidersAt(x, z, reach)` is new: what
+a probe standing there would touch, and whether it blocks.
+
+Also: the comment over `dressPoints` described r107's single merged mesh;
+it says what r153 made it.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the two
+  asset markers and a comment word), `audit-dom`, `audit-dead` (618
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Eight points in the room stood on, door to corners: none moves the player
+  now (on r153, two put them outside the building).
+- Shots looked at: the room from the door, from the back corner, the
+  instrument close, the window, a side bookcase close, the tables — before
+  and after the glass was toned down; the archivist at her place with "talk
+  with Archivist Lysa" and "touch the archive instrument" both offered.
+- Runtime audit, r153 → r154: errors 0 → 0; villagers 374 → 374;
+  draw calls 460 → 462; triangles 2,050,711 → 2,061,303; colliders 11,939
+  → 11,889 (the filler's and the old shelves' gone, the library's ten
+  in); doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
+  road obstructions in the carriageway 0 → 0, intruding 231 → 231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r154".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0n. r153 — where the session before that left off (2026-10-01)
 
 **State: r153 / 1.53.0, sealed 2026-10-01 ("the city culled").** Same
 instruction. Since r146 every account of the cost has ended the same way:

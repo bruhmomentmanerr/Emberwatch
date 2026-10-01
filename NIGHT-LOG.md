@@ -6,6 +6,32 @@ estimated.
 
 ---
 
+## 2026-10-01 — morning · r154 "The Moon Archive"
+
+**What was wrong.** The city's library was a big room with a rug, two plain
+shelves, a table and a glowing block — and the storeroom filler had dropped
+chests and barrels round its walls.
+
+**What changed.** It is a library: walls of laden bookcases, a rolling
+ladder, a map chest under a round moon window, two reading tables with
+candles and open books, hanging lamps, a lectern, a globe, and the archive's
+instrument — a pale moon in brass rings. The filler leaves the room alone.
+PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- The room shot from six places, before and after the moon-glass was toned
+  down from white; the archivist and the instrument both still answer.
+- Probes standing in the corners were thrown out of the building on r153 —
+  they landed in the filler's chests — and are not now.
+- Runtime audit against r153: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 460 → 462.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r154.
+
+---
+
 ## 2026-10-01 — dawn · r153 "The city culled"
 
 **What was wrong.** The city's static geometry — every wall, roof and window
