@@ -6,6 +6,32 @@ estimated.
 
 ---
 
+## 2026-10-01 — morning · r155 "The archives"
+
+**What was wrong.** After the Moon Archive, the city's two other archive
+halls were still a rug, a table and a storeroom's worth of chests and
+barrels.
+
+**What changed.** The Eastwall Scriptorium has ledger walls, pigeonholes of
+rolled records, two rows of candlelit scribes' desks — one page left
+unfinished — and the great ledger by the door. The Cold Assay has a great
+beam balance mid-weighing, drawers and jars, something under a sheet on the
+long table, a strongbox, cold lamps, and an assay furnace with its crucibles.
+PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Both rooms shot from four places; points in each stood on — the
+  Scriptorium's page interaction was moved into the aisle when it turned out
+  to sit between two desks.
+- Runtime audit against r154: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 462 → 465.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r155.
+
+---
+
 ## 2026-10-01 — morning · r154 "The Moon Archive"
 
 **What was wrong.** The city's library was a big room with a rug, two plain
