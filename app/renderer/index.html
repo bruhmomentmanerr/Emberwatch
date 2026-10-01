@@ -171,6 +171,9 @@
   <div class="row"><div id="track">no track loaded</div></div>
   <div class="row" id="musicctl" style="display:none"><button class="btn" id="prev" style="flex:1">⏮</button><button class="btn" id="play" style="flex:1">⏸</button><button class="btn" id="next" style="flex:1">⏭</button></div>
   <div class="row" id="volrow" style="display:none"><span style="font-size:11px;opacity:.6">vol</span><input id="vol" type="range" min="0" max="1" step="0.01" value="0.6"></div>
+  <div class="sep"></div><h4>Sound</h4>
+  <div class="row"><button class="btn active" id="soundBtn" style="flex:1" title="The bells, wind, rain, footsteps">🔔 world sound · on</button></div>
+  <div class="row"><span style="font-size:11px;opacity:.6">vol</span><input id="soundVol" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="World sound volume"></div>
   <div class="sep"></div><h4>World</h4>
   <div class="row"><label class="btn glb" style="flex:1">⛰ add .glb scenery<input id="glb" type="file" accept=".glb" hidden></label></div>
   <div class="row"><button class="btn" id="unstuckBtn" style="flex:1">↟ return to the outer gate</button></div>
@@ -5082,6 +5085,7 @@ function placeStreetLamps(){
 // every tower. The middle torch of each span is a real light (the tiered
 // budget decides, as for every lamp); no roll.
 const WALL_LIGHTS={sconces:0,lit:0,slits:0,againstSomething:0};
+const TORCH_SPOTS=[];                    // {x, z}: each wall torch, for its crackle (r151)
 function wallLights(){
   const pts=[];
   for(const walk of WALL_WALKS){
@@ -5099,7 +5103,7 @@ function wallLights(){
       for(const side of faces){
         const nx=ox*side, nz=oz*side, r=R+side*1.02;
         if(colliderBlocked(ox*(R+side*2.3),oz*(R+side*2.3),.3)||colliderBlocked(ox*(R+side*4),oz*(R+side*4),.3)){ WALL_LIGHTS.againstSomething++; continue; }
-        pts.push({x:ox*r,y:4.2,z:oz*r,ry:Math.atan2(nx,nz),s:1.6});
+        pts.push({x:ox*r,y:4.2,z:oz*r,ry:Math.atan2(nx,nz),s:1.6}); TORCH_SPOTS.push({x:ox*(r+side*.5),z:oz*(r+side*.5)});
         LIGHT_POOLS.push({x:ox*r,z:oz*r,ry:Math.atan2(nx,nz),along:4,out:6.5,k:1.7});
         LIGHT_POOLS.push({x:ox*r,y:4.9,z:oz*r,ry:Math.atan2(nx,nz),along:5.5,out:6,k:2.4,wash:true});
         // the middle torch of each span is a real light, in the same budget as every lamp
@@ -26745,6 +26749,232 @@ const drop=document.getElementById('drop');
 addEventListener('dragover',e=>{ e.preventDefault(); drop.style.display='flex'; }); addEventListener('dragleave',e=>{ if(e.relatedTarget===null) drop.style.display='none'; });
 addEventListener('drop',e=>{ e.preventDefault(); drop.style.display='none'; const f=[...e.dataTransfer.files].find(f=>/\.glb$/i.test(f.name)); if(f) handleGLBFile(f); });
 
+// ---------- world sound (r151) ----------
+// Until r151 the world made no sound at all: the only audio was music you
+// loaded yourself. SOUND is one AudioContext, a master gain the settings
+// panel sets (on/off and a volume, kept in this browser), a compressor, and
+// one shared reverb — a synthetic impulse, a stone space a few seconds long.
+// Nothing is sampled: every sound is built from oscillators and noise here.
+// Sources in the world are positional (a PannerNode each; the listener rides
+// with the camera). If the browser will not make a context, or it throws,
+// the game is silent, as it always was.
+//
+//   the bells      each strike of each bell, from the partials of a real
+//                  church bell (hum, prime, tierce, quint, nominal and up),
+//                  every one decaying at its own rate, and the clapper's knock
+//   wind           two noise bands, gusting; stronger the higher you stand
+//   rain           as heavy as the rain falling, muffled indoors
+//   footsteps      a soft knock each stride, hollower on boards and stairs,
+//                  a splash in water
+//   fires          the two nearest hearths, forges or wall torches crackle
+//   crickets       out beyond the walls
+//   the doves      their wings clapping as they go up
+const SOUND={ctx:null,master:null,verb:null,noise:null,brown:null,on:true,volume:.7,failed:false,
+  strikes:0,steps:0,claps:0,bellK:new Map(),wind:null,rain:null,crickets:null,fire:[],fireAt:0,fires:null,gust:0,gustTo:0,gustAt:0,stepK:null,dovesFrom:-Infinity};
+const SOUND_KEY='emberwatch.sound.v1', SOUND_FWD=new THREE.Vector3();
+try{ const s=JSON.parse(localStorage.getItem(SOUND_KEY)||'{}');
+  if(typeof s.on==='boolean')SOUND.on=s.on;
+  if(typeof s.volume==='number'&&s.volume>=0&&s.volume<=1)SOUND.volume=s.volume; }catch{}
+function saveSoundSettings(){ try{ localStorage.setItem(SOUND_KEY,JSON.stringify({on:SOUND.on,volume:SOUND.volume})); }catch{} }
+// A mono noise buffer: white, or brown (white run through a leaky integrator,
+// the low roar wind is made of).
+function soundNoiseBuffer(ctx,seconds,brown){
+  const n=Math.floor(ctx.sampleRate*seconds), b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0);
+  let last=0; for(let i=0;i<n;i++){ const w=Math.random()*2-1; if(brown){ last=(last+.02*w)/1.02; d[i]=last*3.5; } else d[i]=w; }
+  return b;
+}
+// The reverb's impulse: stereo noise dying away exponentially, the two
+// channels uncorrelated so the tail is wide.
+function soundImpulse(ctx,seconds,decay){
+  const n=Math.floor(ctx.sampleRate*seconds), b=ctx.createBuffer(2,n,ctx.sampleRate);
+  for(let c=0;c<2;c++){ const d=b.getChannelData(c); for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay); }
+  return b;
+}
+function soundChain(ctx,dest){
+  const master=ctx.createGain(), comp=ctx.createDynamicsCompressor();
+  comp.threshold.value=-16; comp.knee.value=14; comp.ratio.value=3; comp.attack.value=.008; comp.release.value=.35;
+  master.connect(comp); comp.connect(dest);
+  const verb=ctx.createConvolver(), wet=ctx.createGain(); verb.buffer=soundImpulse(ctx,3.6,3.2); wet.gain.value=.32;
+  verb.connect(wet); wet.connect(master);
+  return {master,verb};
+}
+function soundStart(){
+  if(SOUND.ctx||SOUND.failed)return SOUND.ctx;
+  try{
+    const C=window.AudioContext||window.webkitAudioContext; if(!C){ SOUND.failed=true; return null; }
+    const ctx=new C(), {master,verb}=soundChain(ctx,ctx.destination);
+    master.gain.value=0;
+    Object.assign(SOUND,{ctx,master,verb,noise:soundNoiseBuffer(ctx,2,false),brown:soundNoiseBuffer(ctx,4,true)});
+    soundAmbience(); soundLevel();
+  }catch(error){ SOUND.failed=true; SOUND.ctx=null; console.warn('world sound unavailable',error); }
+  return SOUND.ctx;
+}
+// A browser will not start a context before the player has pressed
+// something; Electron will. Either way the first key or click resumes it.
+for(const type of['pointerdown','keydown'])addEventListener(type,()=>{ const c=soundStart(); if(c&&c.state==='suspended')c.resume().catch(()=>{}); },{passive:true});
+function soundLevel(){
+  if(!SOUND.ctx)return;
+  const want=SOUND.on&&!document.hidden?SOUND.volume:0;
+  SOUND.master.gain.setTargetAtTime(want*want,SOUND.ctx.currentTime,.12);        // a volume slider wants a square law
+}
+document.addEventListener('visibilitychange',soundLevel);
+function soundPanner(x,y,z,ref,roll,hrtf){
+  const p=SOUND.ctx.createPanner(); p.panningModel=hrtf?'HRTF':'equalpower'; p.distanceModel='inverse';
+  p.refDistance=ref; p.rolloffFactor=roll; p.maxDistance=2000;
+  if(p.positionX){ p.positionX.value=x; p.positionY.value=y; p.positionZ.value=z; } else p.setPosition(x,y,z);
+  return p;
+}
+// A strike's panner outlives its oscillators; let it go once they are done.
+function soundRelease(node,seconds){ setTimeout(()=>{ try{ node.disconnect(); }catch{} },seconds*1000); }
+function soundNoise(buffer,when,dur,loop){
+  const n=SOUND.ctx.createBufferSource(); n.buffer=buffer; n.loop=!!loop;
+  n.start(when,Math.random()*(buffer.duration-(loop?0:dur+.05))); if(!loop)n.stop(when+dur);
+  return n;
+}
+// One strike of a bell whose strike note is `prime` Hz. Partials after the
+// usual tuning of a church bell, relative to the prime, each with its level
+// and how long it rings: the hum an octave below lasts longest, the high
+// partials die first, which is what makes it sound like a bell and not a
+// chord. The two lowest are doubled a fraction of a hertz apart and beat, as
+// a real bell's do. `out` takes the dry sound, `verb` the reverb send.
+const BELL_PARTIALS=[[.5,.34,10],[.5,.1,10,.7],[1,.42,7],[1,.12,7,-.9],[1.2,.36,4.2],[1.5,.13,2.6],[2,.46,3.4],[2.5,.1,1.8],[3,.16,1.6],[4,.09,1],[5.3,.05,.5]];
+function soundBellVoice(ctx,out,verb,when,prime,level,noise){
+  const g=ctx.createGain(); g.gain.value=level; g.connect(out);
+  const send=ctx.createGain(); send.gain.value=.7; g.connect(send); send.connect(verb);
+  for(const [r,a,d,beat=0] of BELL_PARTIALS){
+    const o=ctx.createOscillator(), e=ctx.createGain(); o.frequency.value=prime*r+beat;
+    e.gain.setValueAtTime(0,when); e.gain.linearRampToValueAtTime(a,when+.003); e.gain.exponentialRampToValueAtTime(.0005,when+d);
+    o.connect(e); e.connect(g); o.start(when); o.stop(when+d+.05);
+  }
+  // the clapper's knock: a short band of noise well above the prime
+  const n=ctx.createBufferSource(), bp=ctx.createBiquadFilter(), e=ctx.createGain(); n.buffer=noise;
+  bp.type='bandpass'; bp.frequency.value=prime*7; bp.Q.value=1.5;
+  e.gain.setValueAtTime(.5,when); e.gain.exponentialRampToValueAtTime(.001,when+.07);
+  n.connect(bp); bp.connect(e); e.connect(g); n.start(when); n.stop(when+.09);
+}
+// A bell swinging A sin(phase) strikes at each end of its swing, where the
+// clapper catches up with the lip: once each time the phase passes a half
+// turn plus a quarter. Soft while it is being rung up, not at all below a
+// third of full swing.
+function soundBells(t){
+  const ring=bellsRinging(t);
+  for(const m of LANDMARK_MOVERS){ if(!m.swing)continue;
+    const k=Math.floor((t*Math.PI*2/m.period+m.phase+Math.PI/2)/Math.PI), last=SOUND.bellK.get(m);
+    SOUND.bellK.set(m,k); if(last===undefined||k===last||ring<.33)continue;
+    const p=m.mesh.position, s=m.mesh.scale.x, ctx=SOUND.ctx, when=ctx.currentTime+.02;
+    const out=soundPanner(p.x,p.y-1,p.z,45,.8,true); out.connect(SOUND.master); soundRelease(out,11);
+    soundBellVoice(ctx,out,SOUND.verb,when,174/s,.55*ring,SOUND.noise); SOUND.strikes++;
+  }
+}
+// A fire's crackle, three seconds to loop: a low roar of brown noise and
+// seventy snaps of white, most of them small, a few of them pops.
+function soundCrackleBuffer(ctx){
+  const n=ctx.sampleRate*3, b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0); let low=0;
+  for(let i=0;i<n;i++){ low=(low+.02*(Math.random()*2-1))/1.02; d[i]=low*1.4; }
+  for(let c=0;c<70;c++){ const at=Math.floor(Math.random()*(n-900)), len=40+Math.floor(Math.random()*320), amp=.05+.9*Math.pow(Math.random(),3);
+    for(let i=0;i<len;i++)d[at+i]+=(Math.random()*2-1)*amp*Math.exp(-i/(len*.25)); }
+  return b;
+}
+// Crickets, four seconds to loop: seven of them, each chirping three to five
+// pulses of its own pitch (4.2 to 5.2 kHz) at its own pace.
+function soundCricketBuffer(ctx){
+  const rate=ctx.sampleRate, n=rate*4, b=ctx.createBuffer(1,n,rate), d=b.getChannelData(0);
+  for(let c=0;c<7;c++){ const f=4200+Math.random()*1000, every=.55+Math.random()*.55, pulses=3+Math.floor(Math.random()*3), pr=28+Math.random()*8, amp=.05+Math.random()*.1, off=Math.random()*every;
+    for(let i=0;i<n;i++){ const t=i/rate, into=((t+off)%every)*pr; if(into>=pulses)continue;
+      const env=Math.pow(Math.sin(Math.PI*(into%1)),2); d[i]+=amp*env*Math.sin(2*Math.PI*f*t); } }
+  return b;
+}
+// Every fire the player can stand near, gathered once the city is built:
+// house hearths, the forges, the torches on the town walls.
+function soundFireSpots(){
+  if(!SOUND.fires)SOUND.fires=[...hearthFires.map(h=>({x:h.x,y:.9,z:h.z,k:1})),...CHIMNEYS.filter(c=>c.forge).map(c=>({x:c.x,y:1,z:c.z,k:1.3})),...TORCH_SPOTS.map(p=>({x:p.x,y:4.6,z:p.z,k:.55}))];
+  return SOUND.fires;
+}
+// Wind, rain and crickets are always running, at whatever level the frame
+// sets; so are the two fire voices, moved to whichever fires are nearest.
+function soundAmbience(){
+  const ctx=SOUND.ctx, make=(buffer,type,f,q)=>{ const src=soundNoise(buffer,ctx.currentTime,0,true), fl=ctx.createBiquadFilter(), g=ctx.createGain();
+    fl.type=type; fl.frequency.value=f; fl.Q.value=q; g.gain.value=0; src.connect(fl); fl.connect(g); g.connect(SOUND.master); return {fl,g}; };
+  SOUND.wind={low:make(SOUND.brown,'lowpass',320,.5),high:make(SOUND.noise,'bandpass',700,.9)};
+  const r=make(SOUND.noise,'highpass',700,.4), lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=6500;
+  r.fl.disconnect(); r.fl.connect(lp); lp.connect(r.g); SOUND.rain={g:r.g,lp};
+  SOUND.crickets=make(soundCricketBuffer(ctx),'highpass',3000,.5);
+  const crackle=soundCrackleBuffer(ctx);
+  for(let v=0;v<2;v++){ const src=soundNoise(crackle,ctx.currentTime,0,true), hp=ctx.createBiquadFilter(), g=ctx.createGain(), pan=soundPanner(0,-500,0,1.6,1.3,false);
+    hp.type='highpass'; hp.frequency.value=220; g.gain.value=0; src.connect(hp); hp.connect(g); g.connect(pan); pan.connect(SOUND.master);
+    SOUND.fire.push({g,pan,spot:null,moveAt:0}); }
+}
+function updateSound(t,dt){
+  if(!SOUND.ctx&&!SOUND.failed)soundStart();
+  const ctx=SOUND.ctx; if(!ctx||ctx.state!=='running')return;
+  const now=ctx.currentTime, L=ctx.listener, c=camera.position, fwd=SOUND_FWD.set(0,0,-1).applyQuaternion(camera.quaternion);
+  if(L.positionX){ L.positionX.value=c.x; L.positionY.value=c.y; L.positionZ.value=c.z;
+    L.forwardX.value=fwd.x; L.forwardY.value=fwd.y; L.forwardZ.value=fwd.z; L.upX.value=0; L.upY.value=1; L.upZ.value=0; }
+  else{ L.setPosition(c.x,c.y,c.z); L.setOrientation(fwd.x,fwd.y,fwd.z,0,1,0); }
+  const inside=!!activeInterior;
+  soundBells(t);
+  // wind: a gust drifts to a new strength every few seconds
+  if(t>SOUND.gustAt){ SOUND.gustTo=Math.random(); SOUND.gustAt=t+2+Math.random()*5; }
+  SOUND.gust+=(SOUND.gustTo-SOUND.gust)*Math.min(1,dt*.6);
+  const high=Math.max(0,Math.min(1,(player.y-2)/20)), w=(inside?.25:1)*(.35+.65*high)*(.55+.45*SOUND.gust);
+  SOUND.wind.low.g.gain.setTargetAtTime(.16*w,now,.3); SOUND.wind.high.g.gain.setTargetAtTime(.05*w*(.4+high),now,.3);
+  SOUND.wind.high.fl.frequency.setTargetAtTime(520+500*SOUND.gust+300*high,now,.5);
+  const rain=VISUAL_CANON.rain?VISUAL_CANON.rain.level:0;
+  SOUND.rain.g.gain.setTargetAtTime(rain*(inside?.1:.2),now,.4); SOUND.rain.lp.frequency.setTargetAtTime(inside?900:6500,now,.4);
+  const beyond=Math.max(0,Math.min(1,(Math.hypot(player.x,player.z)-OUTER_WALL_R-4)/30));      // past the outer wall
+  SOUND.crickets.g.gain.setTargetAtTime((inside?0:.012+.07*beyond)*(1-rain),now,.8);
+  // the fires: twice a second, the two nearest within 22 m; a voice that
+  // changes fire fades out, moves, and fades back in
+  if(now>SOUND.fireAt){ SOUND.fireAt=now+.5; const near=[];
+    for(const f of soundFireSpots()){ const d=(f.x-player.x)**2+(f.z-player.z)**2; if(d<22*22)near.push([d,f]); }
+    near.sort((a,b)=>a[0]-b[0]);
+    SOUND.fire.forEach((v,i)=>{ const spot=near[i]?near[i][1]:null; if(spot===v.spot)return; v.spot=spot; v.g.gain.setTargetAtTime(0,now,.06); v.moveAt=now+.25; }); }
+  for(const v of SOUND.fire)if(v.moveAt&&now>=v.moveAt){ v.moveAt=0; if(!v.spot)continue; const s=v.spot, p=v.pan;
+    if(p.positionX){ p.positionX.value=s.x; p.positionY.value=s.y; p.positionZ.value=s.z; } else p.setPosition(s.x,s.y,s.z);
+    v.g.gain.setTargetAtTime(.34*s.k,now,.2); }
+  // a footstep each half turn of the walk's bob
+  const k=Math.floor(bob/Math.PI);
+  if(SOUND.stepK!==null&&k!==SOUND.stepK&&player.onGround){
+    const wet=waterDepthAt(player.x,player.z)>.12, aloft=player.y>terrainAt(player.x,player.z)+.25, when=now+.01, n=soundNoise(SOUND.noise,when,wet?.2:.09,false);
+    const fl=ctx.createBiquadFilter(), g=ctx.createGain();
+    fl.type=wet?'highpass':aloft?'bandpass':'lowpass'; fl.frequency.value=wet?1400:aloft?230+Math.random()*80:500+Math.random()*350; if(aloft)fl.Q.value=2.2;
+    g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime((wet?.07:aloft?.2:.11)*(.8+Math.random()*.4),when+.006); g.gain.exponentialRampToValueAtTime(.001,when+(wet?.2:aloft?.11:.08));
+    n.connect(fl); fl.connect(g); g.connect(SOUND.master); SOUND.steps++;
+  }
+  SOUND.stepK=k;
+  // the doves' wings as they go up
+  // (a window of seconds, not frames: the harness draws one every three)
+  if(DOVES.mesh&&DOVES.start!==SOUND.dovesFrom&&t>DOVES.start&&t<DOVES.start+6){ SOUND.dovesFrom=DOVES.start;
+    const out=soundPanner(DOVES.cx,24,DOVES.cz+2,20,1,false); out.connect(SOUND.master); soundRelease(out,4);
+    for(let i=0;i<34;i++){ const when=now+Math.random()*1.8, n=soundNoise(SOUND.noise,when,.03,false), fl=ctx.createBiquadFilter(), g=ctx.createGain();
+      fl.type='bandpass'; fl.frequency.value=900+Math.random()*900; fl.Q.value=1.2;
+      g.gain.setValueAtTime(.25+Math.random()*.2,when); g.gain.exponentialRampToValueAtTime(.001,when+.03);
+      n.connect(fl); fl.connect(g); g.connect(out); SOUND.claps++; } }
+}
+// For the harness, which cannot listen: one bell strike rendered offline to
+// 16-bit PCM, base64, so its spectrum can be read off a file.
+async function soundRenderBell(prime=174,seconds=6){
+  const rate=22050, ctx=new OfflineAudioContext(1,rate*seconds,rate), {master,verb}=soundChain(ctx,ctx.destination);
+  master.gain.value=.8; soundBellVoice(ctx,master,verb,.05,prime,.8,soundNoiseBuffer(ctx,1,false));
+  const d=(await ctx.startRendering()).getChannelData(0), pcm=new Int16Array(d.length);
+  for(let i=0;i<d.length;i++)pcm[i]=Math.max(-1,Math.min(1,d[i]))*32767;
+  let s=''; const u=new Uint8Array(pcm.buffer); for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode(...u.subarray(i,i+32768));
+  return {rate,samples:d.length,b64:btoa(s)};
+}
+// What the harness reads (EMBER.sound.report): the context, the counters,
+// which fires the two crackle voices are on, and the ambience's levels.
+function soundReport(){
+  const gain=n=>n?+n.g.gain.value.toFixed(3):null;
+  return {state:SOUND.ctx?SOUND.ctx.state:null,failed:SOUND.failed,on:SOUND.on,volume:SOUND.volume,strikes:SOUND.strikes,steps:SOUND.steps,claps:SOUND.claps,
+    fireSpots:SOUND.fires?SOUND.fires.length:0,fires:SOUND.fire.map(v=>v.spot?{x:+v.spot.x.toFixed(1),z:+v.spot.z.toFixed(1),k:v.spot.k,gain:+v.g.gain.value.toFixed(3)}:null),
+    wind:SOUND.wind?[gain(SOUND.wind.low),gain(SOUND.wind.high)]:null,rain:gain(SOUND.rain),crickets:gain(SOUND.crickets)};
+}
+const soundBtn=document.getElementById('soundBtn'), soundVol=document.getElementById('soundVol');
+function showSoundSetting(){ soundBtn.textContent='🔔 world sound · '+(SOUND.on?'on':'off'); soundBtn.classList.toggle('active',SOUND.on); soundVol.value=String(SOUND.volume); }
+soundBtn.addEventListener('click',()=>{ SOUND.on=!SOUND.on; soundStart(); soundLevel(); saveSoundSettings(); showSoundSetting(); });
+soundVol.addEventListener('input',()=>{ SOUND.volume=+soundVol.value; soundLevel(); saveSoundSettings(); });
+showSoundSetting();
+
 const audio=new Audio(); audio.volume=0.6; let playlist=[],idx=0; const trackEl=document.getElementById('track');
 function clearPlaylist(){ audio.pause(); audio.removeAttribute('src'); audio.load(); playlist.forEach(t=>releaseBlobURL(t.url)); playlist=[]; }
 document.getElementById('file').addEventListener('change',e=>{ clearPlaylist(); playlist=[...e.target.files].map(f=>({name:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(f)})); if(playlist.length){ idx=0; loadTrack(); document.getElementById('musicctl').style.display='flex'; document.getElementById('volrow').style.display='flex'; } });
@@ -27010,6 +27240,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   sky:{rain:v=>{if(VISUAL_CANON.rain)VISUAL_CANON.rain.forced=v;},omen:v=>{if(VISUAL_CANON.omen)VISUAL_CANON.omen.forced=v;},
     shower:()=>{const e=VISUAL_CANON.events;e.nextShowerAt=clock.getElapsed();e.showerAt=-1;},moonDir:MOON_DIR,
     bells:hold=>{ BELLS.held=!!hold; ringBells(clock.getElapsed()); return {rung:BELLS.rung,movers:LANDMARK_MOVERS.filter(m=>m.swing).length,doves:DOVES.birds.length}; }},
+  sound:{report:soundReport,renderBell:soundRenderBell},
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
@@ -27063,6 +27294,7 @@ function loop(){ requestAnimationFrame(loop);
   bob+=moving&&player.onGround?dt*9:0;
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateInteriorLight(dt); const roomsStarted=performance.now(); syncShopRooms(dt); FRAME_COST.rooms=performance.now()-roomsStarted; updateVillagers(t,dt); updateVisualCanon(t,dt); sampleResidentFlow(t); updateWisps(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);
+  updateSound(t,dt);
   if(t>=nextGameSaveAt){saveGameState();nextGameSaveAt=t+10;}
   ravens.forEach(bird=>{const a=t*bird.speed+bird.phase;bird.g.position.x=Math.cos(a)*bird.radius;bird.g.position.z=Math.sin(a)*bird.radius;bird.g.position.y=bird.height+Math.sin(t*.9+bird.phase)*2.2;bird.g.rotation.y=-a-Math.PI*.5;const flap=Math.sin(t*7+bird.phase)*.45;bird.left.rotation.z=flap;bird.right.rotation.z=-flap;});
   for(let i=spells.length-1;i>=0;i--){ const s=spells[i],fromX=s.g.position.x,fromY=s.g.position.y,fromZ=s.g.position.z,nextX=fromX+s.v.x*dt,nextY=fromY+s.v.y*dt,nextZ=fromZ+s.v.z*dt,wallHit=spellBarrier(fromX,fromZ,nextX,nextZ),npcHit=spellVillagerBarrier(fromX,fromY,fromZ,nextX,nextY,nextZ),hit=!wallHit?npcHit:!npcHit||wallHit.ratio<=npcHit.ratio?wallHit:npcHit; if(hit){spellImpact(hit.x,hit.y??fromY,hit.z,s.color);if(!hit.npc)standingStoneStruck(hit.x,hit.z,s.color);if(hit.npc){hit.npc.pauseLeft=Math.max(hit.npc.pauseLeft||0,1.6);hit.npc.g.rotation.y=Math.atan2(player.x-hit.npc.g.position.x,player.z-hit.npc.g.position.z);if(!dialogueOpen&&(!hit.npc.lastSpellAt||t-hit.npc.lastSpellAt>2.5)){hit.npc.lastSpellAt=t;showGameToast(hit.npc.name+' startles as the spell fades harmlessly.');}}scene.remove(s.g);spells.splice(i,1);continue;}s.g.position.addScaledVector(s.v,dt);s.life-=dt;s.core.rotation.x+=dt*8;s.g.scale.multiplyScalar(1+dt*.35);if(s.life<=0){scene.remove(s.g);spells.splice(i,1);} }
