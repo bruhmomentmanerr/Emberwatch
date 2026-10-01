@@ -215,7 +215,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r151 the city heard</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r152 the forest at night</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -7715,6 +7715,136 @@ function citadelWall(R=CITY_RADIUS,H=12){ const seg=Math.max(160,Math.round(R*.6
 // Where the trees stop, as a function of bearing. Wandered rather than circular
 // so the forest does not meet the fields along a line someone obviously drew.
 function forestEdgeAt(a){ return OUTER_CITY_R+34+Math.sin(a*3.1)*15+Math.sin(a*7.3+1.7)*9; }
+// The forest's trees (r152). Each was a five-sided cylinder under two
+// six-sided cones; now they are modelled (tools/assets/trees.py): a tiered
+// pine, a narrower fir, a broadleaf with a lumpy crown — more broadleaves at
+// the forest's edge, where the light gets in, pines and firs deeper — and
+// here and there a dead pine; and shrubs along the edge, in front of it and
+// under it, so the forest does not stand straight out of mown grass. All of
+// them are one BatchedMesh: one draw call, each tree culled to the view on
+// its own, and every half second the trees the fog has already hidden are
+// left out (FOREST.cut, from the fog's own density). Which tree is which is
+// planHash of where it stands; the world stream is drawn from exactly as it
+// was (one turn per tree), so nothing downstream of the forest moves.
+const FOREST={mesh:null,spots:null,shown:null,at:0,cut:0,kinds:{pine:0,fir:0,broadleaf:0,snag:0,shrub:0},visible:0};
+// Shrubs along the forest's edge, from 8 m in front of it to 52 m into it:
+// scattered by planHash (no world stream), off the roads, the clearings and
+// the brook. Visual only — no colliders; you walk through undergrowth.
+function forestShrubs(){
+  const out=[];
+  for(let i=0;i<900;i++){ const h=k=>planHash(i*31+k*7919,k*131+17);
+    const a=h(1)*Math.PI*2, r=forestEdgeAt(a)-8+h(2)*60, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(r<OUTER_CITY_R+6||Math.abs(x)<13||Math.abs(z)<13||onRoad(x,z,2.5)||inWildClearing(x,z,1)||nearBrook(x,z,3))continue;
+    out.push({x,z,h:6*(.7+h(3)*.8),width:.7+h(3)*.8,ry:h(4)*6.28,foot:terrainAt(x,z)-.05,shrub:true}); }
+  return out;
+}
+// A modelled GLB as one plain geometry: positions baked through the node's
+// transform (quantised positions arrive normalised under its scale), vertex
+// colour, flat normals.
+function glbGeometry(b64){
+  return new Promise((resolve,reject)=>{
+    let bytes; try{ bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)); }catch(error){ reject(error); return; }
+    new THREE.GLTFLoader().parse(bytes.buffer,'',gltf=>{
+      let src=null; gltf.scene.updateMatrixWorld(true); gltf.scene.traverse(o=>{ if(!src&&o.isMesh)src=o; });
+      if(!src){ reject(new Error('no mesh')); return; }
+      const g0=src.geometry.index?src.geometry.toNonIndexed():src.geometry, n=g0.attributes.position.count, ca=g0.attributes.color;
+      const pos=new Float32Array(n*3), col=new Float32Array(n*3), v=new THREE.Vector3();
+      for(let i=0;i<n;i++){ v.fromBufferAttribute(g0.attributes.position,i).applyMatrix4(src.matrixWorld); pos[i*3]=v.x; pos[i*3+1]=v.y; pos[i*3+2]=v.z;
+        col[i*3]=ca?ca.getX(i):1; col[i*3+1]=ca?ca.getY(i):1; col[i*3+2]=ca?ca.getZ(i):1; }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.computeVertexNormals();
+      resolve(g);
+    },reject);
+  });
+}
+// spots: {x, z, h, width, ry, foot} for every tree the forest placed.
+function plantForest(spots){
+  if(!THREE.GLTFLoader||!THREE.BatchedMesh)return;
+  spots=spots.concat(forestShrubs());
+  Promise.all([TREE_PINE_GLB,TREE_FIR_GLB,TREE_BROADLEAF_GLB,TREE_SNAG_GLB,SHRUB_GLB].map(glbGeometry)).then(geos=>{
+    const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,emissive:0x0a311c,emissiveIntensity:.55});
+    const verts=geos.reduce((n,g)=>n+g.attributes.position.count,0);
+    const mesh=new THREE.BatchedMesh(spots.length,verts,verts,material), ids=geos.map(g=>mesh.addGeometry(g));
+    const m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), p=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color();
+    // The models' colours arrive as linear and read twice as bright as the
+    // old cones' palette at night; the tints take them back down, and vary them.
+    const tints=[[.4,.44,.46],[.5,.53,.54],[.58,.63,.6],[.68,.75,.68]], names=['pine','fir','broadleaf','snag','shrub'];
+    for(const t of spots){
+      const a=(Math.atan2(t.z,t.x)+Math.PI*2)%(Math.PI*2), depth=Math.hypot(t.x,t.z)-forestEdgeAt(a);
+      const roll=planHash(Math.round(t.x*7)+3001,Math.round(t.z*7)-917), broad=.34-.26*Math.max(0,Math.min(1,depth/90));
+      const kind=t.shrub?4:roll<broad?2:roll<broad+.3?1:planHash(Math.round(t.x*3)-41,Math.round(t.z*3)+613)<.06?3:0; FOREST.kinds[names[kind]]++;
+      t.id=mesh.addInstance(ids[kind]);
+      mesh.setMatrixAt(t.id,m.compose(p.set(t.x,t.foot,t.z),q.setFromEuler(e.set(0,t.ry,0)),s.set(t.width,t.h/6,t.width)));
+      const k=tints[Math.floor(planHash(Math.round(t.z*5)+77,Math.round(t.x*5)+5)*tints.length)], dim=t.shrub?.6:1;
+      mesh.setColorAt(t.id,c.setRGB(k[0]*dim,k[1]*dim,k[2]*dim));
+    }
+    mesh.name='forest'; mesh.castShadow=false; mesh.receiveShadow=false; mesh.frustumCulled=false;
+    scene.add(mesh); FOREST.mesh=mesh; FOREST.spots=spots; FOREST.shown=new Uint8Array(spots.length).fill(1);
+    if(typeof warmShaders==='function')warmShaders();
+  }).catch(error=>console.warn('the forest did not load',error));
+}
+// Fireflies (r152). Out at the forest's edge and along the brook, within
+// 60 m of the player: two hundred points of light drifting a metre or two,
+// each glowing for a moment and dark for a few seconds. They are seated
+// round the player as they walk (Math.random: nothing in the world moves for
+// them), never inside the walls, indoors or in the rain. One draw call, the
+// chimney smoke's point shader with additive light.
+const FIREFLIES={points:null,n:200,fly:[],next:0,level:0,lit:0};
+function buildFireflies(){
+  const N=FIREFLIES.n, geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(N*3),3));
+  geo.setAttribute('alpha',new THREE.BufferAttribute(new Float32Array(N),1));
+  geo.setAttribute('size',new THREE.BufferAttribute(new Float32Array(N).fill(.22),1));
+  geo.setAttribute('shade',new THREE.BufferAttribute(new Float32Array(N).fill(2),1));
+  const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,fog:true,blending:THREE.AdditiveBlending,
+    uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{map:{value:null},color:{value:new THREE.Color(0xd2ff72)},scale:{value:400}}]),
+    vertexShader:'attribute float alpha;attribute float size;attribute float shade;varying float vA;varying float vS;uniform float scale;\n#include <fog_pars_vertex>\nvoid main(){vec4 mvPosition=modelViewMatrix*vec4(position,1.);vA=alpha;vS=shade;gl_PointSize=max(1.5,size*scale/max(1.,-mvPosition.z));gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
+    fragmentShader:'uniform sampler2D map;uniform vec3 color;varying float vA;varying float vS;\n#include <fog_pars_fragment>\nvoid main(){vec4 t=texture2D(map,gl_PointCoord);gl_FragColor=vec4(color*vS*t.a*vA,1.);\n#include <colorspace_fragment>\n#ifdef USE_FOG\n#ifdef FOG_EXP2\nfloat fogF=1.-exp(-fogDensity*fogDensity*vFogDepth*vFogDepth);\n#else\nfloat fogF=smoothstep(fogNear,fogFar,vFogDepth);\n#endif\ngl_FragColor.rgb*=1.-fogF;\n#endif\n}'});
+  // (added light fades to nothing in the fog, not to the fog's colour)
+  mat.uniforms.map.value=softPointTexture('rgba(255,255,255,1)','rgba(255,255,255,0)');
+  FIREFLIES.points=new THREE.Points(geo,mat); FIREFLIES.points.frustumCulled=false; FIREFLIES.points.renderOrder=3; scene.add(FIREFLIES.points);
+  for(let i=0;i<N;i++)FIREFLIES.fly.push({home:null,ph:Math.random(),rate:2.5+Math.random()*3.5,drift:.6+Math.random()*.8});
+}
+// Where a firefly may be: past the outer wall, and either in the band from
+// 15 m before the forest's edge to 60 m into it or within 10 m of the brook;
+// not on a road.
+function fireflyGround(x,z){
+  const r=Math.hypot(x,z); if(r<OUTER_CITY_R+2)return false;
+  const depth=r-forestEdgeAt((Math.atan2(z,x)+Math.PI*2)%(Math.PI*2));
+  return (depth>-15&&depth<60||nearBrook(x,z,10))&&!onRoad(x,z,1);
+}
+function updateFireflies(t,dt){
+  if(!FIREFLIES.points){ if(typeof softPointTexture!=='function')return; buildFireflies(); }
+  const F=FIREFLIES, rain=VISUAL_CANON.rain?VISUAL_CANON.rain.level:0;
+  F.level+=((activeInterior?0:1-Math.min(1,rain*2))-F.level)*Math.min(1,dt*2);
+  if(t>=F.next){ F.next=t+.5;
+    for(const f of F.fly){
+      if(f.home&&(f.home.x-player.x)**2+(f.home.z-player.z)**2<70*70)continue;
+      f.home=null;
+      for(let k=0;k<3&&!f.home;k++){ const a=Math.random()*Math.PI*2, d=6+Math.random()*54, x=player.x+Math.cos(a)*d, z=player.z+Math.sin(a)*d;
+        if(fireflyGround(x,z))f.home={x,z,y:terrainAt(x,z)}; } } }
+  const geo=F.points.geometry, P=geo.attributes.position.array, A=geo.attributes.alpha.array;
+  F.points.material.uniforms.scale.value=renderer.domElement.height*.5/Math.tan(camera.fov*Math.PI/360);
+  let lit=0;
+  F.fly.forEach((f,i)=>{
+    if(!f.home||F.level<.01){ A[i]=0; return; }
+    const h=f.home, s=f.drift, ph=f.ph*6.28;
+    P[i*3]=h.x+Math.sin(t*.31*s+ph)*1.5; P[i*3+1]=h.y+.45+.5*(1+Math.sin(t*.23*s+ph*2)); P[i*3+2]=h.z+Math.cos(t*.27*s+ph*1.3)*1.5;
+    const c=(t/f.rate+f.ph)%1, glow=c<.24?Math.sin(Math.PI*c/.24):0;
+    A[i]=glow*F.level; if(glow>0)lit++;
+  });
+  F.lit=lit;
+  geo.attributes.position.needsUpdate=true; geo.attributes.alpha.needsUpdate=true;
+}
+// Every half second: hide the trees past where the fog has left nothing to
+// see (its factor exp(-(d*density)^2) under 0.4% at 2.35 / density).
+function updateForest(t){
+  const F=FOREST; if(!F.mesh||t<F.at)return; F.at=t+.5;
+  F.cut=2.35/Math.max(1e-4,scene.fog?scene.fog.density:.0054)+12;
+  const cx=camera.position.x, cz=camera.position.z, cut2=F.cut*F.cut; let n=0;
+  for(let i=0;i<F.spots.length;i++){ const t2=F.spots[i], dx=t2.x-cx, dz=t2.z-cz, show=dx*dx+dz*dz<cut2?1:0; n+=show;
+    if(show!==F.shown[i]){ F.shown[i]=show; F.mesh.setVisibleAt(t2.id,!!show); } }
+  F.visible=n;
+}
 function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.49;
   while(trees.length<4200&&tries++<90000){
   const a=rand(0,Math.PI*2),edge=forestEdgeAt(a);
@@ -7735,7 +7865,11 @@ function denseForest(){const trees=[];let tries=0;const lo=OUTER_CITY_R+8,hi=M*.
   if(Math.abs(x)<13||Math.abs(z)<13)continue;if(onRoad(x,z,3.4))continue;if(inWildClearing(x,z,2)||nearBrook(x,z,4.5))continue;  // Scrub at the margin, full canopy once inside. The edge stops looking like
   // full-grown trees that were simply cut off at a radius.
   const maturity=Math.max(.55,Math.min(1,depth/70));
-  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}const trunkGeom=new THREE.CylinderGeometry(.1,.18,1,5),crownLowGeom=new THREE.ConeGeometry(1,1.45,6),crownHighGeom=new THREE.ConeGeometry(1,1.35,6),trunkMat=new THREE.MeshStandardMaterial({color:0x49301c,roughness:1,flatShading:true,vertexColors:true}),crownMat=new THREE.MeshStandardMaterial({color:0x28783e,emissive:0x0a311c,emissiveIntensity:.55,roughness:1,flatShading:true,vertexColors:true}),trunks=new THREE.InstancedMesh(trunkGeom,trunkMat,trees.length),crownsLow=new THREE.InstancedMesh(crownLowGeom,crownMat,trees.length),crownsHigh=new THREE.InstancedMesh(crownHighGeom,crownMat,trees.length),matrix=new THREE.Matrix4(),position=new THREE.Vector3(),scale=new THREE.Vector3(),rotation=new THREE.Quaternion(),evergreen=[0x17522f,0x24743b,0x34934a,0x58a34a];trees.forEach((tree,index)=>{const[x,z,h,width]=tree;const foot=terrainAt(x,z)-.18*width;rotation.setFromEuler(new THREE.Euler(0,rand(0,6.28),0));position.set(x,foot+h*.5,z);scale.set(width,h,width);matrix.compose(position,rotation,scale);trunks.setMatrixAt(index,matrix);trunks.setColorAt(index,new THREE.Color(index%3?0x49301c:0x694523));position.set(x,foot+h*.64,z);scale.set(width*1.65,h*.34/1.45,width*1.65);matrix.compose(position,rotation,scale);crownsLow.setMatrixAt(index,matrix);position.set(x,foot+h*.87,z);scale.set(width*1.25,h*.28/1.35,width*1.25);matrix.compose(position,rotation,scale);crownsHigh.setMatrixAt(index,matrix);const color=new THREE.Color(evergreen[index%evergreen.length]);crownsLow.setColorAt(index,color);crownsHigh.setColorAt(index,color);if(index%5===0)addCollider(x,z,.55);});[trunks,crownsLow,crownsHigh].forEach(mesh=>{mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);});}
+  trees.push([x,z,rand(3.7,8.2)*maturity,rand(.75,1.35)*(.62+maturity*.38)]);}
+  // r152: modelled trees (plantForest). The same turn drawn per tree, in the same
+  // order, and the same colliders: the world stream and the paths are as they were.
+  const spots=trees.map((tree,index)=>{ const [x,z,h,width]=tree, foot=terrainAt(x,z)-.18*width, ry=rand(0,6.28); if(index%5===0)addCollider(x,z,.55); return {x,z,h,width,ry,foot}; });
+  plantForest(spots);}
 // What is left outside the wall. The old greater city stood here and the
 // forest has taken it back; a broken ring of its wall still shows through the
 // trees, which is both a nicer thing to walk out to than an empty field and an
@@ -8398,6 +8532,8 @@ function updateVisualCanon(t,dt){
   updateMists(t);
   updateLandmarkMovers(dt,t);
   updateDoves(t,dt);
+  updateForest(t);
+  updateFireflies(t,dt);
   updateChimneySmoke(t,dt);
   if(t-VISUAL_CANON.events.lastMeteorAt<7){
     for(const npc of villagers){
@@ -20436,6 +20572,207 @@ const STREET_LAMP_DARK_GLB =
   'pgCjAKYApwChAKUApgChAKYAogCgAKMApwCgAKcApACoAKwAqQCpAKwAqgCqAKwAqwCrAKwAqACoAKkAqgCoAKoAqwCtALMArgCu' +
   'ALMArwCvALMAsACwALMAsQCxALMAsgCyALMArQCyAK0ArgCuAK8AsACwALEAsgCuALAAsgA=';
 // <<< ASSET STREET_LAMP_DARK
+// >>> ASSET TREE_PINE (built by tools/assets/trees.py, packed by tools/assets/pack-glb.js)
+const TREE_PINE_GLB =
+  'Z2xURgIAAAB0CwAAFAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJ0cmVlLXBpbmUiLCJ0cmFuc2xhdGlv' +
+  'biI6WzAuMDEzMTg1NTAxMDk4NjMyODEyLDMsMC4wMzIyNDkyNzE4Njk2NTk0MjRdLCJzY2FsZSI6WzEuNzA5NDQ4Njk1MTgyODAw' +
+  'MywzLDEuODQ2Mjg2NDc1NjU4NDE2N119XSwibWVzaGVzIjpbeyJuYW1lIjoidHJlZS1waW5lIiwicHJpbWl0aXZlcyI6W3siYXR0' +
+  'cmlidXRlcyI6eyJQT1NJVElPTiI6MCwiQ09MT1JfMCI6MX0sImluZGljZXMiOjJ9XX1dLCJhY2Nlc3NvcnMiOlt7ImJ1ZmZlclZp' +
+  'ZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjIsIm5vcm1hbGl6ZWQiOnRydWUsImNvdW50IjoxMTgsInR5cGUiOiJWRUMzIiwibWlu' +
+  'IjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2NywzMjc2NywzMjc2N119LHsiYnVmZmVyVmlldyI6MSwiY29tcG9u' +
+  'ZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjExOCwidHlwZSI6IlZFQzQifSx7ImJ1ZmZlclZpZXciOjIs' +
+  'ImNvbXBvbmVudFR5cGUiOjUxMjMsImNvdW50IjoyMjIsInR5cGUiOiJTQ0FMQVIifV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIi' +
+  'OjAsImJ5dGVPZmZzZXQiOjAsImJ5dGVMZW5ndGgiOjk0NCwiYnl0ZVN0cmlkZSI6OCwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIi' +
+  'OjAsImJ5dGVPZmZzZXQiOjk0NCwiYnl0ZUxlbmd0aCI6NDcyLCJieXRlU3RyaWRlIjo0LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZl' +
+  'ciI6MCwiYnl0ZU9mZnNldCI6MTQxNiwiYnl0ZUxlbmd0aCI6NDQ0LCJ0YXJnZXQiOjM0OTYzfV0sImJ1ZmZlcnMiOlt7ImJ5dGVM' +
+  'ZW5ndGgiOjE4NjB9XX1EBwAAQklOAL4LAYDE/QAA8gIBgPkIAAC39AGAsQQAALf0AYDW9gAA8gIBgI7yAABBBFVVxP0AAKIAVVVh' +
+  'AgAAxvpVVZ4AAADG+lVV6foAAKIAVVUm+QAAfv8AAGX9AAB+/wAAZf0AAP9/rK/E/QAA/3+sr8T9AAD/f6yvxP0AAOU2QL+CMQAA' +
+  '5TZAv4IxAADlNkC/gjEAAAP//6//fwAAA///r/9/AAAD//+v/38AAEK+LMG5OQAAQr4swbk5AABCvizBuTkAAAGAy67E/QAAAYDL' +
+  'rsT9AAABgMuuxP0AAEO/fb+9wgAAQ799v73CAABDv32/vcIAAAP/nrEBgAAAA/+esQGAAAAD/56xAYAAANc2dLwTygAA1zZ0vBPK' +
+  'AADXNnS8E8oAAAP/R8jE/QAAUADMLPr7AABQAMws+vsAAOJa1uQAIQAA4lrW5AAhAADiWtbkACEAAHQY0fKhNgAAdBjR8qE2AAB0' +
+  'GNHyoTYAABDZfOSYUgAAENl85JhSAAAQ2XzkmFIAANK+RfRiFgAA0r5F9GIWAADSvkX0YhYAABCk6OPi2gAAEKTo4+LaAAAQpOjj' +
+  '4toAAHLi7O/pvQAAcuLs7+m9AABy4uzv6b0AAAsrpuVYmwAACyum5VibAAALK6blWJsAAPM6HvDH5gAA8zoe8MfmAADzOh7wx+YA' +
+  'AAP/evvE/QAAqvx3V9X9AACq/HdX1f0AAPI5ABNUNAAA8jkAE1Q0AADyOQATVDQAAAP/dR9kLgAAA/91H2QuAAAD/3UfZC4AAODH' +
+  'ThPRMAAA4MdOE9EwAADgx04T0TAAACLKniLE/QAAIsqeIsT9AAAiyp4ixP0AAGDHWhRAygAAYMdaFEDKAABgx1oUQMoAAAP/0CHR' +
+  'zAAAA//QIdHMAAAD/9Ah0cwAABYzMhONzQAAFjMyE43NAAAWMzITjc0AAIg3uh7E/QAAiDe6HsT9AACIN7oexP0AAAP/aSrE/QAA' +
+  '2/3/f4j+AADb/f9/iP4AAFQPgz89IgAAVA+DPz0iAABUD4M/PSIAAFryAk0QGgAAWvICTRAaAABa8gJNEBoAAIzWxT1JDQAAjNbF' +
+  'PUkNAACM1sU9SQ0AAEXg20v58QAAReDbS/nxAABF4NtL+fEAAELukDxQ2AAAQu6QPFDYAABC7pA8UNgAAPwK+U0B4wAA/Ar5TQHj' +
+  'AAD8CvlNAeMAAKUtUEDi6wAApS1QQOLrAAClLVBA4usAAHIbeU2rCAAAcht5TasIAAByG3lNqwgAAAP/E1XE/QAADwgE/w8IBP8P' +
+  'CAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/' +
+  'AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD' +
+  '/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMW' +
+  'CP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8G' +
+  'Igv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/' +
+  'AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD' +
+  '/wMWCP8GIgv/AQYD/wAABQAGAAAABgABAAEABgAHAAEABwACAAIABwAIAAIACAADAAMACAAJAAMACQAEAAQACQAFAAQABQAAAAsA' +
+  'EQAOAAoAEwAQAAsAFwAUAAoAGQAWAAsAHQAaAAoAHwAcAAsAIwAgAAoADQAiACQADAAPACQADwASACQAEgAVACQAFQAYACQAGAAb' +
+  'ACQAGwAeACQAHgAhACQAIQAMACYALAApACUALgArACYAMgAvACUANAAxACYAOAA1ACUAOgA3ACYAPgA7ACUAKAA9AD8AJwAqAD8A' +
+  'KgAtAD8ALQAwAD8AMAAzAD8AMwA2AD8ANgA5AD8AOQA8AD8APAAnAEEARwBEAEAASQBGAEEATQBKAEAATwBMAEEAUwBQAEAAVQBS' +
+  'AEEAWQBWAEAAQwBYAFoAQgBFAFoARQBIAFoASABLAFoASwBOAFoATgBRAFoAUQBUAFoAVABXAFoAVwBCAFwAYgBfAFsAZABhAFwA' +
+  'aABlAFsAagBnAFwAbgBrAFsAcABtAFwAdABxAFsAXgBzAHUAXQBgAHUAYABjAHUAYwBmAHUAZgBpAHUAaQBsAHUAbABvAHUAbwBy' +
+  'AHUAcgBdAA==';
+// <<< ASSET TREE_PINE
+// >>> ASSET TREE_FIR (built by tools/assets/trees.py, packed by tools/assets/pack-glb.js)
+const TREE_FIR_GLB =
+  'Z2xURgIAAAA8DQAAOAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJ0cmVlLWZpciIsInRyYW5zbGF0aW9u' +
+  'IjpbLTAuMDM0MzU0MjA5ODk5OTAyMzQ0LDMuMDc1MDAwMDQ3NjgzNzE2LDAuMDI5NDQ2MTg0NjM1MTYyMzU0XSwic2NhbGUiOlsx' +
+  'LjE3MzQxODg3OTUwODk3MjIsMy4wNzUwMDAwNDc2ODM3MTYsMS4zMDUyNjM1Nzg4OTE3NTQyXX1dLCJtZXNoZXMiOlt7Im5hbWUi' +
+  'OiJ0cmVlLWZpciIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIkNPTE9SXzAiOjF9LCJpbmRpY2Vz' +
+  'IjoyfV19XSwiYWNjZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTIyLCJub3JtYWxpemVkIjp0cnVl' +
+  'LCJjb3VudCI6MTQ1LCJ0eXBlIjoiVkVDMyIsIm1pbiI6Wy0zMjc2NywtMzI3NjcsLTMyNzY3XSwibWF4IjpbMzI3NjcsMzI3Njcs' +
+  'MzI3NjddfSx7ImJ1ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjEsIm5vcm1hbGl6ZWQiOnRydWUsImNvdW50IjoxNDUs' +
+  'InR5cGUiOiJWRUM0In0seyJidWZmZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MjcwLCJ0eXBlIjoiU0NB' +
+  'TEFSIn1dLCJidWZmZXJWaWV3cyI6W3siYnVmZmVyIjowLCJieXRlT2Zmc2V0IjowLCJieXRlTGVuZ3RoIjoxMTYwLCJieXRlU3Ry' +
+  'aWRlIjo4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MTE2MCwiYnl0ZUxlbmd0aCI6NTgwLCJieXRl' +
+  'U3RyaWRlIjo0LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MTc0MCwiYnl0ZUxlbmd0aCI6NTQwLCJ0' +
+  'YXJnZXQiOjM0OTYzfV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjIyODB9XX0gICDoCAAAQklOAAUTAYAd/QAAdwgBgCsKAABl' +
+  '9wGALwUAAGX3AYAL9QAAdwgBgA7wAAA0CRppHf0AAG8FGmnHAQAAVv8aaf//AABW/xppO/oAAG8FGmlz+AAA5wKU24r7AADnApTb' +
+  'ivsAAP9/L54d/QAA/38vnh39AAD/fy+eHf0AAOE67qmtLgAA4Truqa0uAADhOu6prS4AAL8DJ53/fwAAvwMnnf9/AAC/Ayed/38A' +
+  'AE3NH6gPLgAATc0fqA8uAABNzR+oDy4AAAGAep4d/QAAAYB6nh39AAABgHqeHf0AACjK+6pXyQAAKMr7qlfJAAAoyvuqV8kAAL8D' +
+  'eqEBgAAAvwN6oQGAAAC/A3qhAYAAABA6bqxJzAAAEDpurEnMAAAQOm6sScwAAL8Dn7Ed/QAArQIKAaz+AACtAgoBrP4AAJZuaMbl' +
+  'JAAAlm5oxuUkAACWbmjG5SQAAB4fYdOEOAAAHh9h04Q4AAAeH2HThDgAADLbTMkgVQAAMttMySBVAAAy20zJIFUAAPfFANUeFAAA' +
+  '98UA1R4UAAD3xQDVHhQAABucesmF1gAAG5x6yYXWAAAbnHrJhdYAANHmv9RTvgAA0ea/1FO+AADR5r/UU74AAJMx1cqmmQAAkzHV' +
+  'yqaZAACTMdXKppkAANdDQNM/5QAA10NA0z/lAADXQ0DTP+UAAL8DP9sd/QAAvQKBJvP8AAC9AoEm8/wAAG1FOu8oOAAAbUU67yg4' +
+  'AABtRTrvKDgAAL8DkvrMKwAAvwOS+swrAAC/A5L6zCsAAGTG0u9GNAAAZMbS70Y0AABkxtLvRjQAAMbNjvwd/QAAxs2O/B39AADG' +
+  'zY78Hf0AABe+pPB+vgAAF76k8H6+AAAXvqTwfr4AAL8Djv3uygAAvwOO/e7KAAC/A4797soAADJKhPHIvQAAMkqE8ci9AAAySoTx' +
+  'yL0AAAo/VPod/QAACj9U+h39AAAKP1T6Hf0AAL8DygId/QAAVAMMTrT5AABUAwxOtPkAAPgdwhgFNgAA+B3CGAU2AAD4HcIYBTYA' +
+  'AAf0gyE6HwAAB/SDITofAAAH9IMhOh8AAK7CtxhYFQAArsK3GFgVAACuwrcYWBUAAGzgryD17wAAbOCvIPXvAABs4K8g9e8AADrr' +
+  'qxnlxwAAOuurGeXHAAA666sZ5ccAAEwTEyFe2wAATBMTIV7bAABMExMhXtsAAGA8exkH6AAAYDx7GQfoAABgPHsZB+gAADIp6iQP' +
+  'CwAAMinqJA8LAAAyKeokDwsAAL8DVSod/QAAiQH/f/n/AACJAf9/+f8AAL8D6EGuIQAAvwPoQa4hAAC/A+hBriEAAIjxqkl9DQAA' +
+  'iPGqSX0NAACI8apJfQ0AALfdkD8d/QAAt92QPx39AAC33ZA/Hf0AAHfx8kmt7AAAd/HySa3sAAB38fJJrewAAL8Dxj1a2gAAvwPG' +
+  'PVraAAC/A8Y9WtoAALYWEUsR7AAAthYRSxHsAAC2FhFLEewAAA8tgD4d/QAADy2APh39AAAPLYA+Hf0AAFIW/UrPDQAAUhb9Ss8N' +
+  'AABSFv1Kzw0AAL8D4FEd/QAADwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/wMWCP8GIgv/AQYD/wMWCP8G' +
+  'Igv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/' +
+  'AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD' +
+  '/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMW' +
+  'CP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8G' +
+  'Igv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/' +
+  'AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD' +
+  '/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wMWCP8GIgv/AQYD/wAA' +
+  'BQAGAAAABgABAAEABgAHAAEABwACAAIABwAIAAIACAADAAMACAAJAAMACQAEAAQACQAFAAQABQAAAAsAEQAOAAoAEwAQAAsAFwAU' +
+  'AAoAGQAWAAsAHQAaAAoAHwAcAAsAIwAgAAoADQAiACQADAAPACQADwASACQAEgAVACQAFQAYACQAGAAbACQAGwAeACQAHgAhACQA' +
+  'IQAMACYALAApACUALgArACYAMgAvACUANAAxACYAOAA1ACUAOgA3ACYAPgA7ACUAKAA9AD8AJwAqAD8AKgAtAD8ALQAwAD8AMAAz' +
+  'AD8AMwA2AD8ANgA5AD8AOQA8AD8APAAnAEEARwBEAEAASQBGAEEATQBKAEAATwBMAEEAUwBQAEAAVQBSAEEAWQBWAEAAQwBYAFoA' +
+  'QgBFAFoARQBIAFoASABLAFoASwBOAFoATgBRAFoAUQBUAFoAVABXAFoAVwBCAFwAYgBfAFsAZABhAFwAaABlAFsAagBnAFwAbgBr' +
+  'AFsAcABtAFwAdABxAFsAXgBzAHUAXQBgAHUAYABjAHUAYwBmAHUAZgBpAHUAaQBsAHUAbABvAHUAbwByAHUAcgBdAHcAfQB6AHYA' +
+  'fwB8AHcAgwCAAHYAhQCCAHcAiQCGAHYAiwCIAHcAjwCMAHYAeQCOAJAAeAB7AJAAewB+AJAAfgCBAJAAgQCEAJAAhACHAJAAhwCK' +
+  'AJAAigCNAJAAjQB4AA==';
+// <<< ASSET TREE_FIR
+// >>> ASSET TREE_BROADLEAF (built by tools/assets/trees.py, packed by tools/assets/pack-glb.js)
+const TREE_BROADLEAF_GLB =
+  'Z2xURgIAAABADQAAPAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJ0cmVlLWJyb2FkbGVhZiIsInRyYW5z' +
+  'bGF0aW9uIjpbMC4wOTU0MTI5Njk1ODkyMzM0LDIuODY3ODk0MzQxNDcwNjczNywwLjE0NzkwMjI1MDI4OTkxN10sInNjYWxlIjpb' +
+  'MS44NDE4NDc3NzczNjY2MzgyLDIuODc0ODI0MzU1MTIzNTY0NiwxLjQwMTEyOTI0NTc1ODA1NjZdfV0sIm1lc2hlcyI6W3sibmFt' +
+  'ZSI6InRyZWUtYnJvYWRsZWFmIiwicHJpbWl0aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MCwiQ09MT1JfMCI6MX0s' +
+  'ImluZGljZXMiOjJ9XX1dLCJhY2Nlc3NvcnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjIsIm5vcm1hbGl6' +
+  'ZWQiOnRydWUsImNvdW50IjoxMTQsInR5cGUiOiJWRUMzIiwibWluIjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2' +
+  'NywzMjc2NywzMjc2N119LHsiYnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291' +
+  'bnQiOjExNCwidHlwZSI6IlZFQzQifSx7ImJ1ZmZlclZpZXciOjIsImNvbXBvbmVudFR5cGUiOjUxMjMsImNvdW50Ijo0NTYsInR5' +
+  'cGUiOiJTQ0FMQVIifV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjAsImJ5dGVMZW5ndGgiOjkxMiwi' +
+  'Ynl0ZVN0cmlkZSI6OCwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjkxMiwiYnl0ZUxlbmd0aCI6NDU2' +
+  'LCJieXRlU3RyaWRlIjo0LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MTM2OCwiYnl0ZUxlbmd0aCI6' +
+  'OTEyLCJ0YXJnZXQiOjM0OTYzfV0sImJ1ZmZlcnMiOlt7ImJ5dGVMZW5ndGgiOjIyODB9XX0g6AgAAEJJTgC06LKAffIAADj0boBX' +
+  'BwAA2wYBgGD/AADbBgGAmuUAADj0boCj3QAACPG1vn3yAAAx+ZS+QgEAAGcGi76e+wAAZwamvlzpAAAy+cC+uOMAALvxdu879QAA' +
+  '+vds74UAAAASAqjvNfwAABAC1+9A7gAA9ve57/DpAACV8+PtO/UAACj6g+oUAAAA8AFy6Dv1AABd+9PrYeoAAHM1Fi8jDAAAMDiu' +
+  'LagQAABuO9IsIwwAALE4Oi6dBwAAS/PK6Dv1AAAQ/H3pf/8AADoCjO079QAAdfnZ7PfqAAC0yg4k8CYAAFvOWSQ3KwAA7NAKJvAm' +
+  'AABFzb8lqSIAAI/yMuo79QAACPqu7dv+AAD1AiTsO/UAAH37qOia6wAAu+IAMkCkAADY5XQzQ6gAAJDp0DJApAAAc+ZcMT2gAACT' +
+  'bzwD9QgAACE4vwENTAAAg/7CAbtFAADz8xsEz+MAABo/LQQnugAAF25kHvk2AAABGLAgQnUAADvgQyC/AAAAjB+nHvCwAAD/f4gh' +
+  '1tkAAGg0OkH9YAAAaDQ6Qf1gAAAo4wJBWj0AACjjAkFaPQAAZvEeP9W/AABm8R4/1b8AAMZJmj6xvgAAxkmaPrG+AABCaD0/bRUA' +
+  'AEJoPT9tFQAA6COXWBE/AABrBsFYOAkAAHYcxlbN2AAATEiTV5ntAAC3U5lZlyEAAEgHxf+1IwAAld8wADN4AAB2qkEADVgAAC2u' +
+  'Uf709wAANeiz/WPrAACQ/fsbD1sAAGvCchr0dgAAAYB3GvQPAAAbwFEcosUAADYK0xrT6QAAq9WROv9/AACr1ZE6/38AAAqNlTp5' +
+  'SQAACo2VOnlJAAAmjR44JfsAACaNHjgl+wAA2t1DNwvaAADa3UM3C9oAAIQNujqKMAAAhA26OoowAAC5xx9POVUAAKCl/0+sHgAA' +
+  'ecDwTVADAACr9BBR1wcAANfq2VAtSwAAFy48JZfAAADDEI8ohRYAAKDJBChGAgAAV86NJsWnAABsGlEp1IsAAG5FKkRtAwAAC/Ka' +
+  'RD0XAAAqvw5HFr8AAN7fWkcBgAAA5z/fQ3aNAAC9GbtnkRYAAL0Zu2eRFgAAIcHCZ1cBAAAhwcJnVwEAANbNy2c8lwAA1s3LZzyX' +
+  'AACxCHJlpoIAALEIcmWmggAAVj67aDjRAABWPrtoONEAAIz20H7Q/AAAKNG1fzbVAADl8N5/Hp4AAJQbEX8WqwAA5R3/fy7wAAAP' +
+  'CAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8PCAT/DwgE/w8IBP8YDQb/GA0G/xgNBv8YDQb/' +
+  'GA0G/xgNBv8YDQb/GA0G/xgNBv8YDQb/GA0G/xgNBv8YDQb/GA0G/xgNBv8YDQb/GA0G/xgNBv8YDQb/GA0G/xgNBv8YDQb/GA0G' +
+  '/xgNBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wwsCf8GGwb/DCwJ/wYbBv8MLAn/BhsG/wws' +
+  'Cf8GGwb/DCwJ/wwsCf8MLAn/DCwJ/wwsCf8MLAn/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8M' +
+  'LAn/BhsG/wwsCf8GGwb/DCwJ/wYbBv8MLAn/BhsG/wwsCf8MLAn/DCwJ/wwsCf8MLAn/DCwJ/wYbBv8GGwb/BhsG/wYbBv8GGwb/' +
+  'BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/DCwJ/wYbBv8MLAn/BhsG/wwsCf8GGwb/DCwJ/wYbBv8MLAn/DCwJ/wwsCf8MLAn/DCwJ' +
+  '/wwsCf8AAAEABgAAAAYABQABAAIABwABAAcABgACAAMACAACAAgABwADAAQACQADAAkACAAEAAAABQAEAAUACQAFAAYACwAFAAsA' +
+  'CgAGAAcADAAGAAwACwAHAAgADQAHAA0ADAAIAAkADgAIAA4ADQAJAAUACgAJAAoADgAPABAAFAAPABQAEwAQABEAFQAQABUAFAAR' +
+  'ABIAFgARABYAFQASAA8AEwASABMAFgAXABgAHAAXABwAGwAYABkAHQAYAB0AHAAZABoAHgAZAB4AHQAaABcAGwAaABsAHgAfACAA' +
+  'JAAfACQAIwAgACEAJQAgACUAJAAhACIAJgAhACYAJQAiAB8AIwAiACMAJgAnACwALQAnAC0AKAAoAC0AKQAtAC4AKQApAC4AKgAu' +
+  'AC8AKgAqAC8AKwAvADAAKwArADAAJwAwACwAJwAsADEALQAxADMALQAtADMALgAzADUALgAuADUANwAuADcALwAvADcAMAA3ADkA' +
+  'MAAwADkAMQAwADEALAAyADsAPAAyADwANAA0ADwAPQA0AD0ANgA2AD0APgA2AD4AOAA4AD4APwA4AD8AOgA6AD8AOwA6ADsAMgAr' +
+  'ACcAKAAoACkAKgAoACoAKwA7AD8APgA+AD0APAA+ADwAOwBAAEUARgBAAEYAQQBBAEYARwBBAEcAQgBCAEcASABCAEgAQwBDAEgA' +
+  'SQBDAEkARABEAEkARQBEAEUAQABFAEoARgBKAEwARgBGAEwATgBGAE4ARwBHAE4AUABHAFAASABIAFAAUgBIAFIASQBJAFIASgBJ' +
+  'AEoARQBLAFQAVQBLAFUATQBNAFUAVgBNAFYATwBPAFYAVwBPAFcAUQBRAFcAUwBXAFgAUwBTAFgAVABTAFQASwBEAEAAQQBBAEIA' +
+  'QwBBAEMARABUAFgAVwBXAFYAVQBXAFUAVABZAF4AWgBeAF8AWgBaAF8AYABaAGAAWwBbAGAAYQBbAGEAXABcAGEAYgBcAGIAXQBd' +
+  'AGIAXgBdAF4AWQBeAGMAZQBeAGUAXwBfAGUAZwBfAGcAYABgAGcAaQBgAGkAYQBhAGkAawBhAGsAYgBiAGsAYwBiAGMAXgBkAG0A' +
+  'bgBkAG4AZgBmAG4AbwBmAG8AaABoAG8AcABoAHAAagBqAHAAcQBqAHEAbABsAHEAbQBsAG0AZABdAFkAWgBaAFsAXABaAFwAXQBt' +
+  'AHEAcABwAG8AbgBwAG4AbQA=';
+// <<< ASSET TREE_BROADLEAF
+// >>> ASSET TREE_SNAG (built by tools/assets/trees.py, packed by tools/assets/pack-glb.js)
+const TREE_SNAG_GLB =
+  'Z2xURgIAAABABwAAMAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJ0cmVlLXNuYWciLCJ0cmFuc2xhdGlv' +
+  'biI6WzAuMTExNTQxODA3NjUxNTE5NzgsMi43MDAwMDAwNDc2ODM3MTYsLTAuMDI0NDk3MzMwMTg4NzUxMjJdLCJzY2FsZSI6WzAu' +
+  'NzI1MTkyNDI3NjM1MTkyOSwyLjcwMDAwMDA0NzY4MzcxNiwwLjUzNjY2NTM4MDAwMTA2ODFdfV0sIm1lc2hlcyI6W3sibmFtZSI6' +
+  'InRyZWUtc25hZyIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIkNPTE9SXzAiOjF9LCJpbmRpY2Vz' +
+  'IjoyfV19XSwiYWNjZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTIyLCJub3JtYWxpemVkIjp0cnVl' +
+  'LCJjb3VudCI6NDIsInR5cGUiOiJWRUMzIiwibWluIjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2NywzMjc2Nywz' +
+  'Mjc2N119LHsiYnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjQyLCJ0' +
+  'eXBlIjoiVkVDNCJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjEyNiwidHlwZSI6IlNDQUxB' +
+  'UiJ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6MzM2LCJieXRlU3RyaWRl' +
+  'Ijo4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MzM2LCJieXRlTGVuZ3RoIjoxNjgsImJ5dGVTdHJp' +
+  'ZGUiOjQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo1MDQsImJ5dGVMZW5ndGgiOjI1MiwidGFyZ2V0' +
+  'IjozNDk2M31dLCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjo3NTZ9XX0g9AIAAEJJTgDZDQGA2AUAAK32AYDxMAAAL9EBgHogAAAv' +
+  '0QGANesAAK32AYC/2gAAI/X/f9gFAAAK7/9/LxEAACzl/3/aDAAALOX/f9X+AAAK7/9/gPoAAILn1vTYBQAAL+hP8WYVAAAe8bnu' +
+  '2AUAAHLwP/JJ9gAAQH0+A29ZAABxfT0C4V0AAP9/fwFvWQAAzn+BAv1UAABp5GkQ2AUAAAvx6BFSFAAAN/SDFdgFAACV5wUUXfcA' +
+  'AAGA8CnlcAAAnYNdKgh1AACFhGUr5XAAAOmA+CrCbAAArOJVLdgFAAD75YcxaQ8AAPT1ezHYBQAApfJJLUb8AAAdvwk9vYIAAA/A' +
+  'PD55hQAAn8Q5Pr2CAACtwwY9AYAAAP/fHEzYBQAAmOtmSQwRAACh+JdL2AUAAAjtTU6k+gAACe9CYcx8AABa8ntg/38AABP2HGHM' +
+  'fAAAw/LiYZh5AAAbFxT/GxcU/xsXFP8bFxT/GxcU/xsXFP8bFxT/GxcU/xsXFP8bFxT/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/' +
+  'Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N' +
+  '/xMPDf8TDw3/Ew8N/xMPDf8TDw3/Ew8N/xMPDf8AAAUABgAAAAYAAQABAAYABwABAAcAAgACAAcACAACAAgAAwADAAgACQADAAkA' +
+  'BAAEAAkABQAEAAUAAAAKAAsADwAKAA8ADgALAAwAEAALABAADwAMAA0AEQAMABEAEAANAAoADgANAA4AEQASABMAFwASABcAFgAT' +
+  'ABQAGAATABgAFwAUABUAGQAUABkAGAAVABIAFgAVABYAGQAaABsAHwAaAB8AHgAbABwAIAAbACAAHwAcAB0AIQAcACEAIAAdABoA' +
+  'HgAdAB4AIQAiACMAJwAiACcAJgAjACQAKAAjACgAJwAkACUAKQAkACkAKAAlACIAJgAlACYAKQA=';
+// <<< ASSET TREE_SNAG
+// >>> ASSET SHRUB (built by tools/assets/trees.py, packed by tools/assets/pack-glb.js)
+const SHRUB_GLB =
+  'Z2xURgIAAABMCAAAKAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
+  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
+  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
+  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJzaHJ1YiIsInRyYW5zbGF0aW9uIjpb' +
+  'MC4wMDg4MDYyNTg0NDAwMTc3LDAuMzgwMzU4MDU1MjMzOTU1NCwtMC4wMjA2MTUyMjAwNjk4ODUyNTRdLCJzY2FsZSI6WzAuODMy' +
+  'ODQxMzA2OTI0ODIsMC40Njg4MzkwOTQwNDI3NzgsMC41NzQwOTY3OTg4OTY3ODk2XX1dLCJtZXNoZXMiOlt7Im5hbWUiOiJzaHJ1' +
+  'YiIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjAsIkNPTE9SXzAiOjF9LCJpbmRpY2VzIjoyfV19XSwi' +
+  'YWNjZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTIyLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6' +
+  'NTAsInR5cGUiOiJWRUMzIiwibWluIjpbLTMyNzY3LC0zMjc2NywtMzI3NjddLCJtYXgiOlszMjc2NywzMjc2NywzMjc2N119LHsi' +
+  'YnVmZmVyVmlldyI6MSwiY29tcG9uZW50VHlwZSI6NTEyMSwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjUwLCJ0eXBlIjoiVkVD' +
+  'NCJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjIxNiwidHlwZSI6IlNDQUxBUiJ9XSwiYnVm' +
+  'ZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6NDAwLCJieXRlU3RyaWRlIjo4LCJ0YXJn' +
+  'ZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6NDAwLCJieXRlTGVuZ3RoIjoyMDAsImJ5dGVTdHJpZGUiOjQsInRh' +
+  'cmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo2MDAsImJ5dGVMZW5ndGgiOjQzMiwidGFyZ2V0IjozNDk2M31d' +
+  'LCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjoxMDMyfV19IAgEAABCSU4AAmg8icb7AADHRH6FxlMAAFbx44XASgAASO7IicjqAADI' +
+  'OQGAAZoAAP9/A9FZVQAA2QJj1/9/AADow77WwBsAAFcaiNlgnwAAk2Yp3fSvAADJR8I4r2UAAMlHwjivZQAAzNahNZJNAADM1qE1' +
+  'kk0AAMfGqy9d3gAAx8arL13eAABrK8Y0CZIAAGsrxjQJkgAAAXl1Ny8bAAABeXU3LxsAAMUbr30ZVgAAEPuEd98LAAB/HSx7ZcMA' +
+  'AKFJ/3/O9QAATVC1c8REAABMACSMLgAAAFvTxolOOgAAaJIGiX0sAAABgC2Lk8cAAPvLfIVRpAAACxbLzrQpAAAao3bGlkwAACCB' +
+  'Wcan8AAAQ572zAGAAADeB/7KnrcAAO3ZFheXOgAA7dkWF5c6AAD1mCEYjCkAAPWYIRiMKQAAP498EUzKAAA/j3wRTMoAAI3iXxek' +
+  'iwAAjeJfF6SLAABVE1EZdwUAAFUTURl3BQAAOLfvS3wiAACVkqhPnO4AAHqykk/atgAA2OsnTPnXAAD/5Z5NFw8AAAYbBv8GGwb/' +
+  'BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/DCwJ/wYbBv8MLAn/BhsG/wwsCf8GGwb/DCwJ/wYbBv8MLAn/DCwJ' +
+  '/wwsCf8MLAn/DCwJ/wwsCf8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wYbBv8GGwb/BhsG/wwsCf8GGwb/DCwJ/wYb' +
+  'Bv8MLAn/BhsG/wwsCf8GGwb/DCwJ/wwsCf8MLAn/DCwJ/wwsCf8MLAn/AAAFAAEABQAGAAEAAQAGAAIABgAHAAIAAgAHAAMABwAI' +
+  'AAMAAwAIAAQACAAJAAQABAAJAAUABAAFAAAABQAKAAwABQAMAAYABgAMAA4ABgAOAAcABwAOABAABwAQAAgACAAQABIACAASAAkA' +
+  'CQASAAUAEgAKAAUACwAUAA0AFAAVAA0ADQAVABYADQAWAA8ADwAWABEAFgAXABEAEQAXABgAEQAYABMAEwAYABQAEwAUAAsABAAA' +
+  'AAEAAQACAAMAAQADAAQAFAAYABcAFwAWABUAFwAVABQAGQAeAB8AGQAfABoAGgAfABsAHwAgABsAGwAgABwAIAAhABwAHAAhAB0A' +
+  'IQAiAB0AHQAiAB4AHQAeABkAHgAjACUAHgAlAB8AHwAlACcAHwAnACAAIAAnACkAIAApACEAIQApACIAKQArACIAIgArAB4AKwAj' +
+  'AB4AJAAtAC4AJAAuACYAJgAuACgALgAvACgAKAAvACoALwAwACoAKgAwACwAMAAxACwALAAxAC0ALAAtACQAHQAZABoAGgAbABwA' +
+  'GgAcAB0ALQAxADAAMAAvAC4AMAAuAC0A';
+// <<< ASSET SHRUB
 // >>> ASSET WALL_SCONCE (built by tools/assets/wall-sconce.py, packed by tools/assets/pack-glb.js)
 const WALL_SCONCE_GLB =
   'Z2xURgIAAADICQAAJAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
@@ -27202,7 +27539,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r151',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r152',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -27411,6 +27748,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
     shower:()=>{const e=VISUAL_CANON.events;e.nextShowerAt=clock.getElapsed();e.showerAt=-1;},moonDir:MOON_DIR,
     bells:hold=>{ BELLS.held=!!hold; ringBells(clock.getElapsed()); return {rung:BELLS.rung,movers:LANDMARK_MOVERS.filter(m=>m.swing).length,doves:DOVES.birds.length}; }},
   sound:{report:soundReport,renderBell:soundRenderBell},
+  forest:()=>({loaded:!!FOREST.mesh,trees:FOREST.spots?FOREST.spots.length:0,kinds:{...FOREST.kinds},visible:FOREST.visible,cut:Math.round(FOREST.cut),fireflies:{seated:FIREFLIES.fly.filter(f=>f.home).length,lit:FIREFLIES.lit,level:+FIREFLIES.level.toFixed(2)}}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
 // Clock is deprecated since r183. Timer only advances when update() is called,
@@ -27522,7 +27860,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch r0 — variant layer over base r151 -->
+<!-- Emberwatch r0 — variant layer over base r152 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — R0 / BAREBONES                                 variant layer
