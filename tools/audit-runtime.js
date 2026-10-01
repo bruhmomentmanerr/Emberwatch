@@ -60,13 +60,20 @@
     }
   }
   const didNotOpen = [], pushedAway = [];
+  const frame = () => E.renderer.info.render.frame;
+  const frames = async n => { const f = frame(); for (let i = 0; i < 600 && frame() < f + n; i++) await wait(50); };
   for (const list of byWard.values()) {
     let npc = null;
     for (const candidate of list.slice(0, 6)) {
       E.player.x = candidate.g.position.x + 1.3; E.player.z = candidate.g.position.z + 1.3; E.player.y = 0;
-      await wait(500);
+      // Wait for the game to draw at the new place, not for a fixed time: the
+      // nearest resident is worked out in the frame, and out at the Lantern
+      // Grove a harness frame can take three or four seconds, so a key pressed
+      // half a second after the teleport could land before the game had seen
+      // the player arrive (r152, r153: the grove reported as not opening).
+      await frames(4);
       if (Math.hypot(E.player.x - candidate.g.position.x, E.player.z - candidate.g.position.z) > 3) { pushedAway.push(candidate.district + ' :: ' + candidate.name); continue; }
-      key('KeyE'); await wait(280);
+      key('KeyE'); await frames(3);
       if (cls('dialoguePanel')) { npc = candidate; break; }
     }
     if (!npc) { didNotOpen.push(list[0].district); continue; }
