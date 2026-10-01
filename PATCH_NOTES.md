@@ -1,112 +1,129 @@
-**r151 — the city heard** · 1.51.0 · 2026-10-01 · phase 5, world depth
+**r152 — the forest at night** · 1.52.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the city heard. World sound, all of it synthesized in the page: the bells struck from a church bell's partials, wind rising with height, rain, the two nearest fires crackling (hearths, forges, wall torches), crickets beyond the walls, footsteps, the doves' wings. Positional, one shared reverb; a Sound section in the settings, kept in the browser. Verified: parse/audit/dead clean; a bell strike rendered offline and its spectrum read; levels read off the running context; runtime audit against r150, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r151 in the title).
+the forest at night. The 4,200 cone trees outside the walls are modelled (tools/assets/trees.py): pines, firs, broadleaves, dead pines, and shrubs along the edge; one BatchedMesh, culled per tree, trees past the fog's reach hidden; same world stream and colliders. Fireflies at the forest's edge and along the brook. Verified: parse/audit/dead clean; five standpoints before and after; frame time against r151, faster at all four standpoints; runtime audit against r151, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r152 in the title).
 
 ### Patch notes
 
-**State: r151 / 1.51.0, sealed 2026-10-01 ("the city heard").** Same
-instruction. Vaneth had never made a sound: the only audio in the game was
-music you loaded yourself. r151 is a world-sound system, and the cathedral's
-bells are the first thing in it.
+**State: r152 / 1.52.0, sealed 2026-10-01 ("the forest at night").** Same
+instruction. Everything outside the walls is forest, and every tree in it
+was a five-sided cylinder under two six-sided cones: from the walls, the
+belfry and every wild site, rows of Christmas trees. r152 models them, and
+lights the forest's edge with fireflies.
 
-**Next:** the forest — modelled pines, firs and broadleaves in place of the
-cone trees, already modelled (`tools/assets/trees.py`) and waiting. Then
-the towers of the Moon Archive and the Northwatch Guild, and stairs up to
-the outer wall's walk. The Windows installers for r143–r151 have not been
-built.
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides; stairs up to the outer wall's walk. `BatchedMesh` (below)
+is the lever the city's merged batches never had — per-object culling in one
+draw call — and the obvious next use of it is the city's own repeated
+pieces. The Windows installers for r143–r152 have not been built.
 
-### World sound
+### The trees
 
-`SOUND` is one AudioContext, a master gain, a compressor and one shared
-reverb — a synthetic impulse, a stone space about three and a half seconds
-long. Nothing is sampled: every sound is built here from oscillators and
-noise. Things in the world are positional (a PannerNode each, the listener
-riding with the camera). The settings panel has a **Sound** section: world
-sound on or off, and a volume (a square law, as a slider should be), kept in
-this browser (`emberwatch.sound.v1`); it goes quiet while the window is
-hidden. If the browser will not make a context, or making it throws, the game
-is silent, as it was. A browser will not start a context before a key or a
-click; Electron will, and either way the first key or click resumes it.
+`tools/assets/trees.py` models five, each a few dozen triangles because
+they are drawn in thousands, and each drawn for its silhouette at night:
 
-- **The bells.** Each strike is synthesized from the partials of a church
-  bell, relative to its strike note: the hum an octave below, the prime, the
-  minor-third tierce, the quint, the nominal an octave above, and four
-  higher; each with its own level and its own decay (the hum lasts ten
-  seconds, the highest half a second), the two lowest doubled a fraction of
-  a hertz apart so they beat, and a knock of filtered noise for the clapper.
-  The big bell's strike note is 174 Hz, the small one's 232 Hz — the sizes
-  are 4:3, so the interval is a fourth. A swinging bell strikes at each end
-  of its swing; below a third of full swing it does not strike at all.
-- **Wind**: a low roar and a higher band of noise, gusting; at street level
-  a murmur, on the belfry or a wall a good deal more; a quarter of that
-  indoors.
-- **Rain**: as heavy as the rain falling; muffled indoors.
-- **Fires**: every hearth, forge and wall torch is a place a crackle can
-  come from (`TORCH_SPOTS` is new: the torches on the walls record where
-  they are); the two nearest within 22 m crackle, a voice that changes fire
-  fading out, moving and fading back in.
-- **Crickets**: seven of them, synthesized, out beyond the outer wall; a
-  few inside it; none indoors or in the rain.
-- **Footsteps**: a soft knock each stride, hollower on boards and stairs, a
-  splash in water.
-- **The doves**: their wings clapping as they go up.
+- `tree-pine` (74 triangles): four tiers of drooping skirts on a bare trunk,
+  each tier's rim a star — the points are the branch tips, the notches
+  between them higher and further in — over a dished, darker underside, so
+  it reads as a canopy from below.
+- `tree-fir` (90): taller and narrower, five tiers to a spire.
+- `tree-broadleaf` (152): a trunk forking into three limbs under a crown of
+  three lumpy masses.
+- `tree-snag` (42): a dead pine, a bare grey trunk and four broken limbs.
+- `shrub` (72): two low masses.
 
-### Verifying sound without ears
+`plantForest()` lays them. The forest still places its 4,200 trees exactly
+as before — the same draws from the world stream, one turn per tree in the
+same order, and the same collider on every fifth — so nothing downstream of
+it moves. Which tree stands where is `planHash` of its position: more
+broadleaves at the edge, where the light gets in (a third of the trees at
+the edge, a twelfth deep in), firs three in ten, about one pine in seventeen
+dead. Shrubs, scattered by `planHash` from 8 m in front of the edge to 52 m
+into it, off the roads, clearings and brook, are visual only: you walk
+through undergrowth. Per-instance tints vary them.
 
-The harness cannot listen, so `EMBER.sound.renderBell(prime)` renders one
-strike offline and a probe takes its spectrum in the page. `EMBER.sound.report()`
-gives the context's state, the counters (strikes, steps, wing claps), which
-fires the crackle voices are on, and the ambience's levels.
+**The colours arrive twice as bright.** The models' vertex colours are
+linear in the game, and the first shots showed a forest of bright green
+trees and neon shrubs against the night. The tints take them back to about
+half (shrubs to 0.6 of that), which is close to the old cones' darkness with
+the new shapes still legible.
+
+### One draw call, culled per tree
+
+All 4,906 are one `THREE.BatchedMesh`: one draw call, with three.js culling
+each tree against the view on its own, and twice a second `updateForest()`
+hides every tree farther than the fog leaves anything to see
+(`2.35 / density + 12`, 447 m at the night fog). The old forest was three
+`InstancedMesh`es drawn whole wherever you looked. So the modelled forest
+costs less than the cones did — see the frame times below. `EMBER.forest()`
+reports the counts, how many are shown and the cut distance.
+
+### Fireflies
+
+Two hundred (`updateFireflies`), seated round the player — within 60 m, at
+random, nothing in the world moving for them — wherever the ground is from
+15 m before the forest's edge to 60 m into it, or within 10 m of the brook.
+Each drifts a metre or two and glows for a quarter of its own cycle of 2.5
+to 6 seconds. None inside the walls, indoors or in the rain. One draw call:
+the chimney smoke's point shader, additive — and with its own fog, because
+the stock fog include mixes toward the fog colour, which for added light
+would have been a glowing haze at distance; theirs fades them to nothing.
+The crickets (r151) are already out there with them.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
-standard profile's seed) unless it says otherwise. The context ran (state
-"running") in the harness throughout.
+standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are
-  `OfflineAudioContext`, a browser global it does not know, and comment
-  words), `audit-dom`, `audit-dead` (609 functions, 0 dead),
-  `test-switch-frames`, `test-switch-b9`: clean.
-- One strike of each bell rendered offline and its spectrum taken in the
-  page, a quarter second in: the big bell's peaks at 86, 172, 205, 258, 345,
-  431, 517 and 689 Hz, the small one's at 118, 226, 280, 345, 463, 581, 689
-  and 926 Hz — the hum, prime, tierce, quint, nominal and the partials above,
-  within the 11 Hz the analysis can resolve. The big bell's loudness (RMS)
-  0.29 at the strike, 0.19 at 1 s, 0.07 at 2 s, 0.04 at 3 s, 0.024 at 4 s,
-  0.008 at 5 s. Nobody has listened to it: this is the shape of a bell, not
-  a judgement of how it sounds.
-- A peal, the player at the parvis: 14 strikes and 34 wing claps. On the
-  harness a frame near the cathedral takes about five seconds, and a bell
-  strikes at most once a frame; at a real frame rate every end of every
-  swing strikes.
-- Levels read off the running context: outside the north gate the wind
-  0.038 / 0.005 (its two bands) and the crickets 0.063; in the belfry, 19 m
-  up, the wind 0.099 / 0.039 and the crickets 0.012; at the city's centre,
-  which the game counts as indoors, the wind 0.010 and no crickets. 186
-  places a fire can crackle from: 147 wall torches, 32 forges, 7 hearths;
-  from the centre the two nearest hearths, each voice at 0.34.
-  Walking 30 frames, 4 footsteps.
-- The settings: the button turns world sound off and on and says so, the
-  report agrees, the slider sets the volume, and both are kept
-  (`{"on":false,"volume":0.7}` read back from storage).
-- Runtime audit, r150 → r151: errors 0 → 0; villagers 374 → 374;
-  draw calls 462 → 462; triangles 2,245,477 → 2,245,477; colliders 11,939
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  five asset markers and comment words), `audit-dom`, `audit-dead` (616
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- `EMBER.forest()`: 4,906 instances — 2,356 pines, 1,285 firs, 418
+  broadleaves, 141 snags (4,200 trees), 706 shrubs; cut at 447 m; 753 shown
+  from the Cinder Market.
+- Frame time, median of 30 frames, r151 and r152 alternated twice:
+
+  | standpoint | r151 | r152 |
+  |---|---|---|
+  | outside the north gate | 1,038 / 1,050 ms | 927 / 939 ms |
+  | on the outer wall, looking out | 1,006 / 1,050 ms | 937 / 911 ms |
+  | in the western forest | 1,401 / 1,458 ms | 1,314 / 1,262 ms |
+  | the Cinder Market | 3,513 / 3,562 ms | 3,305 / 3,365 ms |
+
+  Triangles drawn outside the gate 829,410 → 675,836, in the forest
+  1,689,264 → 1,550,866, at the market 2,067,451 → 1,882,731; draw calls
+  two fewer outside. The harness renders in software, so these compare the
+  two builds; they are not a figure for any real machine.
+- Fireflies at the forest's edge out past the north gate: 198 seated, 41
+  glowing at one moment; in the city, none.
+- Runtime audit, r151 → r152: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 460; triangles 2,245,477 → 2,060,677; colliders 11,939
   → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
   failed; road obstructions in the carriageway 0 → 0, intruding 231 →
-  231.
-- Shots looked at: the settings panel with its Sound section; all 15
-  captures.
-- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r151".
+  231. **This is the second run.** The first reported 96 branches: it
+  could not open the Lantern Grove's one resident, Iselde of the Lanterns.
+  The audit teleports beside a resident, waits 500 ms, presses E and looks
+  280 ms later; a frame at the grove takes 4.0 s on r151 and 2.8 s on r152,
+  so the press can land before the game has seen the player arrive. A probe
+  that waited for frames instead opened her at once on both builds, and the
+  audit run again — alone — walked all 102. (The capture run after the first
+  audit was spoiled the same way r150's first audit was: those probes were
+  run beside it on the same profile. It was run again too, alone.)
+- Shots looked at: five standpoints before and after (outside the gate, the
+  fields at the forest's edge, inside the western forest, over the forest
+  from 60 m, the outer wall looking out), the after shots at both tints;
+  the models from two sides each; the fireflies at the edge, enlarged; all
+  15 captures.
+- Variants 6/6 built, 6/6 booted (colliders 11,993 in five, as before).
+  Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
+  settles, "Emberwatch — r152".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.01 MB (+16,761 bytes on r150).
-- 19 functions added: `saveSoundSettings`, `showSoundSetting`, `soundAmbience`, `soundBellVoice`, `soundBells`, `soundChain`, `soundCrackleBuffer`, `soundCricketBuffer`, `soundFireSpots`, `soundImpulse`, `soundLevel`, `soundNoise`, `soundNoiseBuffer`, `soundPanner`, `soundRelease`, `soundRenderBell`, `soundReport`, `soundStart`, `updateSound`.
+- 3.04 MB (+28,916 bytes on r151).
+- 7 functions added: `buildFireflies`, `fireflyGround`, `forestShrubs`, `glbGeometry`, `plantForest`, `updateFireflies`, `updateForest`.
 
 ### Play it
 
