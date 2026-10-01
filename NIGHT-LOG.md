@@ -6,6 +6,38 @@ estimated.
 
 ---
 
+## 2026-10-01 — before dawn · r152 "The forest at night"
+
+**What was wrong.** Every tree outside the walls — 4,200 of them — was a
+cylinder under two cones: from the walls and the belfry, rows of Christmas
+trees.
+
+**What changed.** Modelled pines, firs, broadleaves and dead pines, with
+shrubs along the forest's edge, all one batched mesh culled tree by tree and
+cut off where the fog has hidden them anyway; fireflies at the edge and
+along the brook. The forest stands exactly where it stood. PROJECT.md §0
+has the details.
+
+**What proved it.**
+
+- Five standpoints shot before and after. The first after-shots were twice
+  as bright as the night allows — the models' colours arrive linear — and
+  were toned down and shot again.
+- Frame time against r151, alternated twice: faster at every standpoint,
+  inside the forest and in the city, because the far trees are no longer
+  drawn.
+- Runtime audit against r151: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 462 → 460. That
+  was the second run: the first could not open the Lantern Grove's one
+  resident — its key press can land before a slow harness frame has seen the
+  player arrive — and a probe that waited for frames opened her on both
+  builds.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r152.
+
+---
+
 ## 2026-10-01 — small hours · r151 "The city heard"
 
 **What was wrong.** Vaneth made no sound at all. The bells that turn the

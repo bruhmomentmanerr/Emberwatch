@@ -4,15 +4,15 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r151 / 1.51.0**, sealed 2026-10-01 as "the city heard": world
-sound, every sound synthesized — the bells, wind, rain, fires, crickets,
-footsteps — with a Sound section in the settings (§0). Before it, r150 /
-1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0 ("the bell
-tower", §0r),
+Current: **r152 / 1.52.0**, sealed 2026-10-01 as "the forest at night":
+the forest's trees modelled, one batched mesh culled tree by tree, and
+fireflies at its edge (§0). Before it, r151 / 1.51.0 ("the city heard",
+§0p), r150 / 1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0
+("the bell tower", §0r),
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the nine is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the ten is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -231,7 +231,125 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r151)
+## 0. Start here — where the last session left off (2026-10-01, r152)
+
+**State: r152 / 1.52.0, sealed 2026-10-01 ("the forest at night").** Same
+instruction. Everything outside the walls is forest, and every tree in it
+was a five-sided cylinder under two six-sided cones: from the walls, the
+belfry and every wild site, rows of Christmas trees. r152 models them, and
+lights the forest's edge with fireflies.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides; stairs up to the outer wall's walk. `BatchedMesh` (below)
+is the lever the city's merged batches never had — per-object culling in one
+draw call — and the obvious next use of it is the city's own repeated
+pieces. The Windows installers for r143–r152 have not been built.
+
+### The trees
+
+`tools/assets/trees.py` models five, each a few dozen triangles because
+they are drawn in thousands, and each drawn for its silhouette at night:
+
+- `tree-pine` (74 triangles): four tiers of drooping skirts on a bare trunk,
+  each tier's rim a star — the points are the branch tips, the notches
+  between them higher and further in — over a dished, darker underside, so
+  it reads as a canopy from below.
+- `tree-fir` (90): taller and narrower, five tiers to a spire.
+- `tree-broadleaf` (152): a trunk forking into three limbs under a crown of
+  three lumpy masses.
+- `tree-snag` (42): a dead pine, a bare grey trunk and four broken limbs.
+- `shrub` (72): two low masses.
+
+`plantForest()` lays them. The forest still places its 4,200 trees exactly
+as before — the same draws from the world stream, one turn per tree in the
+same order, and the same collider on every fifth — so nothing downstream of
+it moves. Which tree stands where is `planHash` of its position: more
+broadleaves at the edge, where the light gets in (a third of the trees at
+the edge, a twelfth deep in), firs three in ten, about one pine in seventeen
+dead. Shrubs, scattered by `planHash` from 8 m in front of the edge to 52 m
+into it, off the roads, clearings and brook, are visual only: you walk
+through undergrowth. Per-instance tints vary them.
+
+**The colours arrive twice as bright.** The models' vertex colours are
+linear in the game, and the first shots showed a forest of bright green
+trees and neon shrubs against the night. The tints take them back to about
+half (shrubs to 0.6 of that), which is close to the old cones' darkness with
+the new shapes still legible.
+
+### One draw call, culled per tree
+
+All 4,906 are one `THREE.BatchedMesh`: one draw call, with three.js culling
+each tree against the view on its own, and twice a second `updateForest()`
+hides every tree farther than the fog leaves anything to see
+(`2.35 / density + 12`, 447 m at the night fog). The old forest was three
+`InstancedMesh`es drawn whole wherever you looked. So the modelled forest
+costs less than the cones did — see the frame times below. `EMBER.forest()`
+reports the counts, how many are shown and the cut distance.
+
+### Fireflies
+
+Two hundred (`updateFireflies`), seated round the player — within 60 m, at
+random, nothing in the world moving for them — wherever the ground is from
+15 m before the forest's edge to 60 m into it, or within 10 m of the brook.
+Each drifts a metre or two and glows for a quarter of its own cycle of 2.5
+to 6 seconds. None inside the walls, indoors or in the rain. One draw call:
+the chimney smoke's point shader, additive — and with its own fog, because
+the stock fog include mixes toward the fog colour, which for added light
+would have been a glowing haze at distance; theirs fades them to nothing.
+The crickets (r151) are already out there with them.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  five asset markers and comment words), `audit-dom`, `audit-dead` (616
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- `EMBER.forest()`: 4,906 instances — 2,356 pines, 1,285 firs, 418
+  broadleaves, 141 snags (4,200 trees), 706 shrubs; cut at 447 m; 753 shown
+  from the Cinder Market.
+- Frame time, median of 30 frames, r151 and r152 alternated twice:
+
+  | standpoint | r151 | r152 |
+  |---|---|---|
+  | outside the north gate | 1,038 / 1,050 ms | 927 / 939 ms |
+  | on the outer wall, looking out | 1,006 / 1,050 ms | 937 / 911 ms |
+  | in the western forest | 1,401 / 1,458 ms | 1,314 / 1,262 ms |
+  | the Cinder Market | 3,513 / 3,562 ms | 3,305 / 3,365 ms |
+
+  Triangles drawn outside the gate 829,410 → 675,836, in the forest
+  1,689,264 → 1,550,866, at the market 2,067,451 → 1,882,731; draw calls
+  two fewer outside. The harness renders in software, so these compare the
+  two builds; they are not a figure for any real machine.
+- Fireflies at the forest's edge out past the north gate: 198 seated, 41
+  glowing at one moment; in the city, none.
+- Runtime audit, r151 → r152: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 460; triangles 2,245,477 → 2,060,677; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231. **This is the second run.** The first reported 96 branches: it
+  could not open the Lantern Grove's one resident, Iselde of the Lanterns.
+  The audit teleports beside a resident, waits 500 ms, presses E and looks
+  280 ms later; a frame at the grove takes 4.0 s on r151 and 2.8 s on r152,
+  so the press can land before the game has seen the player arrive. A probe
+  that waited for frames instead opened her at once on both builds, and the
+  audit run again — alone — walked all 102. (The capture run after the first
+  audit was spoiled the same way r150's first audit was: those probes were
+  run beside it on the same profile. It was run again too, alone.)
+- Shots looked at: five standpoints before and after (outside the gate, the
+  fields at the forest's edge, inside the western forest, over the forest
+  from 60 m, the outer wall looking out), the after shots at both tints;
+  the models from two sides each; the fireflies at the edge, enlarged; all
+  15 captures.
+- Variants 6/6 built, 6/6 booted (colliders 11,993 in five, as before).
+  Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
+  settles, "Emberwatch — r152".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0p. r151 — where the session before that left off (2026-10-01)
 
 **State: r151 / 1.51.0, sealed 2026-10-01 ("the city heard").** Same
 instruction. Vaneth had never made a sound: the only audio in the game was
