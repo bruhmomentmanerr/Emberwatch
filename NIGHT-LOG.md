@@ -6,6 +6,37 @@ estimated.
 
 ---
 
+## 2026-10-01 — evening · r157 "The taverns"
+
+**What was wrong.** The four taverns were one room four times: a bar slab
+across the middle, two blocks for tables, a stone drum, a hearth — and in
+the Gilded Finch a glowing violet block by the door. Out in the wild places
+the residents vanished where they stood in the still hours, and Merrin Vale
+had been standing inside the Cinder and Keg's walls since she was placed.
+
+**What changed.** The Cinder and Keg has its bar, keg rack and back-bar,
+a hearth nook, a curtained stage with a lute and a drum, round tables and
+the regulars' long table. The Southgate Rest has boots drying before a big
+hearth, a rail of packs, the keeper's desk and keys, stairs up to the rooms.
+The Gilded Finch has booths, a musician's nook under a gilt arch, a
+late-night room behind a curtain, a small bar, and the finch in its cage.
+The Wayhouse has its stew pot, the baker's bread, long tables laid, pallets
+and an alms box. One thing to look at in each. The wild places keep their
+people at night; Merrin walks the square. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Nineteen shots across the four rooms, twice; twenty standpoints held, after
+  the Finch's booths were moved off the late-night room's doorway.
+- The still watch: six residents of the wild places visible and talkable.
+- Runtime audit against r156: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 467 → 467.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r157.
+
+---
+
 ## 2026-10-01 — late morning · r156 "The watch-houses"
 
 **What was wrong.** The guild halls were a table, a shelf and a banner. And
