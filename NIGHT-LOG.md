@@ -6,6 +6,35 @@ estimated.
 
 ---
 
+## 2026-10-01 — small hours · r150 "The bells ring the watch in"
+
+**What was wrong.** The Cathedral of Hours turns the watches with its bells,
+the game says — and when the watch turned, a line of text appeared and
+nothing in the city moved. The bells were modelled into the same piece as
+the pews.
+
+**What changed.** The bells are their own model and swing when the watch
+turns, rung up and dying away. The cathedral's doves sit along the ridge and
+round the spires, and go up when the bells ring, wheel over the church, and
+come back down to where they sat. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- A full ring read off at runtime: both bells through their swing and back to
+  rest; all sixteen doves up, and every one back on its own perch.
+- The doves at first never flew on the harness: they only woke in the two
+  seconds after a ring, and the harness draws a frame every three. At life
+  size they were invisible against the night sky from the street; they are
+  larger and pale now, and have heads.
+- Runtime audit against r149: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 459 → 462.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r150. No sound: the game has none, and the bells are where it should
+start.
+
+---
+
 ## 2026-09-30 — small hours · r149 "The bell tower"
 
 **What was wrong.** Nowhere high to stand and look at the lit city. The
