@@ -1,119 +1,95 @@
-**r153 — the city culled** · 1.53.0 · 2026-10-01 · phase 5, world depth
+**r154 — the moon archive** · 1.54.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the city culled. The city's static geometry — mergeAll's materials, the street kit, the lamps, torches, signs and chimney crowns — laid in 72 m squares, each set one BatchedMesh culled square by square: one draw call still, a quarter to nearly half fewer triangles drawn in the city, seven in ten fewer outside it. Verified: parse/audit/dead clean; six standpoints shot against r152, nothing missing; frame time against r152, quicker at all six; runtime audit against r152 (the audit now waiting for frames), no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r153 in the title).
+the Moon Archive. The city's library fitted out (tools/assets/moon-archive.py): bookcases full to the cornice, a rolling ladder, a map chest under a round moon window, reading tables with candles and open books, hanging lamps, a lectern, a globe, and the archive's instrument, a moon in brass rings. The storeroom filler skips the room. Verified: parse/audit/dead clean; the room shot from six places; the corners stood on; runtime audit against r153, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r154 in the title).
 
 ### Patch notes
 
-**State: r153 / 1.53.0, sealed 2026-10-01 ("the city culled").** Same
-instruction. Since r146 every account of the cost has ended the same way:
-the city's static geometry was laid as meshes that each covered the whole
-city, nothing in them could be culled, and every wall, roof and window frame
-in Vaneth was drawn whatever the camera faced. r153 pulls that lever.
+**State: r154 / 1.54.0, sealed 2026-10-01 ("the Moon Archive").** Same
+instruction. With the city culled (r153) there is room to model rooms
+properly, and the Moon Archive — the city's library, whose archivist tells
+you it "remembers names the city has lost" — was a 20 by 16 m hall holding a
+rug, two plain shelves, a table and a stone block with a glowing top.
 
-**Next:** with a quarter to nearly half of the city's triangles no longer
-drawn there is
-room to model more of it: the Moon Archive's interior (a 20 by 16 m room
-holding a rug, two shelves, a table and a plinth), the towers of the Moon
-Archive and the Northwatch Guild, stairs up to the outer wall's walk. The
-comment over `dressPoints` still describes the single merged mesh; correct
-it with the next change there. The Windows installers for r143–r153 have
-not been built.
+**Next:** the Eastwall Scriptorium and the Cold Assay are archives too, and
+still the old furnishing; the library model's bookcases would suit both.
+The towers of the Moon Archive and the Northwatch Guild; stairs up to the
+outer wall's walk. The Windows installers for r143–r154 have not been built.
 
-### Where the triangles were
+### A library
 
-A probe hid one kind of thing at a time at the Cinder Market and counted
-what was left (r153's first form, with only `mergeAll` changed): of 1.68
-million triangles drawn, 884,000 were 476 meshes outside both `mergeAll`
-and the landmarks, the same number wherever the camera stood. The largest
-was the street kit's ground-floor window frames — 435,624 triangles in one
-mesh the size of the city — then its timber façades, stone trim and cloth.
-`dressPoints` laid each kind as one merged mesh; a comment there recorded
-that a per-instance batch had been tried in r107 and rejected, because 6,700
-bounds tests a frame made the north gate nearly three times slower.
+`tools/assets/moon-archive.py` builds two models laid at the room's middle
+by `placeMoonArchive()`:
 
-### Culling by squares
+- `moon-archive` (10,680 triangles, warm glow): bookcases full to the
+  cornice — three bays either side of the back wall's window, four down each
+  side wall, the door end left clear — every shelf laid book by book in runs
+  of one binding, a gap now and then, the odd one leaning; a rolling ladder
+  on its brass rail; a map chest with scrolls under the window; two long
+  reading tables down the room with their benches, candles, open books and
+  a stack; a lamp of candles hung over each; a lectern with the register on
+  it and a celestial globe either side of the instrument.
+- `moon-archive-moon` (1,100 triangles, cool glow): the round window of
+  moon-glass in a stone ring with lead tracery, and the archive's
+  instrument where the old block stood — a pale moon in three brass rings on
+  a stone plinth, a soft blue lamp over it.
 
-`cellMesh(parts, material, prepare)` takes a set of pieces already in world
-space, groups them into 72 m squares (`MERGE_CELL`) by the middle of each
-piece's bounding box, merges each square, and lays the squares as the
-instances of one `THREE.BatchedMesh`: still one draw call, but each square
-is tested against the view — and against the moon's shadow camera when the
-shadow map is stamped — and drawn only if it is in it. A square is a few
-hundred pieces, so the tests are a few thousand a frame across the city, not
-one per piece. A set with one square stays a plain mesh; a big piece (a run
-of wall) belongs to the square its middle stands in and is culled by its own
-bounds, so nothing is cut. `prepare` finishes each square's geometry:
-`placeLandmark`'s normals and box-projected UVs are both in world space, so a
-square gets exactly what the whole set did.
+The colliders are the script's numbers. The archivist's place (local 0, 1)
+and the shelves she reads at (0, −2.5) are clear; the instrument's
+interaction ("touch the archive instrument") is where it was, 0.6 m from the
+new moon.
 
-Three things use it: `mergeAll` (every material built with `collect()`),
-`dressPoints` (the street kit) and `placeLandmark` at more than one point
-(the wall torches, street lamps, shop signs, chimney crowns, festoons).
-`EMBER.batches()` reports it.
+Two things found on the way. The first book pass was 14,760 triangles and
+packed to 202 KB, over `inline-glb`'s 200 KB limit; runs of two to four
+volumes of a binding brought it to 146 KB. And the moon-glass, written
+glowing at 0.88, burnt the instrument and the window to white under the
+bloom; it glows at 0.45 now.
 
-### The runtime audit waits for frames
+### The room filler leaves it alone
 
-`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
-resident, waiting 500 ms, pressing E and looking 280 ms later. Twice since
-r152 it reported the Lantern Grove's one resident, Iselde of the Lanterns,
-as not opening (r152's first run, r153's first run). A probe that stood
-beside her eight times as she walked, waiting for frames, found E offering
-"talk with Iselde of the Lanterns" and the dialogue opening every time. The
-nearest resident is worked out in the frame, and out at the grove a harness
-frame takes three or four seconds: the key could land before the game had
-seen the player arrive. The audit now waits for four frames after the
-teleport and three after the key, instead of a fixed time.
+`dressInterior` fills every hall's free floor and walls with what a
+storeroom holds — chests, barrels, sacks, crates, racks, stools — by a
+seeded hand of its own. In the library it set four chests a metre and a half
+in front of the back bookcases, barrels against the side ones and a stool by
+the lectern; and probes teleported into the archive's corners were thrown
+out of the building, because they landed inside a chest's collider (the
+same happened on r153, before the fit-out). The Moon Archive is furnished
+by hand now and the filler skips it; it draws from its own generator, so
+nothing else in the city moves. `EMBER.collidersAt(x, z, reach)` is new: what
+a probe standing there would touch, and whether it blocks.
+
+Also: the comment over `dressPoints` described r107's single merged mesh;
+it says what r153 made it.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A unchanged),
-  `audit-dom`, `audit-dead` (617 functions, 0 dead), `test-switch-frames`,
-  `test-switch-b9`: clean.
-- `EMBER.batches()`: 65 sets, 47 of them batched into 2,453 squares, 18
-  plain (one square each).
-- Shots at six standpoints, r152 and r153 (the market, the north avenue, a
-  west-ward street, over the roofs, the belfry over the city, the market
-  looking back), compared pixel by pixel: the differences are the clouds,
-  the smoke, and residents who had moved between the runs — no wall, roof,
-  frame or lamp missing anywhere.
-- Frame time, median of 30 frames, r152 and r153 alternated twice, and the
-  triangles drawn:
-
-  | standpoint | r152 | r153 | triangles |
-  |---|---|---|---|
-  | the Cinder Market | 3,220 / 3,290 ms | 3,046 / 3,043 ms | 1,885,661 → 1,240,447 |
-  | north avenue, looking in | 3,408 / 3,478 ms | 3,388 / 3,402 ms | 1,916,537 → 1,471,797 |
-  | west ward street | 2,698 / 2,781 ms | 2,550 / 2,556 ms | 1,786,081 → 1,253,738 |
-  | over the roofs | 2,397 / 2,414 ms | 2,293 / 2,279 ms | 1,838,959 → 1,216,094–1,382,595 |
-  | the belfry, over the city | 2,835 / 2,819 ms | 2,641 / 2,594 ms | 1,835,543 → 1,029,697 |
-  | outside the north gate | 960 / 937 ms | 823 / 791 ms | 675,836 → 200,084 |
-
-  A quarter to nearly half fewer triangles in the city and seven in ten fewer
-  outside it, for
-  a frame 1–8% quicker in the city and 14–16% outside: the harness renders in
-  software, where the triangles were not the whole of the cost. These compare
-  two builds; they are not a figure for any real machine.
-- Runtime audit, r152 → r153, with the audit waiting for frames (its first
-  run, with the old fixed waits, again could not open the grove): errors 0 →
-  0; villagers 374 → 374;
-  draw calls 460 → 460; triangles 2,060,677 → 2,050,711; colliders 11,939
-  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
-  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
-  231.
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the two
+  asset markers and a comment word), `audit-dom`, `audit-dead` (618
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Eight points in the room stood on, door to corners: none moves the player
+  now (on r153, two put them outside the building).
+- Shots looked at: the room from the door, from the back corner, the
+  instrument close, the window, a side bookcase close, the tables — before
+  and after the glass was toned down; the archivist at her place with "talk
+  with Archivist Lysa" and "touch the archive instrument" both offered.
+- Runtime audit, r153 → r154: errors 0 → 0; villagers 374 → 374;
+  draw calls 460 → 462; triangles 2,050,711 → 2,061,303; colliders 11,939
+  → 11,889 (the filler's and the old shelves' gone, the library's ten
+  in); doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
+  road obstructions in the carriageway 0 → 0, intruding 231 → 231.
 - All 15 captures looked at.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r153".
+  chooser installed, `requestDevice` settles, "Emberwatch — r154".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.04 MB (+2,123 bytes on r152).
-- 1 function added: `cellMesh`.
+- 3.27 MB (+236,391 bytes on r153).
+- 1 function added: `placeMoonArchive`.
 
 ### Play it
 
