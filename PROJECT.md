@@ -4,15 +4,16 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r152 / 1.52.0**, sealed 2026-10-01 as "the forest at night":
-the forest's trees modelled, one batched mesh culled tree by tree, and
-fireflies at its edge (§0). Before it, r151 / 1.51.0 ("the city heard",
-§0p), r150 / 1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0
+Current: **r153 / 1.53.0**, sealed 2026-10-01 as "the city culled": the
+city's static geometry laid in 72 m squares that are culled against the view
+— a quarter to nearly half fewer triangles drawn in the city (§0). Before
+it, r152 / 1.52.0
+("the forest at night", §0o), r151 / 1.51.0 ("the city heard", §0p), r150 / 1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0
 ("the bell tower", §0r),
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the ten is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the eleven is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -231,7 +232,115 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r152)
+## 0. Start here — where the last session left off (2026-10-01, r153)
+
+**State: r153 / 1.53.0, sealed 2026-10-01 ("the city culled").** Same
+instruction. Since r146 every account of the cost has ended the same way:
+the city's static geometry was laid as meshes that each covered the whole
+city, nothing in them could be culled, and every wall, roof and window frame
+in Vaneth was drawn whatever the camera faced. r153 pulls that lever.
+
+**Next:** with a quarter to nearly half of the city's triangles no longer
+drawn there is
+room to model more of it: the Moon Archive's interior (a 20 by 16 m room
+holding a rug, two shelves, a table and a plinth), the towers of the Moon
+Archive and the Northwatch Guild, stairs up to the outer wall's walk. The
+comment over `dressPoints` still describes the single merged mesh; correct
+it with the next change there. The Windows installers for r143–r153 have
+not been built.
+
+### Where the triangles were
+
+A probe hid one kind of thing at a time at the Cinder Market and counted
+what was left (r153's first form, with only `mergeAll` changed): of 1.68
+million triangles drawn, 884,000 were 476 meshes outside both `mergeAll`
+and the landmarks, the same number wherever the camera stood. The largest
+was the street kit's ground-floor window frames — 435,624 triangles in one
+mesh the size of the city — then its timber façades, stone trim and cloth.
+`dressPoints` laid each kind as one merged mesh; a comment there recorded
+that a per-instance batch had been tried in r107 and rejected, because 6,700
+bounds tests a frame made the north gate nearly three times slower.
+
+### Culling by squares
+
+`cellMesh(parts, material, prepare)` takes a set of pieces already in world
+space, groups them into 72 m squares (`MERGE_CELL`) by the middle of each
+piece's bounding box, merges each square, and lays the squares as the
+instances of one `THREE.BatchedMesh`: still one draw call, but each square
+is tested against the view — and against the moon's shadow camera when the
+shadow map is stamped — and drawn only if it is in it. A square is a few
+hundred pieces, so the tests are a few thousand a frame across the city, not
+one per piece. A set with one square stays a plain mesh; a big piece (a run
+of wall) belongs to the square its middle stands in and is culled by its own
+bounds, so nothing is cut. `prepare` finishes each square's geometry:
+`placeLandmark`'s normals and box-projected UVs are both in world space, so a
+square gets exactly what the whole set did.
+
+Three things use it: `mergeAll` (every material built with `collect()`),
+`dressPoints` (the street kit) and `placeLandmark` at more than one point
+(the wall torches, street lamps, shop signs, chimney crowns, festoons).
+`EMBER.batches()` reports it.
+
+### The runtime audit waits for frames
+
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident, waiting 500 ms, pressing E and looking 280 ms later. Twice since
+r152 it reported the Lantern Grove's one resident, Iselde of the Lanterns,
+as not opening (r152's first run, r153's first run). A probe that stood
+beside her eight times as she walked, waiting for frames, found E offering
+"talk with Iselde of the Lanterns" and the dialogue opening every time. The
+nearest resident is worked out in the frame, and out at the grove a harness
+frame takes three or four seconds: the key could land before the game had
+seen the player arrive. The audit now waits for four frames after the
+teleport and three after the key, instead of a fixed time.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A unchanged),
+  `audit-dom`, `audit-dead` (617 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- `EMBER.batches()`: 65 sets, 47 of them batched into 2,453 squares, 18
+  plain (one square each).
+- Shots at six standpoints, r152 and r153 (the market, the north avenue, a
+  west-ward street, over the roofs, the belfry over the city, the market
+  looking back), compared pixel by pixel: the differences are the clouds,
+  the smoke, and residents who had moved between the runs — no wall, roof,
+  frame or lamp missing anywhere.
+- Frame time, median of 30 frames, r152 and r153 alternated twice, and the
+  triangles drawn:
+
+  | standpoint | r152 | r153 | triangles |
+  |---|---|---|---|
+  | the Cinder Market | 3,220 / 3,290 ms | 3,046 / 3,043 ms | 1,885,661 → 1,240,447 |
+  | north avenue, looking in | 3,408 / 3,478 ms | 3,388 / 3,402 ms | 1,916,537 → 1,471,797 |
+  | west ward street | 2,698 / 2,781 ms | 2,550 / 2,556 ms | 1,786,081 → 1,253,738 |
+  | over the roofs | 2,397 / 2,414 ms | 2,293 / 2,279 ms | 1,838,959 → 1,216,094–1,382,595 |
+  | the belfry, over the city | 2,835 / 2,819 ms | 2,641 / 2,594 ms | 1,835,543 → 1,029,697 |
+  | outside the north gate | 960 / 937 ms | 823 / 791 ms | 675,836 → 200,084 |
+
+  A quarter to nearly half fewer triangles in the city and seven in ten fewer
+  outside it, for
+  a frame 1–8% quicker in the city and 14–16% outside: the harness renders in
+  software, where the triangles were not the whole of the cost. These compare
+  two builds; they are not a figure for any real machine.
+- Runtime audit, r152 → r153, with the audit waiting for frames (its first
+  run, with the old fixed waits, again could not open the grove): errors 0 →
+  0; villagers 374 → 374;
+  draw calls 460 → 460; triangles 2,060,677 → 2,050,711; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r153".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0o. r152 — where the session before that left off (2026-10-01)
 
 **State: r152 / 1.52.0, sealed 2026-10-01 ("the forest at night").** Same
 instruction. Everything outside the walls is forest, and every tree in it

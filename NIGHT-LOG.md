@@ -6,6 +6,39 @@ estimated.
 
 ---
 
+## 2026-10-01 — dawn · r153 "The city culled"
+
+**What was wrong.** The city's static geometry — every wall, roof and window
+frame — was laid as meshes that each covered the whole city, so all of it was
+drawn whichever way you looked. The worst was the street kit's window
+frames: 435,624 triangles in one mesh.
+
+**What changed.** The pieces are grouped into 72 m squares and each set laid
+as one batched mesh: one draw call still, but squares out of view are not
+drawn. The city's materials, the street kit and the lamps, torches, signs and
+chimney crowns all go this way. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- A probe that hid one kind of thing at a time found where the triangles
+  were; the first version, which batched only the city's materials, saved a
+  tenth of them, and the street kit was the rest.
+- Six standpoints shot against r152 and compared pixel by pixel: nothing
+  missing.
+- Frame time against r152, alternated twice: a quarter to nearly half fewer
+  triangles drawn in the city, seven in ten fewer outside it, every standpoint quicker.
+- Runtime audit against r152: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 460 → 460. The audit itself was fixed on
+  the way: it pressed E a fixed half second after teleporting beside each
+  ward's resident, and out at the Lantern Grove a harness frame takes longer
+  than that, so twice since r152 the grove's resident was reported as not
+  answering. It waits for frames now; she answers every time.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r153.
+
+---
+
 ## 2026-10-01 — before dawn · r152 "The forest at night"
 
 **What was wrong.** Every tree outside the walls — 4,200 of them — was a
