@@ -5233,8 +5233,44 @@ function aRoof(w,d,rh,x,y,z,k,ry=0,gable=false,over=.45){
 }
 function aCone(r,h,s,x,y,z,k,ry=0){ const g=new THREE.ConeGeometry(r,h,s); if(UV_TILED_KEYS.has(k))tileRadialUV(g,r*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z); collect(k,g); }
 function aCyl(rt,rb,h,s,x,y,z,k,ry=0){ const g=new THREE.CylinderGeometry(rt,rb,h,s); if(UV_TILED_KEYS.has(k)&&k!=='cobble')tileRadialUV(g,(rt+rb)*.5,h); if(ry)g.rotateY(ry); g.translate(x,y,z);if(k==='cobble')tileFlatUV(g,6); collect(k,g); }
-function mergeAll(){ for(const k in bins){ const source=bins[k],merged=THREE.BufferGeometryUtils.mergeGeometries(source,false); source.forEach(geometry=>geometry.dispose()); delete bins[k]; if(!merged)continue;
-  const mesh=new THREE.Mesh(merged,MATS[k]||MATS.stone); const glow=(k==='window'||k==='arcane'||k==='amber'); mesh.castShadow=!glow; mesh.receiveShadow=!glow; scene.add(mesh); } }
+// Culling the city (r153). Three things laid the city's static geometry as
+// one mesh each for the whole city, which the frustum could never cull:
+// mergeAll (everything built with collect(), a mesh per material), the street
+// kit's dressPoints (a mesh per kind: the ground-floor window frames alone
+// were 435,624 triangles) and placeLandmark at many points (the wall torches,
+// street lamps, shop signs, chimney crowns). Every wall, roof and frame in
+// Vaneth was drawn whatever the camera faced. cellMesh groups the pieces into
+// MERGE_CELL squares by where each stands, merges each square, and lays the
+// squares as the instances of one BatchedMesh: still one draw call, but each
+// square is tested against the view (and the moon's shadow camera) and drawn
+// only if it is in it. A per-piece batch was tried for the kit in r107 and
+// rejected — 6,700 bounds tests a frame — and a square is a few hundred
+// pieces. One square stays a plain mesh. `prepare` finishes each square's
+// geometry (placeLandmark's normals and box-projected UVs, which are in world
+// space, so a square gets exactly what the whole did).
+const MERGE_CELL=72, MERGE_REPORT={meshes:0,batched:0,cells:0,plain:0};
+function cellMesh(parts,material,prepare){
+  const cells=new Map();
+  for(const g of parts){ if(!g.boundingBox)g.computeBoundingBox(); const b=g.boundingBox;
+    const key=Math.floor((b.min.x+b.max.x)/2/MERGE_CELL)+','+Math.floor((b.min.z+b.max.z)/2/MERGE_CELL);
+    let list=cells.get(key); if(!list)cells.set(key,list=[]); list.push(g); }
+  const merged=[];
+  for(const list of cells.values()){
+    const m=list.length>1?THREE.BufferGeometryUtils.mergeGeometries(list,false):list[0];
+    if(list.length>1)list.forEach(g=>g.dispose());
+    if(m){ if(prepare)prepare(m); merged.push(m); } }
+  if(!merged.length)return null;
+  MERGE_REPORT.meshes++;
+  if(merged.length===1||!THREE.BatchedMesh){ MERGE_REPORT.plain++; return new THREE.Mesh(merged.length===1?merged[0]:THREE.BufferGeometryUtils.mergeGeometries(merged,false),material); }
+  const verts=merged.reduce((n,p)=>n+p.attributes.position.count,0), idx=merged.reduce((n,p)=>n+(p.index?p.index.count:0),0);
+  const mesh=new THREE.BatchedMesh(merged.length,verts,Math.max(idx,1),material);
+  for(const p of merged){ mesh.addInstance(mesh.addGeometry(p)); p.dispose(); }
+  MERGE_REPORT.batched++; MERGE_REPORT.cells+=merged.length;
+  return mesh;
+}
+function mergeAll(){ for(const k in bins){ const source=bins[k]; delete bins[k];
+  const mesh=cellMesh(source,MATS[k]||MATS.stone); if(!mesh)continue;
+  const glow=(k==='window'||k==='arcane'||k==='amber'); mesh.name='city-'+k; mesh.castShadow=!glow; mesh.receiveShadow=!glow; scene.add(mesh); } }
 
 // ---------- collision ----------
 const colliders=[],colliderGrid=new Map(),COLLIDER_CELL=14,COLLIDER_PAD=1;
@@ -21064,11 +21100,9 @@ function placeLandmark(name,b64,points,opts={}){
       if(typeof warmShaders==='function')warmShaders(); return; }
     const parts=[], m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(0,0,0,'YXZ'), at=new THREE.Vector3(), sc=new THREE.Vector3();
     for(const p of points){ at.set(p.x,p.y||0,p.z); q.setFromEuler(e.set(p.rx||0,p.ry||0,p.rz||0,'YXZ')); sc.set(p.s||1,p.s||1,p.s||1); parts.push(base.clone().applyMatrix4(m.compose(at,q,sc))); }
-    const merged=parts.length>1?THREE.BufferGeometryUtils.mergeGeometries(parts,false):parts[0];
-    if(parts.length>1)for(const part of parts)part.dispose();
-    base.dispose(); if(!merged)return;
-    merged.computeVertexNormals(); boxProjectUV(merged,opts.tile||4);
-    const mesh=new THREE.Mesh(merged,material); mesh.name='landmark-'+name;
+    base.dispose();
+    const mesh=cellMesh(parts,material,g=>{ g.computeVertexNormals(); boxProjectUV(g,opts.tile||4); });     // (r153) culled by squares
+    if(!mesh)return; mesh.name='landmark-'+name;
     mesh.castShadow=opts.shadow!==false; mesh.receiveShadow=true; scene.add(mesh); LANDMARK_MESHES.push(mesh);
     restampShadows();
     if(typeof warmShaders==='function')warmShaders();
@@ -21533,10 +21567,8 @@ function dressPoints(points,b64,material){
       scale.set(point.sx||1,point.sy||1,point.sz||1);
       parts.push(base.clone().applyMatrix4(matrix.compose(place,turn,scale)));
     }
-    const merged=THREE.BufferGeometryUtils.mergeGeometries(parts,false);
-    for(const part of parts)part.dispose();
-    if(!merged)return;
-    const mesh=new THREE.Mesh(merged,material);
+    const mesh=cellMesh(parts,material);                 // (r153) culled by squares
+    if(!mesh)return;
     mesh.castShadow=false; mesh.receiveShadow=true;
     scene.add(mesh); KIT_MESHES.push(mesh);
     // The pieces arrive a tick after the city is built, which is after the
@@ -27578,6 +27610,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
     shower:()=>{const e=VISUAL_CANON.events;e.nextShowerAt=clock.getElapsed();e.showerAt=-1;},moonDir:MOON_DIR,
     bells:hold=>{ BELLS.held=!!hold; ringBells(clock.getElapsed()); return {rung:BELLS.rung,movers:LANDMARK_MOVERS.filter(m=>m.swing).length,doves:DOVES.birds.length}; }},
   sound:{report:soundReport,renderBell:soundRenderBell},
+  batches:()=>({...MERGE_REPORT}),
   forest:()=>({loaded:!!FOREST.mesh,trees:FOREST.spots?FOREST.spots.length:0,kinds:{...FOREST.kinds},visible:FOREST.visible,cut:Math.round(FOREST.cut),fireflies:{seated:FIREFLIES.fly.filter(f=>f.home).length,lit:FIREFLIES.lit,level:+FIREFLIES.level.toFixed(2)}}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
 
