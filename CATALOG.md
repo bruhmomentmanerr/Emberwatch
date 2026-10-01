@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.55.0 / build r155 ("the archives")**,
+Current sealed source: **1.56.0 / build r156 ("the watch-houses")**,
 2026-10-01. Archived, smoke-tested, six variants boot-check. Not packaged
-yet (nor are r143 to r154): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+yet (nor are r143 to r155): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r155'
+                      the strain-archive lookups work. BUILD_REVISION = 'r156'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 3.0 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r155-the-archives.html
+                      emberwatch_3_r156-the-watch-houses.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r155, minus the revisions
+                    Phase 5 currently contains r70-r156, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r155-the-archives.html
+                    emberwatch_3_r156-the-watch-houses.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1251,6 +1251,27 @@ guessed at.
                           obstructions 0; all captures looked at; 6/6
                           variants built and booted; smoke clean (r155 in
                           the title).
+    Oct 1      r156       the watch-houses. The Northwatch Guild (planning
+                          table under a map of the city, spear racks and
+                          shields, armour stands, bunks and a stove, a
+                          ladder to the tower) and the Westwall Refuge
+                          (workbench and tool board, ward maps, a repair
+                          corner, cots, a brazier with benches round it)
+                          fitted out (tools/assets/watch.py). Every hall's
+                          floor is at the ground: the plinth under the walls
+                          had been one solid block 0.55 m high since r145.
+                          tools/audit-comments.js lists comments that have
+                          swallowed code; the runtime audit walks each ward
+                          in the labour watch (the wilds it lost since r152
+                          had gone "indoors" for the still watch) and tries
+                          each resident from four sides.
+                          Verified: parse/audit/dead/comments
+                          clean; both rooms shot and stood in, eight halls
+                          shot after the floor fix; runtime audit against
+                          r155, no errors, 102 dialogue branches none
+                          broken, road obstructions 0; all captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r156 in the title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

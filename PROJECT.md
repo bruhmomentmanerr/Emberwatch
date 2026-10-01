@@ -4,9 +4,12 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r155 / 1.55.0**, sealed 2026-10-01 as "the archives": the
-Eastwall Scriptorium and the Cold Assay fitted out after what they are for
-(§0). Before it, r154 / 1.54.0 ("the Moon Archive", §0m): the city's
+Current: **r156 / 1.56.0**, sealed 2026-10-01 as "the watch-houses": the
+Northwatch Guild and the Westwall Refuge fitted out, and every hall's floor
+brought down to the ground it had stood half a metre above (§0). Before it,
+r155 / 1.55.0 ("the archives", §0l): the Eastwall Scriptorium and the Cold
+Assay fitted out after what they are for. Before that, r154 / 1.54.0 ("the
+Moon Archive", §0m): the city's
 library fitted out as one — bookcases, a ladder, reading tables, lamps, a
 moon window and the archive's instrument. Before that, r153 /
 1.53.0 ("the city culled", §0n): the
@@ -18,7 +21,7 @@ it, r152 / 1.52.0
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the thirteen is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the fourteen is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -237,7 +240,142 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r155)
+## 0. Start here — where the last session left off (2026-10-01, r156)
+
+**State: r156 / 1.56.0, sealed 2026-10-01 ("the watch-houses").** The
+owner's word on r154–r155: the shots "look crazy good" — carry on, update
+the interiors. r156 fits out the two guild halls, and finds and fixes why
+every hall's furniture had looked low.
+
+**Next:** keep the wild places' residents at their posts through the still
+hours (below, "Why the audit kept losing the wilds"); the four taverns (the
+Cinder and Keg, the Southgate Rest, the Gilded Finch — whose centrepiece is a
+glowing 1.1 m block on a counter by the door — and the Wayhouse), then the
+Pilgrim Shrine and the New Chapel. The
+Windows installers for r143–r156 have not been built.
+
+### Every hall's floor stood half a metre up
+
+r145's `hallExterior` laid the halls' plinth course as one solid stone block
+the size of the whole hall, 0.55 m high. It had no collider and no surface,
+so nobody stood on it: inside every hall the floor you saw was its top, and
+everything in the room — the tables, benches, beds, the residents and you —
+stood from the ground half a metre below it. Benches vanished into the
+floor, tables read as low boards, a brazier showed only its coals, and
+residents were cut off at the shin. The first shots of the Westwall Refuge
+showed cots as slivers of blanket on the floor, which is how it was found.
+The plinth is a course under the walls now, open at the 3 m door; the room's
+cobble floor, which itself stood at 0.24 m, is at the ground. Every hall
+with an outside — all but the Great Hall — changes, for the better: the
+archives' reading tables and desks stand at their height for the first time.
+
+### Two comments had swallowed code
+
+The Westwall Refuge's old furnishing ended a line with "// the shelf stands
+on these" and the next call, `interiorSolid(...)`, ran on after it on the
+same line — so it was part of the comment, and the stone table it built had
+never existed since r145. `audit-source` had listed `theseinteriorSolid` in
+section A all along, among the comment words. And the first form of the
+floor fix made the same mistake: a comment added mid-line commented out
+every hall's ceiling, which the next shots showed as the roof's underside.
+`tools/audit-comments.js` is new: it lists every comment in the gameplay
+script holding a call statement with arguments — `name(args);` — which prose
+comments never do, and exits 1 if there is one. Run on r155 it finds the Refuge's
+line; on r156 it finds nothing. It runs with the others now (§3).
+
+### The Northwatch Guild
+
+"A planning table, spare gear, and a room for the watch."
+`tools/assets/watch.py` builds `northwatch` (4,178 triangles, warm glow):
+the planning table under a map of the city — the walls as rings, the four
+avenues, wards blocked in, markers in the watch's blue and red — with
+candles, dividers and benches either side, a lamp over it; spear racks on the
+back wall under the watch's shields, the watch's banner between them over a
+chest of spare gear; three armour stands and a rail of cloaks, a bow rack and
+an arrow barrel on the left wall; two-tier bunks with footlockers and an
+iron stove between them on the right, a ward map, a notice board by the door;
+a ladder up to a hatch under the tower that stands on the roof's front
+corner; sconces down both walls.
+
+### The Westwall Refuge
+
+"A workbench, ward maps, and a watchful repair corner." `westwall-refuge`
+(3,164 triangles, warm glow): a long workbench with a vise and work on it
+under a board of tools; the ward maps on their boards over a map chest; the
+repair corner — an anvil on its block, a grindstone, broken spears and
+dented shields waiting, a water butt; cots down the left wall with a shelf
+of blankets over them; herbs hung to dry from a pole; provisions stacked by
+the door; a brazier in the middle of the room with three benches round it
+and firewood by it; a table with a lamp; sconces.
+
+Both: colliders from the script's numbers, a small fire light, and the
+generic guild slab and the storeroom filler skip them (`FITTED_HALLS`, which
+replaces r155's `FITTED_ARCHIVES`). The Scriptorium's long boxes are a box a
+bay now, as r155 said they should be.
+
+### Why the audit kept losing the wilds
+
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident and pressing E. Since r152 it has now and then reported one remote
+ward as not opening — the Lantern Grove, in r152's first run and r153's —
+and r153 put it down
+to the key landing before the game had drawn the player's arrival. r156's
+first run lost the Fallen Hall Ruin (Orren of the Broken Hall, on his ledge
+over the falls, left the player more than 3 m from him), and a second run of
+the dialogue walk alone lost the Lantern Grove instead. Two probes that
+teleported beside Orren on r155 and r156 landed the player 1.8 m from him;
+on a fresh boot the game offered talk with every one of the residents
+concerned at once.
+
+A run that logged each failed try found the cause: Wren Halloway on the
+Skywatch Knoll and Iselde of the Lanterns were flagged indoors, standing at
+their posts. The walk takes ten minutes and more of game time and a watch is
+170 s, so by the time it reached the wilds, which come last, the still watch
+had come round, and a resident with no house to go to goes "indoors" where
+they stand: hidden, and offered for talk only from inside a home they do not
+have. Nothing r156 changed is involved. The audit now walks each ward in the
+labour watch, tries each resident from four sides before moving on to the
+next (the ledge pushed the player away from two sides of Orren's four), and
+reports every failed try with what E was offering.
+
+That a lantern keeper, a skywatcher and the residents of the other wild
+places vanish into thin air in the small hours is the game's own fault, not
+the audit's; it is left for the next revision.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the two asset markers and a comment word, and loses
+  `theseinteriorSolid`), `audit-dom`, `audit-dead` (623 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Shots looked at: both guild halls from the door, from a back corner, from
+  the front corner and close, three times — as first built, after more was
+  added, and after the floor fix; eight halls from their doors after it (the
+  two guild halls, the Moon Archive, the Scriptorium, the Cinder and Keg —
+  that standpoint is outside it — the Southgate Rest, the Pilgrim Shrine, the
+  Gilded Finch); the models from two sides each.
+- Points stood on in each guild hall: two moved the player, each into a
+  piece of furniture (the planning table, the anvil); later, the arrow
+  barrel and the provisions.
+- Runtime audit, r155 → r156, with the audit as it now stands (its first
+  run, before the fix, opened 16 of the 17 wards): errors 0 → 0;
+  villagers 374 → 374;
+  draw calls 465 → 467; triangles 2,077,629 → 2,083,155; colliders 11,803
+  → 11,776; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the
+  carriageway 0 → 0, intruding 233 → 231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r156".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0l. r155 — where the session before that left off (2026-10-01)
 
 **State: r155 / 1.55.0, sealed 2026-10-01 ("the archives").** Same
 instruction. r154 fitted out the Moon Archive; the city's two other archive
@@ -2854,6 +2992,7 @@ node tools/check-parse.js    # every <script> block parses
 node tools/audit-source.js   # called-never-defined, defined-never-called, dead bindings
 node tools/audit-dom.js      # markup ids vs script lookups, both directions
 node tools/audit-dead.js     # functions nothing live can reach (comments and strings ignored)
+node tools/audit-comments.js # comments that have swallowed a call statement; must be none
 node tools/test-switch-frames.js   # 12 assertions, the panel's own decode vs a real capture
 node tools/test-switch-b9.js       # 19 assertions, the b9 write frame
 ```
@@ -2866,6 +3005,13 @@ Since r116 it skips named function expressions — `(function name(){…})()`,
 dead. It still misses a dead function that shares its name with a live local variable
 (`keep`, `streets` and `building` were found by hand), so a clean run is not a
 proof.
+
+`audit-comments.js` (r156) catches code that a `//` comment has swallowed: a
+comment written after code, mid-line, runs to the end of the line, so a call
+written after it on the same line never runs and the file still parses. It
+lists every comment in the gameplay script that holds `name(args);`. It
+found one on its first run (r145's stone table in the Westwall Refuge),
+after r156's first floor fix had swallowed every hall's ceiling the same way.
 
 `audit-source.js` section A reports ~64 false positives — GLSL builtins
 (`vec2`, `mix`, `fbm`, `sin`, `exp`) and ordinary words followed by a bracket in

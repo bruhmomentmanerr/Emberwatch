@@ -6,6 +6,39 @@ estimated.
 
 ---
 
+## 2026-10-01 — late morning · r156 "The watch-houses"
+
+**What was wrong.** The guild halls were a table, a shelf and a banner. And
+in every hall, the floor stood half a metre above the furniture and the
+people: the plinth under the walls was one solid block the size of the room.
+
+**What changed.** The Northwatch Guild is a watch-house — a planning table
+under a map of the city, spears and shields, armour stands, bunks, a stove,
+a ladder to the tower. The Westwall Refuge has its workbench and tool board,
+ward maps, a repair corner with anvil and grindstone, cots and a brazier with
+benches round it. The plinth is a course under the walls and every hall's
+floor is at the ground. A new audit lists comments that have swallowed code,
+and the runtime audit walks every ward in the labour watch: the wilds it
+kept losing since r152 had gone "indoors" for the still watch, standing at
+their posts.
+PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- The Refuge's first shots showed cots as slivers of blanket on the floor;
+  measuring the ground (0 everywhere) and reading the hall's outside found
+  the plinth. The fix's own first form commented out every ceiling — the
+  shots showed the roof's underside — and that is why the comment audit
+  exists.
+- Eight halls shot from their doors after the fix.
+- Runtime audit against r155: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 465 → 467.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r156.
+
+---
+
 ## 2026-10-01 — morning · r155 "The archives"
 
 **What was wrong.** After the Moon Archive, the city's two other archive
