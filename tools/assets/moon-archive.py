@@ -48,12 +48,12 @@ rng = a.rng
 
 
 def books(cx, cz, along, width, y, ry_axis):
-    # A shelf of books: runs of one to three volumes of one binding, a gap now
+    # A shelf of books: runs of two to four volumes of one binding, a gap now
     # and then, the odd one leaning. `along` is the unit vector the shelf runs
     # along (x or z), the books' spines face out from the wall.
     pos = -width / 2 + .04
     while pos < width / 2 - .1:
-        run = rng.choice((1, 1, 2, 2, 3))
+        run = rng.choice((2, 2, 3, 3, 4))
         w = rng.uniform(.06, .12) * run
         if pos + w > width / 2 - .04:
             break
