@@ -6,6 +6,34 @@ estimated.
 
 ---
 
+## 2026-10-01 — small hours · r151 "The city heard"
+
+**What was wrong.** Vaneth made no sound at all. The bells that turn the
+watch swung in silence; the wind on the belfry, the rain, the forges, the
+torches on the walls — nothing.
+
+**What changed.** A world-sound system, every sound in it synthesized: the
+bells struck from the partials of a real church bell, wind that rises as you
+climb, rain, the nearest fires crackling, crickets beyond the walls,
+footsteps, the doves' wings. A Sound section in the settings turns it off or
+down. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- The harness cannot listen, so a bell strike was rendered offline and its
+  spectrum read: the partials where a bell's are, the high ones dying first.
+  Nobody has heard it yet.
+- Levels read off the running context at the gate, the belfry and the city
+  centre; the fires it found; footsteps while walking; a peal's strikes and
+  wing claps; the settings button and slider, and what they keep.
+- Runtime audit against r150: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 0; draw calls 462 → 462.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r151.
+
+---
+
 ## 2026-10-01 — small hours · r150 "The bells ring the watch in"
 
 **What was wrong.** The Cathedral of Hours turns the watches with its bells,

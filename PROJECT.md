@@ -4,13 +4,15 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r150 / 1.50.0**, sealed 2026-10-01 as "the bells ring the watch
-in": the cathedral's bells swing when the watch turns, and its doves go up
-and wheel over it (§0). Before it, r149 / 1.49.0 ("the bell tower", §0r),
+Current: **r151 / 1.51.0**, sealed 2026-10-01 as "the city heard": world
+sound, every sound synthesized — the bells, wind, rain, fires, crickets,
+footsteps — with a Sound section in the settings (§0). Before it, r150 /
+1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0 ("the bell
+tower", §0r),
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the eight is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the nine is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -229,7 +231,108 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r150)
+## 0. Start here — where the last session left off (2026-10-01, r151)
+
+**State: r151 / 1.51.0, sealed 2026-10-01 ("the city heard").** Same
+instruction. Vaneth had never made a sound: the only audio in the game was
+music you loaded yourself. r151 is a world-sound system, and the cathedral's
+bells are the first thing in it.
+
+**Next:** the forest — modelled pines, firs and broadleaves in place of the
+cone trees, already modelled (`tools/assets/trees.py`) and waiting. Then
+the towers of the Moon Archive and the Northwatch Guild, and stairs up to
+the outer wall's walk. The Windows installers for r143–r151 have not been
+built.
+
+### World sound
+
+`SOUND` is one AudioContext, a master gain, a compressor and one shared
+reverb — a synthetic impulse, a stone space about three and a half seconds
+long. Nothing is sampled: every sound is built here from oscillators and
+noise. Things in the world are positional (a PannerNode each, the listener
+riding with the camera). The settings panel has a **Sound** section: world
+sound on or off, and a volume (a square law, as a slider should be), kept in
+this browser (`emberwatch.sound.v1`); it goes quiet while the window is
+hidden. If the browser will not make a context, or making it throws, the game
+is silent, as it was. A browser will not start a context before a key or a
+click; Electron will, and either way the first key or click resumes it.
+
+- **The bells.** Each strike is synthesized from the partials of a church
+  bell, relative to its strike note: the hum an octave below, the prime, the
+  minor-third tierce, the quint, the nominal an octave above, and four
+  higher; each with its own level and its own decay (the hum lasts ten
+  seconds, the highest half a second), the two lowest doubled a fraction of
+  a hertz apart so they beat, and a knock of filtered noise for the clapper.
+  The big bell's strike note is 174 Hz, the small one's 232 Hz — the sizes
+  are 4:3, so the interval is a fourth. A swinging bell strikes at each end
+  of its swing; below a third of full swing it does not strike at all.
+- **Wind**: a low roar and a higher band of noise, gusting; at street level
+  a murmur, on the belfry or a wall a good deal more; a quarter of that
+  indoors.
+- **Rain**: as heavy as the rain falling; muffled indoors.
+- **Fires**: every hearth, forge and wall torch is a place a crackle can
+  come from (`TORCH_SPOTS` is new: the torches on the walls record where
+  they are); the two nearest within 22 m crackle, a voice that changes fire
+  fading out, moving and fading back in.
+- **Crickets**: seven of them, synthesized, out beyond the outer wall; a
+  few inside it; none indoors or in the rain.
+- **Footsteps**: a soft knock each stride, hollower on boards and stairs, a
+  splash in water.
+- **The doves**: their wings clapping as they go up.
+
+### Verifying sound without ears
+
+The harness cannot listen, so `EMBER.sound.renderBell(prime)` renders one
+strike offline and a probe takes its spectrum in the page. `EMBER.sound.report()`
+gives the context's state, the counters (strikes, steps, wing claps), which
+fires the crackle voices are on, and the ambience's levels.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise. The context ran (state
+"running") in the harness throughout.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  `OfflineAudioContext`, a browser global it does not know, and comment
+  words), `audit-dom`, `audit-dead` (609 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- One strike of each bell rendered offline and its spectrum taken in the
+  page, a quarter second in: the big bell's peaks at 86, 172, 205, 258, 345,
+  431, 517 and 689 Hz, the small one's at 118, 226, 280, 345, 463, 581, 689
+  and 926 Hz — the hum, prime, tierce, quint, nominal and the partials above,
+  within the 11 Hz the analysis can resolve. The big bell's loudness (RMS)
+  0.29 at the strike, 0.19 at 1 s, 0.07 at 2 s, 0.04 at 3 s, 0.024 at 4 s,
+  0.008 at 5 s. Nobody has listened to it: this is the shape of a bell, not
+  a judgement of how it sounds.
+- A peal, the player at the parvis: 14 strikes and 34 wing claps. On the
+  harness a frame near the cathedral takes about five seconds, and a bell
+  strikes at most once a frame; at a real frame rate every end of every
+  swing strikes.
+- Levels read off the running context: outside the north gate the wind
+  0.038 / 0.005 (its two bands) and the crickets 0.063; in the belfry, 19 m
+  up, the wind 0.099 / 0.039 and the crickets 0.012; at the city's centre,
+  which the game counts as indoors, the wind 0.010 and no crickets. 186
+  places a fire can crackle from: 147 wall torches, 32 forges, 7 hearths;
+  from the centre the two nearest hearths, each voice at 0.34.
+  Walking 30 frames, 4 footsteps.
+- The settings: the button turns world sound off and on and says so, the
+  report agrees, the slider sets the volume, and both are kept
+  (`{"on":false,"volume":0.7}` read back from storage).
+- Runtime audit, r150 → r151: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 462; triangles 2,245,477 → 2,245,477; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231.
+- Shots looked at: the settings panel with its Sound section; all 15
+  captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r151".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0q. r150 — where the session before that left off (2026-10-01)
 
 **State: r150 / 1.50.0, sealed 2026-10-01 ("the bells ring the watch in").**
 Same instruction: keep modelling, build systems where they give the most

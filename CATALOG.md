@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.50.0 / build r150 ("the bells ring the watch
-in")**, 2026-10-01. Archived, smoke-tested, six variants boot-check. Not
-packaged yet (nor are r143 to r149): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+Current sealed source: **1.51.0 / build r151 ("the city heard")**,
+2026-10-01. Archived, smoke-tested, six variants boot-check. Not packaged
+yet (nor are r143 to r150): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r150'
+                      the strain-archive lookups work. BUILD_REVISION = 'r151'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 3.0 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r150-bells-ring-the-watch-in.html
+                      emberwatch_3_r151-the-city-heard.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r150, minus the revisions
+                    Phase 5 currently contains r70-r151, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r150-bells-ring-the-watch-in.html
+                    emberwatch_3_r151-the-city-heard.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1184,6 +1184,20 @@ guessed at.
                           dialogue branches none broken, road obstructions
                           0; all captures looked at; 6/6 variants built
                           and booted; smoke clean (r150 in the title).
+    Oct 1      r151       the city heard. World sound, all of it synthesized
+                          in the page: the bells struck from a church bell's
+                          partials, wind rising with height, rain, the two
+                          nearest fires crackling (hearths, forges, wall
+                          torches), crickets beyond the walls, footsteps, the
+                          doves' wings. Positional, one shared reverb; a Sound
+                          section in the settings, kept in the browser.
+                          Verified: parse/audit/dead clean; a bell strike
+                          rendered offline and its spectrum read; levels read
+                          off the running context; runtime audit against
+                          r150, no errors, 102 dialogue branches none broken,
+                          road obstructions 0; all captures looked at; 6/6
+                          variants built and booted; smoke clean (r151 in the
+                          title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested
