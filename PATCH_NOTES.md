@@ -1,95 +1,89 @@
-**r154 — the moon archive** · 1.54.0 · 2026-10-01 · phase 5, world depth
+**r155 — the archives** · 1.55.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the Moon Archive. The city's library fitted out (tools/assets/moon-archive.py): bookcases full to the cornice, a rolling ladder, a map chest under a round moon window, reading tables with candles and open books, hanging lamps, a lectern, a globe, and the archive's instrument, a moon in brass rings. The storeroom filler skips the room. Verified: parse/audit/dead clean; the room shot from six places; the corners stood on; runtime audit against r153, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r154 in the title).
+the archives. The Eastwall Scriptorium (ledger walls, pigeonholes of records, scribes' desks, the great ledger) and the Cold Assay (a beam balance, drawers and jars, something under a sheet, a furnace and crucibles, cold lamps) fitted out (tools/assets/archives.py); the filler skips them. Verified: parse/audit/dead clean; both rooms shot and stood in; runtime audit against r154, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r155 in the title).
 
 ### Patch notes
 
-**State: r154 / 1.54.0, sealed 2026-10-01 ("the Moon Archive").** Same
-instruction. With the city culled (r153) there is room to model rooms
-properly, and the Moon Archive — the city's library, whose archivist tells
-you it "remembers names the city has lost" — was a 20 by 16 m hall holding a
-rug, two plain shelves, a table and a stone block with a glowing top.
+**State: r155 / 1.55.0, sealed 2026-10-01 ("the archives").** Same
+instruction. r154 fitted out the Moon Archive; the city's two other archive
+halls were the same 20 by 16 m room with a rug, a table and the storeroom
+filler's chests round the walls. r155 fits them out after what they are for.
 
-**Next:** the Eastwall Scriptorium and the Cold Assay are archives too, and
-still the old furnishing; the library model's bookcases would suit both.
-The towers of the Moon Archive and the Northwatch Guild; stairs up to the
-outer wall's walk. The Windows installers for r143–r154 have not been built.
+**Next:** the taverns, the guild halls and the shrines are still furnished
+by the old pieces and the filler; the Northwatch Guild ("a planning table,
+spare gear, and a room for the watch") is the obvious next. The towers of
+the Moon Archive and the Northwatch Guild; stairs up to the outer wall's
+walk. The Windows installers for r143–r155 have not been built.
 
-### A library
+### The Eastwall Scriptorium
 
-`tools/assets/moon-archive.py` builds two models laid at the room's middle
-by `placeMoonArchive()`:
+"Ink-stained desks, tall ledgers, and the eastern wall's records."
+`tools/assets/archives.py` builds `scriptorium` (12,404 triangles, warm
+glow): ledger cases on the back wall, three bays either side; between them
+a cabinet of pigeonholes, each with a rolled record or two showing their
+ends, and three more down each side wall; two rows of three scribes' desks —
+a slanted top, a ledge with the inkwell, a quill, a page, a candle, a stool
+— with a lamp of candles over each row; one desk's page unfinished, the
+quill lying across it and a blot; the great ledger open on its stand by the
+door. `placeScriptorium()` lays it and its colliders.
 
-- `moon-archive` (10,680 triangles, warm glow): bookcases full to the
-  cornice — three bays either side of the back wall's window, four down each
-  side wall, the door end left clear — every shelf laid book by book in runs
-  of one binding, a gap now and then, the odd one leaning; a rolling ladder
-  on its brass rail; a map chest with scrolls under the window; two long
-  reading tables down the room with their benches, candles, open books and
-  a stack; a lamp of candles hung over each; a lectern with the register on
-  it and a celestial globe either side of the instrument.
-- `moon-archive-moon` (1,100 triangles, cool glow): the round window of
-  moon-glass in a stone ring with lead tracery, and the archive's
-  instrument where the old block stood — a pale moon in three brass rings on
-  a stone plinth, a soft blue lamp over it.
+The room's one interaction, "read the unfinished page", stood at local
+(−2, 1). With the desks in, a body put there touched two of them (a probe
+standing there was moved), so it stands in the aisle beside the page now,
+at (−1.3, −0.8).
 
-The colliders are the script's numbers. The archivist's place (local 0, 1)
-and the shelves she reads at (0, −2.5) are clear; the instrument's
-interaction ("touch the archive instrument") is where it was, 0.6 m from the
-new moon.
+### The Cold Assay
 
-Two things found on the way. The first book pass was 14,760 triangles and
-packed to 202 KB, over `inline-glb`'s 200 KB limit; runs of two to four
-volumes of a binding brought it to 146 KB. And the moon-glass, written
-glowing at 0.88, burnt the instrument and the window to white under the
-bloom; it glows at 0.45 now.
+"They weigh things here that nobody will name." `cold-assay` (5,490
+triangles, cool glow): a great beam balance on a stone counter against the
+back wall, a little out of true, a dark lump in one pan and a stack of
+weights in the other, spare weights by it; two bays of small brass-pulled
+drawers and two of shelves of stoppered jars down the right wall; a long
+table with something under a sheet, the assay book and an inkwell; an
+iron-bound strongbox; two cold lamps hung down the room. `cold-assay-fire`
+(236 triangles, fire glow): the assay furnace against the left wall, its
+mouth glowing, its flue to the ceiling, and a bench of crucibles, two of
+them hot, with tongs. A fire light at the furnace and a cool one under the
+lamps. The flue was first brick-red and, a metre from the fire light, read
+as a pipe of lava; it is black with soot now.
 
-### The room filler leaves it alone
-
-`dressInterior` fills every hall's free floor and walls with what a
-storeroom holds — chests, barrels, sacks, crates, racks, stools — by a
-seeded hand of its own. In the library it set four chests a metre and a half
-in front of the back bookcases, barrels against the side ones and a stool by
-the lectern; and probes teleported into the archive's corners were thrown
-out of the building, because they landed inside a chest's collider (the
-same happened on r153, before the fit-out). The Moon Archive is furnished
-by hand now and the filler skips it; it draws from its own generator, so
-nothing else in the city moves. `EMBER.collidersAt(x, z, reach)` is new: what
-a probe standing there would touch, and whether it blocks.
-
-Also: the comment over `dressPoints` described r107's single merged mesh;
-it says what r153 made it.
+`FITTED_ARCHIVES` names the three fitted halls; the generic archive pieces
+and the storeroom filler skip all three.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are the two
-  asset markers and a comment word), `audit-dom`, `audit-dead` (618
-  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
-- Eight points in the room stood on, door to corners: none moves the player
-  now (on r153, two put them outside the building).
-- Shots looked at: the room from the door, from the back corner, the
-  instrument close, the window, a side bookcase close, the tables — before
-  and after the glass was toned down; the archivist at her place with "talk
-  with Archivist Lysa" and "touch the archive instrument" both offered.
-- Runtime audit, r153 → r154: errors 0 → 0; villagers 374 → 374;
-  draw calls 460 → 462; triangles 2,050,711 → 2,061,303; colliders 11,939
-  → 11,889 (the filler's and the old shelves' gone, the library's ten
-  in); doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
-  road obstructions in the carriageway 0 → 0, intruding 231 → 231.
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  three asset markers and two comment words), `audit-dom`, `audit-dead`
+  (620 functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Eight points in each room stood on: in the Scriptorium only the old
+  interaction point moved the player (it was moved, above); in the Assay only
+  a point at the end of the long table, which is the table.
+- Shots looked at: each room from the door, from a back corner, from the
+  front corner, and close (the page desk with "read the unfinished page"
+  offered; the furnace and the balance); the models from two sides each.
+- Runtime audit, r154 → r155: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 465; triangles 2,061,303 → 2,077,629; colliders 11,889
+  → 11,803; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; unreachable interactions: none; road obstructions in the
+  carriageway 0 → 0, intruding 231 → 233 — the two new ones are the
+  Scriptorium's back-left ledger cases and its left pigeonholes, each laid as
+  one long box inside the room; the audit measures a box by its bounding
+  circle, and theirs reach a street past the hall's wall. Next time that
+  room is touched they should be a box a bay.
 - All 15 captures looked at.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r154".
+  chooser installed, `requestDevice` settles, "Emberwatch — r155".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.27 MB (+236,391 bytes on r153).
-- 1 function added: `placeMoonArchive`.
+- 3.61 MB (+358,128 bytes on r154).
+- 2 functions added: `placeColdAssay`, `placeScriptorium`.
 
 ### Play it
 
