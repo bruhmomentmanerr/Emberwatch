@@ -1,102 +1,112 @@
-**r150 — bells ring the watch in** · 1.50.0 · 2026-10-01 · phase 5, world depth
+**r151 — the city heard** · 1.51.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the bells ring the watch in. The cathedral's two bells are their own model (cathedral-bell) and swing when the watch turns: rung up, full, dying away, over 27 s. A landmark mover can swing as well as spin. Sixteen doves on the nave ridge and the spire drums go up when the bells ring, wheel over the church, and land back where they sat: one mesh for the flock, rewritten only while it flies. Verified: parse/audit/dead clean; a full ring read off at runtime, every dove back on its perch; runtime audit against r149, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r150 in the title).
+the city heard. World sound, all of it synthesized in the page: the bells struck from a church bell's partials, wind rising with height, rain, the two nearest fires crackling (hearths, forges, wall torches), crickets beyond the walls, footsteps, the doves' wings. Positional, one shared reverb; a Sound section in the settings, kept in the browser. Verified: parse/audit/dead clean; a bell strike rendered offline and its spectrum read; levels read off the running context; runtime audit against r150, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r151 in the title).
 
 ### Patch notes
 
-**State: r150 / 1.50.0, sealed 2026-10-01 ("the bells ring the watch in").**
-Same instruction: keep modelling, build systems where they give the most
-polish. The Cathedral of Hours has always been said to turn the watches with
-its bells; until r150 the bells were part of a static model and nothing
-happened when the watch turned but a line of text. Now the bells swing, and
-the cathedral's doves go up.
+**State: r151 / 1.51.0, sealed 2026-10-01 ("the city heard").** Same
+instruction. Vaneth had never made a sound: the only audio in the game was
+music you loaded yourself. r151 is a world-sound system, and the cathedral's
+bells are the first thing in it.
 
-**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
-still only outsides; stairs up to the outer wall's walk. The game has no
-sound at all — the bells are the obvious first thing to hear, but sound is a
-system of its own (a mixer, a mute, distance), not a one-off. The Windows
-installers for r143–r150 have not been built.
+**Next:** the forest — modelled pines, firs and broadleaves in place of the
+cone trees, already modelled (`tools/assets/trees.py`) and waiting. Then
+the towers of the Moon Archive and the Northwatch Guild, and stairs up to
+the outer wall's walk. The Windows installers for r143–r151 have not been
+built.
 
-### The bells swing
+### World sound
 
-- The bells were modelled into `cathedral-furnishing`, merged with the pews
-  and the frame, so they could not move. They are their own model now,
-  `cathedral-bell` (`tools/assets/cathedral.py`): the headstock with its
-  gudgeons and straps, the bell with two bands of moulding, the clapper; its
-  origin is the pivot, under the frame's beam. 256 triangles.
-- `cathedralBellTower()` hangs two as landmark movers — the second at three
-  quarters the size — in bronze (metalness 0.82: at 0.55 the belfry lantern
-  a metre away burnt them to a flat orange). `placeLandmark`'s mover path
-  takes the point's scale now.
-- A mover used to mean a wheel: `spin` radians a second. A mover with
-  `swing` swings that far either side of hanging, at its own `period`
-  (2.5 s the big bell, 2.1 s the small), scaled by `bellsRinging(t)`: 0 at
-  rest, rung up over 4 s, full for 16, dying away over 7, eased at both ends.
-  The angle is set from the clock, not accumulated, so a bell the player was
-  too far away to update is right again the moment they are near.
-- `applyWatch` calls `ringBells(t)` where it already showed "The bell turns
-  to …". `EMBER.sky.bells(hold)` rings them from the harness; `hold` keeps
-  them swinging for shots.
+`SOUND` is one AudioContext, a master gain, a compressor and one shared
+reverb — a synthetic impulse, a stone space about three and a half seconds
+long. Nothing is sampled: every sound is built here from oscillators and
+noise. Things in the world are positional (a PannerNode each, the listener
+riding with the camera). The settings panel has a **Sound** section: world
+sound on or off, and a volume (a square law, as a slider should be), kept in
+this browser (`emberwatch.sound.v1`); it goes quiet while the window is
+hidden. If the browser will not make a context, or making it throws, the game
+is silent, as it was. A browser will not start a context before a key or a
+click; Electron will, and either way the first key or click resumes it.
 
-### The doves
+- **The bells.** Each strike is synthesized from the partials of a church
+  bell, relative to its strike note: the hum an octave below, the prime, the
+  minor-third tierce, the quint, the nominal an octave above, and four
+  higher; each with its own level and its own decay (the hum lasts ten
+  seconds, the highest half a second), the two lowest doubled a fraction of
+  a hertz apart so they beat, and a knock of filtered noise for the clapper.
+  The big bell's strike note is 174 Hz, the small one's 232 Hz — the sizes
+  are 4:3, so the interval is a fourth. A swinging bell strikes at each end
+  of its swing; below a third of full swing it does not strike at all.
+- **Wind**: a low roar and a higher band of noise, gusting; at street level
+  a murmur, on the belfry or a wall a good deal more; a quarter of that
+  indoors.
+- **Rain**: as heavy as the rain falling; muffled indoors.
+- **Fires**: every hearth, forge and wall torch is a place a crackle can
+  come from (`TORCH_SPOTS` is new: the torches on the walls record where
+  they are); the two nearest within 22 m crackle, a voice that changes fire
+  fading out, moving and fading back in.
+- **Crickets**: seven of them, synthesized, out beyond the outer wall; a
+  few inside it; none indoors or in the rain.
+- **Footsteps**: a soft knock each stride, hollower on boards and stairs, a
+  splash in water.
+- **The doves**: their wings clapping as they go up.
 
-Sixteen doves (`cathedralDoves`, `updateDoves`): ten along the nave's ridge,
-three round each spire's drum on the side away from the flèche. When the
-bells ring they go up — each after its own short delay, wings beating —
-wheel over the church on circles round the flèche (a third of the ridge
-birds inside the spires, the rest outside them), gliding and beating in
-turns, banked into the turn, and three seconds after the bells stop they
-come back down, each to where it sat. Nothing in the city is moved for them:
-their variety is `planHash`, not the world stream.
+### Verifying sound without ears
 
-- One mesh for the whole flock, rewritten only while it flies (at rest it is
-  drawn once and left alone): 23 triangles a bird — a plump body, a round
-  head, a tail, two wings of two panels that fold along the back.
-- 1.8 × life, pale, with a faint cool emissive. At life size and unlit they
-  were invisible against the night sky from the street: dark specks on a
-  dark sky.
-- A bird that strays into a spire or the flèche once clear of its perch is
-  put back out on its surface.
-- **The first version never flew on the harness.** `updateDoves` skipped
-  its work once the flock was drawn at rest, except in the two seconds after
-  a ring — and the harness draws a frame every three seconds, so it never
-  saw those two. It wakes on the ring itself now.
+The harness cannot listen, so `EMBER.sound.renderBell(prime)` renders one
+strike offline and a probe takes its spectrum in the page. `EMBER.sound.report()`
+gives the context's state, the counters (strikes, steps, wing claps), which
+fires the crackle voices are on, and the ambience's levels.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
-standard profile's seed) unless it says otherwise.
+standard profile's seed) unless it says otherwise. The context ran (state
+"running") in the harness throughout.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are the
-  `CATHEDRAL_BELL` asset marker and comment words), `audit-dom`,
-  `audit-dead` (590 functions, 0 dead), `test-switch-frames`,
-  `test-switch-b9`: clean.
-- A full ring, unheld, the player at the parvis, sampled every few
-  seconds: the bells read 0.34/−0.44, 0.59/0.04, 0.50/−0.70, −0.10/0.36 rad through the
-  peal and 0 from 24.7 s on; all 16 doves airborne from the first sample,
-  as high as 37.3 m and as far as 44.3 m from their perches, and all 16 back on them —
-  0.00 m off — by 35.8 s. Rung with the player far from the cathedral, the
-  doves went up and came back the same (every one on its perch by 42.4 s),
-  and the bells, correctly, did not move.
-- Runtime audit, r149 → r150: errors 0 → 0; villagers 374 → 374;
-  draw calls 459 → 462 (the two bells and the flock); triangles
-  2,244,877 → 2,245,477; colliders 11,939 → 11,939; doors 202 → 202;
-  dialogue 17 wards / 102 branches, none failed; road obstructions in the
-  carriageway 0 → 0, intruding 231 → 231.
-- Shots looked at: the bells from the belfry mid-swing, before and after
-  the bronze was darkened; both bells in their frame from the corner; the
-  flock over the west front from the parvis, enlarged; the perched doves on the ridge and on
-  a spire's drum, before and after they had heads; all 15 captures.
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  `OfflineAudioContext`, a browser global it does not know, and comment
+  words), `audit-dom`, `audit-dead` (609 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- One strike of each bell rendered offline and its spectrum taken in the
+  page, a quarter second in: the big bell's peaks at 86, 172, 205, 258, 345,
+  431, 517 and 689 Hz, the small one's at 118, 226, 280, 345, 463, 581, 689
+  and 926 Hz — the hum, prime, tierce, quint, nominal and the partials above,
+  within the 11 Hz the analysis can resolve. The big bell's loudness (RMS)
+  0.29 at the strike, 0.19 at 1 s, 0.07 at 2 s, 0.04 at 3 s, 0.024 at 4 s,
+  0.008 at 5 s. Nobody has listened to it: this is the shape of a bell, not
+  a judgement of how it sounds.
+- A peal, the player at the parvis: 14 strikes and 34 wing claps. On the
+  harness a frame near the cathedral takes about five seconds, and a bell
+  strikes at most once a frame; at a real frame rate every end of every
+  swing strikes.
+- Levels read off the running context: outside the north gate the wind
+  0.038 / 0.005 (its two bands) and the crickets 0.063; in the belfry, 19 m
+  up, the wind 0.099 / 0.039 and the crickets 0.012; at the city's centre,
+  which the game counts as indoors, the wind 0.010 and no crickets. 186
+  places a fire can crackle from: 147 wall torches, 32 forges, 7 hearths;
+  from the centre the two nearest hearths, each voice at 0.34.
+  Walking 30 frames, 4 footsteps.
+- The settings: the button turns world sound off and on and says so, the
+  report agrees, the slider sets the volume, and both are kept
+  (`{"on":false,"volume":0.7}` read back from storage).
+- Runtime audit, r150 → r151: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 462; triangles 2,245,477 → 2,245,477; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231.
+- Shots looked at: the settings panel with its Sound section; all 15
+  captures.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r150".
+  chooser installed, `requestDevice` settles, "Emberwatch — r151".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 2.99 MB (+10,021 bytes on r149).
-- 5 functions added: `bellsRinging`, `cathedralDoves`, `doveShape`, `ringBells`, `updateDoves`.
+- 3.01 MB (+16,761 bytes on r150).
+- 19 functions added: `saveSoundSettings`, `showSoundSetting`, `soundAmbience`, `soundBellVoice`, `soundBells`, `soundChain`, `soundCrackleBuffer`, `soundCricketBuffer`, `soundFireSpots`, `soundImpulse`, `soundLevel`, `soundNoise`, `soundNoiseBuffer`, `soundPanner`, `soundRelease`, `soundRenderBell`, `soundReport`, `soundStart`, `updateSound`.
 
 ### Play it
 
