@@ -8,6 +8,8 @@
 #                   trunk; the commonest tree
 #   tree-fir        taller and narrower, five tiers to a spire
 #   tree-broadleaf  a forked trunk under a crown of three lumpy masses
+#   tree-snag       a dead pine: a bare grey trunk and a few broken limbs
+#   shrub           undergrowth for the forest's edge: two low masses
 #
 # Local frame (game axes): the trunk's foot at the origin, the reference tree
 # 6 m tall with its lowest branches about 1.7 m out. The game scales each
@@ -26,6 +28,8 @@ NEEDLE2 = (.17, .40, .23)
 NEEDLE_UNDER = (.06, .16, .11)
 LEAF = (.17, .36, .17)
 LEAF2 = (.24, .45, .21)
+DEAD = (.36, .33, .31)
+DEAD2 = (.30, .27, .25)
 
 
 def skirt(a, yt, yb, r, n, phase, side, side2, under, droop=.32, inner=.66):
@@ -77,7 +81,22 @@ def broadleaf():
     return a
 
 
-MAKERS = {'pine': pine, 'fir': fir, 'broadleaf': broadleaf}
+def snag():
+    a = Asset('tree-snag', seed=1523)
+    a.cyl(.19, .05, 5.4, 0, 2.7, 0, DEAD, sides=5, cap=False)
+    for ang, y, out, up in ((.4, 2.4, .9, .35), (2.5, 3.1, .75, .5), (4.3, 3.7, .6, .3), (1.5, 4.3, .5, .45)):
+        a.tube([(0, y, 0), (math.cos(ang) * out, y + up, math.sin(ang) * out)], [.07, .02], DEAD2, sides=4, cap0=False, cap1=False)
+    return a
+
+
+def shrub():
+    a = Asset('shrub', seed=1524)
+    for (x, z, w, h) in ((.25, .05, 1.3, .9), (-.4, -.1, 1.05, .72)):
+        a.rock(w, h, w * .9, x, h * .42, z, LEAF, jag=.24, sides=5, top_color=LEAF2)
+    return a
+
+
+MAKERS = {'pine': pine, 'fir': fir, 'broadleaf': broadleaf, 'snag': snag, 'shrub': shrub}
 for name in (sys.argv[1:] or list(MAKERS)):
     t = MAKERS[name]()
     t.finish(cam_at=(7.0, 3.2, 9.0), cam_look=(0, 3.0, 0), res=(360, 420), lens=35, sun=(40, 0, 60),
