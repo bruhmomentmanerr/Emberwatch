@@ -1,112 +1,98 @@
-**r156 — the watch houses** · 1.56.0 · 2026-10-01 · phase 5, world depth
-
-In its own panel header: *r156 the watch-houses*.
+**r157 — the taverns** · 1.57.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the watch-houses. The Northwatch Guild (planning table under a map of the city, spear racks and shields, armour stands, bunks and a stove, a ladder to the tower) and the Westwall Refuge (workbench and tool board, ward maps, a repair corner, cots, a brazier with benches round it) fitted out (tools/assets/watch.py). Every hall's floor is at the ground: the plinth under the walls had been one solid block 0.55 m high since r145. tools/audit-comments.js lists comments that have swallowed code; the runtime audit walks each ward in the labour watch (the wilds it lost since r152 had gone "indoors" for the still watch) and tries each resident from four sides. Verified: parse/audit/dead/comments clean; both rooms shot and stood in, eight halls shot after the floor fix; runtime audit against r155, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r156 in the title).
+the taverns. The Cinder and Keg (bar, keg rack, hearth nook, a curtained stage, round tables, the regulars' long table), the Southgate Rest (boots drying at the hearth, the pack rail, the keeper's desk, stairs to the rooms), the Gilded Finch (booths, the musician's nook, the late-night room, the finch in its cage) and the Wayhouse (stew pot, the baker's bread, long tables, pallets, the alms box) fitted out (tools/assets/taverns.py), one thing to look at in each. Residents of the wild places with no house keep their posts through the still watch; Merrin Vale no longer spawns inside the Cinder and Keg. Verified: parse/audit/dead/ comments clean; nineteen shots twice and twenty standpoints in the taverns; the wild places in the still watch; runtime audit against r156, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r157 in the title).
 
 ### Patch notes
 
-**State: r156 / 1.56.0, sealed 2026-10-01 ("the watch-houses").** The
-owner's word on r154–r155: the shots "look crazy good" — carry on, update
-the interiors. r156 fits out the two guild halls, and finds and fixes why
-every hall's furniture had looked low.
+**State: r157 / 1.57.0, sealed 2026-10-01 ("the taverns").** Same
+instruction — "update my interiors and whatnot". r157 fits out the four
+taverns, keeps the wild places' residents at their posts through the still
+hours, and gets Merrin Vale out of the Cinder and Keg.
 
-**Next:** keep the wild places' residents at their posts through the still
-hours (below, "Why the audit kept losing the wilds"); the four taverns (the
-Cinder and Keg, the Southgate Rest, the Gilded Finch — whose centrepiece is a
-glowing 1.1 m block on a counter by the door — and the Wayhouse), then the
-Pilgrim Shrine and the New Chapel. The
-Windows installers for r143–r156 have not been built.
+**Next:** the five halls that still have the generic furniture for their
+kind — the Drovers' Rest (a fifth tavern, in the new quarter south of the
+city), the Lamplighters' Hall and Ferrier's Yard (guilds), the Pilgrim
+Shrine and the New Chapel; then people in the taverns of an evening —
+nobody sits at any of these tables yet, and Barkeep Varn is the only one
+behind a bar. The
+towers of the Moon Archive and the Northwatch Guild, and stairs up to the
+outer wall's walk, are still to do. The Windows installers for r143–r157
+have not been built.
 
-### Every hall's floor stood half a metre up
+### The taverns
 
-r145's `hallExterior` laid the halls' plinth course as one solid stone block
-the size of the whole hall, 0.55 m high. It had no collider and no surface,
-so nobody stood on it: inside every hall the floor you saw was its top, and
-everything in the room — the tables, benches, beds, the residents and you —
-stood from the ground half a metre below it. Benches vanished into the
-floor, tables read as low boards, a brazier showed only its coals, and
-residents were cut off at the shin. The first shots of the Westwall Refuge
-showed cots as slivers of blanket on the floor, which is how it was found.
-The plinth is a course under the walls now, open at the 3 m door; the room's
-cobble floor, which itself stood at 0.24 m, is at the ground. Every hall
-with an outside — all but the Great Hall — changes, for the better: the
-archives' reading tables and desks stand at their height for the first time.
+Each of the four was the same room: a bar slab across the middle, two
+blocks for tables, a stone drum, a hearth, a rug, and the storeroom
+filler's chests and barrels round the walls; the Gilded Finch's centrepiece
+was a glowing violet block on a counter by the door. `tools/assets/taverns.py`
+models each after what `INTERIOR_PURPOSES` says it is for:
 
-### Two comments had swallowed code
+- **The Cinder and Keg** (`cinder-keg`, 13,580 triangles) — "a warm hearth,
+  a small stage, and tables meant for lingering". The bar runs across the
+  room with Barkeep Varn behind it, where he has always stood; behind him
+  the keg rack, two tiers of casks with taps, the back-bar shelves of
+  bottles, two chalkboards and the keg's end carved with a flame. A hearth
+  nook in the back left with two armchairs, a low table and a rug; a stage
+  in the back right with a curtain, a lute on a stool, a drum, a music
+  stand and candle footlights; round tables with stools; the regulars'
+  long table on the left wall with a settle, a game left half-played and a
+  shelf of plates over it; barrel tables and a dartboard on the right;
+  cloaks on pegs by the door; two cartwheel chandeliers.
+- **The Southgate Rest** (`southgate-rest`, 5,036) — "a travel-worn hearth
+  and a quiet place to set down a pack". A big hearth with a pot on its
+  crane, three odd pairs of boots drying before it and socks on a line
+  under the mantel, two settles facing in; the pack rail with packs,
+  bedrolls and hats, walking staffs, a bench with a pack set down, a
+  painted map of the south road; pallets in the back corner; the keeper's
+  desk with the ledger open, a bell and the board of room keys; stairs up
+  the right wall to a landing and the door to the rooms; a long table laid
+  with bowls and bread; lanterns for the road on hooks by the door.
+- **The Gilded Finch** (`gilded-finch`, 10,762) — "soft booths, a
+  musician's nook, and a late-night room". Panelled to dado height with a
+  gilt rail. The musician's nook on a half-round dais under a gilt arch,
+  a plum curtain behind, a harp, a viol on its stand, a stool, a music
+  stand and two tall candle stands; six booths down the walls with candles
+  under glass and pictures over them; the late-night room in the back left
+  behind a partition and a drawn curtain — floor cushions, a low table, a
+  lamp, a bottle and two glasses; a small polished bar with a mirror and
+  shelves of good bottles; small tables with armchairs facing; the finch
+  in its gilt cage over the middle of the room; a gilt chandelier.
+- **The Wayhouse** (`wayhouse`, 6,132) — "first roof inside the new wall,
+  and it knows it". The hearth with the stew pot on its crane and bowls
+  stacked by it, a datestone over the mantel with the new wall cut in it,
+  logs stacked beside; the serving table along the back wall with the
+  baker's bread in baskets (a baker's own line: "whatever is left by the
+  last goes to the Wayhouse"), soup, bowls and a cask; two long tables laid with
+  bowls, spoons and bread; pallets down the right wall with a shelf of
+  folded blankets; a rack of cloaks on the left under a carved board, sacks
+  of meal; the alms box on its post by the door.
 
-The Westwall Refuge's old furnishing ended a line with "// the shelf stands
-on these" and the next call, `interiorSolid(...)`, ran on after it on the
-same line — so it was part of the comment, and the stone table it built had
-never existed since r145. `audit-source` had listed `theseinteriorSolid` in
-section A all along, among the comment words. And the first form of the
-floor fix made the same mistake: a comment added mid-line commented out
-every hall's ceiling, which the next shots showed as the roof's underside.
-`tools/audit-comments.js` is new: it lists every comment in the gameplay
-script holding a call statement with arguments — `name(args);` — which prose
-comments never do, and exits 1 if there is one. Run on r155 it finds the Refuge's
-line; on r156 it finds nothing. It runs with the others now (§3).
+The generic tavern pieces and the filler skip all four (`FITTED_HALLS`).
+Each has colliders from the script's numbers, a fire light (the Finch: its
+chandelier and the late-night room's lamp), and one thing to look at:
+the empty stage, the drying boots, the finch (who answers with three
+notes), the alms box.
 
-### The Northwatch Guild
+### The wild places keep their residents at night
 
-"A planning table, spare gear, and a room for the watch."
-`tools/assets/watch.py` builds `northwatch` (4,178 triangles, warm glow):
-the planning table under a map of the city — the walls as rings, the four
-avenues, wards blocked in, markers in the watch's blue and red — with
-candles, dividers and benches either side, a lamp over it; spear racks on the
-back wall under the watch's shields, the watch's banner between them over a
-chest of spare gear; three armour stands and a rail of cloaks, a bow rack and
-an arrow barrel on the left wall; two-tier bunks with footlockers and an
-iron stove between them on the right, a ward map, a notice board by the door;
-a ladder up to a hatch under the tower that stands on the roof's front
-corner; sconces down both walls.
+r156 found that a resident with no house to go to went "indoors" in the
+still watch where they stood: made invisible and flagged indoors, and
+offered for talk only from inside a home they do not have. Out past the
+wall that was a lantern keeper vanishing from her grove and a skywatcher
+from the knoll in the hours they are there for. `updateShelter` now leaves
+a wild or canon-place resident with no dwelling and no door to keep the
+dark at their post. Residents of the wild places who do have a house — in
+Lowmere — still go in.
 
-### The Westwall Refuge
+### Merrin Vale
 
-"A workbench, ward maps, and a watchful repair corner." `westwall-refuge`
-(3,164 triangles, warm glow): a long workbench with a vise and work on it
-under a board of tools; the ward maps on their boards over a map chest; the
-repair corner — an anvil on its block, a grindstone, broken spears and
-dented shields waiting, a water butt; cots down the left wall with a shelf
-of blankets over them; herbs hung to dry from a pole; provisions stacked by
-the door; a brazier in the middle of the room with three benches round it
-and firewood by it; a table with a lamp; sconces.
-
-Both: colliders from the script's numbers, a small fire light, and the
-generic guild slab and the storeroom filler skip them (`FITTED_HALLS`, which
-replaces r155's `FITTED_ARCHIVES`). The Scriptorium's long boxes are a box a
-bay now, as r155 said they should be.
-
-### Why the audit kept losing the wilds
-
-`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
-resident and pressing E. Since r152 it has now and then reported one remote
-ward as not opening — the Lantern Grove, in r152's first run and r153's —
-and r153 put it down
-to the key landing before the game had drawn the player's arrival. r156's
-first run lost the Fallen Hall Ruin (Orren of the Broken Hall, on his ledge
-over the falls, left the player more than 3 m from him), and a second run of
-the dialogue walk alone lost the Lantern Grove instead. Two probes that
-teleported beside Orren on r155 and r156 landed the player 1.8 m from him;
-on a fresh boot the game offered talk with every one of the residents
-concerned at once.
-
-A run that logged each failed try found the cause: Wren Halloway on the
-Skywatch Knoll and Iselde of the Lanterns were flagged indoors, standing at
-their posts. The walk takes ten minutes and more of game time and a watch is
-170 s, so by the time it reached the wilds, which come last, the still watch
-had come round, and a resident with no house to go to goes "indoors" where
-they stand: hidden, and offered for talk only from inside a home they do not
-have. Nothing r156 changed is involved. The audit now walks each ward in the
-labour watch, tries each resident from four sides before moving on to the
-next (the ledge pushed the player away from two sides of Orren's four), and
-reports every failed try with what E was offering.
-
-That a lantern keeper, a skywatcher and the residents of the other wild
-places vanish into thin air in the small hours is the game's own fault, not
-the audit's; it is left for the next revision.
+Merrin Vale, who walks the Cinder Market's round, spawned at (47, 111):
+inside the Cinder and Keg's walls. She never got out — in r156 she stood
+at the same spot for the whole of a 24-second probe — and in r157's first shots she
+was standing in front of the stage like part of the furniture. She starts
+on the corner of her round now.
 
 ### Verified
 
@@ -114,35 +100,41 @@ Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
 - `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
-  A gains the two asset markers and a comment word, and loses
-  `theseinteriorSolid`), `audit-dom`, `audit-dead` (623 functions, 0 dead),
-  `test-switch-frames`, `test-switch-b9`: clean.
-- Shots looked at: both guild halls from the door, from a back corner, from
-  the front corner and close, three times — as first built, after more was
-  added, and after the floor fix; eight halls from their doors after it (the
-  two guild halls, the Moon Archive, the Scriptorium, the Cinder and Keg —
-  that standpoint is outside it — the Southgate Rest, the Pilgrim Shrine, the
-  Gilded Finch); the models from two sides each.
-- Points stood on in each guild hall: two moved the player, each into a
-  piece of furniture (the planning table, the anvil); later, the arrow
-  barrel and the provisions.
-- Runtime audit, r155 → r156, with the audit as it now stands (its first
-  run, before the fix, opened 16 of the 17 wards): errors 0 → 0;
-  villagers 374 → 374;
-  draw calls 465 → 467; triangles 2,077,629 → 2,083,155; colliders 11,803
-  → 11,776; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  A gains the four asset markers and comment words), `audit-dom`,
+  `audit-dead` (627 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- The models from three or four sides each (Blender previews). In the game,
+  nineteen shots across the four taverns — from each door, the hearths, the
+  stage, the bar from both sides, the stairs, the nook, the late-night room
+  from outside and in, the booths, the serving table, the pallets, the alms
+  box — looked at, then again after the fixes below.
+- Twenty standpoints across the four taverns, each held without the player
+  being moved, after two fixes: the Finch's first left-hand booth stood
+  across the approach to the late-night room's doorway (the booths moved
+  toward the front and the doorway 0.9 m east), and a point first chosen
+  before the Keg's stage stood in its step. At the bar E offers "talk with
+  Barkeep Varn"; at each of the four new things to look at, E offers it.
+- The still watch: Iselde of the Lanterns, Wren Halloway, Orren of the
+  Broken Hall, Sister Amery, Tobias Mere and Corvin Cliffwatch visible,
+  not indoors, and E offering talk with each; of 71 residents indoors in
+  that watch, three are of the wild places (Ada Wellwright, Old Brannoc,
+  Maud Millward, of Lowmere, who have houses).
+- Merrin Vale: at (27.4, 132.0) and then (22.7, 131.2), walking her round.
+- Runtime audit, r156 → r157: errors 0 → 0; villagers 374 → 374;
+  draw calls 467 → 467; triangles 2,083,155 → 2,112,097; colliders 11,776
+  → 11,689; doors 202 → 202; dialogue 17 wards / 102 branches, none
   failed; tries that failed before one opened: none; unreachable
-  interactions: none; road obstructions in the
-  carriageway 0 → 0, intruding 233 → 231.
+  interactions: none; road obstructions in the carriageway 0 → 0,
+  intruding 231 → 231.
 - All 15 captures looked at.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r156".
+  chooser installed, `requestDevice` settles, "Emberwatch — r157".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.75 MB (+148,607 bytes on r155).
-- 3 functions added: `hallLight`, `placeNorthwatch`, `placeWestwallRefuge`.
+- 4.42 MB (+701,414 bytes on r156).
+- 4 functions added: `placeCinderKeg`, `placeGildedFinch`, `placeSouthgateRest`, `placeWayhouse`.
 
 ### Play it
 
