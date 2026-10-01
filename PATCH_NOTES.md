@@ -1,129 +1,119 @@
-**r152 — the forest at night** · 1.52.0 · 2026-10-01 · phase 5, world depth
+**r153 — the city culled** · 1.53.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the forest at night. The 4,200 cone trees outside the walls are modelled (tools/assets/trees.py): pines, firs, broadleaves, dead pines, and shrubs along the edge; one BatchedMesh, culled per tree, trees past the fog's reach hidden; same world stream and colliders. Fireflies at the forest's edge and along the brook. Verified: parse/audit/dead clean; five standpoints before and after; frame time against r151, faster at all four standpoints; runtime audit against r151, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r152 in the title).
+the city culled. The city's static geometry — mergeAll's materials, the street kit, the lamps, torches, signs and chimney crowns — laid in 72 m squares, each set one BatchedMesh culled square by square: one draw call still, a quarter to nearly half fewer triangles drawn in the city, seven in ten fewer outside it. Verified: parse/audit/dead clean; six standpoints shot against r152, nothing missing; frame time against r152, quicker at all six; runtime audit against r152 (the audit now waiting for frames), no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r153 in the title).
 
 ### Patch notes
 
-**State: r152 / 1.52.0, sealed 2026-10-01 ("the forest at night").** Same
-instruction. Everything outside the walls is forest, and every tree in it
-was a five-sided cylinder under two six-sided cones: from the walls, the
-belfry and every wild site, rows of Christmas trees. r152 models them, and
-lights the forest's edge with fireflies.
+**State: r153 / 1.53.0, sealed 2026-10-01 ("the city culled").** Same
+instruction. Since r146 every account of the cost has ended the same way:
+the city's static geometry was laid as meshes that each covered the whole
+city, nothing in them could be culled, and every wall, roof and window frame
+in Vaneth was drawn whatever the camera faced. r153 pulls that lever.
 
-**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
-still only outsides; stairs up to the outer wall's walk. `BatchedMesh` (below)
-is the lever the city's merged batches never had — per-object culling in one
-draw call — and the obvious next use of it is the city's own repeated
-pieces. The Windows installers for r143–r152 have not been built.
+**Next:** with a quarter to nearly half of the city's triangles no longer
+drawn there is
+room to model more of it: the Moon Archive's interior (a 20 by 16 m room
+holding a rug, two shelves, a table and a plinth), the towers of the Moon
+Archive and the Northwatch Guild, stairs up to the outer wall's walk. The
+comment over `dressPoints` still describes the single merged mesh; correct
+it with the next change there. The Windows installers for r143–r153 have
+not been built.
 
-### The trees
+### Where the triangles were
 
-`tools/assets/trees.py` models five, each a few dozen triangles because
-they are drawn in thousands, and each drawn for its silhouette at night:
+A probe hid one kind of thing at a time at the Cinder Market and counted
+what was left (r153's first form, with only `mergeAll` changed): of 1.68
+million triangles drawn, 884,000 were 476 meshes outside both `mergeAll`
+and the landmarks, the same number wherever the camera stood. The largest
+was the street kit's ground-floor window frames — 435,624 triangles in one
+mesh the size of the city — then its timber façades, stone trim and cloth.
+`dressPoints` laid each kind as one merged mesh; a comment there recorded
+that a per-instance batch had been tried in r107 and rejected, because 6,700
+bounds tests a frame made the north gate nearly three times slower.
 
-- `tree-pine` (74 triangles): four tiers of drooping skirts on a bare trunk,
-  each tier's rim a star — the points are the branch tips, the notches
-  between them higher and further in — over a dished, darker underside, so
-  it reads as a canopy from below.
-- `tree-fir` (90): taller and narrower, five tiers to a spire.
-- `tree-broadleaf` (152): a trunk forking into three limbs under a crown of
-  three lumpy masses.
-- `tree-snag` (42): a dead pine, a bare grey trunk and four broken limbs.
-- `shrub` (72): two low masses.
+### Culling by squares
 
-`plantForest()` lays them. The forest still places its 4,200 trees exactly
-as before — the same draws from the world stream, one turn per tree in the
-same order, and the same collider on every fifth — so nothing downstream of
-it moves. Which tree stands where is `planHash` of its position: more
-broadleaves at the edge, where the light gets in (a third of the trees at
-the edge, a twelfth deep in), firs three in ten, about one pine in seventeen
-dead. Shrubs, scattered by `planHash` from 8 m in front of the edge to 52 m
-into it, off the roads, clearings and brook, are visual only: you walk
-through undergrowth. Per-instance tints vary them.
+`cellMesh(parts, material, prepare)` takes a set of pieces already in world
+space, groups them into 72 m squares (`MERGE_CELL`) by the middle of each
+piece's bounding box, merges each square, and lays the squares as the
+instances of one `THREE.BatchedMesh`: still one draw call, but each square
+is tested against the view — and against the moon's shadow camera when the
+shadow map is stamped — and drawn only if it is in it. A square is a few
+hundred pieces, so the tests are a few thousand a frame across the city, not
+one per piece. A set with one square stays a plain mesh; a big piece (a run
+of wall) belongs to the square its middle stands in and is culled by its own
+bounds, so nothing is cut. `prepare` finishes each square's geometry:
+`placeLandmark`'s normals and box-projected UVs are both in world space, so a
+square gets exactly what the whole set did.
 
-**The colours arrive twice as bright.** The models' vertex colours are
-linear in the game, and the first shots showed a forest of bright green
-trees and neon shrubs against the night. The tints take them back to about
-half (shrubs to 0.6 of that), which is close to the old cones' darkness with
-the new shapes still legible.
+Three things use it: `mergeAll` (every material built with `collect()`),
+`dressPoints` (the street kit) and `placeLandmark` at more than one point
+(the wall torches, street lamps, shop signs, chimney crowns, festoons).
+`EMBER.batches()` reports it.
 
-### One draw call, culled per tree
+### The runtime audit waits for frames
 
-All 4,906 are one `THREE.BatchedMesh`: one draw call, with three.js culling
-each tree against the view on its own, and twice a second `updateForest()`
-hides every tree farther than the fog leaves anything to see
-(`2.35 / density + 12`, 447 m at the night fog). The old forest was three
-`InstancedMesh`es drawn whole wherever you looked. So the modelled forest
-costs less than the cones did — see the frame times below. `EMBER.forest()`
-reports the counts, how many are shown and the cut distance.
-
-### Fireflies
-
-Two hundred (`updateFireflies`), seated round the player — within 60 m, at
-random, nothing in the world moving for them — wherever the ground is from
-15 m before the forest's edge to 60 m into it, or within 10 m of the brook.
-Each drifts a metre or two and glows for a quarter of its own cycle of 2.5
-to 6 seconds. None inside the walls, indoors or in the rain. One draw call:
-the chimney smoke's point shader, additive — and with its own fog, because
-the stock fog include mixes toward the fog colour, which for added light
-would have been a glowing haze at distance; theirs fades them to nothing.
-The crickets (r151) are already out there with them.
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident, waiting 500 ms, pressing E and looking 280 ms later. Twice since
+r152 it reported the Lantern Grove's one resident, Iselde of the Lanterns,
+as not opening (r152's first run, r153's first run). A probe that stood
+beside her eight times as she walked, waiting for frames, found E offering
+"talk with Iselde of the Lanterns" and the dialogue opening every time. The
+nearest resident is worked out in the frame, and out at the grove a harness
+frame takes three or four seconds: the key could land before the game had
+seen the player arrive. The audit now waits for four frames after the
+teleport and three after the key, instead of a fixed time.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are the
-  five asset markers and comment words), `audit-dom`, `audit-dead` (616
-  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
-- `EMBER.forest()`: 4,906 instances — 2,356 pines, 1,285 firs, 418
-  broadleaves, 141 snags (4,200 trees), 706 shrubs; cut at 447 m; 753 shown
-  from the Cinder Market.
-- Frame time, median of 30 frames, r151 and r152 alternated twice:
+- `check-parse`, `audit-source` (B and C 0; section A unchanged),
+  `audit-dom`, `audit-dead` (617 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- `EMBER.batches()`: 65 sets, 47 of them batched into 2,453 squares, 18
+  plain (one square each).
+- Shots at six standpoints, r152 and r153 (the market, the north avenue, a
+  west-ward street, over the roofs, the belfry over the city, the market
+  looking back), compared pixel by pixel: the differences are the clouds,
+  the smoke, and residents who had moved between the runs — no wall, roof,
+  frame or lamp missing anywhere.
+- Frame time, median of 30 frames, r152 and r153 alternated twice, and the
+  triangles drawn:
 
-  | standpoint | r151 | r152 |
-  |---|---|---|
-  | outside the north gate | 1,038 / 1,050 ms | 927 / 939 ms |
-  | on the outer wall, looking out | 1,006 / 1,050 ms | 937 / 911 ms |
-  | in the western forest | 1,401 / 1,458 ms | 1,314 / 1,262 ms |
-  | the Cinder Market | 3,513 / 3,562 ms | 3,305 / 3,365 ms |
+  | standpoint | r152 | r153 | triangles |
+  |---|---|---|---|
+  | the Cinder Market | 3,220 / 3,290 ms | 3,046 / 3,043 ms | 1,885,661 → 1,240,447 |
+  | north avenue, looking in | 3,408 / 3,478 ms | 3,388 / 3,402 ms | 1,916,537 → 1,471,797 |
+  | west ward street | 2,698 / 2,781 ms | 2,550 / 2,556 ms | 1,786,081 → 1,253,738 |
+  | over the roofs | 2,397 / 2,414 ms | 2,293 / 2,279 ms | 1,838,959 → 1,216,094–1,382,595 |
+  | the belfry, over the city | 2,835 / 2,819 ms | 2,641 / 2,594 ms | 1,835,543 → 1,029,697 |
+  | outside the north gate | 960 / 937 ms | 823 / 791 ms | 675,836 → 200,084 |
 
-  Triangles drawn outside the gate 829,410 → 675,836, in the forest
-  1,689,264 → 1,550,866, at the market 2,067,451 → 1,882,731; draw calls
-  two fewer outside. The harness renders in software, so these compare the
+  A quarter to nearly half fewer triangles in the city and seven in ten fewer
+  outside it, for
+  a frame 1–8% quicker in the city and 14–16% outside: the harness renders in
+  software, where the triangles were not the whole of the cost. These compare
   two builds; they are not a figure for any real machine.
-- Fireflies at the forest's edge out past the north gate: 198 seated, 41
-  glowing at one moment; in the city, none.
-- Runtime audit, r151 → r152: errors 0 → 0; villagers 374 → 374;
-  draw calls 462 → 460; triangles 2,245,477 → 2,060,677; colliders 11,939
+- Runtime audit, r152 → r153, with the audit waiting for frames (its first
+  run, with the old fixed waits, again could not open the grove): errors 0 →
+  0; villagers 374 → 374;
+  draw calls 460 → 460; triangles 2,060,677 → 2,050,711; colliders 11,939
   → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
   failed; road obstructions in the carriageway 0 → 0, intruding 231 →
-  231. **This is the second run.** The first reported 96 branches: it
-  could not open the Lantern Grove's one resident, Iselde of the Lanterns.
-  The audit teleports beside a resident, waits 500 ms, presses E and looks
-  280 ms later; a frame at the grove takes 4.0 s on r151 and 2.8 s on r152,
-  so the press can land before the game has seen the player arrive. A probe
-  that waited for frames instead opened her at once on both builds, and the
-  audit run again — alone — walked all 102. (The capture run after the first
-  audit was spoiled the same way r150's first audit was: those probes were
-  run beside it on the same profile. It was run again too, alone.)
-- Shots looked at: five standpoints before and after (outside the gate, the
-  fields at the forest's edge, inside the western forest, over the forest
-  from 60 m, the outer wall looking out), the after shots at both tints;
-  the models from two sides each; the fireflies at the edge, enlarged; all
-  15 captures.
-- Variants 6/6 built, 6/6 booted (colliders 11,993 in five, as before).
-  Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
-  settles, "Emberwatch — r152".
+  231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r153".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.04 MB (+28,916 bytes on r151).
-- 7 functions added: `buildFireflies`, `fireflyGround`, `forestShrubs`, `glbGeometry`, `plantForest`, `updateFireflies`, `updateForest`.
+- 3.04 MB (+2,123 bytes on r152).
+- 1 function added: `cellMesh`.
 
 ### Play it
 
