@@ -1,82 +1,102 @@
-**r149 — the bell tower** · 1.49.0 · 2026-09-30 · phase 5, world depth
+**r150 — bells ring the watch in** · 1.50.0 · 2026-10-01 · phase 5, world depth
 
 ### Summary
 
-the bell tower. The Cathedral of Hours' east tower, a solid block, is hollow and climbable: a door from the east aisle, a stone newel stair of ten flights to a belfry at 19 m, open arches, two bells, a lantern; a new capture from the belfry over the roofs. Walkable surfaces can be stacked: one marked so counts only within 1.5 m of the walker, so a stair can pass over itself. Verified: parse/audit/dead clean; walked door to belfry 14/14; runtime audit against r148, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r149 in the title).
+the bells ring the watch in. The cathedral's two bells are their own model (cathedral-bell) and swing when the watch turns: rung up, full, dying away, over 27 s. A landmark mover can swing as well as spin. Sixteen doves on the nave ridge and the spire drums go up when the bells ring, wheel over the church, and land back where they sat: one mesh for the flock, rewritten only while it flies. Verified: parse/audit/dead clean; a full ring read off at runtime, every dove back on its perch; runtime audit against r149, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r150 in the title).
 
 ### Patch notes
 
-**State: r149 / 1.49.0, sealed 2026-09-30 ("the bell tower").** Same
-instruction again. With the city lit at night, the payoff for all of it is a
-place high enough to look down on it, so r149 made one: the Cathedral of
-Hours' east tower, climbed from inside.
+**State: r150 / 1.50.0, sealed 2026-10-01 ("the bells ring the watch in").**
+Same instruction: keep modelling, build systems where they give the most
+polish. The Cathedral of Hours has always been said to turn the watches with
+its bells; until r150 the bells were part of a static model and nothing
+happened when the watch turned but a line of text. Now the bells swing, and
+the cathedral's doves go up.
 
 **Next:** the towers of the Moon Archive and the Northwatch Guild, which are
-still only outsides — stacked surfaces (below) make their stairs
-straightforward now; stairs up to the outer wall's walk. The Windows
-installers for r143–r149 have not been built.
+still only outsides; stairs up to the outer wall's walk. The game has no
+sound at all — the bells are the obvious first thing to hear, but sound is a
+system of its own (a mixer, a mute, distance), not a one-off. The Windows
+installers for r143–r150 have not been built.
 
-### The bell tower
+### The bells swing
 
-The east tower of the west front was a solid block of stone under its spire.
-It is hollow now (`tools/assets/cathedral.py`, the `BELL_*` numbers): a door
-from the east aisle into its foot; a square newel stair of stone steps
-winding up the inside walls — ten flights of eight, 1.9 m each, a landing at
-every corner — to a timber belfry floor at 19 m; open pointed arches on all
-four faces (the west tower keeps its louvres, and its lit glow is what you
-see across from the west arches); two bronze bells in a timber frame, a
-lantern, and a lamp half way up the shaft. `cathedralBellTower()` lays the
-walls as colliders with the door gap, and the steps, landings and floor as
-surfaces from the same numbers. A new capture, `vista-cathedral-belfry`,
-looks out of a south arch over the roofs, the chimney smoke and the citadel.
+- The bells were modelled into `cathedral-furnishing`, merged with the pews
+  and the frame, so they could not move. They are their own model now,
+  `cathedral-bell` (`tools/assets/cathedral.py`): the headstock with its
+  gudgeons and straps, the bell with two bands of moulding, the clapper; its
+  origin is the pivot, under the frame's beam. 256 triangles.
+- `cathedralBellTower()` hangs two as landmark movers — the second at three
+  quarters the size — in bronze (metalness 0.82: at 0.55 the belfry lantern
+  a metre away burnt them to a flat orange). `placeLandmark`'s mover path
+  takes the point's scale now.
+- A mover used to mean a wheel: `spin` radians a second. A mover with
+  `swing` swings that far either side of hanging, at its own `period`
+  (2.5 s the big bell, 2.1 s the small), scaled by `bellsRinging(t)`: 0 at
+  rest, rung up over 4 s, full for 16, dying away over 7, eased at both ends.
+  The angle is set from the clock, not accumulated, so a bell the player was
+  too far away to update is right again the moment they are near.
+- `applyWatch` calls `ringBells(t)` where it already showed "The bell turns
+  to …". `EMBER.sky.bells(hold)` rings them from the harness; `hold` keeps
+  them swinging for shots.
 
-Two things found by walking it: the flights are a metre wide, and with a
-body's half-metre radius the middle of a flight touched a wall collider set
-on the masonry's face — the climb stalled on the third step. The colliders
-sit 15 cm inside the masonry now. And the door was widened from 1.2 to 1.5 m
-for the same reason.
+### The doves
 
-### Stacked surfaces
+Sixteen doves (`cathedralDoves`, `updateDoves`): ten along the nave's ridge,
+three round each spire's drum on the side away from the flèche. When the
+bells ring they go up — each after its own short delay, wings beating —
+wheel over the church on circles round the flèche (a third of the ridge
+birds inside the spires, the rest outside them), gliding and beating in
+turns, banked into the turn, and three seconds after the bells stop they
+come back down, each to where it sat. Nothing in the city is moved for them:
+their variety is `planHash`, not the world stream.
 
-`surfaceAt` took the highest walkable surface under you, which is right for
-a deck or a rampart stair and impossible for a stair that passes over
-itself: on the first flight you would have been lifted to the fifth. A
-`SURFACES` record can now be marked `stacked`; given the walker's height
-(`surfaceAt`'s new third argument, which only the player passes), a stacked
-surface more than 1.5 m (`STACK_REACH`) above them does not count. Every
-unmarked surface and every caller without a height — residents, captures —
-behaves exactly as before. This is what any multi-storey interior needs.
+- One mesh for the whole flock, rewritten only while it flies (at rest it is
+  drawn once and left alone): 23 triangles a bird — a plump body, a round
+  head, a tail, two wings of two panels that fold along the back.
+- 1.8 × life, pale, with a faint cool emissive. At life size and unlit they
+  were invisible against the night sky from the street: dark specks on a
+  dark sky.
+- A bird that strays into a spire or the flèche once clear of its perch is
+  put back out on its surface.
+- **The first version never flew on the harness.** `updateDoves` skipped
+  its work once the flock was drawn at rest, except in the two seconds after
+  a ring — and the harness draws a frame every three seconds, so it never
+  saw those two. It wakes on the ring itself now.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are
-  comment words), `audit-dom`, `audit-dead` (585 functions, 0 dead),
-  `test-switch-frames`, `test-switch-b9`: clean.
-- Walked: from the east aisle through the tower door, up all ten flights
-  and onto the belfry floor, 14/14 legs; each flight's top read 1.9, 3.8,
-  … 19.0 m, the floor 19.0.
-- Runtime audit, r148 → r149: errors 0 → 0; villagers 374 → 374; draw
-  calls 459 → 459; triangles 2,243,105 → 2,244,877; colliders 11,931 →
-  11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
-  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
-  231 — the new one is the tower's front-wall collider, which replaced
-  its single block: the audit measures a box by its bounding circle, and that
-  circle reaches the lane before the cathedral, but the box itself stops at
-  the façade, as the block did.
-- Shots looked at: the tower door from the aisle, the foot of the stair, a
-  flight half way up, the bells, the view from three arches; all 15
-  captures, the new belfry one among them.
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  `CATHEDRAL_BELL` asset marker and comment words), `audit-dom`,
+  `audit-dead` (590 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- A full ring, unheld, the player at the parvis, sampled every few
+  seconds: the bells read 0.34/−0.44, 0.59/0.04, 0.50/−0.70, −0.10/0.36 rad through the
+  peal and 0 from 24.7 s on; all 16 doves airborne from the first sample,
+  as high as 37.3 m and as far as 44.3 m from their perches, and all 16 back on them —
+  0.00 m off — by 35.8 s. Rung with the player far from the cathedral, the
+  doves went up and came back the same (every one on its perch by 42.4 s),
+  and the bells, correctly, did not move.
+- Runtime audit, r149 → r150: errors 0 → 0; villagers 374 → 374;
+  draw calls 459 → 462 (the two bells and the flock); triangles
+  2,244,877 → 2,245,477; colliders 11,939 → 11,939; doors 202 → 202;
+  dialogue 17 wards / 102 branches, none failed; road obstructions in the
+  carriageway 0 → 0, intruding 231 → 231.
+- Shots looked at: the bells from the belfry mid-swing, before and after
+  the bronze was darkened; both bells in their frame from the corner; the
+  flock over the west front from the parvis, enlarged; the perched doves on the ridge and on
+  a spire's drum, before and after they had heads; all 15 captures.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r149".
+  chooser installed, `requestDevice` settles, "Emberwatch — r150".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 2.99 MB (+35,632 bytes on r148).
-- 1 function added: `cathedralBellTower`.
+- 2.99 MB (+10,021 bytes on r149).
+- 5 functions added: `bellsRinging`, `cathedralDoves`, `doveShape`, `ringBells`, `updateDoves`.
 
 ### Play it
 
