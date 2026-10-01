@@ -728,22 +728,24 @@ def finch():
             candle(a, x + d, 1.77 + (.08 if d == 0 else 0), z, holder=GILT, h=.18)
     # the late-night room, back left, behind a partition and a curtain
     pz, px = -3.6, -5.6
-    for (x0, x1) in ((-S, -8.3), (-6.9, px)):
+    dx = -6.7                                                                # the doorway's middle, clear of the booths
+    for (x0, x1) in ((-S, dx - .7), (dx + .7, px)):
         a.box(x1 - x0, 3.3, .14, (x0 + x1) / 2, 1.65, pz, DARK)
         a.box(x1 - x0 + .02, .06, .18, (x0 + x1) / 2, 3.33, pz, GILT)
         for k in range(int((x1 - x0) / .4)):
             a.box(.03, 2.9, .02, x0 + .2 + k * .4, 1.6, pz + .08, (.20, .13, .08))
-    a.box(1.4, .7, .14, -7.6, 2.95, pz, DARK)
+    a.box(1.4, .7, .14, dx, 2.95, pz, DARK)
     a.box(.14, 3.3, pz - B, px, 1.65, (pz + B) / 2, DARK)
     a.box(.18, .06, pz - B + .02, px, 3.33, (pz + B) / 2, GILT)
-    a.cyl(.025, .025, 1.6, -7.6, 2.55, pz + .12, GILT, sides=4, rz=math.pi / 2)
+    a.cyl(.025, .025, 1.6, dx, 2.55, pz + .12, GILT, sides=4, rz=math.pi / 2)
     for s in (-1, 1):                                                           # the drapes, drawn back
         for k in range(3):
-            a.box(.18, 2.45, .1, -7.6 + s * (.62 - k * .14), 1.3, pz + .14 + (k % 2) * .04, WINE if k % 2 else WINE2, rz=s * .04 * (k + 1))
-        a.cyl(.05, .05, .2, -7.6 + s * .5, 1.2, pz + .2, GILT, sides=4, rz=math.pi / 2)
+            a.box(.18, 2.45, .1, dx + s * (.62 - k * .14), 1.3, pz + .14 + (k % 2) * .04, WINE if k % 2 else WINE2, rz=s * .04 * (k + 1))
+        a.cyl(.05, .05, .2, dx + s * .5, 1.2, pz + .2, GILT, sides=4, rz=math.pi / 2)
     round_table(a, -7.7, -5.9, .45, .42, DARK)
     for (x, z, c) in ((-8.6, -5.5, PLUM), (-7.0, -6.8, WINE), (-8.3, -6.9, OCHRE), (-6.7, -5.4, PLUM)):
-        a.rock(.7, .28, .6, x, .14, z, c, jag=.08, sides=7)
+        a.cyl(.34, .3, .24, x, .12, z, c, sides=10)                          # floor cushions
+        a.cyl(.3, .3, .02, x, .245, z, GILT, sides=10, cap=False)
     a.box(.2, .26, .2, -7.7, .58, -5.9, LAMP)
     a.cyl(.12, .02, .06, -7.7, .74, -5.9, BRASS, sides=4)
     bottle(a, -7.5, .45, -6.1, GLASS[1])
@@ -781,7 +783,7 @@ def finch():
     a.box(.5, .4, .5, 8.8, .2, -7.0, DARK)
     cask(a, 8.8, .66, -7.0, .25, .55, axis='x', tap=-1)
     # six booths down the walls
-    for (W, u, c) in ((left, 2.2, WINE), (left, -.5, PLUM), (left, -3.2, WINE),
+    for (W, u, c) in ((left, .8, WINE), (left, -1.9, PLUM), (left, -4.6, WINE),
                       (right, -2.6, PLUM), (right, .1, WINE), (right, 2.8, PLUM)):
         booth(W, u, c)
         x, z = W.p(u, 1.0)
