@@ -1,89 +1,148 @@
-**r155 — the archives** · 1.55.0 · 2026-10-01 · phase 5, world depth
+**r156 — the watch houses** · 1.56.0 · 2026-10-01 · phase 5, world depth
+
+In its own panel header: *r156 the watch-houses*.
 
 ### Summary
 
-the archives. The Eastwall Scriptorium (ledger walls, pigeonholes of records, scribes' desks, the great ledger) and the Cold Assay (a beam balance, drawers and jars, something under a sheet, a furnace and crucibles, cold lamps) fitted out (tools/assets/archives.py); the filler skips them. Verified: parse/audit/dead clean; both rooms shot and stood in; runtime audit against r154, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r155 in the title).
+the watch-houses. The Northwatch Guild (planning table under a map of the city, spear racks and shields, armour stands, bunks and a stove, a ladder to the tower) and the Westwall Refuge (workbench and tool board, ward maps, a repair corner, cots, a brazier with benches round it) fitted out (tools/assets/watch.py). Every hall's floor is at the ground: the plinth under the walls had been one solid block 0.55 m high since r145. tools/audit-comments.js lists comments that have swallowed code; the runtime audit walks each ward in the labour watch (the wilds it lost since r152 had gone "indoors" for the still watch) and tries each resident from four sides. Verified: parse/audit/dead/comments clean; both rooms shot and stood in, eight halls shot after the floor fix; runtime audit against r155, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r156 in the title).
 
 ### Patch notes
 
-**State: r155 / 1.55.0, sealed 2026-10-01 ("the archives").** Same
-instruction. r154 fitted out the Moon Archive; the city's two other archive
-halls were the same 20 by 16 m room with a rug, a table and the storeroom
-filler's chests round the walls. r155 fits them out after what they are for.
+**State: r156 / 1.56.0, sealed 2026-10-01 ("the watch-houses").** The
+owner's word on r154–r155: the shots "look crazy good" — carry on, update
+the interiors. r156 fits out the two guild halls, and finds and fixes why
+every hall's furniture had looked low.
 
-**Next:** the taverns, the guild halls and the shrines are still furnished
-by the old pieces and the filler; the Northwatch Guild ("a planning table,
-spare gear, and a room for the watch") is the obvious next. The towers of
-the Moon Archive and the Northwatch Guild; stairs up to the outer wall's
-walk. The Windows installers for r143–r155 have not been built.
+**Next:** keep the wild places' residents at their posts through the still
+hours (below, "Why the audit kept losing the wilds"); the four taverns (the
+Cinder and Keg, the Southgate Rest, the Gilded Finch — whose centrepiece is a
+glowing 1.1 m block on a counter by the door — and the Wayhouse), then the
+Pilgrim Shrine and the New Chapel. The
+Windows installers for r143–r156 have not been built.
 
-### The Eastwall Scriptorium
+### Every hall's floor stood half a metre up
 
-"Ink-stained desks, tall ledgers, and the eastern wall's records."
-`tools/assets/archives.py` builds `scriptorium` (12,404 triangles, warm
-glow): ledger cases on the back wall, three bays either side; between them
-a cabinet of pigeonholes, each with a rolled record or two showing their
-ends, and three more down each side wall; two rows of three scribes' desks —
-a slanted top, a ledge with the inkwell, a quill, a page, a candle, a stool
-— with a lamp of candles over each row; one desk's page unfinished, the
-quill lying across it and a blot; the great ledger open on its stand by the
-door. `placeScriptorium()` lays it and its colliders.
+r145's `hallExterior` laid the halls' plinth course as one solid stone block
+the size of the whole hall, 0.55 m high. It had no collider and no surface,
+so nobody stood on it: inside every hall the floor you saw was its top, and
+everything in the room — the tables, benches, beds, the residents and you —
+stood from the ground half a metre below it. Benches vanished into the
+floor, tables read as low boards, a brazier showed only its coals, and
+residents were cut off at the shin. The first shots of the Westwall Refuge
+showed cots as slivers of blanket on the floor, which is how it was found.
+The plinth is a course under the walls now, open at the 3 m door; the room's
+cobble floor, which itself stood at 0.24 m, is at the ground. Every hall
+with an outside — all but the Great Hall — changes, for the better: the
+archives' reading tables and desks stand at their height for the first time.
 
-The room's one interaction, "read the unfinished page", stood at local
-(−2, 1). With the desks in, a body put there touched two of them (a probe
-standing there was moved), so it stands in the aisle beside the page now,
-at (−1.3, −0.8).
+### Two comments had swallowed code
 
-### The Cold Assay
+The Westwall Refuge's old furnishing ended a line with "// the shelf stands
+on these" and the next call, `interiorSolid(...)`, ran on after it on the
+same line — so it was part of the comment, and the stone table it built had
+never existed since r145. `audit-source` had listed `theseinteriorSolid` in
+section A all along, among the comment words. And the first form of the
+floor fix made the same mistake: a comment added mid-line commented out
+every hall's ceiling, which the next shots showed as the roof's underside.
+`tools/audit-comments.js` is new: it lists every comment in the gameplay
+script holding a call statement with arguments — `name(args);` — which prose
+comments never do, and exits 1 if there is one. Run on r155 it finds the Refuge's
+line; on r156 it finds nothing. It runs with the others now (§3).
 
-"They weigh things here that nobody will name." `cold-assay` (5,490
-triangles, cool glow): a great beam balance on a stone counter against the
-back wall, a little out of true, a dark lump in one pan and a stack of
-weights in the other, spare weights by it; two bays of small brass-pulled
-drawers and two of shelves of stoppered jars down the right wall; a long
-table with something under a sheet, the assay book and an inkwell; an
-iron-bound strongbox; two cold lamps hung down the room. `cold-assay-fire`
-(236 triangles, fire glow): the assay furnace against the left wall, its
-mouth glowing, its flue to the ceiling, and a bench of crucibles, two of
-them hot, with tongs. A fire light at the furnace and a cool one under the
-lamps. The flue was first brick-red and, a metre from the fire light, read
-as a pipe of lava; it is black with soot now.
+### The Northwatch Guild
 
-`FITTED_ARCHIVES` names the three fitted halls; the generic archive pieces
-and the storeroom filler skip all three.
+"A planning table, spare gear, and a room for the watch."
+`tools/assets/watch.py` builds `northwatch` (4,178 triangles, warm glow):
+the planning table under a map of the city — the walls as rings, the four
+avenues, wards blocked in, markers in the watch's blue and red — with
+candles, dividers and benches either side, a lamp over it; spear racks on the
+back wall under the watch's shields, the watch's banner between them over a
+chest of spare gear; three armour stands and a rail of cloaks, a bow rack and
+an arrow barrel on the left wall; two-tier bunks with footlockers and an
+iron stove between them on the right, a ward map, a notice board by the door;
+a ladder up to a hatch under the tower that stands on the roof's front
+corner; sconces down both walls.
+
+### The Westwall Refuge
+
+"A workbench, ward maps, and a watchful repair corner." `westwall-refuge`
+(3,164 triangles, warm glow): a long workbench with a vise and work on it
+under a board of tools; the ward maps on their boards over a map chest; the
+repair corner — an anvil on its block, a grindstone, broken spears and
+dented shields waiting, a water butt; cots down the left wall with a shelf
+of blankets over them; herbs hung to dry from a pole; provisions stacked by
+the door; a brazier in the middle of the room with three benches round it
+and firewood by it; a table with a lamp; sconces.
+
+Both: colliders from the script's numbers, a small fire light, and the
+generic guild slab and the storeroom filler skip them (`FITTED_HALLS`, which
+replaces r155's `FITTED_ARCHIVES`). The Scriptorium's long boxes are a box a
+bay now, as r155 said they should be.
+
+### Why the audit kept losing the wilds
+
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident and pressing E. Since r152 it has now and then reported one remote
+ward as not opening — the Lantern Grove, in r152's first run and r153's —
+and r153 put it down
+to the key landing before the game had drawn the player's arrival. r156's
+first run lost the Fallen Hall Ruin (Orren of the Broken Hall, on his ledge
+over the falls, left the player more than 3 m from him), and a second run of
+the dialogue walk alone lost the Lantern Grove instead. Two probes that
+teleported beside Orren on r155 and r156 landed the player 1.8 m from him;
+on a fresh boot the game offered talk with every one of the residents
+concerned at once.
+
+A run that logged each failed try found the cause: Wren Halloway on the
+Skywatch Knoll and Iselde of the Lanterns were flagged indoors, standing at
+their posts. The walk takes ten minutes and more of game time and a watch is
+170 s, so by the time it reached the wilds, which come last, the still watch
+had come round, and a resident with no house to go to goes "indoors" where
+they stand: hidden, and offered for talk only from inside a home they do not
+have. Nothing r156 changed is involved. The audit now walks each ward in the
+labour watch, tries each resident from four sides before moving on to the
+next (the ledge pushed the player away from two sides of Orren's four), and
+reports every failed try with what E was offering.
+
+That a lantern keeper, a skywatcher and the residents of the other wild
+places vanish into thin air in the small hours is the game's own fault, not
+the audit's; it is left for the next revision.
 
 ### Verified
 
 Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
-- `check-parse`, `audit-source` (B and C 0; section A's new names are the
-  three asset markers and two comment words), `audit-dom`, `audit-dead`
-  (620 functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
-- Eight points in each room stood on: in the Scriptorium only the old
-  interaction point moved the player (it was moved, above); in the Assay only
-  a point at the end of the long table, which is the table.
-- Shots looked at: each room from the door, from a back corner, from the
-  front corner, and close (the page desk with "read the unfinished page"
-  offered; the furnace and the balance); the models from two sides each.
-- Runtime audit, r154 → r155: errors 0 → 0; villagers 374 → 374;
-  draw calls 462 → 465; triangles 2,061,303 → 2,077,629; colliders 11,889
-  → 11,803; doors 202 → 202; dialogue 17 wards / 102 branches, none
-  failed; unreachable interactions: none; road obstructions in the
-  carriageway 0 → 0, intruding 231 → 233 — the two new ones are the
-  Scriptorium's back-left ledger cases and its left pigeonholes, each laid as
-  one long box inside the room; the audit measures a box by its bounding
-  circle, and theirs reach a street past the hall's wall. Next time that
-  room is touched they should be a box a bay.
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the two asset markers and a comment word, and loses
+  `theseinteriorSolid`), `audit-dom`, `audit-dead` (623 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Shots looked at: both guild halls from the door, from a back corner, from
+  the front corner and close, three times — as first built, after more was
+  added, and after the floor fix; eight halls from their doors after it (the
+  two guild halls, the Moon Archive, the Scriptorium, the Cinder and Keg —
+  that standpoint is outside it — the Southgate Rest, the Pilgrim Shrine, the
+  Gilded Finch); the models from two sides each.
+- Points stood on in each guild hall: two moved the player, each into a
+  piece of furniture (the planning table, the anvil); later, the arrow
+  barrel and the provisions.
+- Runtime audit, r155 → r156, with the audit as it now stands (its first
+  run, before the fix, opened 16 of the 17 wards): errors 0 → 0;
+  villagers 374 → 374;
+  draw calls 465 → 467; triangles 2,077,629 → 2,083,155; colliders 11,803
+  → 11,776; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the
+  carriageway 0 → 0, intruding 233 → 231.
 - All 15 captures looked at.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r155".
+  chooser installed, `requestDevice` settles, "Emberwatch — r156".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 3.61 MB (+358,128 bytes on r154).
-- 2 functions added: `placeColdAssay`, `placeScriptorium`.
+- 3.75 MB (+148,607 bytes on r155).
+- 3 functions added: `hallLight`, `placeNorthwatch`, `placeWestwallRefuge`.
 
 ### Play it
 
