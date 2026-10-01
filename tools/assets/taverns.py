@@ -956,5 +956,7 @@ def wayhouse():
 
 
 WHICH = {'cinder': cinder, 'southgate': southgate, 'finch': finch, 'wayhouse': wayhouse}
-for name in (sys.argv[1:] or list(WHICH)):
-    WHICH[name]()
+# (r158) tools/assets/halls.py imports the helpers above, so build only when run.
+if __name__ == '__main__':
+    for name in (sys.argv[1:] or list(WHICH)):
+        WHICH[name]()
