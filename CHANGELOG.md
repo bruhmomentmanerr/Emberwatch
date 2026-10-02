@@ -27,7 +27,8 @@ still the old primitives. A middle level of detail between the near rig
 and the far version, if the frame cost below ever matters on real
 hardware. Then the towers of the Moon Archive and the Northwatch Guild,
 and stairs up to the outer wall's walk. The Windows installers for
-r143–r159 have not been built.
+r143–r158 have not been built; r159's is on its release, built by the
+release workflow on GitHub's Windows runner.
 
 #### What the references asked for
 
@@ -210,7 +211,11 @@ standard profile's seed) unless it says otherwise.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
   chooser installed, `requestDevice` settles, "Emberwatch — r159"; road
   obstructions in the carriageway 0.
-- Not run: `npm run dist` (no Windows toolchain here).
+- Published: 147 tags and releases, r04 to r159, each with its game file
+  and notes (the first workflow run, 9 min 10 s); r159's release also has
+  `Emberwatch-1.59.0-setup.exe` (105,554,226 bytes) and
+  `Emberwatch-1.59.0-portable.exe` (105,210,732 bytes), built by the
+  workflow's Windows job. Not installed and run here (no Windows machine).
 
 #### In the code
 

@@ -12,8 +12,10 @@ in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
 Current sealed source: **1.59.0 / build r159 ("the people")**,
-2026-10-02. Archived, smoke-tested, six variants boot-check. Not packaged
-yet (nor are r143 to r158): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+2026-10-02. Archived, smoke-tested, six variants boot-check, and packaged
+by the release workflow: the setup and portable builds are on its GitHub
+release, with every revision's own (147, r04 to r159). r143 to r158 were
+never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but

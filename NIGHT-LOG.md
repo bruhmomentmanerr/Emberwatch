@@ -37,8 +37,9 @@ repository began, `CHANGELOG.md`, and `README.md` as the project overview.
 - Variants 6/6 and 6/6; smoke clean. The runtime audit and the captures
   were stopped unfinished when the owner asked for the work to be pushed.
 
-**Not done.** The Windows installers (no Windows toolchain here), for r143
-to r159.
+**Not done.** The Windows installers for r143 to r158. r159's was built by
+the release workflow on GitHub's Windows runner and is on its release; it
+was not installed and run here.
 
 ---
 
