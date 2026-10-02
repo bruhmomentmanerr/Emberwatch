@@ -1,81 +1,78 @@
-**r160 — bluetooth pairing** · 1.60.0 · 2026-10-02 · phase 5, world depth
+**r161 — peak pro plasma** · 1.61.0 · 2026-10-02 · phase 5, world depth
 
 ### Summary
 
-Bluetooth pairing. Windows/Linux native pairing confirmation and PIN comparison for the selected device; cancel, dialog failure and window closure settle callbacks. PIN-entry devices are directed to system settings first. Corrected the false file:// Bluetooth claim in docs and all release notes. Physical-device Windows test still required.
+Peak Pro Plasma. A Peak never bonded with this computer is bonded before Lorax (one PUP or SiLabs version read, as puff.social does), the limits are asked for before the access seed, and a request with no answer names itself. The device list shows Puffco devices only (services, manufacturer id 3075, Peak/Puffco names, address prefixes), with a box to show everything. Verified: audits clean; a simulated unbonded Peak times out on r160 and completes the handshake on r161; smoke clean (r161 in the title). Not tested on a real Plasma.
 
 ### Patch notes
 
-**State: r160 / 1.60.0, sealed 2026-10-02 ("Bluetooth pairing").** The owner
-reported that the desktop Bluetooth connection hangs while the local HTML
-connects in Chrome. This revision implements the missing pairing handler
-and corrects the inaccurate documentation about `file://`.
+**State: r161 / 1.61.0, sealed 2026-10-02 ("Peak Pro Plasma").** The owner,
+on r160: "it still will not connect … lorax connection times out every
+single time", on a Peak Pro Plasma bought recently, and asked whether the
+code only connects to the original Peak Pro; also for Bluetooth filtering
+("I don't need to see TVs and stuff"), and about long load times.
 
-### Bluetooth pairing
+**Next:** the owner's test on the Plasma, desktop app and Chrome both. If it
+still times out, the error now names the request the Peak did not answer;
+that is where to look.
 
-The existing in-game chooser already releases pointer lock and answers the
-device-selection callback. The desktop main process lacked the separate
-Windows/Linux pairing handler. Electron's session API documentation says
-pairing requiring additional validation is automatically cancelled without
-it; this is a plausible missing step, not a diagnosis proven on the device.
+### Why a new Peak timed out
 
-The handler is registered only when the platform exposes the API. It checks
-the initiating frame and selected device, then uses a native dialog to ask
-for confirmation or display a PIN to compare. Cancel is the default choice.
-Requests settle once even if a dialog fails, another pairing request arrives
-or the window closes. Devices requiring PIN entry are told to pair in system
-Bluetooth settings and reconnect; no PIN is guessed. macOS handles pairing
-itself. The renderer's BLE commands and device-write paths are unchanged.
+A Peak that has never bonded with the computer accepts the connection, the
+version read and the reply subscription, then never answers a Lorax request.
+The connect flow (written against the owner's older Peak, bonded with this
+computer long before) deliberately did not read anything that would start a
+bond — "Do not read PUP … either action can make the device buzz and
+re-enter pairing mode repeatedly" — so on the new Plasma the setup request
+and then the access-seed request went unanswered, and the seed's 5 s timeout
+was the error the owner saw every time. puff.social, whose Lorax client this
+one follows, reads the PUP app version (or, without PUP, the SiLabs version)
+before anything else, commented "This triggers pairing on lorax", then asks
+for the limits (`GET_LIMITS`, 0x02) before the access seed. r161 does the
+same: the PUP and SiLabs services are requested, one version read starts the
+bond, the limits come first, and a request that gets no answer now says
+which request it was. Nothing written to the device changed.
 
-### Documentation and release
+Shown with a simulated Peak in the harness that ignores every request until
+its PUP version has been read: on r160 the setup request and the seed went
+unanswered (the owner's failure); on r161 the bond read came first and the
+limits, setup, seed and unlock requests all followed. That proves the order,
+not the device: the simulation is built on what puff.social does, and no
+Plasma was available here.
 
-Chrome can use Web Bluetooth from a local HTML file on supported systems;
-the owner already does. The README, catalog, architecture/handoff docs,
-main-process comments and harness comments now say this accurately. The
-release-note generator corrects the same false claim in every release's
-"Play it" text. The desktop app's stable origin, fetch/CORS support and
-custom discovery/pairing prompts remain useful.
+### Only Puffco devices in the list
 
-The package and lockfile are stamped 1.60.0, the desktop title and renderer
-diagnostics r160. The archive is `emberwatch_3_r160-bluetooth-pairing.html`;
-it must remain byte-identical to the live renderer. Six variants use r160.
-The Windows release workflow builds the setup and portable executables.
+The device request filters for Puffco now: any device advertising the
+Lorax, legacy, PUP or SiLabs service, Puffco's Bluetooth manufacturer id
+(3075), a name starting Peak or Puffco, or one still named by its address
+with one of the prefixes puff.social lists for Puffco devices (what an
+unrenamed Peak advertises). A box under Connect, "show every nearby
+Bluetooth device", lists everything, for a Peak renamed past all of those.
+
+### Load time
+
+Timed in the harness with marks at every world stream: the boot script
+finishes at 6.3 s on r158 and 7.2 s on r161 (software rendering; the
+residents' kit is most of the second). That is not the "crazy" load the
+owner saw. The portable `.exe` unpacks its whole app (about 100 MB) into a
+temporary folder on every launch, which the installed version does not; the
+setup `.exe` is the one to use day to day. Not measured on Windows.
 
 ### Verified
 
-- Parse, source (sections B/C zero), DOM, dead-code and comment audits passed;
-  the captured Switch-frame and b9 tests passed. The renderer differs from
-  the r159 archive only in its two revision stamps; the r160 archive is
-  byte-identical to the live renderer, and shipped archives were not edited.
-- `node tools/test-bluetooth-pairing.js` passed confirmation, PIN display,
-  cancellation, dialog failure, frame/device scope, overlapping requests,
-  window closure and API-unavailable platform checks without device writes.
-- Electron 43.4.1 desktop smoke: r160 in the title and diagnostics, secure
-  context, Bluetooth API, preload bridge, WebGL, game boot and chooser present.
-  A real request rejected with `NotFoundError` on this adapter-less Linux host
-  rather than hanging; this does not test physical pairing.
-- `tools/smoke-bluetooth.js` loaded the real app/main/preload/renderer and
-  passed synthetic chooser selection/cancellation and pairing confirmation.
-  The actual session handler was registered, and the WebGL context stayed
-  healthy. The chooser screenshot was inspected. Discovery and dialog
-  answers were simulated; no radio, GATT connection or device writes occurred.
-- Variants built 6/6 and `node tools/check-variants.js` booted/reported 6/6,
-  all at r160. Package and lockfile both read 1.60.0. Release generation found
-  148 unique revisions with notes; publishing dry-run built the history.
-- Windows setup and portable builds are produced by the release workflow
-  after the source push. That job now uses Node 24 and runs the audits,
-  including the pairing tests, before packaging.
-
-**Next:** install r160 on Windows, put the device in pairing mode, close any
-other app connected to it, and retry Connect. Check the pairing prompt and
-that GATT/services and telemetry become available. Repeat with an existing
-bond and with Cancel. No physical device or Windows Bluetooth adapter is
-available in this cloud environment, so the reported hang is not yet proven
-resolved. The next city/NPC work remains the r159 handoff below.
+- `check-parse`, `audit-source` (B and C 0), `audit-dom`, `audit-dead`
+  (668, 0 dead), `audit-comments`, `test-switch-frames`, `test-switch-b9`:
+  clean.
+- The simulated Peak, r160 against r161, as above; the request options
+  carry 105 filters and the four services.
+- Smoke: game booted, bridge, chooser installed, `requestDevice` settles,
+  "Emberwatch — r161".
+- Variants 6/6 built, 6/6 booted.
+- Not run: the runtime audit; a real Peak.
 
 ### In the code
 
-- 4.97 MB (+7 bytes on r159).
+- 4.97 MB (+3,522 bytes on r160).
 - No functions added or removed.
 
 ### Play it
