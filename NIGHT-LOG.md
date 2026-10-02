@@ -6,6 +6,24 @@ estimated.
 
 ---
 
+## 2026-10-02 — morning · r163 "Modelled masses"
+
+**What was wrong.** The residents "still sort of look like geometric": thin
+straight tube arms, shelf shoulders, flat-chested torsos, evenly lit, and
+the props they carried were r158 primitives — black sticks and boxes. The
+HTML load was still long, and nothing said where the time went.
+
+**What changed.** Fuller, bent, capped limbs and a rounder torso with a
+posture; shading painted into the colours; the props modelled in the kit.
+The kit's loft no longer recomputes a ring per vertex. The game prints its
+load in the menu, by stage. PROJECT.md §0.
+
+**What proved it.** The market lineup shot in the game on r162 and r163;
+`villager()` 2,183 and 2,201 ms on r162 against 1,749 and 1,597 ms; audits
+clean, variants 6/6, smoke. Not seen on Windows.
+
+---
+
 ## 2026-10-02 — morning · r162 "Load time"
 
 **What was wrong.** "Why does it take a full minute to load?" Every

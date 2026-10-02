@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.62.0 / build r162 ("Load time")**,
+Current sealed source: **1.63.0 / build r163 ("Modelled masses")**,
 2026-10-02. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (150 revisions, r04 to r162). r143 to r158 were
+executables (151 revisions, r04 to r163). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r162'
+                      the strain-archive lookups work. BUILD_REVISION = 'r163'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r162-load-time.html
+                      emberwatch_3_r163-modelled-masses.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r162, minus the revisions
+                    Phase 5 currently contains r70-r163, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r162-load-time.html
+                    emberwatch_3_r163-modelled-masses.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,16 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 2      r163       Modelled masses. The residents fuller (thicker,
+                          bent arms with shoulder caps, a deeper torso with a
+                          posture, calves, bigger hands and feet) with
+                          shading painted into their colours; the trades'
+                          staffs, spears, shields, mallets, baskets, hammers
+                          and the reference roles' staff and bow modelled in
+                          the kit instead of primitives. villager() 2.2 s to
+                          1.6-1.7 s over a boot. The game times its own
+                          load in the menu. Verified: audits clean; in-game
+                          lineup r162 against r163; variants 6/6; smoke.
     Oct 2      r162       Load time. Every landmark, kit piece and the forest
                           used to warm the shaders of the whole scene, three
                           light tiers each: 68 passes on one boot, 67 after

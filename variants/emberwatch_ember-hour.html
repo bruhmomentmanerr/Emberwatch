@@ -185,6 +185,7 @@
   <div class="row"><button class="btn" id="pxBtn" style="flex:1" title="Choose graphics quality">▦ graphics</button></div>
   <div class="row"><button class="btn" id="bloomBtn" style="flex:1" title="Glow round lamps, windows and fire">✦ bloom</button></div>
   <div class="row"><button class="btn" id="fsBtn" style="flex:1">⛶ fullscreen</button></div>
+  <div class="row"><div id="loadTime" style="font-size:11px;opacity:.6" title="How long this load took, and where the time went">timing the load…</div></div>
 </div>
 <button id="puffBtn" title="Puffco">◈ Puffco</button>
 <button id="strainBtn" title="Personal strain journal (J)">🍃 strains <kbd>J</kbd></button>
@@ -215,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r162 Load time</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r163 Modelled masses</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4561,6 +4562,12 @@ void main() {
 <script>
 (function(){
 'use strict';
+// (r163) Load timing, from the moment the page began loading: the page and
+// the engine before this script, the world, the residents, the lamps' shaders
+// and the first frame. Shown in the menu under Display and in the console, and
+// returned by EMBER.diagnostics(), because "it takes a full minute" could be
+// any of them and only the machine it happens on can say which.
+const LOAD_T={script:performance.now()};
 const L=document.getElementById('loader'), LMSG=document.getElementById('lmsg');
 function fail(m){ L.style.opacity='1'; document.querySelector('#loader .g').textContent='hm.'; LMSG.textContent=m; document.querySelector('.orb').style.animation='none'; }
 if(typeof THREE==='undefined'){ fail("The 3D engine didn't load.\nOpen this file in a real browser tab (Chrome/Edge/Firefox)."); return; }
@@ -41771,7 +41778,7 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r159';
+const NPC_KIT_VERSION='npc-kit-r163';
 const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,face0:32});
 const NPC_FACE_COUNT=32;
 function npcHash(x,y,s){ let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,1442695041))|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
@@ -41939,9 +41946,19 @@ function npcSeg(detail,hi,lo){ return detail>.6?hi:detail>.3?lo:Math.max(3,Math.
 // pattern's size in metres (how far one repeat of the tile runs).
 function npcRgb(hex){ return [(hex>>16)&255,(hex>>8)&255,hex&255]; }
 function npcPaint(c,c2,t=NPC_TILE.solid,s=.3){ return {c:typeof c==='number'?npcRgb(c):c,c2:typeof c2==='number'?npcRgb(c2):(c2||(typeof c==='number'?npcRgb(c):c)),t,s}; }
-function NpcMesh(){ this.p=[]; this.n=[]; this.c=[]; this.c2=[]; this.uv=[]; this.tl=[]; this.ix=[]; this.count=0; }
+// (r163) Shading is painted into the colours as well as lit, the way the
+// PS2-era figures in the owner's references carried it in their textures:
+// a surface turned down is darker than one turned up, and the lower a point
+// stands on the figure the darker it is, so the forms read as masses and not
+// as evenly lit tubes. (ox, oy) is where the part's pivot stands at rest, and
+// `inner` (set on an arm) is the side facing the body, darkened toward the
+// armpit. The colours are sRGB bytes, so 0.86 here is about 0.72 in light.
+function NpcMesh(ox=0,oy=0,inner=0){ this.p=[]; this.n=[]; this.c=[]; this.c2=[]; this.uv=[]; this.tl=[]; this.ix=[]; this.count=0; this.ox=ox; this.oy=oy; this.inner=inner; }
 NpcMesh.prototype.vert=function(x,y,z,nx,ny,nz,u,v,paint){
-  this.p.push(x,y,z); this.n.push(nx,ny,nz); this.c.push(paint.c[0],paint.c[1],paint.c[2]); this.c2.push(paint.c2[0],paint.c2[1],paint.c2[2]);
+  const Y=y+this.oy, up=.86+.14*(ny*.5+.5), low=.9+.1*Math.min(1,Math.max(0,Y/.95));
+  const pit=this.inner&&nx*this.inner>.2?1-.14*nx*this.inner*Math.min(1,Math.max(0,(y+.22)/.22)):1;
+  const k=up*low*pit, c=paint.c, c2=paint.c2;
+  this.p.push(x,y,z); this.n.push(nx,ny,nz); this.c.push(c[0]*k,c[1]*k,c[2]*k); this.c2.push(c2[0]*k,c2[1]*k,c2[2]*k);
   this.uv.push(u,v); this.tl.push(paint.t%8,(paint.t/8)|0); return this.count++;
 };
 // A grid surface: rows along s (nv+1 of them), columns around t (nu+1). P(t,s)
@@ -41988,8 +42005,12 @@ NpcMesh.prototype.loft=function(rings,seg,paint,opt={}){
   for(const r of rings)avg+=Math.PI*(r[1]+(r[2]+r[3])/2)/n;
   const span=part?(a1-a0)/(Math.PI*2):1;
   const uRep=opt.uRep||Math.max(1,Math.round(avg*span/paint.s)), vRep=opt.vRep||len/paint.s;
+  // (r163) surf walks a row at a time, so the ring is worked out once per row
+  // rather than once per vertex: it was a fifth of the residents' build.
+  let rowS=-1, rowR=null;
   return this.surf(seg,rows,!part,(t,s)=>{
-    const R=ring(s), th=part?a0+(a1-a0)*t:t*Math.PI*2, sn=Math.sin(th), cs=-Math.cos(th);
+    if(s!==rowS){ rowS=s; rowR=ring(s); }
+    const R=rowR, th=part?a0+(a1-a0)*t:t*Math.PI*2, sn=Math.sin(th), cs=-Math.cos(th);
     const w=1+(R[6]?R[6]*Math.sin(th*R[7]):0);
     return [R[4]+R[1]*sn*w, R[0], R[5]+(cs>=0?R[2]:R[3])*cs*w];
   },paint,{uRep,vRep,flip:opt.flip,two:opt.two,uv:opt.uv});
@@ -42245,9 +42266,9 @@ function npcDims(spec){
 function npcTorsoRings(d,sh){
   const {hip,T,W}=d;
   return [
-    [hip-.1,0,0,0],[hip-.07,.105*W,.085*W,.095*W],[hip-.02,.152*W*sh.hip,.098*W,.112*W*sh.hip],[hip+.06,.155*W*sh.hip,.098*W,.115*W*sh.hip],
-    [hip+.15*T,.132*W*sh.waist,.086*W,.086*W],[hip+.25*T,.146*W,.098*W*sh.chest,.088*W],[hip+.35*T,.165*W,.11*W*sh.chest,.094*W],
-    [hip+.43*T,.18*W,.098*W,.09*W],[hip+.49*T,.188*W,.082*W,.08*W],[hip+.535*T,.088*W,.068*W,.064*W],[hip+.55*T,.058,.054,.054],[hip+.62*T,.05,.048,.048]
+    [hip-.1,0,0,0,0,-.008],[hip-.07,.108*W,.088*W,.1*W,0,-.008],[hip-.02,.156*W*sh.hip,.1*W,.126*W*sh.hip,0,-.008],[hip+.06,.158*W*sh.hip,.1*W,.124*W*sh.hip,0,-.004],
+    [hip+.15*T,.134*W*sh.waist,.096*W,.092*W,0,.004],[hip+.25*T,.148*W,.112*W*sh.chest,.1*W,0,.008],[hip+.35*T,.164*W,.124*W*sh.chest,.11*W,0,.008],
+    [hip+.43*T,.176*W,.116*W,.114*W,0,.002],[hip+.49*T,.178*W,.102*W,.104*W,0,-.006],[hip+.53*T,.122*W,.084*W,.082*W,0,-.008],[hip+.55*T,.068,.064,.064,0,-.004],[hip+.62*T,.058,.055,.055,0,0]
   ];
 }
 const npcGrow=(rings,dr,dy=0)=>rings.map(r=>r[1]===0?r.slice():[r[0]+dy,r[1]+dr,r[2]+dr,r[3]+dr,r[4]||0,r[5]||0,r[6]||0,r[7]||0]);
@@ -42313,9 +42334,12 @@ function npcBuildWings(m,spec,d,detail){
     } });
   }
 }
+// (r163) Fuller, and carried with a bend: the upper arm swells at the
+// shoulder and the biceps, the elbow sits a little back and the forearm comes
+// forward to the wrist, so an arm at rest is not a straight tube.
 function npcSleeveRings(s,W){
-  return [[0,.064*W,.066*W,.066*W,0,0],[-.07,.062*W,.064*W,.066*W,s*.004,0],[-.15,.052*W,.054*W,.056*W,s*.008,0],[-.26,.043*W,.045*W,.05*W,s*.012,-.004],
-    [-.3,.044*W,.047*W,.05*W,s*.013,.004],[-.4,.042*W,.044*W,.044*W,s*.015,.016],[-.48,.031*W,.028*W,.028*W,s*.016,.026]];
+  return [[0,.08*W,.084*W,.084*W,0,0],[-.07,.08*W,.084*W,.086*W,s*.008,-.004],[-.15,.068*W,.07*W,.072*W,s*.016,-.01],[-.26,.054*W,.056*W,.062*W,s*.026,-.012],
+    [-.3,.056*W,.06*W,.062*W,s*.029,-.002],[-.4,.052*W,.056*W,.054*W,s*.034,.026],[-.48,.038*W,.035*W,.035*W,s*.037,.05]];
 }
 function npcBuildArm(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, A=npcSleeveRings(s,d.W), top=spec.top, skin=npcPaint(spec.skin,spec.skin), sl=top.sleeve||'long';
@@ -42332,30 +42356,35 @@ function npcBuildArm(m,spec,d,s,detail){
   else if(sl==='none'){ m.loft(A,seg,skin,{sub}); m.loft([sc(A[0],1.1,.02),sc(A[1],1.05)],seg,cuff,{sub:1}); }
   else if(sl==='bell'){ m.loft(A.slice(0,4),seg,top.paint,{sub}); m.loft(A.slice(3),seg,skin,{sub});
     m.loft([A[3],[-.32,.07,.075,.075,s*.014,.0],[-.42,.1,.1,.1,s*.016,.01],[-.5,.125,.12,.12,s*.018,.015]],seg,top.paint,{sub,two:true}); }
-  // the hand: a mitten and a thumb, palm toward the thigh
-  const hp=spec.gloves||skin, x=s*.016;
-  m.tube([[x,-.475,.026],[x,-.52,.03],[x*.9,-.565,.032],[x*.8,-.61,.03],[x*.7,-.632,.026]],[[.028,.018],[.038,.021],[.035,.019],[.024,.014],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0]});
-  if(detail>.3)m.tube([[x-s*.004,-.5,.048],[x-s*.012,-.532,.066],[x-s*.012,-.556,.072]],[.012,.011,0],npcSeg(detail,6,4),hp);
-  return [x,-.56,.045];
+  // (r163) the shoulder: a rounded cap over the top of the sleeve, so the arm
+  // grows out of the shoulder instead of hanging from it as a separate tube
+  const c0=A[0], capPaint=sl==='none'?skin:top.paint;
+  m.loft([[-.004,c0[1],c0[2],c0[3],0,0],[.022,c0[1]*.92,c0[2]*.92,c0[3]*.92,s*.002,0],[.04,c0[1]*.58,c0[2]*.6,c0[3]*.6,s*.004,-.002],[.05,0,0,0,s*.006,-.004]],seg,capPaint,{sub});
+  // the hand: a mitten and a thumb, palm toward the thigh, held a little
+  // forward with the forearm and fuller than it was
+  const hp=spec.gloves||skin, x=s*.037, hz=.024;
+  m.tube([[x,-.475,.026+hz],[x,-.522,.032+hz],[x*.9,-.57,.035+hz],[x*.8,-.618,.032+hz],[x*.7,-.642,.027+hz]],[[.034,.022],[.047,.027],[.044,.025],[.03,.018],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0]});
+  if(detail>.3)m.tube([[x-s*.004,-.5,.05+hz],[x-s*.014,-.534,.072+hz],[x-s*.014,-.56,.078+hz]],[.015,.013,0],npcSeg(detail,6,4),hp);
+  return [x,-.56,.045+hz];
 }
 function npcBuildLeg(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, W=d.W, t=d.thigh, lw=spec.legwear;
-  const thigh=[[.04,.09*W,.09*W,.096*W],[-.25*t,.079*W,.082*W,.085*W],[-.6*t,.066*W,.068*W,.068*W],[-.95*t,.053*W,.056*W,.052*W],[-t-.01,.052*W,.054*W,.05*W]];
+  const thigh=[[.04,.104*W,.104*W,.112*W],[-.25*t,.094*W,.098*W,.104*W],[-.6*t,.078*W,.082*W,.082*W],[-.95*t,.062*W,.066*W,.06*W],[-t-.01,.061*W,.064*W,.058*W]];   // (r163) fuller
   const g=lw.kind==='trousers'||lw.kind==='breeches'?.006:0;
   m.loft(npcGrow(thigh,g),seg,lw.kind==='bare'?npcPaint(spec.skin,spec.skin):lw.thigh||lw.paint,{sub});
 }
 function npcBuildShin(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, W=d.W, h=d.shin, lw=spec.legwear, b=spec.boots, L=d.L;
-  const shin=[[.02,.053*W,.055*W,.052*W],[-.1*h,.055*W,.054*W,.062*W],[-.33*h,.058*W,.054*W,.07*W],[-.7*h,.044*W,.044*W,.046*W],[-.92*h,.036*W,.036*W,.038*W],[-h,.034*W,.034*W,.034*W]];
+  const shin=[[.02,.062*W,.064*W,.06*W],[-.1*h,.064*W,.063*W,.074*W],[-.33*h,.068*W,.064*W,.084*W],[-.7*h,.051*W,.051*W,.054*W],[-.92*h,.042*W,.042*W,.044*W],[-h,.04*W,.04*W,.04*W]];   // (r163) a calf
   const paint=lw.kind==='bare'?npcPaint(spec.skin,spec.skin):lw.kind==='breeches'?lw.shin:lw.paint;
   m.loft(npcGrow(shin,lw.kind==='trousers'?.006:0),seg,paint,{sub});
   const bp=npcPaint(b.c,b.c2||b.c,NPC_TILE.leather,.25), topY=b.kind==='tall'?-.18*h:b.kind==='boot'?-.55*h:-.9*h;
   const r=y=>{ const k=shin.findIndex(q=>q[0]<=y); const a=shin[Math.max(0,k-1)],c=shin[Math.max(0,k)],f=c[0]===a[0]?0:(y-a[0])/(c[0]-a[0]); return a[1]+(c[1]-a[1])*f; };
-  const rings=[[topY,r(topY)+.016,r(topY)+.018,r(topY)+.018],[topY-.03,r(topY)+.012,r(topY)+.014,r(topY)+.014],[-h+.01,.046*W,.046*W,.05*W],[-h-.02,.05*W,.052*W,.058*W]];
+  const rings=[[topY,r(topY)+.011,r(topY)+.012,r(topY)+.012],[topY-.03,r(topY)+.009,r(topY)+.01,r(topY)+.01],[-h+.01,.054*W,.054*W,.058*W],[-h-.02,.058*W,.06*W,.066*W]];
   if(b.kind==='boot')rings.unshift([topY+.035,r(topY)+.024,r(topY)+.026,r(topY)+.026]);
   m.loft(rings,seg,bp,{sub:1});
-  const y=-h-.035*L/1, fw=.046*W;
-  m.tube([[0,y,-.05],[0,y-.004,0],[0,y-.008,.06*L],[0,y-.012,.11*L],[0,y-.016,.135*L]],[[fw*.86,.036],[fw,.036],[fw*.96,.032],[fw*.76,.024],[0,0]],npcSeg(detail,8,5),bp,{ref:[0,1,0]});
+  const y=-h-.035*L/1, fw=.056*W;
+  m.tube([[0,y,-.055],[0,y-.004,0],[0,y-.008,.06*L],[0,y-.012,.115*L],[0,y-.016,.145*L]],[[fw*.86,.042],[fw,.044],[fw*.98,.04],[fw*.8,.03],[0,0]],npcSeg(detail,8,5),bp,{ref:[0,1,0]});
   m.loft([[y-.04,0,0,0,0,.035*L],[y-.035,fw*.95,.1*L,.07,0,.035*L],[y-.025,fw*.95,.1*L,.07,0,.035*L],[y-.02,0,0,0,0,.035*L]],npcSeg(detail,10,6),npcPaint(0x1c1612,0x1c1612),{sub:1});
 }
 // ---- one look per resident ---------------------------------------------------------
@@ -42505,12 +42534,94 @@ function npcKitLook(name,o){
   else if(hat&&['witch','wizard','beanie','kerchief'].includes(hat.kind)&&['curly','spiky','bun'].includes(spec.hair.style))spec.hair={...spec.hair,style:'short'};
   return spec;
 }
+// ---- what they carry, since r163 ----------------------------------------------------
+// The trades' props were the last primitives on a resident: a five-sided black
+// stick for a staff or a spear, a box for a mallet or a basket, an eight-sided
+// disc for a shield. Each is modelled here in the kit's own way, smooth and
+// patterned in wood grain, leather and metal, and shaded like the figure carrying
+// it, and centred and sized as the primitive it replaces so every place that
+// holds one still holds it the same way.
+function npcPropMesh(m){ const o=new THREE.Mesh(m.geometry(),NPC_KIT_MAT); o.castShadow=false; o.receiveShadow=true; return o; }
+const npcWood=(c=0x6a4a2e)=>npcPaint(c,npcDarken(c,.35),NPC_TILE.wood,.35);
+// A shaft from foot to head along y, centred: a little irregular, as cut
+// wood is, thicker at the foot, closed at both ends.
+function npcShaft(m,len,r0,r1,paint,seed,n=7){
+  const R=npcRand(seed), pts=[], radii=[];
+  for(let i=0;i<=n;i++){ const t=i/n, y=-len/2+len*t, end=i===0||i===n;
+    pts.push([(R()-.5)*.012*Math.sin(t*Math.PI),y,(R()-.5)*.012*Math.sin(t*Math.PI)]);
+    const r=(r0+(r1-r0)*t)*(1+(R()-.5)*.12); radii.push(end?0:r); }
+  pts[0][1]+=.004; pts[n][1]-=.004;
+  return m.tube(pts,radii,6,paint,{ref:[1,0,0],vLen:true});
+}
+// A walking staff with a knot and a crook of a head.
+function npcPropStaff(len,r0,r1,seed,glow){
+  const m=new NpcMesh(0,1); npcShaft(m,len,r0,r1,npcWood(0x5a3e26),seed);
+  const top=len/2, k=r1*1.9;
+  m.tube([[0,top-.06,0],[0,top+.01,0],[.02,top+.06,0],[.06,top+.075,0],[.085,top+.05,0]],[r1*1.05,k,k*.9,k*.75,0],6,npcWood(0x5a3e26),{ref:[0,0,1]});
+  m.loft([[-len*.18-.02,0,0,0],[-len*.18,r0*1.35,r0*1.35,r0*1.35],[-len*.18+.03,r0*1.3,r0*1.3,r0*1.3],[-len*.18+.05,0,0,0]],6,npcPaint(0x3a2416,0x2a1c14,NPC_TILE.leather,.1),{sub:1});
+  return npcPropMesh(m);
+}
+// A spear: an ash shaft, a leaf-shaped head and a socket that binds them.
+function npcPropSpear(len,seed){
+  const m=new NpcMesh(0,1); npcShaft(m,len,.032,.026,npcWood(0x7a5a38),seed);
+  const top=len/2, steel=npcPaint(0x9aa4ae,0xdde4ea,NPC_TILE.metal,.12);
+  m.loft([[top-.07,.03,.03,.03],[top-.02,.034,.034,.034],[top+.005,.026,.026,.026]],6,steel,{sub:1});
+  m.loft([[top,.02,.012,.012],[top+.07,.055,.014,.014],[top+.16,.04,.01,.01],[top+.24,0,0,0]],8,steel,{sub:2});
+  return npcPropMesh(m);
+}
+// A round shield, faced along y (the old one was a cylinder turned onto its
+// side): planks under a painted face, a dome, an iron rim and a boss.
+function npcPropShield(face,seed){
+  const m=new NpcMesh(0,1), r=.27, steel=npcPaint(0x7a828a,0xc8d0d8,NPC_TILE.metal,.12);
+  m.loft([[-.02,0,0,0],[-.018,r*.96,r*.96,r*.96],[.0,r,r,r],[.012,r*.97,r*.97,r*.97],[.018,r*.6,r*.6,r*.6],[.022,0,0,0]],12,npcPaint(face,npcDarken(face,.4),NPC_TILE.wood,.2),{sub:2});
+  m.loft([[-.006,r*1.02,r*1.02,r*1.02],[.006,r*1.035,r*1.035,r*1.035],[.016,r*.99,r*.99,r*.99]],12,steel,{sub:1,vRep:1});
+  m.loft([[.014,.065,.065,.065],[.03,.058,.058,.058],[.05,.035,.035,.035],[.058,0,0,0]],8,steel,{sub:2});
+  return npcPropMesh(m);
+}
+// A mallet: a turned handle and a round wooden head.
+function npcPropMallet(seed){
+  const m=new NpcMesh(0,1); npcShaft(m,.46,.022,.018,npcWood(0x8a6a44),seed,5);
+  m.tube([[-.075,.21,0],[-.04,.212,0],[0,.214,0],[.04,.212,0],[.075,.21,0]],[0,.048,.052,.048,0],8,npcWood(0x6a4a2e),{ref:[0,1,0]});
+  return npcPropMesh(m);
+}
+// A basket: a woven tub with a rim and a bent handle.
+function npcPropBasket(seed){
+  const m=new NpcMesh(0,1), weave=npcPaint(0x9a7442,0x5a3e22,NPC_TILE.knit,.06);
+  m.loft([[-.12,0,0,0],[-.118,.1,.065,.065],[-.06,.13,.085,.085],[.04,.145,.095,.095],[.08,.148,.097,.097]],10,weave,{sub:2,two:true});
+  m.loft([[.075,.152,.1,.1],[.095,.156,.104,.104],[.1,.146,.094,.094]],10,npcWood(0x7a5a34),{sub:1,vRep:1});
+  const h=[]; for(let i=0;i<=8;i++){ const a=Math.PI*i/8; h.push([-Math.cos(a)*.14,.09+Math.sin(a)*.14,0]); }
+  m.tube(h,h.map(()=>.012),5,npcWood(0x7a5a34),{ref:[0,0,1]});
+  return npcPropMesh(m);
+}
+// A smith's hammer: a hickory shaft and a forged head with a rounded face.
+function npcPropHammerShaft(seed){ const m=new NpcMesh(0,1); npcShaft(m,.78,.03,.024,npcWood(0x7a5a38),seed,6); return npcPropMesh(m); }
+function npcPropHammerHead(){
+  const m=new NpcMesh(0,1), iron=npcPaint(0x6a6e74,0xb8bec4,NPC_TILE.metal,.1);
+  m.tube([[-.15,0,0],[-.14,0,0],[-.06,0,0],[0,0,0],[.06,0,0],[.12,0,0],[.15,0,0]],[[0,0],[.05,.056],[.044,.05],[.046,.052],[.044,.05],[.05,.056],[0,0]],8,iron,{ref:[0,1,0]});
+  return npcPropMesh(m);
+}
+// A plain pole: a reference role's staff, under whatever crowns it.
+function npcPropPole(len,r0,r1,color,seed){ const m=new NpcMesh(0,1); npcShaft(m,len,r0,r1,npcWood(color),seed,9); return npcPropMesh(m); }
+// A bow, in the plane the old torus lay in: a limb thickest at the grip and
+// tapering to the tips, a leather grip, and the string between the tips.
+function npcPropBow(r,arc){
+  const m=new NpcMesh(0,1), pts=[], radii=[], n=14;
+  for(let i=0;i<=n;i++){ const a=arc*i/n, t=Math.abs(i/n-.5)*2; pts.push([Math.cos(a)*r,Math.sin(a)*r,0]); radii.push(i===0||i===n?0:[.024-.012*t,.016-.006*t]); }
+  m.tube(pts,radii,5,npcWood(0x5a3a22),{ref:[0,0,1],transport:true});
+  const g=[]; for(let i=0;i<=3;i++){ const a=arc*(.44+.12*i/3); g.push([Math.cos(a)*r,Math.sin(a)*r,0]); }
+  m.tube(g,g.map((_,i)=>i===0||i===3?.02:.027),5,npcPaint(0x3a2416,0x2a1c14,NPC_TILE.leather,.1),{ref:[0,0,1],transport:true});
+  const a0=[Math.cos(0)*r,0,0], a1=[Math.cos(arc)*r,Math.sin(arc)*r,0];
+  m.tube([a0,[(a0[0]+a1[0])/2,(a0[1]+a1[1])/2,0],a1],[.004,.004,.004],3,npcPaint(0xd8d0bc,0xd8d0bc),{ref:[0,0,1]});
+  return npcPropMesh(m);
+}
 // ---- the rig ---------------------------------------------------------------------
 // Builds every part of a resident from their look. Returns the groups the
 // rest of the game drives (head pivot, arm and leg pivots — now with knees —
 // and a grip at each palm) and a single low-detail mesh for far away.
 function npcKitParts(spec,detail){
-  const d=npcDims(spec), P={torso:new NpcMesh(),head:new NpcMesh(),armL:new NpcMesh(),armR:new NpcMesh(),legL:new NpcMesh(),legR:new NpcMesh(),shinL:new NpcMesh(),shinR:new NpcMesh()};
+  const d=npcDims(spec), knee=d.hip-d.thigh;
+  const P={torso:new NpcMesh(),head:new NpcMesh(0,d.neckY),armL:new NpcMesh(-d.shoulderX,d.shoulderY,1),armR:new NpcMesh(d.shoulderX,d.shoulderY,-1),
+    legL:new NpcMesh(-d.legX,d.hip),legR:new NpcMesh(d.legX,d.hip),shinL:new NpcMesh(-d.legX,knee),shinR:new NpcMesh(d.legX,knee)};
   npcBuildTorso(P.torso,spec,d,detail);
   const hs=npcBuildHead(P.head,spec,detail); npcBuildHair(P.head,hs,spec,detail); npcBuildBeard(P.head,hs,spec,detail); npcBuildHat(P.head,hs,spec,detail); npcBuildGlasses(P.head,hs,spec,detail);
   const gripL=npcBuildArm(P.armL,spec,d,-1,detail), gripR=npcBuildArm(P.armR,spec,d,1,detail);
@@ -42698,21 +42809,22 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
   // Props sit below a wrist grip, never in torso space.
   let prop=null,propArm=null,offhand=null,offhandArm=null;
   if(variant===0){
-    prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.052,1.28,5),leather);prop.position.set(.02,.05,.01);prop.rotation.z=-.16;propArm=rightArm;
+    prop=npcPropStaff(1.28,.044,.034,signature);prop.position.set(.02,.05,.01);prop.rotation.z=-.16;propArm=rightArm;
   }else if(variant===2){
     // A shield on the forearm with a boss, and a spear in the other hand.
-    const steel=npcMaterial([0x91a1b1,0x9c8c81,0x819bb0][(signature>>>10)%3]),shield=new THREE.Group(),shieldFace=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.035,8),steel),shieldBoss=new THREE.Mesh(new THREE.SphereGeometry(.06,6,5),npcMaterial(0x40324d));
-    shieldFace.position.set(-.1,.2,.06);shieldFace.rotation.set(0,.12,Math.PI/2);shieldBoss.position.set(-.13,.2,.06);shield.add(shieldFace,shieldBoss);offhand=shield;offhandArm=leftArm;
-    prop=new THREE.Mesh(new THREE.CylinderGeometry(.025,.035,1.62,5),leather);prop.position.set(.06,.06,.06);prop.rotation.z=-.08;propArm=rightArm;
+    // (r163) the kit's shield, painted in the resident's colour, boss and rim in iron
+    const shield=new THREE.Group(),shieldFace=npcPropShield(npcDarken(robe,.15),signature);
+    shieldFace.position.set(-.1,.2,.06);shieldFace.rotation.set(0,.12,Math.PI/2);shield.add(shieldFace);offhand=shield;offhandArm=leftArm;
+    prop=npcPropSpear(1.62,signature);prop.position.set(.06,.06,.06);prop.rotation.z=-.08;propArm=rightArm;
   }else if(variant===3){
-    prop=new THREE.Mesh(new THREE.BoxGeometry(.08,.46,.08),leather);prop.position.set(.01,.04,.01);prop.rotation.z=-.14;propArm=rightArm;
+    prop=npcPropMallet(signature);prop.position.set(.01,.04,.01);prop.rotation.z=-.14;propArm=rightArm;
   }else if(variant===4){
     offhand=new THREE.Mesh(new THREE.BoxGeometry(.18,.24,.18),MATS.amber);offhand.position.set(0,-.18,.02);offhandArm=rightArm;
-    prop=new THREE.Mesh(new THREE.CylinderGeometry(.035,.05,1.45,5),leather);prop.position.set(0,.06,.01);prop.rotation.z=.14;propArm=leftArm;
+    prop=npcPropStaff(1.45,.042,.032,signature);prop.position.set(0,.06,.01);prop.rotation.z=.14;propArm=leftArm;
   }else if(variant===5){
-    prop=new THREE.Mesh(new THREE.BoxGeometry(.28,.24,.18),leather);prop.position.set(0,-.17,.03);prop.rotation.z=-.10;propArm=rightArm;
+    prop=npcPropBasket(signature);prop.position.set(0,-.22,.03);prop.rotation.z=-.10;propArm=rightArm;   // (r163) held by its handle
   }else if(variant===6){
-    prop=new THREE.Group();const hammerShaft=new THREE.Mesh(new THREE.CylinderGeometry(.045,.055,.78,5),leather),hammerHead=new THREE.Mesh(new THREE.BoxGeometry(.30,.11,.12),npcMaterial(0x9a856d));
+    prop=new THREE.Group();const hammerShaft=npcPropHammerShaft(signature),hammerHead=npcPropHammerHead();
     hammerShaft.position.y=-.34;hammerHead.position.y=-.74;prop.add(hammerShaft,hammerHead);prop.position.set(.012,-.06,.028);prop.rotation.z=-.24;propArm=rightArm;
   }else if(variant===7){
     prop=new THREE.Group();const bookLeather=npcMaterial(0x80553a),bookPage=npcMaterial(0xd4c18c),bookLeft=new THREE.Mesh(new THREE.BoxGeometry(.115,.245,.035),bookLeather),bookRight=bookLeft.clone(),pageLeft=new THREE.Mesh(new THREE.BoxGeometry(.087,.205,.012),bookPage),pageRight=pageLeft.clone();
@@ -42782,7 +42894,7 @@ const vanethResidents=[
   ['Pilgrim Sorell',96,55,0x8f8061,'Leave a little quiet for the shrine.'],
   ['Chamberlain Ash',-5,-18,0x513d78,'The Great Hall has room for every kind of ambition.']
 ];
-useWorldStream('residents-core');
+LOAD_T.residents=performance.now(); useWorldStream('residents-core');
 vanethResidents.forEach(resident=>villager(...resident));
 const vanethPassers=[
   ['Rill the Fishmonger',-22,91,0x3b6170,'Fresh stock is a matter of tide, timing, and patience.',vanethRoutes.market],
@@ -42957,7 +43069,7 @@ function addReferenceRoleProp(npc,role){
     // The grip sits at the palm. A staff taller than its bearer stands on the
     // ground a little ahead of the feet: most of it rises above the hand.
     const staff=new THREE.Group(), wood=npcMaterial(role.prop==='staff-glow'?0x2b2438:0x4a3522);
-    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.028,.036,1.95,6),wood); shaft.position.y=.36; staff.add(shaft);
+    const shaft=npcPropPole(1.95,.038,.03,role.prop==='staff-glow'?0x2b2438:0x4a3522,role.id.length*97); shaft.position.y=.36; staff.add(shaft);   // (r163) the kit's
     if(role.prop==='staff-glow'){
       const cage=new THREE.Mesh(new THREE.TorusGeometry(.085,.014,5,10),wood); cage.position.y=1.40; staff.add(cage);
       const orb=new THREE.Mesh(new THREE.OctahedronGeometry(.075,0),glowMat()); orb.position.y=1.40; staff.add(orb);
@@ -42984,7 +43096,7 @@ function addReferenceRoleProp(npc,role){
     hold(posy,-1);
   }else if(role.prop==='bow'){
     // Slung across the back, string outward, not hovering at the hip.
-    const bow=new THREE.Mesh(new THREE.TorusGeometry(.42,.016,4,16,Math.PI*1.1),npcMaterial(0x3a291c));
+    const bow=npcPropBow(.42,Math.PI*1.1);   // (r163) the kit's
     bow.position.set(0,1.02,-.30); bow.rotation.set(0,0,Math.PI*.5+.35); bow.name='reference-role-prop-'+role.id; npc.g.add(bow); npc.lodHide?.push(bow);
   }
   if(role.hat==='wizard'&&!npc.kitHat){
@@ -46607,7 +46719,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r162',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r163',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -46778,7 +46890,7 @@ function warmShaders(root){
     if(roots.length)warmTiers(roots);
   },0);
 }
-LMSG.textContent='warming the lamps…'; warmTiers([scene]);
+LOAD_T.lamps=performance.now(); LMSG.textContent='warming the lamps…'; warmTiers([scene]); LOAD_T.lampsDone=performance.now();
 // The diagnostics can run while the city is still being built, before the batch exists.
 function residentBatchInfo(){ try{ return residentBatch?{residents:residentBatch.residents,instances:residentBatch.instances,vertices:residentBatch.vertices,indices:residentBatch.indices}:null; }catch{ return null; } }
 window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shops:SHOPS,roads:ROAD_RECTS,rings:ROAD_RINGS},
@@ -46922,7 +47034,19 @@ function loop(){ requestAnimationFrame(loop);
   skyDome.position.copy(camera.position); starField.position.set(camera.position.x,0,camera.position.z);
   if(!webglContextLost)renderFrame();
   syncResidentBatch();
-  if(!started){ started=true; L.style.opacity='0'; setTimeout(()=>L.remove(),800); }
+  if(!started){ started=true; LOAD_T.ready=performance.now(); reportLoadTime(); L.style.opacity='0'; setTimeout(()=>L.remove(),800); }
+}
+function loadTimes(){
+  const s=k=>LOAD_T[k]===undefined?null:Math.round(LOAD_T[k]);
+  if(LOAD_T.ready===undefined)return null;
+  return {total:s('ready'),page:s('script'),world:s('residents')-s('script'),residents:s('lamps')-s('residents'),lamps:s('lampsDone')-s('lamps'),firstFrame:s('ready')-s('lampsDone')};
+}
+function reportLoadTime(){
+  const t=loadTimes(); if(!t)return;
+  const f=ms=>(ms/1000).toFixed(1);
+  const line='loaded in '+f(t.total)+' s · page '+f(t.page)+' · world '+f(t.world)+' · people '+f(t.residents)+' · lamps '+f(t.lamps)+' · first frame '+f(t.firstFrame);
+  const el=document.getElementById('loadTime'); if(el)el.textContent=line;
+  console.info('Emberwatch '+line);
 }
 // Only after a reload this page did itself, within two minutes, in the same
 // world, and onto ground that is not inside anything.
@@ -46949,7 +47073,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Ember Hour — variant layer over base r162 -->
+<!-- Emberwatch — Ember Hour — variant layer over base r163 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBER HOUR                                     variant layer
