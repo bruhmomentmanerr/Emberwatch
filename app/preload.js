@@ -2,7 +2,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 // The only bridge across the isolation boundary. The renderer gets no Node
-// access at all — just the three calls the Bluetooth chooser needs.
+// access at all — just the calls the Bluetooth chooser and pairing need.
 contextBridge.exposeInMainWorld('emberBluetooth', {
   // Electron re-fires the device event as more devices are discovered, so the
   // renderer should treat each call as a fresh, complete list.
@@ -14,5 +14,10 @@ contextBridge.exposeInMainWorld('emberBluetooth', {
   },
   cancel() {
     ipcRenderer.send('ember:bluetooth-cancel');
+  },
+  // (r164) What became of a pairing request Windows raised for the chosen
+  // device: asked, confirmed, cancelled, or refused (with the reason).
+  onPairing(handler) {
+    ipcRenderer.on('ember:bluetooth-pairing', (_event, report) => handler(report));
   }
 });

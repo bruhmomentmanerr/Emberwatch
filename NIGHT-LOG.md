@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-02 — afternoon · r164 "Windows pairing"
+
+**What was wrong.** On the owner's machine the Peak Pro Plasma was listed,
+then "dropped the connection while bonding", and with the Peak in pairing
+mode "did not answer the limits request". The desktop app's pairing handler
+had refused every Windows pairing request since r160: it compared the
+chooser's device id with `details.deviceId`, which Chromium fills with the
+device's display name. No dialog, no bond, a silent Peak.
+
+**What changed.** The handler names the device and asks; it no longer
+compares ids. The panel logs every connection step into the status report
+and names a failed bond as the cause. PROJECT.md §0.
+
+**What proved it.** The pairing test, rebuilt on the details Chromium and
+Electron really send, fails on r163 and passes on r164; a simulated Peak
+shows the new message and log; audits, variants, smoke. The bond itself
+can only be seen on Windows.
+
+---
+
 ## 2026-10-02 — morning · r163 "Modelled masses"
 
 **What was wrong.** The residents "still sort of look like geometric": thin

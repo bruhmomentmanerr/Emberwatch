@@ -17,7 +17,7 @@ protocol.registerSchemesAsPrivileged([
 // Bump this whenever renderer/index.html is replaced with a newer revision.
 // It shows in the window title and taskbar so a running build is identifiable
 // at a glance without opening the Puffco panel to read its header.
-const BUILD_REVISION = 'r163';
+const BUILD_REVISION = 'r164';
 
 let mainWindow = null;
 // Electron hands us a callback to pick a device with. We hold it while the
@@ -25,6 +25,22 @@ let mainWindow = null;
 let bluetoothCallback = null;
 let bluetoothPairingCallback = null;
 let selectedBluetoothDevice = '';
+// The names of the devices in the last list the chooser showed, by id, so the
+// pairing prompt can say which device it is about.
+let bluetoothDeviceNames = new Map();
+let selectedBluetoothName = '';
+
+// Chromium hands the pairing prompt the device's display name, wrapped in
+// Unicode direction-isolation marks, never the id the chooser used.
+function displayName(value) {
+  return String(value || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim();
+}
+
+// Tells the Puffco panel what happened to a pairing request, so a failed bond
+// shows up as one instead of as a Peak that "did not answer".
+function reportPairing(win, report) {
+  try { if (win && !win.isDestroyed()) win.webContents.send('ember:bluetooth-pairing', report); } catch {}
+}
 
 function resolveBluetoothPairing(confirmed) {
   if (!bluetoothPairingCallback) return;
@@ -38,6 +54,7 @@ function resolveBluetooth(deviceId) {
   const callback = bluetoothCallback;
   bluetoothCallback = null;
   selectedBluetoothDevice = deviceId || '';
+  selectedBluetoothName = bluetoothDeviceNames.get(selectedBluetoothDevice) || '';
   callback(selectedBluetoothDevice);
 }
 
@@ -79,6 +96,7 @@ function createWindow() {
   mainWindow.webContents.on('select-bluetooth-device', (event, deviceList, callback) => {
     event.preventDefault();
     bluetoothCallback = callback;
+    bluetoothDeviceNames = new Map(deviceList.map(device => [device.deviceId, device.deviceName || '']));
     mainWindow.webContents.send(
       'ember:bluetooth-devices',
       deviceList.map(device => ({
@@ -90,14 +108,28 @@ function createWindow() {
 
   // Windows/Linux pairing is separate from discovery. Without a handler,
   // Electron cancels requests that need validation; Chrome supplies its own.
-  // Only answer for the device just selected by this window's main frame.
-  // macOS handles pairing itself and does not expose this session API.
+  // Only answer for this window's own page, after a device was picked in its
+  // chooser. macOS handles pairing itself and does not expose this session API.
+  //
+  // (r164) Until r164 this also required details.deviceId to equal the id the
+  // chooser returned. It never does: Chromium passes the pairing prompt the
+  // device's display name ("Peak Pro", in isolation marks), and Electron hands
+  // that on as deviceId, while the chooser's ids are addresses. So every real
+  // pairing request was answered "no" without a dialog, nothing ever bonded,
+  // and a Peak new to this computer never answered a Lorax request. The
+  // owner's older Peak worked only because Windows had bonded it long before.
+  // The dialog now names the device Windows is pairing instead.
   const pairingSession = mainWindow.webContents.session;
   if (typeof pairingSession.setBluetoothPairingHandler === 'function') {
     pairingSession.setBluetoothPairingHandler(async (details, callback) => {
       const win = mainWindow;
-      if (!win || win.isDestroyed() || details.frame !== win.webContents.mainFrame ||
-          !selectedBluetoothDevice || details.deviceId !== selectedBluetoothDevice) {
+      const main = win && !win.isDestroyed() ? win.webContents.mainFrame : null;
+      const frame = details.frame;
+      const ownFrame = !!frame && !!main && (frame === main ||
+        (typeof frame.processId === 'number' && frame.processId === main.processId && frame.routingId === main.routingId));
+      const name = displayName(details.deviceId) || selectedBluetoothName || 'the Bluetooth device you selected';
+      if (!ownFrame || !selectedBluetoothDevice) {
+        reportPairing(win, { name, kind: details.pairingKind, result: 'refused', reason: !ownFrame ? 'not this window' : 'no device chosen' });
         callback({ confirmed: false });
         return;
       }
@@ -108,6 +140,7 @@ function createWindow() {
           // Electron's native message box has no text input. Explain how to
           // bond PIN-entry devices rather than leaving their connect pending.
           resolveBluetoothPairing(false);
+          reportPairing(win, { name, kind: details.pairingKind, result: 'refused', reason: 'needs a PIN' });
           await dialog.showMessageBox(win, {
             type: 'info', title: 'Bluetooth PIN required',
             message: 'Pair this device in your system Bluetooth settings, then reconnect in Emberwatch.',
@@ -117,23 +150,36 @@ function createWindow() {
         }
         if (details.pairingKind !== 'confirm' && details.pairingKind !== 'confirmPin') {
           resolveBluetoothPairing(false);
+          reportPairing(win, { name, kind: details.pairingKind, result: 'refused', reason: 'unsupported pairing kind' });
           return;
         }
         if (details.pairingKind === 'confirmPin' && !details.pin) {
           resolveBluetoothPairing(false);
+          reportPairing(win, { name, kind: details.pairingKind, result: 'refused', reason: 'no PIN to compare' });
           return;
         }
+        reportPairing(win, { name, kind: details.pairingKind, result: 'asked' });
+        // The device gives up on a bond that is not answered, so make sure the
+        // question is in front of the player, not behind the game.
+        try { if (win.isMinimized && win.isMinimized()) win.restore(); if (win.focus) win.focus(); } catch {}
         const { response } = await dialog.showMessageBox(win, {
           type: 'question', title: 'Bluetooth pairing',
           message: details.pairingKind === 'confirmPin'
-            ? 'Does PIN ' + details.pin + ' match the PIN on your device?'
-            : 'Pair the Bluetooth device you selected?',
+            ? 'Does PIN ' + details.pin + ' match the PIN on ' + name + '?'
+            : 'Pair with ' + name + '?',
+          detail: 'Windows needs to pair with the device once before it will take commands from Emberwatch.',
           buttons: ['Pair', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true
         });
         // A closed window or a newer request may already have cancelled it.
-        if (bluetoothPairingCallback === callback) resolveBluetoothPairing(response === 0);
+        if (bluetoothPairingCallback === callback) {
+          resolveBluetoothPairing(response === 0);
+          reportPairing(win, { name, kind: details.pairingKind, result: response === 0 ? 'confirmed' : 'cancelled' });
+        }
       } catch {
-        if (bluetoothPairingCallback === callback) resolveBluetoothPairing(false);
+        if (bluetoothPairingCallback === callback) {
+          resolveBluetoothPairing(false);
+          reportPairing(win, { name, kind: details.pairingKind, result: 'refused', reason: 'the dialog failed' });
+        }
       }
     });
   }

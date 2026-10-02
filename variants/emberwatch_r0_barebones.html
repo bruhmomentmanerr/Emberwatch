@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r163 Modelled masses</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r164 Windows pairing</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -45445,6 +45445,20 @@ const PUFF=(function(){
   let device=null, protocol='', chars={}, loraxChars=null, seq=0, commandQueue=Promise.resolve(),connectionEpoch=0;
   // Kept so a bad slot read can be reported instead of just thrown away.
   let lastProfileSlotRaw='never read';
+  // (r164) Each step of the last connection attempt, with its time, so the
+  // status report says where a connection stopped and why, not only that it
+  // did. bondError is the bond read's own failure, carried into the error a
+  // later step raises, because that is usually the real cause.
+  let connectLog=[], connectStarted=0, bondError='';
+  function logStep(text){ connectLog.push('+'+((performance.now()-connectStarted)/1000).toFixed(1)+'s '+text); if(connectLog.length>24)connectLog.shift(); }
+  function notePairing(report){
+    if(!report)return;
+    const r=report.result==='asked'?'Windows asked to pair with '+report.name+(report.kind==='confirmPin'?' (PIN check)':'')
+      :report.result==='confirmed'?'pairing with '+report.name+' confirmed in the dialog'
+      :report.result==='cancelled'?'pairing with '+report.name+' cancelled in the dialog'
+      :'pairing with '+report.name+' refused: '+(report.reason||'no reason');
+    logStep(r);
+  }
   const pending=new Map();
   function flushPending(reason='Peak Pro connection closed.'){
     connectionEpoch++;
@@ -45538,17 +45552,23 @@ const PUFF=(function(){
     const showAll=!!document.getElementById('puffAllDevices')?.checked;
     const filters=[...requested.map(uuid=>({services:[uuid]})),{manufacturerData:[{companyIdentifier:3075}]},
       ...['Peak','PEAK','Puffco','PUFFCO','Puff'].map(namePrefix=>({namePrefix})),...PUFFCO_NAME_PREFIXES.map(namePrefix=>({namePrefix}))];
+    connectLog=[]; connectStarted=performance.now(); bondError='';
+    logStep('choosing a device'+(showAll?' (every device shown)':''));
     device=await navigator.bluetooth.requestDevice(showAll?{acceptAllDevices:true,optionalServices:requested}:{filters,optionalServices:requested});
+    logStep('chose '+(device.name||'an unnamed device'));
     const bondedDevice=device;
     bondedDevice.addEventListener('gattserverdisconnected',()=>{if(device!==bondedDevice)return;protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.');},{once:true});
     // Pairing is initiated only by the user and the device button. Do not
     // retry automatically: that can make the device buzz and re-enter pairing
     // mode repeatedly. (Since r161 one version read does start the bond, once
     // per click — connectAttempt.)
-    try{return await connectAttempt();}catch(error){await failedConnectCleanup('Peak Pro connection setup failed.');throw error;}
+    try{return await connectAttempt();}catch(error){logStep('stopped: '+String(error?.message||error));await failedConnectCleanup('Peak Pro connection setup failed.');throw error;}
   }
   async function connectAttempt(){
-    const server=await device.gatt.connect(); const services=await discoverServices(server);
+    const server=await device.gatt.connect(); logStep('connected');
+    const services=await discoverServices(server);
+    const known={[LORAX.service]:'Lorax',[BOND.pup]:'PUP',[BOND.silabs]:'SiLabs',[LEGACY.services[0]]:'legacy',[LEGACY.services[1]]:'legacy'};
+    logStep('services: '+([...services.keys()].map(uuid=>known[uuid]||uuid.slice(0,8)).join(', ')||'none'));
     // (r161) Bond first. A Peak that has never bonded with this computer
     // accepts the connection and the reply subscription, then never sends a
     // reply: every Lorax request timed out, every time, on a new Peak Pro
@@ -45558,9 +45578,11 @@ const PUFF=(function(){
     // on lorax"). One read, here, before the reply channel is opened.
     const bondChar=services.get(BOND.pup)?.characteristics.find(ch=>ch.uuid.toLowerCase()===BOND.pupVersion)||
       services.get(BOND.silabs)?.characteristics.find(ch=>ch.uuid.toLowerCase()===BOND.silabsVersion);
-    if(bondChar) try{ await bondChar.readValue(); }catch(error){
-      if(!device.gatt.connected) throw new Error('The Peak dropped the connection while bonding. Hold its button until the light flashes blue, then connect again.');
+    if(bondChar) try{ logStep('bond read ('+(bondChar.uuid.toLowerCase()===BOND.pupVersion?'PUP':'SiLabs')+' version)'); await bondChar.readValue(); logStep('bond read answered'); }catch(error){
+      bondError=String(error?.message||error); logStep('bond read failed: '+bondError+(device.gatt.connected?'':' (and the Peak disconnected)'));
+      if(!device.gatt.connected) throw new Error('The Peak dropped the connection while bonding: '+bondError+'. Hold its button until the light flashes blue, then connect again.');
     }
+    else logStep('no PUP or SiLabs service to bond through');
     try {
       const lorax=services.get(LORAX.service); if(!lorax) throw new Error('Lorax service was not advertised after bonding.');
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
@@ -45569,11 +45591,18 @@ const PUFF=(function(){
       const versionValue=await loraxChars.version.readValue();
       if(versionValue.byteLength!==2) throw new Error('Unexpected Lorax version response.');
       const loraxVersion=versionValue.getUint16(0,true); if(loraxVersion>255) throw new Error('Unsupported Lorax version '+loraxVersion+'.');
+      logStep('Lorax version '+loraxVersion);
       await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
+      logStep('listening for replies');
       // (r161) Limits before the seed, as puff.social and the Puffco app do. A
       // Peak that will not answer this will not answer the seed either, so its
       // timeout is the clearer place to stop.
-      try{ await loraxCommand(0x02,new Uint8Array(),null,'limits request',8000); }catch(error){
+      try{ await loraxCommand(0x02,new Uint8Array(),null,'limits request',8000); logStep('limits answered'); }catch(error){
+        logStep('limits: '+String(error?.message||error).split('.')[0]);
+        // A Peak that never bonded never answers. Say so, with the bond's own
+        // error, rather than only that the Peak was silent.
+        if(bondError&&/did not answer/.test(String(error?.message||error)))
+          throw new Error('Windows did not finish pairing with the Peak, so it will not take commands: '+bondError+'. Hold its button until the light flashes blue, press Connect, and answer Pair if Windows asks.');
         if(!device?.gatt?.connected||/did not answer/.test(String(error?.message||error))) throw error;
       }
       // Emberwatch currently consumes only request/reply packets. Do not reject
@@ -45588,7 +45617,7 @@ const PUFF=(function(){
       // PUP is an update service; it is read once above only to start the
       // bond, never written.
       if(!device.gatt.connected) throw new Error('The Peak disconnected during control setup. Put it in blue pairing mode and retry once.');
-      await authenticateLorax(); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
+      await authenticateLorax(); logStep('unlocked'); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);
       // Older Peak Pros use the original Puff.social (Pikachu) service.
@@ -45684,7 +45713,7 @@ const PUFF=(function(){
     return saved;
   }
   return {
-    connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;}, get lastProfileSlotRaw(){return lastProfileSlotRaw;},
+    connect, get connected(){return !!(device&&device.gatt&&device.gatt.connected);}, get device(){return device;}, get protocol(){return protocol;}, get lastProfileSlotRaw(){return lastProfileSlotRaw;}, get connectLog(){return connectLog.slice();}, notePairing,
     disconnect(){ const selected=device; protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.'); try{if(selected?.gatt?.connected)selected.gatt.disconnect();}catch{} if(device===selected)device=null; },
     // Puff Social distinguishes battery state-of-charge (/p/bat/soc) from
     // capacity (/p/bat/cap). Only SOC is a player-facing percentage.
@@ -45952,7 +45981,7 @@ const PUFF=(function(){
   $('pSleep').onclick=()=>deviceAction('requesting sleep…',async()=>{await PUFF.mode('sleep');warmupAttempt=null;cycleStartedAt=null;sessionRecordedForCycle=false;heatStartedInGame=false;clearCycleTracking();setNote('sleep mode requested ✓');}).catch(e=>setNote('⚠ '+e.message));
   $('pDisc').onclick=()=>{PUFF.disconnect();onDisc();setNote('Disconnected. The Peak Pro continues its current cycle independently.');};
   $('pWarmupReset').onclick=()=>{warmupSamples=[];lastWarmupSeconds=null;warmupAttempt=null;saveWarmups();$('pWarmup').textContent='learning · 0 runs';setNote('Warm-up learning for this Peak was reset.');};
-  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length,'profile slot raw: '+PUFF.lastProfileSlotRaw,'ready source: state8='+(lastState===8)+' tempReady=n/a','build: '+(window.EMBER?.diagnostics?.().revision||'unknown')].join('\n');    // Always put the report on screen as selectable text. It used to only try
+  $('pCopyDiag').onclick=async()=>{const age=lastTelemetryAt?Math.max(0,Math.round((Date.now()-lastTelemetryAt)/1000))+'s':'never',batteryAge=lastBatteryAt?Math.max(0,Math.round((Date.now()-lastBatteryAt)/1000))+'s':'never',battery=lastBatterySample?Math.round(lastBatterySample.percent)+'% · raw '+lastBatterySample.raw+' · '+lastBatterySample.scale:'unavailable',lastError=lastReadError?String(lastReadError?.message||lastReadError):'none',report=['Emberwatch Peak Pro status','connected: '+PUFF.connected,'protocol: '+(PUFF.protocol||'none'),'last response: '+age,'last read error: '+lastError,'state: '+$('pState').textContent,'target: '+$('pTemp').textContent,'reported heater: '+$('pLiveTemp').textContent,'session: '+$('pSession').textContent,'battery: '+battery,'battery age: '+batteryAge,'warm-up samples: '+warmupSamples.length,'profile slot raw: '+PUFF.lastProfileSlotRaw,'ready source: state8='+(lastState===8)+' tempReady=n/a','build: '+(window.EMBER?.diagnostics?.().revision||'unknown'),'last connection:',...(PUFF.connectLog.length?PUFF.connectLog.map(line=>'  '+line):['  none this session'])].join('\n');    // Always put the report on screen as selectable text. It used to only try
     // the clipboard and then cram the whole thing into a one-line note, so if
     // the copy silently failed there was nothing to hand over — exactly when
     // you most need it, right after a connection drops.
@@ -46019,6 +46048,13 @@ const PUFF=(function(){
     }
   });
   document.getElementById('btcCancel').addEventListener('click',()=>{ dismiss(); bridge.cancel(); });
+  // (r164) Windows' pairing request for the chosen device, as the desktop
+  // shell answered it: into the connect log, and onto the panel while it waits.
+  if(bridge.onPairing)bridge.onPairing(report=>{ try{ PUFF.notePairing(report); }catch{}
+    const note=document.getElementById('puffNote2'); if(!note||!report)return;
+    if(report.result==='asked')note.textContent='Windows is asking to pair with '+report.name+'. Answer Pair in the dialog.';
+    else if(report.result==='refused')note.textContent='Pairing with '+report.name+' was refused: '+(report.reason||'no reason')+'.';
+    else if(report.result==='cancelled')note.textContent='Pairing cancelled. Emberwatch cannot control a Peak that is not paired.'; });
   addEventListener('keydown',event=>{ if(open&&event.key==='Escape'){ dismiss(); bridge.cancel(); } });
 })();
 
@@ -46889,7 +46925,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r163',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r164',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47243,7 +47279,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch r0 — variant layer over base r163 -->
+<!-- Emberwatch r0 — variant layer over base r164 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — R0 / BAREBONES                                 variant layer

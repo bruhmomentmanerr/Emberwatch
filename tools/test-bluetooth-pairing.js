@@ -1,5 +1,13 @@
 // Exercise the desktop main process without a radio or a device write.
 // Pairing is separate from discovery; check answers, cancellation and races.
+//
+// The details are shaped as Chromium and Electron really send them (r164):
+// deviceId is the device's display name in Unicode isolation marks
+// (WebBluetoothPairingManagerImpl passes device->GetNameForDisplay() through
+// ContainStringForDisplay, and ElectronBluetoothDelegate sets it as deviceId),
+// never the address-like id the chooser used. Until r164 this test passed the
+// chooser's id there, and so did not catch a handler that refused every real
+// pairing request.
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -9,13 +17,13 @@ const { EventEmitter } = require('node:events');
 
 async function desktop(pairingSupported = true) {
   let win, handler;
-  const dialogs = [], answers = [], ipcMain = new EventEmitter();
+  const dialogs = [], answers = [], reports = [], ipcMain = new EventEmitter();
   class BrowserWindow extends EventEmitter {
     constructor() {
       super(); win = this;
       this.webContents = new EventEmitter();
-      this.webContents.mainFrame = {};
-      this.webContents.send = () => {};
+      this.webContents.mainFrame = { processId: 7, routingId: 1 };
+      this.webContents.send = (channel, report) => { if (channel === 'ember:bluetooth-pairing') reports.push(report); };
       this.webContents.setWindowOpenHandler = () => {};
       this.webContents.session = {
         setPermissionRequestHandler() {}, setPermissionCheckHandler() {}
@@ -41,18 +49,18 @@ async function desktop(pairingSupported = true) {
   const select = () => {
     let selected;
     win.webContents.emit('select-bluetooth-device', { preventDefault() {} },
-      [{ deviceId: 'chosen', deviceName: 'test device' }], id => { selected = id; });
-    ipcMain.emit('ember:bluetooth-select', {}, 'chosen');
-    assert.equal(selected, 'chosen');
+      [{ deviceId: 'AA:BB:CC:DD:EE:FF', deviceName: 'Peak Pro' }], id => { selected = id; });
+    ipcMain.emit('ember:bluetooth-select', {}, 'AA:BB:CC:DD:EE:FF');
+    assert.equal(selected, 'AA:BB:CC:DD:EE:FF');
   };
   const pair = (overrides = {}) => {
     assert.equal(typeof handler, 'function', 'desktop must register its pairing handler');
     const responses = [];
-    const pending = handler({ deviceId: 'chosen', frame: win.webContents.mainFrame, pairingKind: 'confirm', ...overrides },
+    const pending = handler({ deviceId: '\u2068Peak Pro\u2069', frame: win.webContents.mainFrame, pairingKind: 'confirm', ...overrides },
       response => responses.push({ ...response }));
     return { responses, pending };
   };
-  return { get win() { return win; }, get handler() { return handler; }, dialogs, answers, select, pair };
+  return { get win() { return win; }, get handler() { return handler; }, dialogs, answers, reports, select, pair };
 }
 
 (async () => {
@@ -62,7 +70,14 @@ async function desktop(pairingSupported = true) {
   app.select();
   app.answers.push(Promise.resolve({ response: 0 }));
   request = app.pair(); await request.pending;
-  assert.deepEqual(request.responses, [{ confirmed: true }], 'Pair accepts the selected device');
+  assert.deepEqual(request.responses, [{ confirmed: true }], 'Pair accepts a request that names the device, as Chromium sends it');
+  assert.ok(app.dialogs.at(-1).message.includes('Peak Pro'), 'the dialog names the device');
+  assert.equal(app.reports[0].result, 'refused'); assert.equal(app.reports[0].reason, 'no device chosen');
+  assert.ok(!/[\u2066-\u2069]/.test(app.dialogs.at(-1).message), 'isolation marks are stripped from the name');
+  assert.deepEqual(app.reports.slice(-2).map(r => r.result), ['asked', 'confirmed'], 'the panel hears the question and the answer');
+  app.answers.push(Promise.resolve({ response: 0 }));
+  request = app.pair({ frame: { processId: 7, routingId: 1 } }); await request.pending;
+  assert.deepEqual(request.responses, [{ confirmed: true }], 'the same frame as another wrapper object is still this window');
   assert.equal(app.dialogs.at(-1).cancelId, 1);
   assert.equal(app.dialogs.at(-1).defaultId, 1);
   request = app.pair(); await request.pending;
@@ -71,7 +86,7 @@ async function desktop(pairingSupported = true) {
   request = app.pair({ pairingKind: 'confirmPin', pin: '001234' }); await request.pending;
   assert.deepEqual(request.responses, [{ confirmed: true }]);
   assert.ok(app.dialogs.at(-1).message.includes('001234'), 'PIN prompt preserves leading zeroes');
-  for (const details of [{ deviceId: 'other' }, { frame: null }, { frame: {} },
+  for (const details of [{ frame: null }, { frame: {} }, { frame: { processId: 8, routingId: 1 } },
     { pairingKind: 'unknown' }, { pairingKind: 'confirmPin' }]) {
     const before = app.dialogs.length;
     request = app.pair(details); await request.pending;
