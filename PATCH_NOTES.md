@@ -1,79 +1,61 @@
-**r161 — peak pro plasma** · 1.61.0 · 2026-10-02 · phase 5, world depth
+**r162 — load time** · 1.62.0 · 2026-10-02 · phase 5, world depth
 
 ### Summary
 
-Peak Pro Plasma. A Peak never bonded with this computer is bonded before Lorax (one PUP or SiLabs version read, as puff.social does), the limits are asked for before the access seed, and a request with no answer names itself. The device list shows Puffco devices only (services, manufacturer id 3075, Peak/Puffco names, address prefixes), with a box to show everything. Verified: audits clean; a simulated unbonded Peak times out on r160 and completes the handshake on r161; smoke clean (r161 in the title). Not tested on a real Plasma.
+Load time. Every landmark, kit piece and the forest used to warm the shaders of the whole scene, three light tiers each: 68 passes on one boot, 67 after the loader, 16.9 s. Now only the piece that arrived is warmed, and pieces arriving together share a pass: 2 passes, 0.56 s. Verified: audits clean; screenshots after load; variants 6/6. Not measured on Windows.
 
 ### Patch notes
 
-**State: r161 / 1.61.0, sealed 2026-10-02 ("Peak Pro Plasma").** The owner,
-on r160: "it still will not connect … lorax connection times out every
-single time", on a Peak Pro Plasma bought recently, and asked whether the
-code only connects to the original Peak Pro; also for Bluetooth filtering
-("I don't need to see TVs and stuff"), and about long load times.
+**State: r162 / 1.62.0, sealed 2026-10-02 ("Load time").** The owner, on
+r161: "why does it take a full minute to load? this isn't fallout 4". Also,
+on the residents: "I do like the direction we're going with the NPCs, but
+they still sort of look like geometric. I would like to just have them as
+like modeled masses or something" — noted for after this, not started.
 
-**Next:** the owner's test on the Plasma, desktop app and Chrome both. If it
-still times out, the error now names the request the Peak did not answer;
-that is where to look.
+**Next:** the owner's launch on Windows, and the Plasma test from r161. Then
+the residents as modelled masses rather than assembled shapes.
 
-### Why a new Peak timed out
+### Where the minute went
 
-A Peak that has never bonded with the computer accepts the connection, the
-version read and the reply subscription, then never answers a Lorax request.
-The connect flow (written against the owner's older Peak, bonded with this
-computer long before) deliberately did not read anything that would start a
-bond — "Do not read PUP … either action can make the device buzz and
-re-enter pairing mode repeatedly" — so on the new Plasma the setup request
-and then the access-seed request went unanswered, and the seed's 5 s timeout
-was the error the owner saw every time. puff.social, whose Lorax client this
-one follows, reads the PUP app version (or, without PUP, the SiLabs version)
-before anything else, commented "This triggers pairing on lorax", then asks
-for the limits (`GET_LIMITS`, 0x02) before the access seed. r161 does the
-same: the PUP and SiLabs services are requested, one version read starts the
-bond, the limits come first, and a request that gets no answer now says
-which request it was. Nothing written to the device changed.
+The shader warm-up. Every landmark, kit piece and the forest is parsed after
+the loader has gone, and each one called `warmShaders()`, which compiled the
+**whole scene** under each of the three light tiers. On one boot in the
+harness (r161): 68 warm-up passes, 67 of them after the loader had gone,
+16,872 ms of warm-up in all, 16,355 ms of it after the loader — the game
+looking loaded and freezing in 200-300 ms steps behind it. On Windows each
+new program is a Direct3D compile on top of that.
 
-Shown with a simulated Peak in the harness that ignores every request until
-its PUP version has been read: on r160 the setup request and the seed went
-unanswered (the owner's failure); on r161 the bond read came first and the
-limits, setup, seed and unlock requests all followed. That proves the order,
-not the device: the simulation is built on what puff.social does, and no
-Plasma was available here.
+r162: a caller passes the piece it just added, and only that piece is
+compiled (against the scene's lights, under each tier); pieces that arrive
+in the same moment are warmed together on the next tick. With no piece (the
+boot, a variant's `EMBER.warmShaders()`) the whole scene is. Same harness:
+**2 passes, 556 ms in all, 132 ms of it after the loader.** Programs at the
+end: 129 (r161: 131); the two left over compile the first time they are
+drawn.
 
-### Only Puffco devices in the list
-
-The device request filters for Puffco now: any device advertising the
-Lorax, legacy, PUP or SiLabs service, Puffco's Bluetooth manufacturer id
-(3075), a name starting Peak or Puffco, or one still named by its address
-with one of the prefixes puff.social lists for Puffco devices (what an
-unrenamed Peak advertises). A box under Connect, "show every nearby
-Bluetooth device", lists everything, for a Peak renamed past all of those.
-
-### Load time
-
-Timed in the harness with marks at every world stream: the boot script
-finishes at 6.3 s on r158 and 7.2 s on r161 (software rendering; the
-residents' kit is most of the second). That is not the "crazy" load the
-owner saw. The portable `.exe` unpacks its whole app (about 100 MB) into a
-temporary folder on every launch, which the installed version does not; the
-setup `.exe` is the one to use day to day. Not measured on Windows.
+The harness cannot show what that is worth on a real GPU: under software
+rendering each frame takes about 5 s, so long tasks after the loader came to
+about 121-122 s on both builds. `loop()` itself was 4.2 s of that, over 22
+frames. Not measured on Windows. The portable `.exe` still unpacks itself on
+every launch (r161 §0f); the setup `.exe` does not.
 
 ### Verified
 
 - `check-parse`, `audit-source` (B and C 0), `audit-dom`, `audit-dead`
-  (668, 0 dead), `audit-comments`, `test-switch-frames`, `test-switch-b9`:
+  (669, 0 dead), `audit-comments`, `test-switch-frames`, `test-switch-b9`:
   clean.
-- The simulated Peak, r160 against r161, as above; the request options
-  carry 105 filters and the four services.
-- Smoke: game booted, bridge, chooser installed, `requestDevice` settles,
-  "Emberwatch — r161".
+- Screenshots after load, at the gate and in the citadel: the kit, lamps,
+  landmarks (56) and sky all drawn; 0 errors.
 - Variants 6/6 built, 6/6 booted.
-- Not run: the runtime audit; a real Peak.
+- Bluetooth smoke: r162 passed 2 of 4 runs, r161 1 of 3 in the same
+  container; every failure was the software GPU process exiting (a lost
+  context or a timeout), on both builds.
+- Not run: the runtime audit; a Windows launch.
 
 ### In the code
 
-- 4.97 MB (+3,522 bytes on r160).
-- No functions added or removed.
+- 4.97 MB (+1,291 bytes on r161).
+- 1 function added: `warmTiers`.
 
 ### Play it
 
