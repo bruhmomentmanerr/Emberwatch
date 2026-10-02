@@ -504,9 +504,10 @@ def shrine():
     a.box(.3, .05, 2.0, S - .16, 1.9, 2.4, WOOD3)
     for k in range(9):
         a.cyl(.04, .04, .01, S - .18, 1.94, 1.6 + k * .2, BRASS if k % 2 else PEWTER, sides=8, rz=math.pi / 2 - .3)
-    a.cyl(.12, .18, .8, 2.6, .4, 6.2, STONE, sides=8)
-    a.cyl(.36, .2, .24, 2.6, .92, 6.2, STONE, sides=10)
-    a.cyl(.32, .32, .01, 2.6, 1.03, 6.2, (.18, .22, .30), sides=10)
+    # (r159) 4.4 in, not 6.2: at 6.2 its collider stood on the road paving
+    a.cyl(.12, .18, .8, 2.6, .4, 4.4, STONE, sides=8)
+    a.cyl(.36, .2, .24, 2.6, .92, 4.4, STONE, sides=10)
+    a.cyl(.32, .32, .01, 2.6, 1.03, 4.4, (.18, .22, .30), sides=10)
     for (W, u) in ((left, 4.0), (right, -5.4), (right, 4.6)):
         sconce(W, u)
     a.finish(cam_at=(0, 2.0, 6.0), cam_look=(0, 1.4, -4), res=(640, 420), lens=22,

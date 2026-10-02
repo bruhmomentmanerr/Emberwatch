@@ -16,7 +16,9 @@
   };
   out.views = [await stand('north gate', 0, 406, 0), await stand('market', 0, 108, 0), await stand('market back', 0, 108, Math.PI)];
   // A near resident's limb matrices change frame to frame (animation reaches the batch).
-  const batch = E.scene.children.find(o => o.isBatchedMesh);
+  // By name since r159: the city's cells are BatchedMeshes too (r153), and the
+  // first one in the scene is a street cell, not the residents.
+  const batch = E.scene.getObjectByName('resident-batch');
   out.batchInScene = !!batch;
   if (batch) {
     const m1 = [], m2 = [], M = new THREE.Matrix4();
