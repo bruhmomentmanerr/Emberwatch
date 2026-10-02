@@ -4,7 +4,11 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r159 / 1.59.0**, sealed 2026-10-02 as "the people": every
+Current: **r160 / 1.60.0**, sealed 2026-10-02 as "Bluetooth pairing":
+the desktop shell now answers Windows/Linux Bluetooth pairing requests and
+the docs no longer claim that local HTML cannot use Web Bluetooth.
+The reported physical-device connection hang still needs Windows verification.
+Before it, **r159 / 1.59.0**, sealed 2026-10-02 as "the people": every
 resident rebuilt from a kit of modelled, patterned parts — tartans, knit,
 striped stockings, painted faces, hats and hair — with a look of their own
 and knees in their legs, after the owner's PS2/Xbox-era RPG reference
@@ -250,7 +254,76 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-02, r159)
+## 0. Start here — where the last session left off (2026-10-02, r160)
+
+**State: r160 / 1.60.0, sealed 2026-10-02 ("Bluetooth pairing").** The owner
+reported that the desktop Bluetooth connection hangs while the local HTML
+connects in Chrome. This revision implements the missing pairing handler
+and corrects the inaccurate documentation about `file://`.
+
+### Bluetooth pairing
+
+The existing in-game chooser already releases pointer lock and answers the
+device-selection callback. The desktop main process lacked the separate
+Windows/Linux pairing handler. Electron's session API documentation says
+pairing requiring additional validation is automatically cancelled without
+it; this is a plausible missing step, not a diagnosis proven on the device.
+
+The handler is registered only when the platform exposes the API. It checks
+the initiating frame and selected device, then uses a native dialog to ask
+for confirmation or display a PIN to compare. Cancel is the default choice.
+Requests settle once even if a dialog fails, another pairing request arrives
+or the window closes. Devices requiring PIN entry are told to pair in system
+Bluetooth settings and reconnect; no PIN is guessed. macOS handles pairing
+itself. The renderer's BLE commands and device-write paths are unchanged.
+
+### Documentation and release
+
+Chrome can use Web Bluetooth from a local HTML file on supported systems;
+the owner already does. The README, catalog, architecture/handoff docs,
+main-process comments and harness comments now say this accurately. The
+release-note generator corrects the same false claim in every release's
+"Play it" text. The desktop app's stable origin, fetch/CORS support and
+custom discovery/pairing prompts remain useful.
+
+The package and lockfile are stamped 1.60.0, the desktop title and renderer
+diagnostics r160. The archive is `emberwatch_3_r160-bluetooth-pairing.html`;
+it must remain byte-identical to the live renderer. Six variants use r160.
+The Windows release workflow builds the setup and portable executables.
+
+### Verified
+
+- Parse, source (sections B/C zero), DOM, dead-code and comment audits passed;
+  the captured Switch-frame and b9 tests passed. The renderer differs from
+  the r159 archive only in its two revision stamps; the r160 archive is
+  byte-identical to the live renderer, and shipped archives were not edited.
+- `node tools/test-bluetooth-pairing.js` passed confirmation, PIN display,
+  cancellation, dialog failure, frame/device scope, overlapping requests,
+  window closure and API-unavailable platform checks without device writes.
+- Electron 43.4.1 desktop smoke: r160 in the title and diagnostics, secure
+  context, Bluetooth API, preload bridge, WebGL, game boot and chooser present.
+  A real request rejected with `NotFoundError` on this adapter-less Linux host
+  rather than hanging; this does not test physical pairing.
+- `tools/smoke-bluetooth.js` loaded the real app/main/preload/renderer and
+  passed synthetic chooser selection/cancellation and pairing confirmation.
+  The actual session handler was registered, and the WebGL context stayed
+  healthy. The chooser screenshot was inspected. Discovery and dialog
+  answers were simulated; no radio, GATT connection or device writes occurred.
+- Variants built 6/6 and `node tools/check-variants.js` booted/reported 6/6,
+  all at r160. Package and lockfile both read 1.60.0. Release generation found
+  148 unique revisions with notes; publishing dry-run built the history.
+- Windows setup and portable builds are produced by the release workflow
+  after the source push. That job now uses Node 24 and runs the audits,
+  including the pairing tests, before packaging.
+
+**Next:** install r160 on Windows, put the device in pairing mode, close any
+other app connected to it, and retry Connect. Check the pairing prompt and
+that GATT/services and telemetry become available. Repeat with an existing
+bond and with Cancel. No physical device or Windows Bluetooth adapter is
+available in this cloud environment, so the reported hang is not yet proven
+resolved. The next city/NPC work remains the r159 handoff below.
+
+## 0h. r159 — where the session before that left off (2026-10-02)
 
 **State: r159 / 1.59.0, sealed 2026-10-02 ("the people").** The owner
 sent two reference videos (AI video, "think of ps2/xbox era rpg … if you
@@ -3256,10 +3329,11 @@ Two things make the whole architecture make sense:
    Three.js r186 inlined. No build step for the game, no bundler, no modules —
    you edit the file and reload. (The engine block itself is generated; see
    "The engine" below.)
-2. **It is wrapped in Electron only for the origin.** Web Bluetooth refuses to
-   run from `file://`. `main.js` registers a custom `app://` scheme as standard
-   + secure so the browser grants Bluetooth. That is the entire reason Electron
-   is here.
+2. **Electron supplies the desktop shell.** `app/main.js` registers a custom
+   `app://` scheme as standard + secure, with a stable origin and fetch/CORS
+   support, and supplies device discovery and pairing prompts. Chrome can
+   also use Web Bluetooth from `file://` on supported systems; claiming
+   otherwise was incorrect. Browser, OS and adapter support still matter.
 
 **There is no git.** The archived files in `revisions/` *are* the history.
 Never delete one; never overwrite one that has shipped.
@@ -3456,7 +3530,8 @@ node tools/audit-dom.js      # markup ids vs script lookups, both directions
 node tools/audit-dead.js     # functions nothing live can reach (comments and strings ignored)
 node tools/audit-comments.js # comments that have swallowed a call statement; must be none
 node tools/test-switch-frames.js   # 12 assertions, the panel's own decode vs a real capture
-node tools/test-switch-b9.js       # 19 assertions, the b9 write frame
+node tools/test-switch-b9.js       # the b9 write frame
+node tools/test-bluetooth-pairing.js # desktop pairing callbacks, no device writes
 ```
 
 `audit-dead.js` (r115) catches what section B cannot: a function whose name
@@ -3526,10 +3601,10 @@ line for the chooser handshake.
 
 ### Shipping a revision
 
-Six steps, in order. Skipping any of them has cost a revision before.
+Seven steps, in order. Skipping any of them has cost a revision before.
 
 1. **Stamp** — `app/main.js` `BUILD_REVISION`, `index.html` panel header +
-   `diagnostics().revision`, `app/package.json` version,
+   `diagnostics().revision`, `app/package.json` and package-lock root versions,
    `variants/README.md` base revision.
 2. **Archive** — copy `app/renderer/index.html` to
    `revisions/phase 5 - world depth (r70-)/emberwatch_3_r<N>-<slug>.html`.
@@ -3539,7 +3614,8 @@ Six steps, in order. Skipping any of them has cost a revision before.
    transforms text: it reported 6/6 for a whole revision while r0 threw on
    every `diagnostics()` call.
 4. **Smoke** — as above.
-5. **Build** — `cd app && npm run dist` (NSIS + portable).
+5. **Build** — `cd app && npm run dist` (NSIS + portable), or use the
+   release workflow's Windows runner; verify both artifacts on the new release.
 6. **Docs** — CATALOG.md timeline, this file, RESUME if a rule changed,
    NIGHT-LOG if the work was unattended.
 7. **Release** (since r159) — `node releases/build-notes.js` after the docs,
@@ -4111,6 +4187,18 @@ preset.
 `main.js` calls `preventDefault()` on `select-bluetooth-device` and holds the
 callback; the renderer answers it through the `preload.js` bridge. Without
 this, `requestDevice()` never settles and Connect hangs with no error.
+
+From r160 the app also registers `setBluetoothPairingHandler` when the
+platform exposes it. On Windows/Linux Electron otherwise cancels pairing
+that needs additional validation. The handler accepts requests only for the
+selected device and this window's main frame; native dialogs ask to pair or
+confirm the PIN. Cancel, a failed dialog, window closure and superseded
+requests answer once with `confirmed: false`. PIN-entry devices are directed
+to system Bluetooth settings first. macOS handles its own pairing.
+
+`node tools/test-bluetooth-pairing.js` exercises this main-process flow without
+a radio, GATT access or device writes. Real Windows/device pairing must still
+be tested before calling the reported connection hang resolved.
 
 ### The strain journal
 

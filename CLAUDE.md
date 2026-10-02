@@ -48,6 +48,7 @@ node tools/audit-dead.js      # functions nothing live reaches; must be 0
 node tools/audit-comments.js  # comments that swallowed a call; must be none
 node tools/test-switch-frames.js
 node tools/test-switch-b9.js
+node tools/test-bluetooth-pairing.js # desktop pairing, no device writes
 ```
 
 ## When you ship

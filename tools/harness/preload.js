@@ -1,6 +1,6 @@
-// Edge on file:// is not a secure context, so these simply do not exist there.
-// Electron's file:// is treated as secure, which is why the app looked fine.
-// Removing them here means a probe can never reach a real Bluetooth device.
+// Deliberate test isolation: remove browser capabilities so probes cannot
+// reach real Bluetooth devices or the clipboard. A local HTML file in Chrome
+// can expose Web Bluetooth on supported systems; this is not an origin test.
 try { delete navigator.bluetooth; } catch (e) {}
 try { Object.defineProperty(navigator, 'bluetooth', { get: () => undefined, configurable: true }); } catch (e) {}
 try { Object.defineProperty(window, 'crypto', { value: Object.assign(Object.create(Object.getPrototypeOf(window.crypto)), { subtle: undefined, getRandomValues: window.crypto.getRandomValues.bind(window.crypto) }), configurable: true }); } catch (e) {}

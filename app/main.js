@@ -1,12 +1,12 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell, dialog } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
 // A custom scheme rather than file://. It gives the page a real, stable origin
-// that counts as a secure context (so Web Bluetooth is allowed) and supports
-// fetch/CORS, which file:// does not — the strain archive lookups and any
-// future .glb loading both need that.
+// that counts as a secure context and supports fetch/CORS for strain archive
+// lookups and future .glb loading. Chrome can also expose Web Bluetooth on
+// file://; the desktop shell supplies its own chooser and pairing prompts.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'app',
@@ -17,18 +17,28 @@ protocol.registerSchemesAsPrivileged([
 // Bump this whenever renderer/index.html is replaced with a newer revision.
 // It shows in the window title and taskbar so a running build is identifiable
 // at a glance without opening the Puffco panel to read its header.
-const BUILD_REVISION = 'r159';
+const BUILD_REVISION = 'r160';
 
 let mainWindow = null;
 // Electron hands us a callback to pick a device with. We hold it while the
 // renderer shows its own chooser.
 let bluetoothCallback = null;
+let bluetoothPairingCallback = null;
+let selectedBluetoothDevice = '';
+
+function resolveBluetoothPairing(confirmed) {
+  if (!bluetoothPairingCallback) return;
+  const callback = bluetoothPairingCallback;
+  bluetoothPairingCallback = null;
+  callback({ confirmed });
+}
 
 function resolveBluetooth(deviceId) {
   if (!bluetoothCallback) return;
   const callback = bluetoothCallback;
   bluetoothCallback = null;
-  callback(deviceId || '');
+  selectedBluetoothDevice = deviceId || '';
+  callback(selectedBluetoothDevice);
 }
 
 function createWindow() {
@@ -78,6 +88,56 @@ function createWindow() {
     );
   });
 
+  // Windows/Linux pairing is separate from discovery. Without a handler,
+  // Electron cancels requests that need validation; Chrome supplies its own.
+  // Only answer for the device just selected by this window's main frame.
+  // macOS handles pairing itself and does not expose this session API.
+  const pairingSession = mainWindow.webContents.session;
+  if (typeof pairingSession.setBluetoothPairingHandler === 'function') {
+    pairingSession.setBluetoothPairingHandler(async (details, callback) => {
+      const win = mainWindow;
+      if (!win || win.isDestroyed() || details.frame !== win.webContents.mainFrame ||
+          !selectedBluetoothDevice || details.deviceId !== selectedBluetoothDevice) {
+        callback({ confirmed: false });
+        return;
+      }
+      resolveBluetoothPairing(false);
+      bluetoothPairingCallback = callback;
+      try {
+        if (details.pairingKind === 'providePin') {
+          // Electron's native message box has no text input. Explain how to
+          // bond PIN-entry devices rather than leaving their connect pending.
+          resolveBluetoothPairing(false);
+          await dialog.showMessageBox(win, {
+            type: 'info', title: 'Bluetooth PIN required',
+            message: 'Pair this device in your system Bluetooth settings, then reconnect in Emberwatch.',
+            buttons: ['OK']
+          });
+          return;
+        }
+        if (details.pairingKind !== 'confirm' && details.pairingKind !== 'confirmPin') {
+          resolveBluetoothPairing(false);
+          return;
+        }
+        if (details.pairingKind === 'confirmPin' && !details.pin) {
+          resolveBluetoothPairing(false);
+          return;
+        }
+        const { response } = await dialog.showMessageBox(win, {
+          type: 'question', title: 'Bluetooth pairing',
+          message: details.pairingKind === 'confirmPin'
+            ? 'Does PIN ' + details.pin + ' match the PIN on your device?'
+            : 'Pair the Bluetooth device you selected?',
+          buttons: ['Pair', 'Cancel'], defaultId: 1, cancelId: 1, noLink: true
+        });
+        // A closed window or a newer request may already have cancelled it.
+        if (bluetoothPairingCallback === callback) resolveBluetoothPairing(response === 0);
+      } catch {
+        if (bluetoothPairingCallback === callback) resolveBluetoothPairing(false);
+      }
+    });
+  }
+
   // Grant the permissions the game legitimately needs and refuse the rest.
   // pointerLock is the important one: mouse look calls requestPointerLock(),
   // and in Electron that is a *permission*. Omitting it silently denied the
@@ -114,6 +174,7 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     resolveBluetooth('');
+    resolveBluetoothPairing(false);
     mainWindow = null;
   });
 

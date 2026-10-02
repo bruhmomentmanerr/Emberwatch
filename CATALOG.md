@@ -8,13 +8,14 @@ Current home: `D:\_KEEP\Emberwatch`
 Emberwatch — retro first-person dark-fantasy game set in the black city of
 Vaneth. Daggerfall-style chunky-pixel look, three.js (inlined), the whole game
 in one self-contained HTML file. It ships as an Electron desktop app so the
-in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
-Bluetooth will not run from `file://`.
+in-game device panel has a stable secure origin with fetch/CORS support
+and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
+from a local HTML file on supported systems.
 
-Current sealed source: **1.59.0 / build r159 ("the people")**,
-2026-10-02. Archived, smoke-tested, six variants boot-check, and packaged
-by the release workflow: the setup and portable builds are on its GitHub
-release, with every revision's own (147, r04 to r159). r143 to r158 were
+Current sealed source: **1.60.0 / build r160 ("Bluetooth pairing")**,
+2026-10-02. Archived, audited and runtime-checked. The release workflow
+publishes the tag, notes and HTML, then builds the Windows setup and portable
+executables (148 revisions, r04 to r160). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -32,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r159'
+                      the strain-archive lookups work. BUILD_REVISION = 'r160'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r159-the-people.html
+                      emberwatch_3_r160-bluetooth-pairing.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -62,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r159, minus the revisions
+                    Phase 5 currently contains r70-r160, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r159-the-people.html
+                    emberwatch_3_r160-bluetooth-pairing.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1330,6 +1331,13 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 2      r160       Bluetooth pairing. Windows/Linux native pairing
+                          confirmation and PIN comparison for the selected
+                          device; cancel, dialog failure and window closure
+                          settle callbacks. PIN-entry devices are directed
+                          to system settings first. Corrected the false
+                          file:// Bluetooth claim in docs and all release
+                          notes. Physical-device Windows test still required.
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

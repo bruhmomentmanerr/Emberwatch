@@ -1889,7 +1889,7 @@
   "rev": 158,
   "title": "the last halls",
   "version": "1.58.0",
-  "date": "2026-10-02T13:40:00Z",
+  "date": "2026-10-02T12:30:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r158-the-last-halls.html"
@@ -1902,12 +1902,25 @@
   "rev": 159,
   "title": "the people",
   "version": "1.59.0",
-  "date": "2026-10-02T18:20:00Z",
+  "date": "2026-10-02T16:00:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r159-the-people.html"
   },
   "asset": "emberwatch-r159-the-people.html",
   "notes": "releases/notes/r159.md"
+ },
+ {
+  "tag": "r160",
+  "rev": 160,
+  "title": "bluetooth pairing",
+  "version": "1.60.0",
+  "date": "2026-10-02T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r160-bluetooth-pairing.html"
+  },
+  "asset": "emberwatch-r160-bluetooth-pairing.html",
+  "notes": "releases/notes/r160.md"
  }
 ]

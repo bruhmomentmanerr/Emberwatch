@@ -2,6 +2,92 @@
 
 Every archived revision of Emberwatch, newest first. Each is a GitHub release with the playable file attached; the text here is the same as the release notes (`releases/notes/`). Built by `node releases/build-notes.js` from the archive, CATALOG.md and PROJECT.md.
 
+## r160 — bluetooth pairing
+
+**r160 — bluetooth pairing** · 1.60.0 · 2026-10-02 · phase 5, world depth
+
+#### Summary
+
+Bluetooth pairing. Windows/Linux native pairing confirmation and PIN comparison for the selected device; cancel, dialog failure and window closure settle callbacks. PIN-entry devices are directed to system settings first. Corrected the false file:// Bluetooth claim in docs and all release notes. Physical-device Windows test still required.
+
+#### Patch notes
+
+**State: r160 / 1.60.0, sealed 2026-10-02 ("Bluetooth pairing").** The owner
+reported that the desktop Bluetooth connection hangs while the local HTML
+connects in Chrome. This revision implements the missing pairing handler
+and corrects the inaccurate documentation about `file://`.
+
+#### Bluetooth pairing
+
+The existing in-game chooser already releases pointer lock and answers the
+device-selection callback. The desktop main process lacked the separate
+Windows/Linux pairing handler. Electron's session API documentation says
+pairing requiring additional validation is automatically cancelled without
+it; this is a plausible missing step, not a diagnosis proven on the device.
+
+The handler is registered only when the platform exposes the API. It checks
+the initiating frame and selected device, then uses a native dialog to ask
+for confirmation or display a PIN to compare. Cancel is the default choice.
+Requests settle once even if a dialog fails, another pairing request arrives
+or the window closes. Devices requiring PIN entry are told to pair in system
+Bluetooth settings and reconnect; no PIN is guessed. macOS handles pairing
+itself. The renderer's BLE commands and device-write paths are unchanged.
+
+#### Documentation and release
+
+Chrome can use Web Bluetooth from a local HTML file on supported systems;
+the owner already does. The README, catalog, architecture/handoff docs,
+main-process comments and harness comments now say this accurately. The
+release-note generator corrects the same false claim in every release's
+"Play it" text. The desktop app's stable origin, fetch/CORS support and
+custom discovery/pairing prompts remain useful.
+
+The package and lockfile are stamped 1.60.0, the desktop title and renderer
+diagnostics r160. The archive is `emberwatch_3_r160-bluetooth-pairing.html`;
+it must remain byte-identical to the live renderer. Six variants use r160.
+The Windows release workflow builds the setup and portable executables.
+
+#### Verified
+
+- Parse, source (sections B/C zero), DOM, dead-code and comment audits passed;
+  the captured Switch-frame and b9 tests passed. The renderer differs from
+  the r159 archive only in its two revision stamps; the r160 archive is
+  byte-identical to the live renderer, and shipped archives were not edited.
+- `node tools/test-bluetooth-pairing.js` passed confirmation, PIN display,
+  cancellation, dialog failure, frame/device scope, overlapping requests,
+  window closure and API-unavailable platform checks without device writes.
+- Electron 43.4.1 desktop smoke: r160 in the title and diagnostics, secure
+  context, Bluetooth API, preload bridge, WebGL, game boot and chooser present.
+  A real request rejected with `NotFoundError` on this adapter-less Linux host
+  rather than hanging; this does not test physical pairing.
+- `tools/smoke-bluetooth.js` loaded the real app/main/preload/renderer and
+  passed synthetic chooser selection/cancellation and pairing confirmation.
+  The actual session handler was registered, and the WebGL context stayed
+  healthy. The chooser screenshot was inspected. Discovery and dialog
+  answers were simulated; no radio, GATT connection or device writes occurred.
+- Variants built 6/6 and `node tools/check-variants.js` booted/reported 6/6,
+  all at r160. Package and lockfile both read 1.60.0. Release generation found
+  148 unique revisions with notes; publishing dry-run built the history.
+- Windows setup and portable builds are produced by the release workflow
+  after the source push. That job now uses Node 24 and runs the audits,
+  including the pairing tests, before packaging.
+
+**Next:** install r160 on Windows, put the device in pairing mode, close any
+other app connected to it, and retry Connect. Check the pairing prompt and
+that GATT/services and telemetry become available. Repeat with an existing
+bond and with Cancel. No physical device or Windows Bluetooth adapter is
+available in this cloud environment, so the reported hang is not yet proven
+resolved. The next city/NPC work remains the r159 handoff below.
+
+#### In the code
+
+- 4.97 MB (+7 bytes on r159).
+- No functions added or removed.
+
+#### Play it
+
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
+
 ## r159 — the people
 
 **r159 — the people** · 1.59.0 · 2026-10-02 · phase 5, world depth
@@ -225,7 +311,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r158 — the last halls
 
@@ -354,7 +440,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r157 — the taverns
 
@@ -498,7 +584,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r156 — the watch houses
 
@@ -650,7 +736,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r155 — the archives
 
@@ -743,7 +829,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r154 — the moon archive
 
@@ -842,7 +928,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r153 — the city culled
 
@@ -965,7 +1051,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r152 — the forest at night
 
@@ -1098,7 +1184,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r151 — the city heard
 
@@ -1214,7 +1300,7 @@ standard profile's seed) unless it says otherwise. The context ran (state
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r150 — bells ring the watch in
 
@@ -1320,7 +1406,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r149 — the bell tower
 
@@ -1406,7 +1492,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r148 — torchlit walls
 
@@ -1480,7 +1566,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r147 — signs and lamps
 
@@ -1566,7 +1652,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r146 — avenues at night
 
@@ -1749,7 +1835,7 @@ standard profile's seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r145 — halls and crossings
 
@@ -1853,7 +1939,7 @@ seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r144 — market and cathedral
 
@@ -2004,7 +2090,7 @@ seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r143 — places under the moon
 
@@ -2195,7 +2281,7 @@ seed) unless it says otherwise.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r142 — walkaround
 
@@ -2270,7 +2356,7 @@ reads as a party hat. For anything visual, go stand where the camera stands.**
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r141 — quiet road
 
@@ -2343,7 +2429,7 @@ the thing you're looking for is thinner than your test's resolution.**
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r140 — modelled not assembled
 
@@ -2360,7 +2446,7 @@ modelled not assembled. r136-r139 ("reference build", never archived) added a "v
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r139 — reference build
 
@@ -2379,7 +2465,7 @@ r136–r139 were never archived. This is the live game of the repository's first
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r137 — npc visual canon
 
@@ -2398,7 +2484,7 @@ r136–r139 were never archived. This one survives as the copy of the game at th
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r135 — the crowd parts
 
@@ -2513,7 +2599,7 @@ are still there.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r134 — people in the square
 
@@ -2604,7 +2690,7 @@ world-seed UI wording remain open from r132.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r133 — nothing hangs on nothing
 
@@ -2696,7 +2782,7 @@ world-seed UI wording are also still open; see below.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r132 — streets that bend
 
@@ -2784,7 +2870,7 @@ B 0 / C 0 / dead 0; 6/6 variants built and 6/6 check.
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r131 — the plan redrawn
 
@@ -2801,7 +2887,7 @@ the plan redrawn. A Blender top-down of the exported city showed what screenshot
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r130 — props and porters
 
@@ -2820,7 +2906,7 @@ props & porters. Every held prop now uses its corresponding wrist grip; the guar
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r129 — resident hands
 
@@ -2837,7 +2923,7 @@ resident hands. A reported close-up of Jarek Quarrier showed sleeves ending blun
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r128 — rooms you can see
 
@@ -2854,7 +2940,7 @@ rooms you can see. The owner: "there's weird clipping in all the interiors." Not
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r127 — one shop everywhere
 
@@ -2873,7 +2959,7 @@ one shop, everywhere. The owner's own screenshots, fixed: the Great Hall's gener
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r126 — nothing left to roll
 
@@ -2890,7 +2976,7 @@ nothing left to roll. The owner: "I don't even want any part generated." The two
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r125 — the city holds still
 
@@ -2907,7 +2993,7 @@ the city holds still. innerInfill's live terrace walk — worldRandom() rolls fo
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r124b — material and street logic
 
@@ -2926,7 +3012,7 @@ The second file archived as r124: the material and resident pass carried on into
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r124 — material and resident pass
 
@@ -2945,7 +3031,7 @@ material & resident pass. Structured 128 px painted building materials, 82% bala
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r123 — clean poly polish
 
@@ -2964,7 +3050,7 @@ clean-poly polish. 72% balanced render scale with clear and performance alternat
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r122 — street dressing
 
@@ -2981,7 +3067,7 @@ street dressing. Stone quoins up the street corners of half the taller homes, a 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r121 — the city takes shape
 
@@ -3002,7 +3088,7 @@ Also: **the city takes shape** — the first authored façade pass: stone door s
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r120 — measured variants
 
@@ -3021,7 +3107,7 @@ Also: **measured variants** — Emberfall and The Long Night are played rather t
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r119 — the long frames
 
@@ -3040,7 +3126,7 @@ Also: **the long frames** — the 300 ms hitches the soaks had been catching sin
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r118 — past the wall
 
@@ -3060,7 +3146,7 @@ Also: **past the wall** — a lamplighter goes out to sift the ash at the Fallen
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r117 — mourners
 
@@ -3079,7 +3165,7 @@ Also: **the mourners** — each day two residents whose family has a legible hea
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r116 — settled in
 
@@ -3098,7 +3184,7 @@ Also: **settled in** — residents at home sit at the table, sleep in the bed or
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r115 — audit fixes
 
@@ -3118,7 +3204,7 @@ Also: **the audit's fixes** — the Switch panel no longer writes a remembered p
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r114 — people at home
 
@@ -3137,7 +3223,7 @@ Also: **people at home** — residents who live in a walk-in home go in for the 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r113 — walk in homes
 
@@ -3158,7 +3244,7 @@ Also: **walk-in homes and one draw for the residents** — 50–72 furnished hom
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r112 — bloom
 
@@ -3177,7 +3263,7 @@ Also: **bloom** — a glow round lamps, windows, fire, crystals and the moon, la
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r111 — physical light
 
@@ -3197,7 +3283,7 @@ Also: **physical lighting** — the layer retired, the city relit: warm lamp poo
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r110 — three r186
 
@@ -3219,7 +3305,7 @@ Also: three.js r128 → r186 behind an r128-look compatibility layer
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r109 — every ward keeps shop
 
@@ -3238,7 +3324,7 @@ Also: ~115 shops across every ward, with keepers, hours and shutters
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r108 — places beyond the wall
 
@@ -3257,7 +3343,7 @@ Also: things to do at the four wilderness landmarks; the graveyard made enterabl
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r107 — hills and water
 
@@ -3276,7 +3362,7 @@ Also: hills and water beyond the wall, the ring track, Tree Flip in the ledger, 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r106 — honest diagnostics
 
@@ -3293,7 +3379,7 @@ the diagnostics stopped lying. outerWards() was removed back at r85 but the thre
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r105 — the whole protocol
 
@@ -3312,7 +3398,7 @@ the whole Switch 2 protocol. All thirteen notification handlers and all thirteen
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r104 — ramparts
 
@@ -3329,7 +3415,7 @@ ramparts. Both walls walkable: surfaceAt() gives the world surfaces above y=0, g
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r103 — switch bench
 
@@ -3348,7 +3434,7 @@ the panel became the bench. A byte grid for the whole frame with the changed cel
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r101 — the switch speaks
 
@@ -3365,7 +3451,7 @@ Download the `.html` below and open it in a Chromium browser (Chrome or Edge): t
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r100 — four quarters
 
@@ -3382,7 +3468,7 @@ four quarters, not one repeated four times. innerInfill drew every terrace beyon
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r99 — the probe listens
 
@@ -3399,7 +3485,7 @@ the probe listens. The Dr. Dabber notes settled where to write on a Switch 2 and
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r98 — word travels
 
@@ -3416,7 +3502,7 @@ word travels, and the gates were wrong. **The gate opening was measured in degre
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r97 — halls and households
 
@@ -3433,7 +3519,7 @@ somewhere to go, and somebody to be. Every one of the old city's eight walk-in l
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r96 — the still hours
 
@@ -3450,7 +3536,7 @@ the still hours empty the streets. When the bell turns to still, a resident who 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r95 — watches and ties
 
@@ -3469,7 +3555,7 @@ watches, haunts and ties. Vaneth is permanently night — the aurora is the iden
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r94 — outgrew its wall
 
@@ -3486,7 +3572,7 @@ Download the `.html` below and open it in a Chromium browser (Chrome or Edge): t
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r93 — people use the streets
 
@@ -3504,7 +3590,7 @@ residents use the streets. The nav grid treated every walkable cell as identical
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r88 — the south road
 
@@ -3521,7 +3607,7 @@ Download the `.html` below and open it in a Chromium browser (Chrome or Edge): t
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r86 — streets on earth
 
@@ -3538,7 +3624,7 @@ the city stands on earth, not pavement: cityFloor() used to lay the whole disc i
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r85 — one city
 
@@ -3556,7 +3642,7 @@ Download the `.html` below and open it in a Chromium browser (Chrome or Edge): t
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r84 — rooms walls crowds
 
@@ -3575,7 +3661,7 @@ interior dressing: a prop vocabulary and a pass that scales with the room and se
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r83 — lots off the lanes
 
@@ -3592,7 +3678,7 @@ compiler lots slide along their row instead of being dropped when their one fixe
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r82 — the great keep
 
@@ -3609,7 +3695,7 @@ the keep IS the Great Hall — one square great tower whose ground floor is the 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r81 — keep and hall
 
@@ -3628,7 +3714,7 @@ keep moved to the centre of the bailey and the Great Hall rebuilt against its so
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r80 — citadel approaches
 
@@ -3647,7 +3733,7 @@ inner-city avenues and grid lines stop at the citadel curtain instead of crossin
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r79 — residents interiors
 
@@ -3666,7 +3752,7 @@ residents merged to 6 meshes from 16.1 — draw calls 3,386 -> 1,425 at the spaw
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r78 — road edges
 
@@ -3683,7 +3769,7 @@ kerbs stop at junctions instead of crossing through them; wall colliders flagged
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r77 — streets wood residents
 
@@ -3702,7 +3788,7 @@ ward streets get kerbs so a carriageway has an edge; forest edge becomes a densi
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r76 — device probe
 
@@ -3719,7 +3805,7 @@ wired the Electron Bluetooth chooser — the renderer had never answered select-
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r75 — gate approaches
 
@@ -3736,7 +3822,7 @@ the four outer-gate approaches paved end to end as lamplit avenues; country trac
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r74 — streets residents
 
@@ -3755,7 +3841,7 @@ coherent world-scale paving, calmer outer-road warp, cleaner street density, reb
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r73 — vaneth chronicle
 
@@ -3772,7 +3858,7 @@ persistent, non-checklist Vaneth Chronicle; wards, interiors and residents remem
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r72 — lived in vaneth
 
@@ -3791,7 +3877,7 @@ district atmosphere, forge smoke and ward arrival prose in two batched particle 
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r71 — stability access
 
@@ -3810,7 +3896,7 @@ full-world doorstep repair; zero blocked anchors; safer app:// containment; lean
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r70 — district character
 
@@ -3827,7 +3913,7 @@ district-specific civic courts and outer-quarter landmarks; corrected South Road
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r69 — inner city
 
@@ -3846,7 +3932,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r68 — streets
 
@@ -3865,7 +3951,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r67 — organic city
 
@@ -3882,7 +3968,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r66 — npc schedules
 
@@ -3899,7 +3985,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r65 — citadel
 
@@ -3916,7 +4002,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r64 — crowd and electron
 
@@ -3935,7 +4021,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r63 — path and paving
 
@@ -3954,7 +4040,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r62 — visual fixes
 
@@ -3971,7 +4057,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r61 — city layout
 
@@ -3988,7 +4074,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r60 — city rebuild
 
@@ -4005,7 +4091,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r58 — peak ready strains
 
@@ -4024,7 +4110,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r57 — pathfinding aurora
 
@@ -4043,7 +4129,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r56 — greater vaneth
 
@@ -4061,7 +4147,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r55 — doors castle warmup
 
@@ -4080,7 +4166,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r53 — interior and strain fixes
 
@@ -4099,7 +4185,7 @@ Part of r53–r69: doors, castle, pathfinding, crowds, NPC schedules, street lay
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r52 — test ready
 
@@ -4118,7 +4204,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r51 — city compiler
 
@@ -4135,7 +4221,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r50 — seeded vaneth
 
@@ -4152,7 +4238,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r49 — city life
 
@@ -4170,7 +4256,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r48 — smoke sessions
 
@@ -4187,7 +4273,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r47 — living conversations
 
@@ -4206,7 +4292,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r46 — vaneth directors cut
 
@@ -4226,7 +4312,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r45 — audit overhaul
 
@@ -4245,7 +4331,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r44 — spawn ward
 
@@ -4264,7 +4350,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r43 — session faces
 
@@ -4284,7 +4370,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r42 — npc anchors
 
@@ -4303,7 +4389,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r41 — daggerfall wards
 
@@ -4322,7 +4408,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r40 — city collision life
 
@@ -4341,7 +4427,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r39 — stable city controls
 
@@ -4360,7 +4446,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r38 — denser vaneth
 
@@ -4379,7 +4465,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r37 — living vaneth
 
@@ -4399,7 +4485,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r36 — npc conversations
 
@@ -4418,7 +4504,7 @@ Part of r36–r52: NPC conversations, city collision, seeded city compiler, test
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r35 — visible archive notes
 
@@ -4437,7 +4523,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r34 — smoke note autocomplete
 
@@ -4457,7 +4543,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r33 — rich smoke archive
 
@@ -4476,7 +4562,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r32 — living strain archive
 
@@ -4495,7 +4581,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r31 — curated smoke notes
 
@@ -4514,7 +4600,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r30 — inworld smoke notes
 
@@ -4533,7 +4619,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r29 — plain strain guide
 
@@ -4552,7 +4638,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r28 — reference terp codex
 
@@ -4571,7 +4657,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r27 — strain stats
 
@@ -4590,7 +4676,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r26 — wax journal
 
@@ -4610,7 +4696,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r25 — personal strain journal
 
@@ -4629,7 +4715,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r24 — populated vaneth
 
@@ -4648,7 +4734,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r23 — adaptive warmup
 
@@ -4667,7 +4753,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r22 — honest session lighting
 
@@ -4687,7 +4773,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r21 — live telemetry
 
@@ -4706,7 +4792,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r20 — citadel city
 
@@ -4725,7 +4811,7 @@ Part of r20–r35: Vaneth citadel + city; strain journal, terp codex, smoke-note
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r19 — village profiles
 
@@ -4744,7 +4830,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r18 — fahrenheit profiles
 
@@ -4763,7 +4849,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r17 — polished controls
 
@@ -4782,7 +4868,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r16 — lorax fix audit
 
@@ -4801,7 +4887,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r15 — app order
 
@@ -4818,7 +4904,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r14 — single bond
 
@@ -4835,7 +4921,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r13 — auth retry
 
@@ -4852,7 +4938,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r12 — prune compatible
 
@@ -4871,7 +4957,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r11 — lorax init
 
@@ -4890,7 +4976,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r10 — device match
 
@@ -4907,7 +4993,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r09 — no repairing
 
@@ -4926,7 +5012,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r08 — control replies
 
@@ -4945,7 +5031,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r07 — reconnect
 
@@ -4962,7 +5048,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r06 — puffco app flow
 
@@ -4981,7 +5067,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r05 — autodetect
 
@@ -5000,7 +5086,7 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 
 ## r04 — pup diagnostics
 
@@ -5016,5 +5102,5 @@ Part of r04–r19: Puffco BLE panel: diagnostics, autodetect, reconnect, auth re
 
 #### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
 

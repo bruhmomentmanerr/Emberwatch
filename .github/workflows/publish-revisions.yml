@@ -48,6 +48,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
       - name: Which revision, and is it built already
         id: rev
         shell: bash
@@ -67,6 +72,7 @@ jobs:
         shell: bash
         run: |
           npm ci
+          npm run audit
           npx electron-builder --win nsis portable --x64 --publish never
       - name: Attach them to the release
         if: steps.rev.outputs.have == '0'

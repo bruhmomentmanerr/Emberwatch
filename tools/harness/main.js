@@ -13,8 +13,9 @@
 //   - Hardware acceleration is off. WebGL runs in software, so frame times are
 //     good for comparing one build with another and meaningless as a figure
 //     for real hardware.
-//   - The preload removes navigator.bluetooth, crypto.subtle and the clipboard,
-//     the way Edge on file:// does. Nothing here can reach a device.
+//   - The preload deliberately removes navigator.bluetooth, crypto.subtle
+//     and the clipboard. This is test isolation, not a claim about file://.
+//     Nothing here can reach a device.
 //
 // Screenshots. If the probe's result has a `shots` array of
 // { name, x, z, yaw, pitch, y? }, and a shotsDir is given, the harness stands

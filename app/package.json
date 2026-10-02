@@ -1,7 +1,7 @@
 {
   "name": "emberwatch",
   "productName": "Emberwatch",
-  "version": "1.59.0",
+  "version": "1.60.0",
   "description": "Emberwatch — the black city of Vaneth, with live Puffco Peak Pro control",
   "main": "main.js",
   "private": true,
@@ -10,7 +10,7 @@
     "dist": "electron-builder --win --x64",
     "dist:dir": "electron-builder --win --x64 --dir",
     "dist:portable": "electron-builder --win portable --x64",
-    "audit": "node ../tools/check-parse.js && node ../tools/audit-source.js && node ../tools/audit-dom.js && node ../tools/audit-dead.js && node ../tools/test-switch-frames.js && node ../tools/test-switch-b9.js",
+    "audit": "node ../tools/check-parse.js && node ../tools/audit-source.js && node ../tools/audit-dom.js && node ../tools/audit-dead.js && node ../tools/audit-comments.js && node ../tools/test-switch-frames.js && node ../tools/test-switch-b9.js && node ../tools/test-bluetooth-pairing.js",
     "audit:all": "npm run audit && node ../variants/build-variants.js && node ../tools/check-variants.js"
   },
   "build": {

@@ -23,11 +23,12 @@ stop a real heat cycle.
 - **Any revision, in a browser:** every revision is a
   [release](../../releases) with the game attached as one `.html` file.
   Download it and open it in Chrome or Edge. The latest is
-  [r159 — the people](../../releases/latest).
+  [r160 — Bluetooth pairing](../../releases/latest).
 - **Installed, with the device panel:** the newest release also carries the
   Windows desktop app — `Emberwatch-<version>-setup.exe` (an installer) and
-  `Emberwatch-<version>-portable.exe`. Web Bluetooth will not run from a file
-  opened from disk, so the app gives the game a secure origin of its own.
+  `Emberwatch-<version>-portable.exe`. Chrome can also connect to devices
+  from the downloaded HTML on supported systems. The desktop app provides
+  its own device chooser and, since r160, Bluetooth pairing prompts.
   Installing a newer version over an older one keeps your save: every version
   is the same app, with the same data folder. The builds are unsigned, so
   Windows will ask before running them.
@@ -79,9 +80,10 @@ the release, its notes and the installer.
 - **Models from scripts.** The city is built at load from its plan; landmarks,
   interiors and furniture are modelled in Blender from Python
   (`tools/assets/`), packed and inlined into the file as glTF. The residents are built at load from the NPC kit in the file itself.
-- **Electron only for the origin.** `app/main.js` registers a secure `app://`
-  scheme so Web Bluetooth is allowed; that is the whole reason Electron is
-  here.
+- **Electron desktop shell.** `app/main.js` registers a secure `app://`
+  scheme with a stable origin and fetch/CORS support, and supplies Bluetooth
+  discovery and pairing prompts. A local HTML file in Chrome can also use
+  Web Bluetooth; browser, OS and adapter support still matter.
 - **Verified at runtime.** Static audits (`tools/check-parse.js`,
   `audit-source.js`, `audit-dom.js`, `audit-dead.js`, `audit-comments.js`,
   the Switch frame tests) run before and after every change, and
@@ -112,9 +114,9 @@ the release, its notes and the installer.
 | 2 | r20–r35 | Aug 18–19 | Vaneth, and the strain archive |
 | 3 | r36–r52 | Aug 19–20 | residents you can talk to, collision, the city compiler |
 | 4 | r53–r69 | Aug 20–21 | streets, crowds, the inner city, Electron |
-| 5 | r70–r159 | Aug 31 – Oct 2 | world depth: districts, interiors, beyond the wall, physical light, the reference places, sound, the forest, the halls, the people |
+| 5 | r70–r160 | Aug 31 – Oct 2 | world depth: districts, interiors, beyond the wall, physical light, the reference places, sound, the forest, the halls, the people |
 
-Every revision that survives — 147 of them, r04 to r159 — is published as a
+Every revision that survives — 148 of them, r04 to r160 — is published as a
 tag and a release with its game file and patch notes (`CHANGELOG.md` has them all
 in one place). The repository itself begins at r139; the revisions before it
 lived only as files, so each tag points at a commit made for it from the

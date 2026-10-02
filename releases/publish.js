@@ -6,7 +6,7 @@
 //   1. a commit on a history of its own: its tree is the revision's game file
 //      (emberwatch.html) and its patch notes (PATCH_NOTES.md); its parent is
 //      the revision before; its author is the author of the repository's first
-//      commit (the owner), its committer Claude; its date the revision's. The
+//      commit (the owner), its committer GitHub Actions; its date the revision's. The
 //      repository's history begins at r139, so this is the only place the
 //      revisions before it have commits at all. The tag rNN goes on it.
 //   2. a release on that tag, the game file attached, the notes as its text.
@@ -47,11 +47,9 @@ for (const e of manifest) {
   const summary = fs.readFileSync(path.join(root, e.notes), 'utf8').split('\n### Summary\n')[1];
   const lead = summary ? summary.trim().split('\n\n')[0] : '';
   const message = `${e.tag} — ${e.title}${e.version ? ` (${e.version})` : ''}\n\n${lead ? lead + '\n\n' : ''}` +
-    `The ${e.tag} game file as archived, and its patch notes.\n\n` +
-    'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n' +
-    'Claude-Session: https://claude.ai/code/session_01PiAs4bcsN3C2oWMLf9PfUL\n';
+    `The ${e.tag} game file as archived, and its patch notes.\n`;
   const env = { ...process.env, GIT_AUTHOR_NAME: authorName, GIT_AUTHOR_EMAIL: authorEmail, GIT_AUTHOR_DATE: e.date,
-    GIT_COMMITTER_NAME: 'Claude', GIT_COMMITTER_EMAIL: 'noreply@anthropic.com', GIT_COMMITTER_DATE: e.date };
+    GIT_COMMITTER_NAME: 'GitHub Actions', GIT_COMMITTER_EMAIL: 'github-actions[bot]@users.noreply.github.com', GIT_COMMITTER_DATE: e.date };
   const commit = git(['commit-tree', tree, ...(parent ? ['-p', parent] : []), '-F', '-'], { input: message, env });
   if (!DRY) git(['tag', '-f', e.tag, commit]);
   toPush.push(e.tag); parent = commit;

@@ -47,13 +47,23 @@ To rebuild the installer:
 Any file in `revisions/` or `snapshots/` opens straight in Chrome or Edge by
 double-clicking — the game itself works fine from `file://`.
 
-**But the Puffco Bluetooth panel will not.** Web Bluetooth needs a secure
-context. `file://` is not one. Two ways around it:
+**Chrome can also use the Bluetooth panel from the local HTML file** on
+supported systems; the owner connects this way. The earlier claim that
+`file://` categorically prevents Web Bluetooth was wrong. A secure context
+alone does not guarantee browser, OS or adapter support.
 
-- Use the Electron app (`npm start`) — the custom `app://` scheme in main.js is
-  registered as standard + secure, which is the whole reason the app exists.
-- Or serve the file over localhost: `npx serve .` then open
-  `http://localhost:3000/whatever.html`. `http://localhost` counts as secure.
+- Use a compatible Chromium browser and its native chooser.
+- Or use the Electron app (`npm start`): the custom `app://` scheme gives it a
+  stable secure origin with fetch/CORS support. Electron needs its own device
+  chooser and Windows/Linux pairing handler; both are present from r160.
+- Serving over localhost is another option: `npx serve .`, then open
+  `http://localhost:3000/whatever.html`. It is not a universal requirement.
+
+The app prompts for confirmation or a matching PIN. If a device requires PIN
+entry, pair it in system Bluetooth settings first, then reconnect. macOS owns
+its pairing prompts. The reported Windows connection hang still needs a test
+with the actual device; a handler addresses a known missing step, not proof
+that every possible GATT failure is fixed.
 
 ## 5. Puffco pairing, if it fails to connect
 

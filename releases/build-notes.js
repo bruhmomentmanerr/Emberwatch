@@ -144,7 +144,7 @@ const title = e => e.tag === 'r139' ? 'reference build' : words(e.slug);
 const kb = n => (n / 1024 / 1024).toFixed(2) + ' MB';
 const fmtList = (names, cap) => names.length <= cap ? names.map(n => '`' + n + '`').join(', ') : names.slice(0, cap).map(n => '`' + n + '`').join(', ') + `, and ${names.length - cap} more`;
 const asset = e => `emberwatch-${e.tag}-${e.slug.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.html`;
-const DOWNLOAD = 'Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.';
+const DOWNLOAD = 'Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.';
 
 for (const e of entries) {
   const v = version(e), lines = [];

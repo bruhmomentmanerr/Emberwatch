@@ -4,9 +4,9 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 // A custom scheme rather than file://. It gives the page a real, stable origin
-// that counts as a secure context (so Web Bluetooth is allowed) and supports
-// fetch/CORS, which file:// does not — the strain archive lookups and any
-// future .glb loading both need that.
+// that counts as a secure context and supports fetch/CORS for strain archive
+// lookups and future .glb loading. Chrome can also expose Web Bluetooth on
+// file://; the maintained desktop app lives in app/.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'app',
