@@ -11,12 +11,12 @@ moon. The device is not a gimmick on top: the heater's real state drives the
 lighting, the spell colour and the in-game session, and the game can start and
 stop a real heat cycle.
 
-![The Skywatch knoll under the moon](docs/screenshots/r159-skywatch.jpg)
+![The Skywatch knoll under the moon](docs/screenshots/skywatch.jpg)
 
 | | |
 |---|---|
-| ![Residents](docs/screenshots/r159-residents.jpg) | ![The cathedral](docs/screenshots/r159-cathedral.jpg) |
-| ![The bridge and the castle](docs/screenshots/r159-bridge.jpg) | ![The ruin under the falls](docs/screenshots/r159-ruin.jpg) |
+| ![Residents](docs/screenshots/residents.jpg) | ![The cathedral](docs/screenshots/cathedral.jpg) |
+| ![The bridge and the castle](docs/screenshots/bridge.jpg) | ![The ruin under the falls](docs/screenshots/ruin.jpg) |
 
 ## Play it
 
@@ -24,14 +24,24 @@ stop a real heat cycle.
   [release](../../releases) with the game attached as one `.html` file.
   Download it and open it in Chrome or Edge. The latest is
   [r159 — the people](../../releases/latest).
-- **With the device panel:** Web Bluetooth will not run from a file opened
-  from disk, so the desktop app gives the game a secure origin of its own:
+- **Installed, with the device panel:** the newest release also carries the
+  Windows desktop app — `Emberwatch-<version>-setup.exe` (an installer) and
+  `Emberwatch-<version>-portable.exe`. Web Bluetooth will not run from a file
+  opened from disk, so the app gives the game a secure origin of its own.
+  Installing a newer version over an older one keeps your save: every version
+  is the same app, with the same data folder. The builds are unsigned, so
+  Windows will ask before running them.
+- **From the source:**
 
   ```bash
   cd app
   npm install
   npm start
   ```
+
+Every time a revision is sealed, its release appears here on its own: run
+`node releases/build-notes.js` and push, and the workflow publishes the tag,
+the release, its notes and the installer.
 
 ## What is in it
 

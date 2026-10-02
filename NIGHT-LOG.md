@@ -6,6 +6,42 @@ estimated.
 
 ---
 
+## 2026-10-02 — small hours · r159 "The people"
+
+**What was wrong.** The owner sent two reference videos — "think of ps2/xbox
+era rpg" — and asked for the residents to look less like planned, generated
+geometry and more unique per person. They were five- to eight-sided
+primitives in flat colours, and four hundred of them read as one doll in
+eight costumes.
+
+**What changed.** Every resident is built from a kit of modelled, patterned
+parts: a mask atlas drawn at load (29 patterns and 32 painted faces), lofted
+and tubed surfaces, colours in the vertices, one material for the whole
+population. Each has a look of their own from their name, people and trade;
+the characters in the reference frames have hand-made looks. Legs have knees,
+and the walk and the poses use them; residents crouch at the hearth now. The
+far version is the same look at low detail. The hooded watcher and the two
+Skywatch companions are kit people too. The shrine's stoup is off the paving.
+PROJECT.md §0 has the details.
+
+Then, asked for it: every revision published as a GitHub release with its
+game file and patch notes, a commit and a tag for each revision before the
+repository began, `CHANGELOG.md`, and `README.md` as the project overview.
+
+**What proved it.**
+
+- A lineup, a walk, the role poses, residents at home and the posed figures,
+  all photographed in the game and looked at; the skin palette and the knoll
+  pair changed after looking.
+- Frame cost against r158 at six standpoints: 1–7 % more in software WebGL.
+- Variants 6/6 and 6/6; smoke clean. The runtime audit and the captures
+  were stopped unfinished when the owner asked for the work to be pushed.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r159.
+
+---
+
 ## 2026-10-02 — small hours · r158 "The last halls"
 
 **What was wrong.** Five halls still had the generic furniture for their

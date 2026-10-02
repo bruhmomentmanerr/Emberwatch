@@ -53,6 +53,7 @@ node tools/test-switch-b9.js
 ## When you ship
 
 Stamp → archive → variants (build 6/6, then `node tools/check-variants.js`
-6/6) → smoke → dist → docs. Full detail in
+6/6) → smoke → dist → docs → release notes (`node releases/build-notes.js`,
+then push; a workflow publishes the tag and the GitHub release). Full detail in
 PROJECT.md §3. **Update PROJECT.md as part of shipping** — it is meant to read
 as living patch notes, not a snapshot.
