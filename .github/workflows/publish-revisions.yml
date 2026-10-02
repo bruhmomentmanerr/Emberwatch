@@ -1,0 +1,28 @@
+# Every archived revision as a tag and a GitHub release, with its game file
+# attached and its patch notes (releases/publish.js). Runs when the manifest
+# changes — `node releases/build-notes.js` after a revision is sealed — or by
+# hand. Safe to run again: what is already published is kept.
+name: Publish revisions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-revisions
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tags and releases
+        run: node releases/publish.js
+        env:
+          GH_TOKEN: ${{ github.token }}
