@@ -6,6 +6,40 @@ estimated.
 
 ---
 
+## 2026-10-02 — small hours · r158 "The last halls"
+
+**What was wrong.** Five halls still had the generic furniture for their
+kind: a stone slab and a drum, a bar slab and two blocks, a cone on a
+plinth, a rug and a table. Six had no line of their own and were entered
+as "a room with its own small routine".
+
+**What changed.** The Drovers' Rest has straw underfoot, a joint on the
+spit and a dog asleep by the fire, the tack wall and the tally board. The
+Lamplighters' Hall has its oil casks and measures, a row of cans with
+names under them, and the board of the rounds with one thread running off
+it. Ferrier's Yard has a forge and bellows, a wall of named shoes, the
+shoeing stall and the argument's table. The Pilgrim Shrine has its
+offering table, votive racks, kneelers, prayer ribbons and violet lamps.
+The New Chapel has pale new pews, the sign of the hours, and the
+scaffolding still up before a half-painted mural. Every hall is furnished
+by hand now. PROJECT.md §0 has the details.
+
+**What proved it.**
+
+- Nineteen shots and nineteen standpoints across the five halls; each new
+  thing to look at offered where it stands.
+- The chapel's altar burned white under its first light; the light moved
+  and the altar shot again.
+- Runtime audit against r157: no errors, 17 wards and 102 dialogue branches none broken, road obstructions 1; draw calls 467 → 472. The one in the carriageway is
+  the shrine's new stoup, standing on the paving that runs into the
+  building; it moves in r159.
+- All captures looked at; variants 6/6 and 6/6; smoke clean.
+
+**Not done.** The Windows installers (no Windows toolchain here), for r143
+to r158.
+
+---
+
 ## 2026-10-01 — evening · r157 "The taverns"
 
 **What was wrong.** The four taverns were one room four times: a bar slab

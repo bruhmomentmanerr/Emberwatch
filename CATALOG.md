@@ -11,9 +11,9 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.57.0 / build r157 ("the taverns")**,
-2026-10-01. Archived, smoke-tested, six variants boot-check. Not packaged
-yet (nor are r143 to r156): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+Current sealed source: **1.58.0 / build r158 ("the last halls")**,
+2026-10-02. Archived, smoke-tested, six variants boot-check. Not packaged
+yet (nor are r143 to r157): the latest packaged pair is 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +30,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r157'
+                      the strain-archive lookups work. BUILD_REVISION = 'r158'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 3.0 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r157-the-taverns.html
+                      emberwatch_3_r158-the-last-halls.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,12 +60,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r157, minus the revisions
+                    Phase 5 currently contains r70-r158, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r157-the-taverns.html
+                    emberwatch_3_r158-the-last-halls.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1292,6 +1292,24 @@ guessed at.
                           obstructions 0; all captures looked at; 6/6
                           variants built and booted; smoke clean (r157 in
                           the title).
+    Oct 2      r158       the last halls. The Drovers' Rest (straw, a joint
+                          on the spit, the dog by the fire, the tack wall,
+                          the tally board), the Lamplighters' Hall (oil
+                          casks and measures, the cans, the board of the
+                          rounds), Ferrier's Yard (forge and bellows, a wall
+                          of named shoes, the shoeing stall), the Pilgrim
+                          Shrine (the offering table, votive racks, kneelers,
+                          ribbons, violet lamps as a second asset) and the
+                          New Chapel (pale pews, the sign of the hours, the
+                          scaffolding before a half-painted mural) fitted
+                          out (tools/assets/halls.py); every hall furnished
+                          by hand, every hall with its own line on entering.
+                          Verified: parse/audit/dead/comments clean;
+                          nineteen shots and nineteen standpoints in the five
+                          halls; runtime audit against r157, no errors, 102
+                          dialogue branches none broken, road obstructions
+                          1; all captures looked at; 6/6 variants built
+                          and booted; smoke clean (r158 in the title).
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

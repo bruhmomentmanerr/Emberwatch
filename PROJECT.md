@@ -4,10 +4,13 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r157 / 1.57.0**, sealed 2026-10-01 as "the taverns": the Cinder
-and Keg, the Southgate Rest, the Gilded Finch and the Wayhouse fitted out,
-and the wild places' residents kept at their posts through the still hours
-(§0). Before it, r156 / 1.56.0 ("the watch-houses", §0k): the Northwatch
+Current: **r158 / 1.58.0**, sealed 2026-10-02 as "the last halls": the
+Drovers' Rest, the Lamplighters' Hall, Ferrier's Yard, the Pilgrim Shrine
+and the New Chapel fitted out — every hall in the city is furnished by hand
+now (§0). Before it, r157 / 1.57.0 ("the taverns", §0j): the Cinder and
+Keg, the Southgate Rest, the Gilded Finch and the Wayhouse fitted out, and
+the wild places' residents kept at their posts through the still hours.
+Before that, r156 / 1.56.0 ("the watch-houses", §0k): the Northwatch
 Guild and the Westwall Refuge fitted out, and every hall's floor brought
 down to the ground it had stood half a metre above. Before that, r155 /
 1.55.0 ("the archives", §0l): the Eastwall Scriptorium and the Cold
@@ -24,7 +27,7 @@ it, r152 / 1.52.0
 r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
 §0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
 and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
-/ 1.43.0 ("places under the moon", §0x). None of the fifteen is packaged yet;
+/ 1.43.0 ("places under the moon", §0x). None of the sixteen is packaged yet;
 the latest packaged pair is r142 / 1.42.0
 ("walkaround"), `Emberwatch-1.42.0-setup.exe` and
 `Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
@@ -243,7 +246,121 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-01, r157)
+## 0. Start here — where the last session left off (2026-10-02, r158)
+
+**State: r158 / 1.58.0, sealed 2026-10-02 ("the last halls").** Same
+instruction — "update my interiors and whatnot". r158 fits out the five
+halls that still had the generic furniture for their kind. Every one of
+the fifteen halls built with `interiorHouse` is now furnished by hand
+(`FITTED_HALLS`; the Great Hall always was).
+
+**Next:** move the shrine's stoup off the street's paving (below,
+"Verified"). Then people in the halls of an evening. Nobody sits at any of these
+tables yet; the only residents inside a hall are Barkeep Varn behind his
+bar, Pilgrim Sorell in the shrine's aisle and the keepers in their shops.
+Then the towers of the Moon Archive and the Northwatch Guild, and stairs
+up to the outer wall's walk. The Windows installers for r143–r158 have not
+been built.
+
+### The last five halls
+
+`tools/assets/halls.py`, which borrows the helpers in `taverns.py` (that
+script now builds only when it is run, not when it is imported):
+
+- **The Drovers' Rest** (`drovers-rest`, 7,346 triangles) — "straw on the
+  floor and the south road at the door" (the city map's line for it).
+  Straw strewn over the floor, thickest by the door; a joint on a spit over
+  the hearth with a dripping pan under it; a drover's dog asleep on a
+  fleece by the fire; the tack wall — three saddles on their brackets,
+  bridles and halters on pegs, coils of rope, crooks; a bar of planks on two
+  barrels with casks on a rack behind; the tally board, head counted in and
+  out in chalk; hams hung from the beam; two long tables with the drovers'
+  dinner on them; muddy boots and a bench of fleeces by the door.
+- **The Lamplighters' Hall** (`lamplighters-hall`, 6,482) — "where the oil
+  is measured out and the rounds are set". Three oil casks on a cradle,
+  taps over a drip tray, a shelf of copper and brass measures and funnels;
+  the guild's banner with its lamp; a row of oil cans for every lamplighter,
+  each with a name under it; the board of the rounds — the city as rings, a
+  pin for every lamp, a coloured thread for every round, and one thread
+  that runs off the board; the poles with their hooks and wick-lighters; a
+  ladder; the wick bench with spools, scissors, glass chimneys and a lantern
+  in pieces; a table of lanterns, two of them lit; the clerk's desk by the
+  door.
+- **Ferrier's Yard** (`ferriers-yard`, 7,144) — "iron, hooves and an
+  argument, most watches". The forge, its brick hearth, hood and chimney;
+  the bellows on their lever; the quench tub and the coal bin; the anvil on
+  its stump with a shoe cooling on it; a rack of tongs and hammers; a wall
+  of shoes, rows of them, the horse's name chalked over each; the shoeing
+  stall with a blanket over its rail and a hoof stand; a barrel of shoes,
+  nail sacks and a cart wheel; and by the door the argument's table — two
+  stools set square to each other, two tankards, a price on a slate struck
+  out and written again.
+- **The Pilgrim Shrine** (`pilgrim-shrine`, 3,470, and
+  `pilgrim-shrine-violet`, 288) — "an offering table and a little violet
+  quiet". The offering table on two stone steps under a violet cloth, and
+  what people have left on it: candles, folded notes, coins, bowls, sprigs,
+  little carved things, a child's shoe; over it a pale moon on a violet
+  roundel; votive racks either side; kneelers either side of an aisle kept
+  clear for Pilgrim Sorell; prayer ribbons of every colour on a rail; staffs
+  and gourds; a shelf of tokens; the stoup by the door. The violet lamps are
+  a second asset: a model takes one glow colour, and the candles want warm.
+- **The New Chapel** (`new-chapel`, 2,934) — "newer than the city it stands
+  in, and it shows". Pews of pale new wood in two blocks of five; the altar
+  on its step under the sign of the hours (the Cathedral of Hours' twelve
+  marks and two hands); tall candle stands; the pulpit; the font by the
+  door; an iron crown of candles. And what is not finished: scaffolding up
+  the left wall before a mural sketched in charcoal and painted as far as
+  the shoulders — paint pots and a jar of brushes on the boards — pews not
+  yet set, stacked by the wall, sawhorses with a plank and a saw,
+  something under a sheet, buckets.
+
+Each has colliders from the script's numbers, a fire or candle light, and
+one thing to look at: the dog, the rounds, the shoes, the offerings, the
+mural. Six halls had no line in `INTERIOR_PURPOSES` and were entered as "a
+room with its own small routine"; they have their own now (the Cold Assay
+and the Wayhouse among them).
+
+The New Chapel's first light hung a metre from the altar cloth and burned
+it white in the first shots; it hangs over the step now.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the six asset markers and comment words), `audit-dom`,
+  `audit-dead` (632 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- The models from three sides each (Blender previews); after them the
+  Drovers' bridles were made smaller and the chapel lost three plaster
+  patches that read as blank notices, and the shots in the game are of the
+  changed models. In the game, nineteen shots across the five halls, and
+  the chapel's two again after its light moved; the entry toast names each
+  hall's own line.
+- Nineteen standpoints across the five halls, each held without the player
+  being moved. At the dog, the rounds, the shoes, the offerings and the
+  mural, E offers each; in the shrine's aisle, E offers talk with Pilgrim
+  Sorell, who stood at his post through the probe.
+- Runtime audit, r157 → r158: errors 0 → 0; villagers 374 → 374;
+  draw calls 467 → 472; triangles 2,112,097 → 2,133,239; colliders 11,689
+  → 11,619; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the carriageway 0 → 1,
+  intruding 231 → 231. The one in the carriageway is the shrine's new
+  stoup, at (98.6, 58.2), 1.3 m inside its front wall: the paving of the
+  street before the shrine runs into the building, and the stoup's collider
+  stands on it. Nobody walks or drives there, but the count is meant to be
+  0. On a copy of the file with the stoup 1.8 m further in, the boot found
+  no obstruction; r158 was archived by then, so the move is r159's.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r158".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0j. r157 — where the session before that left off (2026-10-01)
 
 **State: r157 / 1.57.0, sealed 2026-10-01 ("the taverns").** Same
 instruction — "update my interiors and whatnot". r157 fits out the four
