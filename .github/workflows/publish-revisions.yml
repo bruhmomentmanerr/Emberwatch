@@ -1,0 +1,76 @@
+# Every revision as a tag and a GitHub release, with its game file attached and
+# its patch notes (releases/publish.js); and for the newest revision, the
+# Windows installer and the portable build attached as well.
+#
+# Runs when the manifest or the notes change — `node releases/build-notes.js`
+# after a revision is sealed, then push — or by hand. Safe to run again: what
+# is already published is kept, and only notes that changed are rewritten.
+name: Publish revisions
+
+on:
+  push:
+    branches: [main, claude/festive-gates-b8h6ds]
+    paths:
+      - releases/manifest.json
+      - releases/notes/**
+      - releases/publish.js
+      - .github/workflows/publish-revisions.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-revisions
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tags and releases
+        run: node releases/publish.js
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # The desktop app for the newest revision: the NSIS installer and the
+  # portable build, unsigned. Installing over an older version keeps the save:
+  # every version is the same app (com.emberwatch.app) with the same data
+  # folder. Older revisions have no installer here — the app/ folder only
+  # entered the repository at r139.
+  installer:
+    needs: publish
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Which revision, and is it built already
+        id: rev
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(node -e "const m=require('./releases/manifest.json');console.log(m[m.length-1].tag)")
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" --json assets --jq '.assets[].name' | grep -q -- '-setup\.exe$'; then
+            echo "have=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build the installer and the portable
+        if: steps.rev.outputs.have == '0'
+        working-directory: app
+        shell: bash
+        run: |
+          npm ci
+          npx electron-builder --win nsis portable --x64 --publish never
+      - name: Attach them to the release
+        if: steps.rev.outputs.have == '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ steps.rev.outputs.tag }}" app/dist/*-setup.exe app/dist/*-portable.exe --clobber

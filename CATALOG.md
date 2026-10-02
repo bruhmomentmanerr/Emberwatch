@@ -11,9 +11,11 @@ in one self-contained HTML file. It ships as an Electron desktop app so the
 in-game Puffco Peak Pro Bluetooth panel gets a real secure origin — Web
 Bluetooth will not run from `file://`.
 
-Current sealed source: **1.42.0 / build r142 ("walkaround")**,
-2026-09-28. Archived, smoke-tested, six variants boot-check. The latest
-packaged pair is 1.42.0 (r142). r121 was never packaged; r122
+Current sealed source: **1.59.0 / build r159 ("the people")**,
+2026-10-02. Archived, smoke-tested, six variants boot-check, and packaged
+by the release workflow: the setup and portable builds are on its GitHub
+release, with every revision's own (147, r04 to r159). r143 to r158 were
+never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
 build") were never archived** — the live file carried their stamp but
@@ -30,12 +32,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r130'
+                      the strain-archive lookups work. BUILD_REVISION = 'r159'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
-        index.html    THE GAME. About 1.43 MB. Byte-identical to
+        index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r130-props-and-porters.html
+                      emberwatch_3_r159-the-people.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -60,11 +62,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r130, minus the revisions
+                    Phase 5 currently contains r70-r159, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
-                    reach (r87, r89-r92, r102). The live build:
-                    emberwatch_3_r130-props-and-porters.html
+                    reach (r87, r89-r92, r102), and r136-r139, which were never
+                    archived (see above). The live build:
+                    emberwatch_3_r159-the-people.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1022,6 +1025,311 @@ guessed at.
                           Verified: parse/audit/dead clean, 6/6 variants,
                           smoke clean (bluetooth chooser installed, r142 in
                           the window title).
+    Sep 30     r143       places under the moon. Instruction: "design
+                          landmarks and places to explore … match that visual
+                          canon as close as possible, fix the npcs, populate
+                          the world, continue and fix the city rebuild." Every
+                          reference place is now somewhere you walk into,
+                          climb and look out from, each laid out in its own
+                          frame (mostly on the moon's bearing, so its proof
+                          shot holds the moon), the climbs with walk proofs:
+                          the Fallen Hall and the Veilscar falls (nave 5/5,
+                          stair to 15.05 m); the Oathfield (56 planted
+                          oath-blades, a lychgate, the winged angel; 10/10);
+                          the Watcher's Bluff over Lowmere (a 21 m crag above
+                          a lit hamlet, a watchtower beyond; 10/10); the
+                          Foxglove crossing (a humpbacked arch over the real
+                          brook, a gate tower); the Rain Oath (a causeway over
+                          a mere to a ring of stones, the knight remodelled);
+                          the Skywatch knoll (an armillary on its crown). New
+                          beyond the seven: Foxglove Mill, whose overshot
+                          wheel turns under its flume; the Lantern Grove, a
+                          bare oak hung with thirty lanterns; the High Step, a
+                          real climb up the inner wall by the south gate
+                          (8/8). New machinery: terrain landforms, walkable
+                          stairs and decks, a Blender kit (tube, leaf) and a
+                          vertex-alpha glow mask, landmark movers. Eleven
+                          residents live out there; role residents keep their
+                          pose and only glance at you; faces read at play
+                          distance and every role wears its part; talk and
+                          directions for every new place. Night sky rebuilt
+                          to the canon (cobalt/violet, one moon direction for
+                          disc, light and glint, staged meteor showers and
+                          omen, rain). One lane that ran into the back of a
+                          house rerouted: road obstructions 0. Removed the
+                          r138 stand-ins these replace. Installers not built
+                          (no Windows toolchain in the container).
+                          Verified: parse/audit/dead clean; runtime audit
+                          against the r142 archive, 16 wards / 96 dialogue
+                          branches none broken, draw calls 449 -> 436; walk
+                          proofs above; all 12 captures looked at (three
+                          reframed); 6/6 variants built and booted; smoke
+                          clean (r143 in the window title).
+    Sep 30     r144       market and cathedral. The city itself, after r143's
+                          places outside it. The Cinder Market re-authored as
+                          a table (tools/plan-market.py): 34 modelled stalls
+                          (draper, grocer, potter) in six rows along the
+                          avenue, lantern strings on poles across the avenue
+                          and two aisles, the hearth moved off the avenue's
+                          kerb into a court, the well its interaction always
+                          pointed at, sixteen keepers behind their counters.
+                          It replaces a ring of stalls laid by trigonometry
+                          and bays nudged by offRoad(), one of them into the
+                          tavern's wall. Lots fronting the main avenues and
+                          the market stand two to four storeys (74 raised).
+                          The cathedral - a box with two cylinders - is now
+                          the Cathedral of Hours, a modelled gothic church
+                          you walk into: aisles on an arcade, flying
+                          buttresses, twin 44 m spires with lit belfries, a
+                          rose over the portal, the apse, pews, the altar,
+                          its verger, a kneeler and a pilgrim; walk proof
+                          9/9.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r143, 17 wards / 102 dialogue branches
+                          none broken, road obstructions 0, draw calls
+                          436 -> 442; market probe 34/34 stalls, 16 keepers;
+                          all 14 captures looked at; 6/6 variants built and
+                          booted; smoke clean (r144 in the window title).
+    Sep 30     r145       halls and crossings. The eleven landmark halls,
+                          boxes under a flat four-sided cone, get steep roofs
+                          whose gables stand over their doors, buttresses,
+                          tall lit windows and a feature by kind (a chimney
+                          and timbered gable for a tavern, a lantern turret
+                          for an archive, a tower for a guild, a bell-cote
+                          for the shrine and chapel); rooms untouched. Lamps
+                          on two corners of each of the main avenues' 23
+                          crossings, baked from the live street plan by
+                          tools/plan-crossings.py (45 of 46 fit). Walking the
+                          Rain Oath, which r143 had only photographed, found
+                          its causeway half a metre under the mere: it is a
+                          stone embankment walked as a deck now (13/13), and
+                          the Skywatch knoll walks 8/8.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r144, no errors, 102 dialogue branches
+                          none broken, road obstructions 0, draw calls
+                          unchanged; 14 captures looked at; 6/6 variants
+                          built and booted; smoke clean (r145 in the title).
+    Sep 30     r146       the avenues at night. Lit windows are leaded;
+                          warm pools of light on the paving under every lit
+                          ground-floor window, hall window and door lantern
+                          (one additive mesh); door lanterns' glass lit.
+                          Chimney stacks on three houses in five, sized to
+                          their roofs, modelled crowns and pots; the forty
+                          nearest smoke, leaning with the wind. The four old
+                          fixed smoke columns, which drifted off their
+                          sources, removed. The avenues: 25 houses facing
+                          them from the gaps and 14 lantern festoons across
+                          them, baked by tools/plan-avenues.py; lit windows
+                          in every back or side wall that faces a street.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r145, no errors, 102 dialogue branches
+                          none broken, road obstructions 0, six new draw
+                          calls; 14 captures looked at; 6/6 variants built
+                          and booted (r0 after a fix); smoke clean (r146 in
+                          the title).
+    Sep 30     r147       signs and lamps. Every shop's sign, a coloured
+                          board on a wooden arm, is its trade hung from a
+                          wrought-iron bracket: pretzel, cask, candles,
+                          shears, key, horseshoe, book, bottle
+                          (tools/assets/shop-signs.py), 143 of them, clear
+                          of the awnings. The street lamps, a pole with a
+                          glowing cube, are cast-iron lamp posts with
+                          four-paned lanterns (tools/assets/street-lamp.py),
+                          each lit one with a pool of light under it. The
+                          Cinder Market's strings sag as one tube and carry
+                          the festoon lanterns.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r146, no errors, 102 dialogue branches
+                          none broken, road obstructions 0; 14 captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r147 in the title).
+    Sep 30     r148       torchlit walls. Both town walls were unlit stone
+                          between the gates and their towers dark drums: a
+                          torch in an iron sconce three times between each
+                          pair of towers on the outer faces and once on the
+                          inner wall's inner face (tools/assets/wall-
+                          sconce.py), a pool at the foot and a wash up the
+                          stone, the middle one of each span a real light;
+                          arrow slits lit up every tower. Light washes up
+                          the wall are a second kind of light pool, used by
+                          the houses' door lanterns too.
+                          Verified: parse/audit/dead clean; runtime audit
+                          against r147, no errors, 102 dialogue branches
+                          none broken, road obstructions 0; 14 captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r148 in the title).
+    Sep 30     r149       the bell tower. The Cathedral of Hours' east tower,
+                          a solid block, is hollow and climbable: a door from
+                          the east aisle, a stone newel stair of ten flights
+                          to a belfry at 19 m, open arches, two bells, a
+                          lantern; a new capture from the belfry over the
+                          roofs. Walkable surfaces can be stacked: one marked
+                          so counts only within 1.5 m of the walker, so a
+                          stair can pass over itself.
+                          Verified: parse/audit/dead clean; walked door to
+                          belfry 14/14; runtime audit against r148, no
+                          errors, 102 dialogue branches none broken, road
+                          obstructions 0; all captures looked at; 6/6
+                          variants built and booted; smoke clean (r149 in
+                          the title).
+    Oct 1      r150       the bells ring the watch in. The cathedral's two
+                          bells are their own model (cathedral-bell) and
+                          swing when the watch turns: rung up, full, dying
+                          away, over 27 s. A landmark mover can swing as well
+                          as spin. Sixteen doves on the nave ridge and the
+                          spire drums go up when the bells ring, wheel over
+                          the church, and land back where they sat: one mesh
+                          for the flock, rewritten only while it flies.
+                          Verified: parse/audit/dead clean; a full ring read
+                          off at runtime, every dove back on its perch;
+                          runtime audit against r149, no errors, 102
+                          dialogue branches none broken, road obstructions
+                          0; all captures looked at; 6/6 variants built
+                          and booted; smoke clean (r150 in the title).
+    Oct 1      r151       the city heard. World sound, all of it synthesized
+                          in the page: the bells struck from a church bell's
+                          partials, wind rising with height, rain, the two
+                          nearest fires crackling (hearths, forges, wall
+                          torches), crickets beyond the walls, footsteps, the
+                          doves' wings. Positional, one shared reverb; a Sound
+                          section in the settings, kept in the browser.
+                          Verified: parse/audit/dead clean; a bell strike
+                          rendered offline and its spectrum read; levels read
+                          off the running context; runtime audit against
+                          r150, no errors, 102 dialogue branches none broken,
+                          road obstructions 0; all captures looked at; 6/6
+                          variants built and booted; smoke clean (r151 in the
+                          title).
+    Oct 1      r152       the forest at night. The 4,200 cone trees outside
+                          the walls are modelled (tools/assets/trees.py):
+                          pines, firs, broadleaves, dead pines, and shrubs
+                          along the edge; one BatchedMesh, culled per tree,
+                          trees past the fog's reach hidden; same world
+                          stream and colliders. Fireflies at the forest's
+                          edge and along the brook.
+                          Verified: parse/audit/dead clean; five standpoints
+                          before and after; frame time against r151, faster
+                          at all four standpoints; runtime audit against
+                          r151, no errors, 102 dialogue branches none
+                          broken, road obstructions 0; all captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r152 in the title).
+    Oct 1      r153       the city culled. The city's static geometry —
+                          mergeAll's materials, the street kit, the lamps,
+                          torches, signs and chimney crowns — laid in 72 m
+                          squares, each set one BatchedMesh culled square by
+                          square: one draw call still, a quarter to nearly
+                          half fewer triangles drawn in the city, seven in
+                          ten fewer outside it.
+                          Verified: parse/audit/dead clean; six standpoints
+                          shot against r152, nothing missing; frame time
+                          against r152, quicker at all six; runtime audit
+                          against r152 (the audit now waiting for frames),
+                          no errors, 102 dialogue branches none broken, road obstructions 0; all captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r153 in the title).
+    Oct 1      r154       the Moon Archive. The city's library fitted out
+                          (tools/assets/moon-archive.py): bookcases full to
+                          the cornice, a rolling ladder, a map chest under a
+                          round moon window, reading tables with candles and
+                          open books, hanging lamps, a lectern, a globe, and
+                          the archive's instrument, a moon in brass rings.
+                          The storeroom filler skips the room.
+                          Verified: parse/audit/dead clean; the room shot
+                          from six places; the corners stood on; runtime
+                          audit against r153, no errors, 102 dialogue
+                          branches none broken, road obstructions 0; all
+                          captures looked at; 6/6 variants built and booted;
+                          smoke clean (r154 in the title).
+    Oct 1      r155       the archives. The Eastwall Scriptorium (ledger
+                          walls, pigeonholes of records, scribes' desks, the
+                          great ledger) and the Cold Assay (a beam balance,
+                          drawers and jars, something under a sheet, a
+                          furnace and crucibles, cold lamps) fitted out
+                          (tools/assets/archives.py); the filler skips them.
+                          Verified: parse/audit/dead clean; both rooms shot
+                          and stood in; runtime audit against r154, no
+                          errors, 102 dialogue branches none broken, road
+                          obstructions 0; all captures looked at; 6/6
+                          variants built and booted; smoke clean (r155 in
+                          the title).
+    Oct 1      r156       the watch-houses. The Northwatch Guild (planning
+                          table under a map of the city, spear racks and
+                          shields, armour stands, bunks and a stove, a
+                          ladder to the tower) and the Westwall Refuge
+                          (workbench and tool board, ward maps, a repair
+                          corner, cots, a brazier with benches round it)
+                          fitted out (tools/assets/watch.py). Every hall's
+                          floor is at the ground: the plinth under the walls
+                          had been one solid block 0.55 m high since r145.
+                          tools/audit-comments.js lists comments that have
+                          swallowed code; the runtime audit walks each ward
+                          in the labour watch (the wilds it lost since r152
+                          had gone "indoors" for the still watch) and tries
+                          each resident from four sides.
+                          Verified: parse/audit/dead/comments
+                          clean; both rooms shot and stood in, eight halls
+                          shot after the floor fix; runtime audit against
+                          r155, no errors, 102 dialogue branches none
+                          broken, road obstructions 0; all captures
+                          looked at; 6/6 variants built and booted; smoke
+                          clean (r156 in the title).
+    Oct 1      r157       the taverns. The Cinder and Keg (bar, keg rack,
+                          hearth nook, a curtained stage, round tables, the
+                          regulars' long table), the Southgate Rest (boots
+                          drying at the hearth, the pack rail, the keeper's
+                          desk, stairs to the rooms), the Gilded Finch
+                          (booths, the musician's nook, the late-night room,
+                          the finch in its cage) and the Wayhouse (stew pot,
+                          the baker's bread, long tables, pallets, the alms
+                          box) fitted out (tools/assets/taverns.py), one
+                          thing to look at in each. Residents of the wild
+                          places with no house keep their posts through the
+                          still watch; Merrin Vale no longer spawns inside
+                          the Cinder and Keg. Verified: parse/audit/dead/
+                          comments clean; nineteen shots twice and twenty
+                          standpoints in the taverns; the wild places in the
+                          still watch; runtime audit against r156, no
+                          errors, 102 dialogue branches none broken, road
+                          obstructions 0; all captures looked at; 6/6
+                          variants built and booted; smoke clean (r157 in
+                          the title).
+    Oct 2      r158       the last halls. The Drovers' Rest (straw, a joint
+                          on the spit, the dog by the fire, the tack wall,
+                          the tally board), the Lamplighters' Hall (oil
+                          casks and measures, the cans, the board of the
+                          rounds), Ferrier's Yard (forge and bellows, a wall
+                          of named shoes, the shoeing stall), the Pilgrim
+                          Shrine (the offering table, votive racks, kneelers,
+                          ribbons, violet lamps as a second asset) and the
+                          New Chapel (pale pews, the sign of the hours, the
+                          scaffolding before a half-painted mural) fitted
+                          out (tools/assets/halls.py); every hall furnished
+                          by hand, every hall with its own line on entering.
+                          Verified: parse/audit/dead/comments clean;
+                          nineteen shots and nineteen standpoints in the five
+                          halls; runtime audit against r157, no errors, 102
+                          dialogue branches none broken, road obstructions
+                          1; all captures looked at; 6/6 variants built
+                          and booted; smoke clean (r158 in the title).
+    Oct 2      r159       the people. Every resident rebuilt from a kit
+                          (NPC KIT in index.html): a mask atlas drawn at
+                          load (29 patterns and 32 painted faces), lofted
+                          and tubed surfaces with pattern coordinates,
+                          colours in the vertices, one material; a look per
+                          resident from their name, people and trade, and
+                          hand-made looks for the characters in the owner's
+                          reference videos; knees, used by the walk and the
+                          poses; a far version built at low detail. The
+                          hooded watcher and the two Skywatch companions are
+                          kit people too; the shrine's stoup moved off the
+                          paving. Verified: parse/audit/dead/comments clean;
+                          lineup, walk, pose, at-home and posed-figure shots;
+                          frame cost against r158 at six standpoints; 6/6
+                          variants built and booted; smoke clean (r159 in
+                          the title, road obstructions 0). The runtime audit
+                          and the captures were stopped unfinished, at the
+                          owner's word to push.
     Sep 22     r130       props & porters. Every held prop now uses its
                           corresponding wrist grip; the guard shield is a
                           forearm item, and the far LOD does not leave nested

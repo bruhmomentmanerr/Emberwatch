@@ -5,6 +5,10 @@
 # Blender's X axis needs no sign flip against three.js X — verified there
 # after a first, wrong attempt scattered the geometry).
 #
+# (r159) Neither model is in the game any more. The hooded watcher and the two
+# companions are the NPC kit's people now, posed on its rig (placePosedFigures
+# in index.html); this script and its .glb files are kept as the history.
+#
 # Run headless:
 #   "C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" --background \
 #     --python tools/assets/hooded-watcher.py

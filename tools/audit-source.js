@@ -1,5 +1,7 @@
 const fs = require('fs');
-const P = 'D:/_KEEP/Emberwatch/app/renderer/index.html';
+const path = require('path');
+const P = process.argv[2] ||
+  path.join(__dirname, '..', 'app', 'renderer', 'index.html');
 const lines = fs.readFileSync(P, 'utf8').split('\n');
 
 // The gameplay script only; the engine bundle would drown everything. Found by

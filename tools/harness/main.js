@@ -45,6 +45,16 @@ if (!target) { console.log('usage: electron tools/harness <html-or-url> [probe.j
 
 app.disableHardwareAcceleration();
 
+// HARNESS_SWIFTSHADER=1: force software WebGL via SwiftShader. Only needed on a
+// machine with no GPU at all (a headless container) — recent Chromium refuses
+// to hand out a software WebGL context otherwise, for fingerprinting reasons.
+// Never set this on the owner's real machine; a real GPU should just be used.
+if (process.env.HARNESS_SWIFTSHADER) {
+  app.commandLine.appendSwitch('use-gl', 'swiftshader');
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+  app.commandLine.appendSwitch('ignore-gpu-blocklist');
+}
+
 // HARNESS_PROFILE=<dir> runs with its own storage: its own localStorage, so its
 // own world seed and settings, and no lock clash with a harness already
 // running. Without it every run shares one profile, which is what keeps seeds
@@ -111,7 +121,18 @@ app.whenReady().then(() => {
           E.player.x=s.x;E.player.z=s.z;E.player.vy=0;E.player.onGround=true;
           E.player.y=s.y!==undefined?s.y:(E.terrainAt?E.terrainAt(s.x,s.z):0);
           E.look(s.yaw,s.pitch||0);})()`, true);
-        await new Promise(r => setTimeout(r, 1500));
+        // A fixed wait is not enough under software rendering: the first frame
+        // at a new standpoint can compile programs for a new light count and
+        // take longer than 1.5 s, so the capture grabbed the previous frame —
+        // every run's first shot came back as the spawn view. Wait until three
+        // frames have been drawn at the new position, then settle briefly.
+        const framesAt = () => win.webContents.executeJavaScript('window.EMBER?window.EMBER.renderer.info.render.frame:0', true);
+        const from = await framesAt();
+        for (let waited = 0; waited < 30000; waited += 100) {
+          if ((await framesAt()) >= from + 3) break;
+          await new Promise(r => setTimeout(r, 100));
+        }
+        await new Promise(r => setTimeout(r, 700));
         const image = await win.webContents.capturePage();
         const file = path.join(shotsDir, shot.name + '.png');
         fs.writeFileSync(file, image.toPNG());

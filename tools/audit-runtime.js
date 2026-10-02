@@ -59,15 +59,46 @@
       if (home) { home.click(); await wait(60); } else break;
     }
   }
-  const didNotOpen = [], pushedAway = [];
+  const didNotOpen = [], pushedAway = [], retried = [];
+  const frame = () => E.renderer.info.render.frame;
+  const frames = async n => { const f = frame(); for (let i = 0; i < 600 && frame() < f + n; i++) await wait(50); };
+  const offered = () => { const el = document.querySelector('#interactHint span'); return el ? el.textContent : ''; };
   for (const list of byWard.values()) {
+    // (r156) Every ward is walked in the labour watch. The walk takes ten
+    // minutes and more of game time and a watch is 170 s, so by the time it
+    // reached the wilds, which come last, the still watch had come round, and
+    // a resident with no house to go to goes "indoors" where they stand —
+    // hidden, and offered for talk only from inside a home they do not have.
+    // A run that logged each failed try found Wren Halloway on the Skywatch
+    // Knoll and Iselde of the Lanterns "indoors" at their posts: the grove's
+    // failures since r152 were this, not the timing of the key.
+    E.setWatch('labour'); await frames(3);
     let npc = null;
     for (const candidate of list.slice(0, 6)) {
-      E.player.x = candidate.g.position.x + 1.3; E.player.z = candidate.g.position.z + 1.3; E.player.y = 0;
-      await wait(500);
-      if (Math.hypot(E.player.x - candidate.g.position.x, E.player.z - candidate.g.position.z) > 3) { pushedAway.push(candidate.district + ' :: ' + candidate.name); continue; }
-      key('KeyE'); await wait(280);
-      if (cls('dialoguePanel')) { npc = candidate; break; }
+      // (r156) Up to four tries, from four sides. A teleport is not how anyone
+      // reaches a resident: out in the wilds one can land the player against
+      // a cliff or under a deck and be pushed out of reach (Orren of the
+      // Broken Hall, on his ledge over the falls, from two sides of the four).
+      // Every failed try is reported.
+      let reached = false;
+      for (const [ox, oz] of [[1.3, 1.3], [-1.3, 1.3], [1.3, -1.3], [-1.3, -1.3]]) {
+        E.player.x = candidate.g.position.x + ox; E.player.z = candidate.g.position.z + oz; E.player.y = 0;
+        // Wait for the game to draw at the new place, not for a fixed time: the
+        // nearest resident is worked out in the frame, and out at the Lantern
+        // Grove a harness frame can take three or four seconds, so a key pressed
+        // half a second after the teleport could land before the game had seen
+        // the player arrive (r152, r153: the grove reported as not opening).
+        await frames(4);
+        const tag = candidate.district + ' :: ' + candidate.name;
+        if (Math.hypot(E.player.x - candidate.g.position.x, E.player.z - candidate.g.position.z) > 3) { retried.push(tag + ' :: pushed away'); continue; }
+        reached = true;
+        const offer = offered();
+        key('KeyE'); await frames(3);
+        if (cls('dialoguePanel')) { npc = candidate; break; }
+        retried.push(tag + ' :: E offered "' + offer + '"');
+      }
+      if (npc) break;
+      if (!reached) pushedAway.push(candidate.district + ' :: ' + candidate.name);
     }
     if (!npc) { didNotOpen.push(list[0].district); continue; }
     // Not compared against the npc we teleported beside: another resident is
@@ -79,7 +110,7 @@
     await walk(npc, 0);
     key('Escape'); await wait(100);
   }
-  out.dialogue = { wards: byWard.size, branchesWalked: branches, didNotOpen, pushedAway, broke };
+  out.dialogue = { wards: byWard.size, branchesWalked: branches, didNotOpen, pushedAway, retried, broke };
 
   // ---- 4. residents actually move, and do not pile up ---------------------
   E.player.x = 0; E.player.z = 200;

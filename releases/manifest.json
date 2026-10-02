@@ -1,0 +1,1913 @@
+[
+ {
+  "tag": "r04",
+  "rev": 4,
+  "title": "pup diagnostics",
+  "version": null,
+  "date": "2026-08-17T10:33:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r04_pup-diagnostics.html"
+  },
+  "asset": "emberwatch-r04-pup-diagnostics.html",
+  "notes": "releases/notes/r04.md"
+ },
+ {
+  "tag": "r05",
+  "rev": 5,
+  "title": "autodetect",
+  "version": null,
+  "date": "2026-08-17T12:07:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r05_autodetect.html"
+  },
+  "asset": "emberwatch-r05-autodetect.html",
+  "notes": "releases/notes/r05.md"
+ },
+ {
+  "tag": "r06",
+  "rev": 6,
+  "title": "puffco app flow",
+  "version": null,
+  "date": "2026-08-17T13:40:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r06_puffco-app-flow.html"
+  },
+  "asset": "emberwatch-r06-puffco-app-flow.html",
+  "notes": "releases/notes/r06.md"
+ },
+ {
+  "tag": "r07",
+  "rev": 7,
+  "title": "reconnect",
+  "version": null,
+  "date": "2026-08-17T15:13:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r07_reconnect.html"
+  },
+  "asset": "emberwatch-r07-reconnect.html",
+  "notes": "releases/notes/r07.md"
+ },
+ {
+  "tag": "r08",
+  "rev": 8,
+  "title": "control replies",
+  "version": null,
+  "date": "2026-08-17T16:47:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r08_control-replies.html"
+  },
+  "asset": "emberwatch-r08-control-replies.html",
+  "notes": "releases/notes/r08.md"
+ },
+ {
+  "tag": "r09",
+  "rev": 9,
+  "title": "no repairing",
+  "version": null,
+  "date": "2026-08-17T18:20:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r09_no-repairing.html"
+  },
+  "asset": "emberwatch-r09-no-repairing.html",
+  "notes": "releases/notes/r09.md"
+ },
+ {
+  "tag": "r10",
+  "rev": 10,
+  "title": "device match",
+  "version": null,
+  "date": "2026-08-17T19:53:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r10_device-match.html"
+  },
+  "asset": "emberwatch-r10-device-match.html",
+  "notes": "releases/notes/r10.md"
+ },
+ {
+  "tag": "r11",
+  "rev": 11,
+  "title": "lorax init",
+  "version": null,
+  "date": "2026-08-17T21:27:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r11_lorax-init.html"
+  },
+  "asset": "emberwatch-r11-lorax-init.html",
+  "notes": "releases/notes/r11.md"
+ },
+ {
+  "tag": "r12",
+  "rev": 12,
+  "title": "prune compatible",
+  "version": null,
+  "date": "2026-08-18T09:49:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r12_prune-compatible.html"
+  },
+  "asset": "emberwatch-r12-prune-compatible.html",
+  "notes": "releases/notes/r12.md"
+ },
+ {
+  "tag": "r13",
+  "rev": 13,
+  "title": "auth retry",
+  "version": null,
+  "date": "2026-08-18T10:39:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r13_auth-retry.html"
+  },
+  "asset": "emberwatch-r13-auth-retry.html",
+  "notes": "releases/notes/r13.md"
+ },
+ {
+  "tag": "r14",
+  "rev": 14,
+  "title": "single bond",
+  "version": null,
+  "date": "2026-08-18T11:28:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r14_single-bond.html"
+  },
+  "asset": "emberwatch-r14-single-bond.html",
+  "notes": "releases/notes/r14.md"
+ },
+ {
+  "tag": "r15",
+  "rev": 15,
+  "title": "app order",
+  "version": null,
+  "date": "2026-08-18T12:18:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r15_app-order.html"
+  },
+  "asset": "emberwatch-r15-app-order.html",
+  "notes": "releases/notes/r15.md"
+ },
+ {
+  "tag": "r16",
+  "rev": 16,
+  "title": "lorax fix audit",
+  "version": null,
+  "date": "2026-08-18T13:07:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r16_lorax-fix-audit.html"
+  },
+  "asset": "emberwatch-r16-lorax-fix-audit.html",
+  "notes": "releases/notes/r16.md"
+ },
+ {
+  "tag": "r17",
+  "rev": 17,
+  "title": "polished controls",
+  "version": null,
+  "date": "2026-08-18T13:56:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r17_polished-controls.html"
+  },
+  "asset": "emberwatch-r17-polished-controls.html",
+  "notes": "releases/notes/r17.md"
+ },
+ {
+  "tag": "r18",
+  "rev": 18,
+  "title": "fahrenheit profiles",
+  "version": null,
+  "date": "2026-08-18T14:46:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r18_fahrenheit-profiles.html"
+  },
+  "asset": "emberwatch-r18-fahrenheit-profiles.html",
+  "notes": "releases/notes/r18.md"
+ },
+ {
+  "tag": "r19",
+  "rev": 19,
+  "title": "village profiles",
+  "version": null,
+  "date": "2026-08-18T15:35:00Z",
+  "phase": 1,
+  "source": {
+   "file": "revisions/phase 1 - Puffco BLE panel (r04-r19)/emberwatch_3_r19_village-profiles.html"
+  },
+  "asset": "emberwatch-r19-village-profiles.html",
+  "notes": "releases/notes/r19.md"
+ },
+ {
+  "tag": "r20",
+  "rev": 20,
+  "title": "citadel city",
+  "version": null,
+  "date": "2026-08-18T16:25:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r20_citadel-city.html"
+  },
+  "asset": "emberwatch-r20-citadel-city.html",
+  "notes": "releases/notes/r20.md"
+ },
+ {
+  "tag": "r21",
+  "rev": 21,
+  "title": "live telemetry",
+  "version": null,
+  "date": "2026-08-18T17:14:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r21_live-telemetry.html"
+  },
+  "asset": "emberwatch-r21-live-telemetry.html",
+  "notes": "releases/notes/r21.md"
+ },
+ {
+  "tag": "r22",
+  "rev": 22,
+  "title": "honest session lighting",
+  "version": null,
+  "date": "2026-08-18T18:04:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r22_honest-session-lighting.html"
+  },
+  "asset": "emberwatch-r22-honest-session-lighting.html",
+  "notes": "releases/notes/r22.md"
+ },
+ {
+  "tag": "r23",
+  "rev": 23,
+  "title": "adaptive warmup",
+  "version": null,
+  "date": "2026-08-18T18:53:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r23_adaptive-warmup.html"
+  },
+  "asset": "emberwatch-r23-adaptive-warmup.html",
+  "notes": "releases/notes/r23.md"
+ },
+ {
+  "tag": "r24",
+  "rev": 24,
+  "title": "populated vaneth",
+  "version": null,
+  "date": "2026-08-18T19:42:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r24_populated-vaneth.html"
+  },
+  "asset": "emberwatch-r24-populated-vaneth.html",
+  "notes": "releases/notes/r24.md"
+ },
+ {
+  "tag": "r25",
+  "rev": 25,
+  "title": "personal strain journal",
+  "version": null,
+  "date": "2026-08-18T20:32:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r25_personal-strain-journal.html"
+  },
+  "asset": "emberwatch-r25-personal-strain-journal.html",
+  "notes": "releases/notes/r25.md"
+ },
+ {
+  "tag": "r26",
+  "rev": 26,
+  "title": "wax journal",
+  "version": null,
+  "date": "2026-08-18T21:21:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r26_wax-journal.html"
+  },
+  "asset": "emberwatch-r26-wax-journal.html",
+  "notes": "releases/notes/r26.md"
+ },
+ {
+  "tag": "r27",
+  "rev": 27,
+  "title": "strain stats",
+  "version": null,
+  "date": "2026-08-18T22:11:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r27_strain-stats.html"
+  },
+  "asset": "emberwatch-r27-strain-stats.html",
+  "notes": "releases/notes/r27.md"
+ },
+ {
+  "tag": "r28",
+  "rev": 28,
+  "title": "reference terp codex",
+  "version": null,
+  "date": "2026-08-19T09:49:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r28_reference-terp-codex.html"
+  },
+  "asset": "emberwatch-r28-reference-terp-codex.html",
+  "notes": "releases/notes/r28.md"
+ },
+ {
+  "tag": "r29",
+  "rev": 29,
+  "title": "plain strain guide",
+  "version": null,
+  "date": "2026-08-19T10:39:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r29_plain-strain-guide.html"
+  },
+  "asset": "emberwatch-r29-plain-strain-guide.html",
+  "notes": "releases/notes/r29.md"
+ },
+ {
+  "tag": "r30",
+  "rev": 30,
+  "title": "inworld smoke notes",
+  "version": null,
+  "date": "2026-08-19T11:28:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r30_inworld-smoke-notes.html"
+  },
+  "asset": "emberwatch-r30-inworld-smoke-notes.html",
+  "notes": "releases/notes/r30.md"
+ },
+ {
+  "tag": "r31",
+  "rev": 31,
+  "title": "curated smoke notes",
+  "version": null,
+  "date": "2026-08-19T12:18:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r31_curated-smoke-notes.html"
+  },
+  "asset": "emberwatch-r31-curated-smoke-notes.html",
+  "notes": "releases/notes/r31.md"
+ },
+ {
+  "tag": "r32",
+  "rev": 32,
+  "title": "living strain archive",
+  "version": null,
+  "date": "2026-08-19T13:07:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r32_living-strain-archive.html"
+  },
+  "asset": "emberwatch-r32-living-strain-archive.html",
+  "notes": "releases/notes/r32.md"
+ },
+ {
+  "tag": "r33",
+  "rev": 33,
+  "title": "rich smoke archive",
+  "version": null,
+  "date": "2026-08-19T13:56:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r33_rich-smoke-archive.html"
+  },
+  "asset": "emberwatch-r33-rich-smoke-archive.html",
+  "notes": "releases/notes/r33.md"
+ },
+ {
+  "tag": "r34",
+  "rev": 34,
+  "title": "smoke note autocomplete",
+  "version": null,
+  "date": "2026-08-19T14:46:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r34_smoke-note-autocomplete.html"
+  },
+  "asset": "emberwatch-r34-smoke-note-autocomplete.html",
+  "notes": "releases/notes/r34.md"
+ },
+ {
+  "tag": "r35",
+  "rev": 35,
+  "title": "visible archive notes",
+  "version": null,
+  "date": "2026-08-19T15:35:00Z",
+  "phase": 2,
+  "source": {
+   "file": "revisions/phase 2 - Vaneth city + strain archive (r20-r35)/emberwatch_3_r35_visible-archive-notes.html"
+  },
+  "asset": "emberwatch-r35-visible-archive-notes.html",
+  "notes": "releases/notes/r35.md"
+ },
+ {
+  "tag": "r36",
+  "rev": 36,
+  "title": "npc conversations",
+  "version": null,
+  "date": "2026-08-19T16:25:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r36_npc-conversations.html"
+  },
+  "asset": "emberwatch-r36-npc-conversations.html",
+  "notes": "releases/notes/r36.md"
+ },
+ {
+  "tag": "r37",
+  "rev": 37,
+  "title": "living vaneth",
+  "version": null,
+  "date": "2026-08-19T17:14:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r37_living-vaneth.html"
+  },
+  "asset": "emberwatch-r37-living-vaneth.html",
+  "notes": "releases/notes/r37.md"
+ },
+ {
+  "tag": "r38",
+  "rev": 38,
+  "title": "denser vaneth",
+  "version": null,
+  "date": "2026-08-19T18:04:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r38_denser-vaneth.html"
+  },
+  "asset": "emberwatch-r38-denser-vaneth.html",
+  "notes": "releases/notes/r38.md"
+ },
+ {
+  "tag": "r39",
+  "rev": 39,
+  "title": "stable city controls",
+  "version": null,
+  "date": "2026-08-19T18:53:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r39_stable-city-controls.html"
+  },
+  "asset": "emberwatch-r39-stable-city-controls.html",
+  "notes": "releases/notes/r39.md"
+ },
+ {
+  "tag": "r40",
+  "rev": 40,
+  "title": "city collision life",
+  "version": null,
+  "date": "2026-08-19T19:42:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r40_city-collision-life.html"
+  },
+  "asset": "emberwatch-r40-city-collision-life.html",
+  "notes": "releases/notes/r40.md"
+ },
+ {
+  "tag": "r41",
+  "rev": 41,
+  "title": "daggerfall wards",
+  "version": null,
+  "date": "2026-08-19T20:32:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r41_daggerfall-wards.html"
+  },
+  "asset": "emberwatch-r41-daggerfall-wards.html",
+  "notes": "releases/notes/r41.md"
+ },
+ {
+  "tag": "r42",
+  "rev": 42,
+  "title": "npc anchors",
+  "version": null,
+  "date": "2026-08-19T21:21:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r42_npc-anchors.html"
+  },
+  "asset": "emberwatch-r42-npc-anchors.html",
+  "notes": "releases/notes/r42.md"
+ },
+ {
+  "tag": "r43",
+  "rev": 43,
+  "title": "session faces",
+  "version": null,
+  "date": "2026-08-19T22:11:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r43_session-faces.html"
+  },
+  "asset": "emberwatch-r43-session-faces.html",
+  "notes": "releases/notes/r43.md"
+ },
+ {
+  "tag": "r44",
+  "rev": 44,
+  "title": "spawn ward",
+  "version": null,
+  "date": "2026-08-20T09:53:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r44_spawn-ward.html"
+  },
+  "asset": "emberwatch-r44-spawn-ward.html",
+  "notes": "releases/notes/r44.md"
+ },
+ {
+  "tag": "r45",
+  "rev": 45,
+  "title": "audit overhaul",
+  "version": null,
+  "date": "2026-08-20T10:45:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r45_audit-overhaul.html"
+  },
+  "asset": "emberwatch-r45-audit-overhaul.html",
+  "notes": "releases/notes/r45.md"
+ },
+ {
+  "tag": "r46",
+  "rev": 46,
+  "title": "vaneth directors cut",
+  "version": null,
+  "date": "2026-08-20T11:38:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r46_vaneth-directors-cut.html"
+  },
+  "asset": "emberwatch-r46-vaneth-directors-cut.html",
+  "notes": "releases/notes/r46.md"
+ },
+ {
+  "tag": "r47",
+  "rev": 47,
+  "title": "living conversations",
+  "version": null,
+  "date": "2026-08-20T12:30:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r47_living-conversations.html"
+  },
+  "asset": "emberwatch-r47-living-conversations.html",
+  "notes": "releases/notes/r47.md"
+ },
+ {
+  "tag": "r48",
+  "rev": 48,
+  "title": "smoke sessions",
+  "version": null,
+  "date": "2026-08-20T13:23:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r48_smoke-sessions.html"
+  },
+  "asset": "emberwatch-r48-smoke-sessions.html",
+  "notes": "releases/notes/r48.md"
+ },
+ {
+  "tag": "r49",
+  "rev": 49,
+  "title": "city life",
+  "version": null,
+  "date": "2026-08-20T14:15:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r49-city-life.html"
+  },
+  "asset": "emberwatch-r49-city-life.html",
+  "notes": "releases/notes/r49.md"
+ },
+ {
+  "tag": "r50",
+  "rev": 50,
+  "title": "seeded vaneth",
+  "version": null,
+  "date": "2026-08-20T15:08:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r50-seeded-vaneth.html"
+  },
+  "asset": "emberwatch-r50-seeded-vaneth.html",
+  "notes": "releases/notes/r50.md"
+ },
+ {
+  "tag": "r51",
+  "rev": 51,
+  "title": "city compiler",
+  "version": null,
+  "date": "2026-08-20T16:00:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r51-city-compiler.html"
+  },
+  "asset": "emberwatch-r51-city-compiler.html",
+  "notes": "releases/notes/r51.md"
+ },
+ {
+  "tag": "r52",
+  "rev": 52,
+  "title": "test ready",
+  "version": null,
+  "date": "2026-08-20T16:53:00Z",
+  "phase": 3,
+  "source": {
+   "file": "revisions/phase 3 - NPCs, collision, city compiler (r36-r52)/emberwatch_3_r52-test-ready.html"
+  },
+  "asset": "emberwatch-r52-test-ready.html",
+  "notes": "releases/notes/r52.md"
+ },
+ {
+  "tag": "r53",
+  "rev": 53,
+  "title": "interior and strain fixes",
+  "version": null,
+  "date": "2026-08-20T17:45:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r53-interior-and-strain-fixes.html"
+  },
+  "asset": "emberwatch-r53-interior-and-strain-fixes.html",
+  "notes": "releases/notes/r53.md"
+ },
+ {
+  "tag": "r55",
+  "rev": 55,
+  "title": "doors castle warmup",
+  "version": null,
+  "date": "2026-08-20T18:38:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r55-doors-castle-warmup.html"
+  },
+  "asset": "emberwatch-r55-doors-castle-warmup.html",
+  "notes": "releases/notes/r55.md"
+ },
+ {
+  "tag": "r56",
+  "rev": 56,
+  "title": "greater vaneth",
+  "version": null,
+  "date": "2026-08-20T19:30:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r56-greater-vaneth.html"
+  },
+  "asset": "emberwatch-r56-greater-vaneth.html",
+  "notes": "releases/notes/r56.md"
+ },
+ {
+  "tag": "r57",
+  "rev": 57,
+  "title": "pathfinding aurora",
+  "version": null,
+  "date": "2026-08-20T20:23:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r57-pathfinding-aurora.html"
+  },
+  "asset": "emberwatch-r57-pathfinding-aurora.html",
+  "notes": "releases/notes/r57.md"
+ },
+ {
+  "tag": "r58",
+  "rev": 58,
+  "title": "peak ready strains",
+  "version": null,
+  "date": "2026-08-20T21:15:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r58-peak-ready-strains.html"
+  },
+  "asset": "emberwatch-r58-peak-ready-strains.html",
+  "notes": "releases/notes/r58.md"
+ },
+ {
+  "tag": "r60",
+  "rev": 60,
+  "title": "city rebuild",
+  "version": null,
+  "date": "2026-08-20T22:08:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r60-city-rebuild.html"
+  },
+  "asset": "emberwatch-r60-city-rebuild.html",
+  "notes": "releases/notes/r60.md"
+ },
+ {
+  "tag": "r61",
+  "rev": 61,
+  "title": "city layout",
+  "version": null,
+  "date": "2026-08-21T10:24:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r61-city-layout.html"
+  },
+  "asset": "emberwatch-r61-city-layout.html",
+  "notes": "releases/notes/r61.md"
+ },
+ {
+  "tag": "r62",
+  "rev": 62,
+  "title": "visual fixes",
+  "version": null,
+  "date": "2026-08-21T11:48:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r62-visual-fixes.html"
+  },
+  "asset": "emberwatch-r62-visual-fixes.html",
+  "notes": "releases/notes/r62.md"
+ },
+ {
+  "tag": "r63",
+  "rev": 63,
+  "title": "path and paving",
+  "version": null,
+  "date": "2026-08-21T13:12:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r63-path-and-paving.html"
+  },
+  "asset": "emberwatch-r63-path-and-paving.html",
+  "notes": "releases/notes/r63.md"
+ },
+ {
+  "tag": "r64",
+  "rev": 64,
+  "title": "crowd and electron",
+  "version": null,
+  "date": "2026-08-21T14:36:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r64-crowd-and-electron.html"
+  },
+  "asset": "emberwatch-r64-crowd-and-electron.html",
+  "notes": "releases/notes/r64.md"
+ },
+ {
+  "tag": "r65",
+  "rev": 65,
+  "title": "citadel",
+  "version": null,
+  "date": "2026-08-21T16:00:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r65-citadel.html"
+  },
+  "asset": "emberwatch-r65-citadel.html",
+  "notes": "releases/notes/r65.md"
+ },
+ {
+  "tag": "r66",
+  "rev": 66,
+  "title": "npc schedules",
+  "version": null,
+  "date": "2026-08-21T17:24:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r66-npc-schedules.html"
+  },
+  "asset": "emberwatch-r66-npc-schedules.html",
+  "notes": "releases/notes/r66.md"
+ },
+ {
+  "tag": "r67",
+  "rev": 67,
+  "title": "organic city",
+  "version": null,
+  "date": "2026-08-21T18:48:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r67-organic-city.html"
+  },
+  "asset": "emberwatch-r67-organic-city.html",
+  "notes": "releases/notes/r67.md"
+ },
+ {
+  "tag": "r68",
+  "rev": 68,
+  "title": "streets",
+  "version": null,
+  "date": "2026-08-21T20:12:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r68-streets.html"
+  },
+  "asset": "emberwatch-r68-streets.html",
+  "notes": "releases/notes/r68.md"
+ },
+ {
+  "tag": "r69",
+  "rev": 69,
+  "title": "inner city",
+  "version": null,
+  "date": "2026-08-21T21:36:00Z",
+  "phase": 4,
+  "source": {
+   "file": "revisions/phase 4 - streets, crowds, inner city (r53-r69)/emberwatch_3_r69-inner-city.html"
+  },
+  "asset": "emberwatch-r69-inner-city.html",
+  "notes": "releases/notes/r69.md"
+ },
+ {
+  "tag": "r70",
+  "rev": 70,
+  "title": "district character",
+  "version": null,
+  "date": "2026-08-31T11:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r70-district-character.html"
+  },
+  "asset": "emberwatch-r70-district-character.html",
+  "notes": "releases/notes/r70.md"
+ },
+ {
+  "tag": "r71",
+  "rev": 71,
+  "title": "stability access",
+  "version": null,
+  "date": "2026-08-31T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r71-stability-access.html"
+  },
+  "asset": "emberwatch-r71-stability-access.html",
+  "notes": "releases/notes/r71.md"
+ },
+ {
+  "tag": "r72",
+  "rev": 72,
+  "title": "lived in vaneth",
+  "version": null,
+  "date": "2026-08-31T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r72-lived-in-vaneth.html"
+  },
+  "asset": "emberwatch-r72-lived-in-vaneth.html",
+  "notes": "releases/notes/r72.md"
+ },
+ {
+  "tag": "r73",
+  "rev": 73,
+  "title": "vaneth chronicle",
+  "version": null,
+  "date": "2026-08-31T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r73-vaneth-chronicle.html"
+  },
+  "asset": "emberwatch-r73-vaneth-chronicle.html",
+  "notes": "releases/notes/r73.md"
+ },
+ {
+  "tag": "r74",
+  "rev": 74,
+  "title": "streets residents",
+  "version": null,
+  "date": "2026-08-31T20:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r74-streets-residents.html"
+  },
+  "asset": "emberwatch-r74-streets-residents.html",
+  "notes": "releases/notes/r74.md"
+ },
+ {
+  "tag": "r75",
+  "rev": 75,
+  "title": "gate approaches",
+  "version": null,
+  "date": "2026-09-01T10:33:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r75-gate-approaches.html"
+  },
+  "asset": "emberwatch-r75-gate-approaches.html",
+  "notes": "releases/notes/r75.md"
+ },
+ {
+  "tag": "r76",
+  "rev": 76,
+  "title": "device probe",
+  "version": null,
+  "date": "2026-09-01T12:07:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r76-device-probe.html"
+  },
+  "asset": "emberwatch-r76-device-probe.html",
+  "notes": "releases/notes/r76.md"
+ },
+ {
+  "tag": "r77",
+  "rev": 77,
+  "title": "streets wood residents",
+  "version": null,
+  "date": "2026-09-01T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r77-streets-wood-residents.html"
+  },
+  "asset": "emberwatch-r77-streets-wood-residents.html",
+  "notes": "releases/notes/r77.md"
+ },
+ {
+  "tag": "r78",
+  "rev": 78,
+  "title": "road edges",
+  "version": null,
+  "date": "2026-09-01T15:13:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r78-road-edges.html"
+  },
+  "asset": "emberwatch-r78-road-edges.html",
+  "notes": "releases/notes/r78.md"
+ },
+ {
+  "tag": "r79",
+  "rev": 79,
+  "title": "residents interiors",
+  "version": null,
+  "date": "2026-09-01T16:47:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r79-residents-interiors.html"
+  },
+  "asset": "emberwatch-r79-residents-interiors.html",
+  "notes": "releases/notes/r79.md"
+ },
+ {
+  "tag": "r80",
+  "rev": 80,
+  "title": "citadel approaches",
+  "version": null,
+  "date": "2026-09-01T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r80-citadel-approaches.html"
+  },
+  "asset": "emberwatch-r80-citadel-approaches.html",
+  "notes": "releases/notes/r80.md"
+ },
+ {
+  "tag": "r81",
+  "rev": 81,
+  "title": "keep and hall",
+  "version": null,
+  "date": "2026-09-01T19:53:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r81-keep-and-hall.html"
+  },
+  "asset": "emberwatch-r81-keep-and-hall.html",
+  "notes": "releases/notes/r81.md"
+ },
+ {
+  "tag": "r82",
+  "rev": 82,
+  "title": "the great keep",
+  "version": null,
+  "date": "2026-09-01T21:27:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r82-the-great-keep.html"
+  },
+  "asset": "emberwatch-r82-the-great-keep.html",
+  "notes": "releases/notes/r82.md"
+ },
+ {
+  "tag": "r83",
+  "rev": 83,
+  "title": "lots off the lanes",
+  "version": null,
+  "date": "2026-09-02T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r83-lots-off-the-lanes.html"
+  },
+  "asset": "emberwatch-r83-lots-off-the-lanes.html",
+  "notes": "releases/notes/r83.md"
+ },
+ {
+  "tag": "r84",
+  "rev": 84,
+  "title": "rooms walls crowds",
+  "version": null,
+  "date": "2026-09-03T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r84-rooms-walls-crowds.html"
+  },
+  "asset": "emberwatch-r84-rooms-walls-crowds.html",
+  "notes": "releases/notes/r84.md"
+ },
+ {
+  "tag": "r85",
+  "rev": 85,
+  "title": "one city",
+  "version": null,
+  "date": "2026-09-04T12:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r85-one-city.html"
+  },
+  "asset": "emberwatch-r85-one-city.html",
+  "notes": "releases/notes/r85.md"
+ },
+ {
+  "tag": "r86",
+  "rev": 86,
+  "title": "streets on earth",
+  "version": null,
+  "date": "2026-09-04T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r86-streets-on-earth.html"
+  },
+  "asset": "emberwatch-r86-streets-on-earth.html",
+  "notes": "releases/notes/r86.md"
+ },
+ {
+  "tag": "r88",
+  "rev": 88,
+  "title": "the south road",
+  "version": null,
+  "date": "2026-09-04T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r88-the-south-road.html"
+  },
+  "asset": "emberwatch-r88-the-south-road.html",
+  "notes": "releases/notes/r88.md"
+ },
+ {
+  "tag": "r93",
+  "rev": 93,
+  "title": "people use the streets",
+  "version": null,
+  "date": "2026-09-05T10:33:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r93-people-use-the-streets.html"
+  },
+  "asset": "emberwatch-r93-people-use-the-streets.html",
+  "notes": "releases/notes/r93.md"
+ },
+ {
+  "tag": "r94",
+  "rev": 94,
+  "title": "outgrew its wall",
+  "version": null,
+  "date": "2026-09-05T12:07:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r94-outgrew-its-wall.html"
+  },
+  "asset": "emberwatch-r94-outgrew-its-wall.html",
+  "notes": "releases/notes/r94.md"
+ },
+ {
+  "tag": "r95",
+  "rev": 95,
+  "title": "watches and ties",
+  "version": null,
+  "date": "2026-09-05T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r95-watches-and-ties.html"
+  },
+  "asset": "emberwatch-r95-watches-and-ties.html",
+  "notes": "releases/notes/r95.md"
+ },
+ {
+  "tag": "r96",
+  "rev": 96,
+  "title": "the still hours",
+  "version": null,
+  "date": "2026-09-05T15:13:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r96-the-still-hours.html"
+  },
+  "asset": "emberwatch-r96-the-still-hours.html",
+  "notes": "releases/notes/r96.md"
+ },
+ {
+  "tag": "r97",
+  "rev": 97,
+  "title": "halls and households",
+  "version": null,
+  "date": "2026-09-05T16:47:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r97-halls-and-households.html"
+  },
+  "asset": "emberwatch-r97-halls-and-households.html",
+  "notes": "releases/notes/r97.md"
+ },
+ {
+  "tag": "r98",
+  "rev": 98,
+  "title": "word travels",
+  "version": null,
+  "date": "2026-09-05T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r98-word-travels.html"
+  },
+  "asset": "emberwatch-r98-word-travels.html",
+  "notes": "releases/notes/r98.md"
+ },
+ {
+  "tag": "r99",
+  "rev": 99,
+  "title": "the probe listens",
+  "version": null,
+  "date": "2026-09-05T19:53:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r99-the-probe-listens.html"
+  },
+  "asset": "emberwatch-r99-the-probe-listens.html",
+  "notes": "releases/notes/r99.md"
+ },
+ {
+  "tag": "r100",
+  "rev": 100,
+  "title": "four quarters",
+  "version": null,
+  "date": "2026-09-05T21:27:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r100-four-quarters.html"
+  },
+  "asset": "emberwatch-r100-four-quarters.html",
+  "notes": "releases/notes/r100.md"
+ },
+ {
+  "tag": "r101",
+  "rev": 101,
+  "title": "the switch speaks",
+  "version": null,
+  "date": "2026-09-06T11:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r101-the-switch-speaks.html"
+  },
+  "asset": "emberwatch-r101-the-switch-speaks.html",
+  "notes": "releases/notes/r101.md"
+ },
+ {
+  "tag": "r103",
+  "rev": 103,
+  "title": "switch bench",
+  "version": null,
+  "date": "2026-09-06T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r103-switch-bench.html"
+  },
+  "asset": "emberwatch-r103-switch-bench.html",
+  "notes": "releases/notes/r103.md"
+ },
+ {
+  "tag": "r104",
+  "rev": 104,
+  "title": "ramparts",
+  "version": null,
+  "date": "2026-09-06T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r104-ramparts.html"
+  },
+  "asset": "emberwatch-r104-ramparts.html",
+  "notes": "releases/notes/r104.md"
+ },
+ {
+  "tag": "r105",
+  "rev": 105,
+  "title": "the whole protocol",
+  "version": null,
+  "date": "2026-09-06T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r105-the-whole-protocol.html"
+  },
+  "asset": "emberwatch-r105-the-whole-protocol.html",
+  "notes": "releases/notes/r105.md"
+ },
+ {
+  "tag": "r106",
+  "rev": 106,
+  "title": "honest diagnostics",
+  "version": null,
+  "date": "2026-09-06T20:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r106-honest-diagnostics.html"
+  },
+  "asset": "emberwatch-r106-honest-diagnostics.html",
+  "notes": "releases/notes/r106.md"
+ },
+ {
+  "tag": "r107",
+  "rev": 107,
+  "title": "hills and water",
+  "version": null,
+  "date": "2026-09-13T11:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r107-hills-and-water.html"
+  },
+  "asset": "emberwatch-r107-hills-and-water.html",
+  "notes": "releases/notes/r107.md"
+ },
+ {
+  "tag": "r108",
+  "rev": 108,
+  "title": "places beyond the wall",
+  "version": null,
+  "date": "2026-09-13T13:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r108-places-beyond-the-wall.html"
+  },
+  "asset": "emberwatch-r108-places-beyond-the-wall.html",
+  "notes": "releases/notes/r108.md"
+ },
+ {
+  "tag": "r109",
+  "rev": 109,
+  "title": "every ward keeps shop",
+  "version": null,
+  "date": "2026-09-13T15:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r109-every-ward-keeps-shop.html"
+  },
+  "asset": "emberwatch-r109-every-ward-keeps-shop.html",
+  "notes": "releases/notes/r109.md"
+ },
+ {
+  "tag": "r110",
+  "rev": 110,
+  "title": "three r186",
+  "version": null,
+  "date": "2026-09-13T17:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r110-three-r186.html"
+  },
+  "asset": "emberwatch-r110-three-r186.html",
+  "notes": "releases/notes/r110.md"
+ },
+ {
+  "tag": "r111",
+  "rev": 111,
+  "title": "physical light",
+  "version": null,
+  "date": "2026-09-13T19:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r111-physical-light.html"
+  },
+  "asset": "emberwatch-r111-physical-light.html",
+  "notes": "releases/notes/r111.md"
+ },
+ {
+  "tag": "r112",
+  "rev": 112,
+  "title": "bloom",
+  "version": null,
+  "date": "2026-09-13T21:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r112-bloom.html"
+  },
+  "asset": "emberwatch-r112-bloom.html",
+  "notes": "releases/notes/r112.md"
+ },
+ {
+  "tag": "r113",
+  "rev": 113,
+  "title": "walk in homes",
+  "version": null,
+  "date": "2026-09-14T11:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r113-walk-in-homes.html"
+  },
+  "asset": "emberwatch-r113-walk-in-homes.html",
+  "notes": "releases/notes/r113.md"
+ },
+ {
+  "tag": "r114",
+  "rev": 114,
+  "title": "people at home",
+  "version": null,
+  "date": "2026-09-14T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r114-people-at-home.html"
+  },
+  "asset": "emberwatch-r114-people-at-home.html",
+  "notes": "releases/notes/r114.md"
+ },
+ {
+  "tag": "r115",
+  "rev": 115,
+  "title": "audit fixes",
+  "version": null,
+  "date": "2026-09-14T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r115-audit-fixes.html"
+  },
+  "asset": "emberwatch-r115-audit-fixes.html",
+  "notes": "releases/notes/r115.md"
+ },
+ {
+  "tag": "r116",
+  "rev": 116,
+  "title": "settled in",
+  "version": null,
+  "date": "2026-09-14T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r116-settled-in.html"
+  },
+  "asset": "emberwatch-r116-settled-in.html",
+  "notes": "releases/notes/r116.md"
+ },
+ {
+  "tag": "r117",
+  "rev": 117,
+  "title": "mourners",
+  "version": null,
+  "date": "2026-09-14T20:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r117-mourners.html"
+  },
+  "asset": "emberwatch-r117-mourners.html",
+  "notes": "releases/notes/r117.md"
+ },
+ {
+  "tag": "r118",
+  "rev": 118,
+  "title": "past the wall",
+  "version": null,
+  "date": "2026-09-15T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r118-past-the-wall.html"
+  },
+  "asset": "emberwatch-r118-past-the-wall.html",
+  "notes": "releases/notes/r118.md"
+ },
+ {
+  "tag": "r119",
+  "rev": 119,
+  "title": "the long frames",
+  "version": null,
+  "date": "2026-09-16T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r119-the-long-frames.html"
+  },
+  "asset": "emberwatch-r119-the-long-frames.html",
+  "notes": "releases/notes/r119.md"
+ },
+ {
+  "tag": "r120",
+  "rev": 120,
+  "title": "measured variants",
+  "version": null,
+  "date": "2026-09-16T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r120-measured-variants.html"
+  },
+  "asset": "emberwatch-r120-measured-variants.html",
+  "notes": "releases/notes/r120.md"
+ },
+ {
+  "tag": "r121",
+  "rev": 121,
+  "title": "the city takes shape",
+  "version": null,
+  "date": "2026-09-20T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r121-the-city-takes-shape.html"
+  },
+  "asset": "emberwatch-r121-the-city-takes-shape.html",
+  "notes": "releases/notes/r121.md"
+ },
+ {
+  "tag": "r122",
+  "rev": 122,
+  "title": "street dressing",
+  "version": null,
+  "date": "2026-09-21T10:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r122-street-dressing.html"
+  },
+  "asset": "emberwatch-r122-street-dressing.html",
+  "notes": "releases/notes/r122.md"
+ },
+ {
+  "tag": "r123",
+  "rev": 123,
+  "title": "clean poly polish",
+  "version": null,
+  "date": "2026-09-21T12:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r123-clean-poly-polish.html"
+  },
+  "asset": "emberwatch-r123-clean-poly-polish.html",
+  "notes": "releases/notes/r123.md"
+ },
+ {
+  "tag": "r124",
+  "rev": 124,
+  "title": "material and resident pass",
+  "version": null,
+  "date": "2026-09-21T14:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r124-material-and-resident-pass.html"
+  },
+  "asset": "emberwatch-r124-material-and-resident-pass.html",
+  "notes": "releases/notes/r124.md"
+ },
+ {
+  "tag": "r124b",
+  "rev": 124,
+  "title": "material and street logic",
+  "version": null,
+  "date": "2026-09-21T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r124-material-and-street-logic.html"
+  },
+  "asset": "emberwatch-r124b-material-and-street-logic.html",
+  "notes": "releases/notes/r124b.md"
+ },
+ {
+  "tag": "r125",
+  "rev": 125,
+  "title": "the city holds still",
+  "version": null,
+  "date": "2026-09-21T17:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r125-the-city-holds-still.html"
+  },
+  "asset": "emberwatch-r125-the-city-holds-still.html",
+  "notes": "releases/notes/r125.md"
+ },
+ {
+  "tag": "r126",
+  "rev": 126,
+  "title": "nothing left to roll",
+  "version": null,
+  "date": "2026-09-21T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r126-nothing-left-to-roll.html"
+  },
+  "asset": "emberwatch-r126-nothing-left-to-roll.html",
+  "notes": "releases/notes/r126.md"
+ },
+ {
+  "tag": "r127",
+  "rev": 127,
+  "title": "one shop everywhere",
+  "version": null,
+  "date": "2026-09-21T21:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r127-one-shop-everywhere.html"
+  },
+  "asset": "emberwatch-r127-one-shop-everywhere.html",
+  "notes": "releases/notes/r127.md"
+ },
+ {
+  "tag": "r128",
+  "rev": 128,
+  "title": "rooms you can see",
+  "version": null,
+  "date": "2026-09-22T10:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r128-rooms-you-can-see.html"
+  },
+  "asset": "emberwatch-r128-rooms-you-can-see.html",
+  "notes": "releases/notes/r128.md"
+ },
+ {
+  "tag": "r129",
+  "rev": 129,
+  "title": "resident hands",
+  "version": null,
+  "date": "2026-09-22T12:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r129-resident-hands.html"
+  },
+  "asset": "emberwatch-r129-resident-hands.html",
+  "notes": "releases/notes/r129.md"
+ },
+ {
+  "tag": "r130",
+  "rev": 130,
+  "title": "props and porters",
+  "version": null,
+  "date": "2026-09-22T14:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r130-props-and-porters.html"
+  },
+  "asset": "emberwatch-r130-props-and-porters.html",
+  "notes": "releases/notes/r130.md"
+ },
+ {
+  "tag": "r131",
+  "rev": 131,
+  "title": "the plan redrawn",
+  "version": null,
+  "date": "2026-09-22T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r131-the-plan-redrawn.html"
+  },
+  "asset": "emberwatch-r131-the-plan-redrawn.html",
+  "notes": "releases/notes/r131.md"
+ },
+ {
+  "tag": "r132",
+  "rev": 132,
+  "title": "streets that bend",
+  "version": "1.32.0",
+  "date": "2026-09-22T17:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r132-streets-that-bend.html"
+  },
+  "asset": "emberwatch-r132-streets-that-bend.html",
+  "notes": "releases/notes/r132.md"
+ },
+ {
+  "tag": "r133",
+  "rev": 133,
+  "title": "nothing hangs on nothing",
+  "version": "1.33.0",
+  "date": "2026-09-22T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r133-nothing-hangs-on-nothing.html"
+  },
+  "asset": "emberwatch-r133-nothing-hangs-on-nothing.html",
+  "notes": "releases/notes/r133.md"
+ },
+ {
+  "tag": "r134",
+  "rev": 134,
+  "title": "people in the square",
+  "version": "1.34.0",
+  "date": "2026-09-22T21:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r134-people-in-the-square.html"
+  },
+  "asset": "emberwatch-r134-people-in-the-square.html",
+  "notes": "releases/notes/r134.md"
+ },
+ {
+  "tag": "r135",
+  "rev": 135,
+  "title": "the crowd parts",
+  "version": "1.35.0",
+  "date": "2026-09-23T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r135-the-crowd-parts.html"
+  },
+  "asset": "emberwatch-r135-the-crowd-parts.html",
+  "notes": "releases/notes/r135.md"
+ },
+ {
+  "tag": "r137",
+  "rev": 137,
+  "title": "npc visual canon",
+  "version": "1.37.0",
+  "date": "2026-09-23T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "git": "765763447ff3ce85fcd957283c02011f9804681d:index.html"
+  },
+  "asset": "emberwatch-r137-npc-visual-canon.html",
+  "notes": "releases/notes/r137.md"
+ },
+ {
+  "tag": "r139",
+  "rev": 139,
+  "title": "reference build",
+  "version": "1.39.0",
+  "date": "2026-09-24T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "git": "765763447ff3ce85fcd957283c02011f9804681d:app/renderer/index.html"
+  },
+  "asset": "emberwatch-r139-reference-build.html",
+  "notes": "releases/notes/r139.md"
+ },
+ {
+  "tag": "r140",
+  "rev": 140,
+  "title": "modelled not assembled",
+  "version": "1.40.0",
+  "date": "2026-09-25T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r140-modelled-not-assembled.html"
+  },
+  "asset": "emberwatch-r140-modelled-not-assembled.html",
+  "notes": "releases/notes/r140.md"
+ },
+ {
+  "tag": "r141",
+  "rev": 141,
+  "title": "quiet road",
+  "version": "1.41.0",
+  "date": "2026-09-27T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r141-quiet-road.html"
+  },
+  "asset": "emberwatch-r141-quiet-road.html",
+  "notes": "releases/notes/r141.md"
+ },
+ {
+  "tag": "r142",
+  "rev": 142,
+  "title": "walkaround",
+  "version": "1.42.0",
+  "date": "2026-09-28T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r142-walkaround.html"
+  },
+  "asset": "emberwatch-r142-walkaround.html",
+  "notes": "releases/notes/r142.md"
+ },
+ {
+  "tag": "r143",
+  "rev": 143,
+  "title": "places under the moon",
+  "version": "1.43.0",
+  "date": "2026-09-30T10:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r143-places-under-the-moon.html"
+  },
+  "asset": "emberwatch-r143-places-under-the-moon.html",
+  "notes": "releases/notes/r143.md"
+ },
+ {
+  "tag": "r144",
+  "rev": 144,
+  "title": "market and cathedral",
+  "version": "1.44.0",
+  "date": "2026-09-30T12:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r144-market-and-cathedral.html"
+  },
+  "asset": "emberwatch-r144-market-and-cathedral.html",
+  "notes": "releases/notes/r144.md"
+ },
+ {
+  "tag": "r145",
+  "rev": 145,
+  "title": "halls and crossings",
+  "version": "1.45.0",
+  "date": "2026-09-30T14:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r145-halls-and-crossings.html"
+  },
+  "asset": "emberwatch-r145-halls-and-crossings.html",
+  "notes": "releases/notes/r145.md"
+ },
+ {
+  "tag": "r146",
+  "rev": 146,
+  "title": "avenues at night",
+  "version": "1.46.0",
+  "date": "2026-09-30T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r146-avenues-at-night.html"
+  },
+  "asset": "emberwatch-r146-avenues-at-night.html",
+  "notes": "releases/notes/r146.md"
+ },
+ {
+  "tag": "r147",
+  "rev": 147,
+  "title": "signs and lamps",
+  "version": "1.47.0",
+  "date": "2026-09-30T17:45:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r147-signs-and-lamps.html"
+  },
+  "asset": "emberwatch-r147-signs-and-lamps.html",
+  "notes": "releases/notes/r147.md"
+ },
+ {
+  "tag": "r148",
+  "rev": 148,
+  "title": "torchlit walls",
+  "version": "1.48.0",
+  "date": "2026-09-30T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r148-torchlit-walls.html"
+  },
+  "asset": "emberwatch-r148-torchlit-walls.html",
+  "notes": "releases/notes/r148.md"
+ },
+ {
+  "tag": "r149",
+  "rev": 149,
+  "title": "the bell tower",
+  "version": "1.49.0",
+  "date": "2026-09-30T21:15:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r149-the-bell-tower.html"
+  },
+  "asset": "emberwatch-r149-the-bell-tower.html",
+  "notes": "releases/notes/r149.md"
+ },
+ {
+  "tag": "r150",
+  "rev": 150,
+  "title": "bells ring the watch in",
+  "version": "1.50.0",
+  "date": "2026-10-01T10:33:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r150-bells-ring-the-watch-in.html"
+  },
+  "asset": "emberwatch-r150-bells-ring-the-watch-in.html",
+  "notes": "releases/notes/r150.md"
+ },
+ {
+  "tag": "r151",
+  "rev": 151,
+  "title": "the city heard",
+  "version": "1.51.0",
+  "date": "2026-10-01T12:07:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r151-the-city-heard.html"
+  },
+  "asset": "emberwatch-r151-the-city-heard.html",
+  "notes": "releases/notes/r151.md"
+ },
+ {
+  "tag": "r152",
+  "rev": 152,
+  "title": "the forest at night",
+  "version": "1.52.0",
+  "date": "2026-10-01T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r152-the-forest-at-night.html"
+  },
+  "asset": "emberwatch-r152-the-forest-at-night.html",
+  "notes": "releases/notes/r152.md"
+ },
+ {
+  "tag": "r153",
+  "rev": 153,
+  "title": "the city culled",
+  "version": "1.53.0",
+  "date": "2026-10-01T15:13:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r153-the-city-culled.html"
+  },
+  "asset": "emberwatch-r153-the-city-culled.html",
+  "notes": "releases/notes/r153.md"
+ },
+ {
+  "tag": "r154",
+  "rev": 154,
+  "title": "the moon archive",
+  "version": "1.54.0",
+  "date": "2026-10-01T16:47:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r154-the-moon-archive.html"
+  },
+  "asset": "emberwatch-r154-the-moon-archive.html",
+  "notes": "releases/notes/r154.md"
+ },
+ {
+  "tag": "r155",
+  "rev": 155,
+  "title": "the archives",
+  "version": "1.55.0",
+  "date": "2026-10-01T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r155-the-archives.html"
+  },
+  "asset": "emberwatch-r155-the-archives.html",
+  "notes": "releases/notes/r155.md"
+ },
+ {
+  "tag": "r156",
+  "rev": 156,
+  "title": "the watch houses",
+  "version": "1.56.0",
+  "date": "2026-10-01T19:53:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r156-the-watch-houses.html"
+  },
+  "asset": "emberwatch-r156-the-watch-houses.html",
+  "notes": "releases/notes/r156.md"
+ },
+ {
+  "tag": "r157",
+  "rev": 157,
+  "title": "the taverns",
+  "version": "1.57.0",
+  "date": "2026-10-01T21:27:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r157-the-taverns.html"
+  },
+  "asset": "emberwatch-r157-the-taverns.html",
+  "notes": "releases/notes/r157.md"
+ },
+ {
+  "tag": "r158",
+  "rev": 158,
+  "title": "the last halls",
+  "version": "1.58.0",
+  "date": "2026-10-02T13:40:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r158-the-last-halls.html"
+  },
+  "asset": "emberwatch-r158-the-last-halls.html",
+  "notes": "releases/notes/r158.md"
+ },
+ {
+  "tag": "r159",
+  "rev": 159,
+  "title": "the people",
+  "version": "1.59.0",
+  "date": "2026-10-02T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r159-the-people.html"
+  },
+  "asset": "emberwatch-r159-the-people.html",
+  "notes": "releases/notes/r159.md"
+ }
+]

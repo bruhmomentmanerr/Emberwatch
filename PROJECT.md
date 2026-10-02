@@ -4,9 +4,40 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r139 / 1.39.0**, sealed 2026-09-25 as the first true
-reference-build chunk: named places plus place-bound NPC roles. Previous sealed
-line: r138 / 1.38.0, built as the map-spine visual canon pass:
+Current: **r159 / 1.59.0**, sealed 2026-10-02 as "the people": every
+resident rebuilt from a kit of modelled, patterned parts — tartans, knit,
+striped stockings, painted faces, hats and hair — with a look of their own
+and knees in their legs, after the owner's PS2/Xbox-era RPG reference
+videos (§0). Before it, r158 / 1.58.0 ("the last halls", §0i): the
+Drovers' Rest, the Lamplighters' Hall, Ferrier's Yard, the Pilgrim Shrine
+and the New Chapel fitted out — every hall in the city is furnished by
+hand. Before that, r157 / 1.57.0 ("the taverns", §0j): the Cinder and
+Keg, the Southgate Rest, the Gilded Finch and the Wayhouse fitted out, and
+the wild places' residents kept at their posts through the still hours.
+Before that, r156 / 1.56.0 ("the watch-houses", §0k): the Northwatch
+Guild and the Westwall Refuge fitted out, and every hall's floor brought
+down to the ground it had stood half a metre above. Before that, r155 /
+1.55.0 ("the archives", §0l): the Eastwall Scriptorium and the Cold
+Assay fitted out after what they are for. Before that, r154 / 1.54.0 ("the
+Moon Archive", §0m): the city's
+library fitted out as one — bookcases, a ladder, reading tables, lamps, a
+moon window and the archive's instrument. Before that, r153 /
+1.53.0 ("the city culled", §0n): the
+city's static geometry laid in 72 m squares that are culled against the view
+— a quarter to nearly half fewer triangles drawn in the city. Before
+it, r152 / 1.52.0
+("the forest at night", §0o), r151 / 1.51.0 ("the city heard", §0p), r150 / 1.50.0 ("the bells ring the watch in", §0q), r149 / 1.49.0
+("the bell tower", §0r),
+r148 / 1.48.0 ("torchlit walls", §0s), r147 / 1.47.0 ("signs and lamps",
+§0t), r146 / 1.46.0 ("the avenues at night", §0u), r145 / 1.45.0 ("halls
+and crossings", §0v), r144 / 1.44.0 ("market and cathedral", §0w) and r143
+/ 1.43.0 ("places under the moon", §0x). None of the seventeen is packaged yet;
+the latest packaged pair is r142 / 1.42.0
+("walkaround"), `Emberwatch-1.42.0-setup.exe` and
+`Emberwatch-1.42.0-portable.exe`. Before those, r139 / 1.39.0, sealed
+2026-09-25 as the first true reference-build chunk: named places plus
+place-bound NPC roles. Earlier sealed line: r138 / 1.38.0, built as the
+map-spine visual canon pass:
 `Emberwatch-1.38.0-setup.exe` and `Emberwatch-1.38.0-portable.exe`.
 Earlier sealed line: r137 / 1.37.0, built as the NPC visual-canon
 continuation: `Emberwatch-1.37.0-setup.exe` and
@@ -219,7 +250,1942 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-09-28)
+## 0. Start here — where the last session left off (2026-10-02, r159)
+
+**State: r159 / 1.59.0, sealed 2026-10-02 ("the people").** The owner
+sent two reference videos (AI video, "think of ps2/xbox era rpg … if you
+want to copy, copy") and asked for the residents to look "less like
+planned/generated geometry and more unique per npc". r159 rebuilds every
+resident from a kit of modelled, patterned parts, gives each one a look of
+their own, and puts knees in their legs.
+
+**Next:** people in the halls of an evening (nobody sits at the hall
+tables yet). The kit can do more than it is asked to: the reference
+frames also have scarves worn over the mouth, shawls, wide sleeves on the
+long-ears, and carried things (baskets, a lantern on a pole) that are
+still the old primitives. A middle level of detail between the near rig
+and the far version, if the frame cost below ever matters on real
+hardware. Then the towers of the Moon Archive and the Northwatch Guild,
+and stairs up to the outer wall's walk. The Windows installers for
+r143–r158 have not been built; r159's is on its release, built by the
+release workflow on GitHub's Windows runner.
+
+### What the references asked for
+
+Frames were pulled from both videos with ffmpeg (imageio-ffmpeg in the
+Blender venv) and looked at side by side with the r158 lineup. The r158
+residents were five- to eight-sided primitives in flat colours — a
+cylinder torso, a sphere head with box eyes, cylinder limbs — and four
+hundred of them read as one doll in eight costumes. The reference people
+are PS2/Xbox-era RPG characters: tartan shirts and dresses, knit,
+striped stockings, frilled white dresses with puffed sleeves, witch hats
+with bent tips, round glasses, elf ears, chunky locks of hair with a
+lighter band, faces painted on — eyes, brows, a mouth — and every one of
+them different.
+
+### The kit
+
+`// >>> NPC KIT` in `index.html`, between the villagers' materials and
+`mergeTinted`. Nothing is loaded from a file:
+
+- **One mask atlas**, drawn on a canvas at load: 1024², eight by eight
+  tiles of 128. Twenty-nine patterns and a plain tile (tartan, dark tartan, gingham, windowpane,
+  stripe, thin stripe, pinstripe, knit, cable, linen, leather, fleece,
+  quilt, lace, dots, floral, twill, patch, a hem band, two hairs, wood,
+  metal, chain, scale, fur, candy, an emblem, feather) and thirty-two
+  faces. Each tile is a mask in three channels: R takes the resident's
+  second colour, G darkens, B lightens to a pale ivory. A tartan is red
+  where the mask says "second colour" and shadowed where the threads
+  cross; a face is skin with the eyes, brows, mouth, freckles or a scar
+  drawn into it.
+- **Surfaces lofted from rings and tubes** (`NpcMesh`: `surf`, `loft`,
+  `tube`), smooth-shaded, with pattern coordinates in metres so a check
+  is the same size on a sleeve as on a back. Torso and skirt are lofts
+  through Catmull-Rom rings; collars, frills, hems, aprons, vests, belts
+  with buckles, cuirasses, tabards, cloaks with hoods, scarves, satchels
+  and wings hang on it. The head is a loft too, with the face projected
+  onto its front, a nose, and human, gnome or elf ears; hair is a cap
+  plus locks (tubes that taper), in twelve styles, with buns and braids;
+  beards in four; hats in ten (the witch's has its bent tip); glasses.
+- **Colours ride in the vertices** as sRGB bytes, two per vertex, with a
+  tile and the pattern coordinates; the shader (`NPC_KIT_MAT`,
+  `onBeforeCompile` on the colour chunk) decodes them and samples the
+  atlas. One material and one atlas serve every resident, so the resident
+  batch is still one draw call — indexed now, where it was not.
+- **A look per resident** (`npcKitLook`), seeded from their name: their
+  people set the proportions (gnomes short-legged and big-headed,
+  long-ears tall and narrow, stonekin broad), their trade the outfit, and
+  the seed everything else — face, skin and eye colour, hair style and
+  colour, beard, pattern and colours of every garment, hat, glasses,
+  boots, elder or not. The visual canon's style tags keep their meaning:
+  glasses, long locks, banded socks, moon-pale cuffs, and the rare
+  sky-marked resident, whose fins became small wings. A trade still
+  decides what is carried.
+- **Hand-made looks** (`NPC_KIT_LOOKS`) for the characters the reference
+  frames show: Wren Halloway in a tartan shirt and a witch's hat; Lysa
+  Star-Eyed, the winged long-ear in a frilled white dress with round
+  glasses and striped stockings; Orren of the Broken Hall, the wizard;
+  Corvin Cliffwatch, hooded; Nell Red-Sock; and Barkeep Varn, Archivist
+  Lysa, Pilgrim Sorell and Chamberlain Ash as their rooms describe them.
+
+### Knees, and poses that use them
+
+The rig is the same one every system drives (a head pivot, two arms with
+a grip at the palm, two legs) with a knee in each leg: thigh 0.43 and shin
+0.49 of the leg length L, under a hip at 0.92 L. In the walk a knee bends
+while its leg swings forward and straightens to take the weight. The
+reference roles' poses were worked again for two-part legs: sitting on
+the ground with a knee drawn up, kneeling with one shin flat behind,
+crouching at a blade, running. Indoors, a sitter is lowered by the
+difference between the kit's hip and the old figures' 0.54, the height
+every seat in the city was placed for. The pipe smoke rises from the kit's
+pipe, at the kit's head height.
+
+### Far away
+
+Each resident's far version (shown past 46 m, hidden again inside 41 m)
+is the same look built again at low detail, not the near parts baked
+together. A third detail tier (`npcSeg`) was added for it after the first
+measurements: about two thirds of the old low-detail segment counts,
+fewer hair locks, and no nose, glasses, thumbs or buckles at that range.
+Measured over all 374 residents in the game, an average figure is 5,171
+triangles near (head 1,996 — the hair is most of it — torso 1,323, shins and
+boots 785, arms 747, thighs 320). The far version was 1,698 at the old low
+detail and is 1,059 with the new tier. The resident batch holds 4,288 parts,
+1,595,510 vertices and 6,987,834 indices; r158's held 4,029 parts and
+2,204,136 vertices, not indexed. Triangles drawn, `probe-resident-batch`, r158
+→ r159: the north gate 2,133,239 → 2,169,375, the market 1,282,709 →
+1,363,693, the market looking back 651,383 → 712,289. Frame cost in software
+WebGL at the six standpoints of the city frame-cost probe, one run each, median
+of 30 frames, r158 → r159: the Cinder Market 3,775.8 → 4,017.5 ms, the north
+avenue 4,063.4 → 4,365.3, a west-ward street 3,191.7 → 3,238.5, over the roofs
+2,810.8 → 2,918.4, the belfry 3,337.4 → 3,397.8, outside the north gate 974.7 →
+1,021.0. Software rendering is only good for comparison; nothing was
+measured on a GPU.
+
+### The posed figures
+
+The hooded watcher on the Lowmere prow and the two companions on the
+Skywatch knoll were modelled figures in one flat colour. They are
+kit people now (`placePosedFigures`): the hooded watcher standing in a
+cloak to the boots, and on the knoll a winged long-ear in a pale dress
+hugging her knees and a woman in a witch's hat leaning back on her hands,
+both looking up at the moon. The knoll pair sat 0.8 m nearer the edge
+before; out there the crown has begun to fall away and a seated figure's
+legs floated over the slope, so they sit further in. The two models are
+no longer in the page (`tools/assets/hooded-watcher.py` and its `.glb`
+files stay, as history).
+
+### Also
+
+- The Pilgrim Shrine's stoup is 1.8 m further in (r158's audit found its
+  collider on the street's paving): the model and its collider.
+- The resident batch is named (`resident-batch`). `probe-resident-batch`
+  took "the" BatchedMesh in the scene, which since r153 is a street
+  cell, and threw; it asks by name now.
+- The first run in the game showed pale skins going grey under the
+  cobalt night; the palette was warmed.
+
+### Every revision released
+
+After the seal the owner asked for every revision to be published as a
+downloadable GitHub version with its commits and patch notes, and for a
+project overview.
+
+- `releases/build-notes.js` writes `releases/manifest.json`, a notes file per
+  revision (`releases/notes/`) and `CHANGELOG.md`, from the archive, the
+  CATALOG timeline, the sessions' sections of this file and its revision
+  table. A revision with no written notes gets what can be read off it: its
+  name, the caption in its own panel header, its phase, its size, and the
+  functions it added and removed against the one before. 147 revisions,
+  r04 to r159 — the 145 archived files, and r137 and r139, which were
+  never archived but survive in the repository's first commit (the copy at
+  its root, and its live game). Versions are given from r132 on, where the
+  record has them; dates come from the timeline and the sessions, and the two
+  that neither gives are placed between their neighbours.
+- `releases/publish.js`, run by `.github/workflows/publish-revisions.yml` on
+  GitHub, gives every revision a commit of its own — the game file and its
+  notes, the one before as its parent, the owner as author, dated on the
+  revision's day — a tag on it, and a release with the game file attached.
+  The repository's history begins at r139, so for the revisions before it
+  these are the only commits there are; comparing two tags shows what changed.
+  It keeps what is already published, so a rerun finishes an interrupted one.
+  A second job builds the Windows installer and the portable build for the
+  newest revision on GitHub's Windows runner (unsigned) and attaches them to
+  its release; the save survives installing over an older version, since every
+  version is the same app (`com.emberwatch.app`).
+- `README.md` is the overview: what the game is, how to play any revision,
+  what is in it, how it is built, the repository, the history.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0),
+  `audit-dom`, `audit-dead` (668 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- The kit in a studio page first (its own figures, faces close up), then in
+  the game: a lineup outside the north gate of a resident of every trade and
+  people and the place-bound roles, the faces, the far versions at 30 and
+  55 m. Pale skins went grey under the cobalt night on the first run; the
+  palette was warmed and the lineup taken again.
+- Walking: eight residents held walking on the spot, from the side — the
+  knee bends through the swing.
+- Poses: the fourteen place-bound residents side by side, side-on: sitting
+  with a knee drawn up (Corvin lowered 0.721 m), kneeling, crouching,
+  running.
+- At home: the 65 residents with a home stood at their own doors in the
+  still watch, and the game's own shelter code took in all 65 — 20 to sit,
+  32 to the hearth, 13 to bed. Shots of each pose from the room and from the
+  side: on their stools at the table, crouched at the fire. (The r114
+  at-home probe, which waits for residents to walk home, found 2 of 65 home
+  after four minutes on r158 as on r159: they walk slowly, not a
+  regression.)
+- The posed figures from their canon captures and from four sides; the knoll
+  pair moved further in twice after looking.
+- Not run: the runtime audit and the canon captures. Both were started on
+  the sealed file and stopped when the owner asked for the work to be
+  pushed. The smoke run's own diagnostics (below) are what there is: no
+  error, 374 villagers, road obstructions in the carriageway 0.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r159"; road
+  obstructions in the carriageway 0.
+- Published: 147 tags and releases, r04 to r159, each with its game file
+  and notes (the first workflow run, 9 min 10 s); r159's release also has
+  `Emberwatch-1.59.0-setup.exe` (105,554,226 bytes) and
+  `Emberwatch-1.59.0-portable.exe` (105,210,732 bytes), built by the
+  workflow's Windows job. Not installed and run here (no Windows machine).
+
+---
+
+## 0i. r158 — where the session before that left off (2026-10-02)
+
+**State: r158 / 1.58.0, sealed 2026-10-02 ("the last halls").** Same
+instruction — "update my interiors and whatnot". r158 fits out the five
+halls that still had the generic furniture for their kind. Every one of
+the fifteen halls built with `interiorHouse` is now furnished by hand
+(`FITTED_HALLS`; the Great Hall always was).
+
+**Next:** move the shrine's stoup off the street's paving (below,
+"Verified"). Then people in the halls of an evening. Nobody sits at any of these
+tables yet; the only residents inside a hall are Barkeep Varn behind his
+bar, Pilgrim Sorell in the shrine's aisle and the keepers in their shops.
+Then the towers of the Moon Archive and the Northwatch Guild, and stairs
+up to the outer wall's walk. The Windows installers for r143–r158 have not
+been built.
+
+### The last five halls
+
+`tools/assets/halls.py`, which borrows the helpers in `taverns.py` (that
+script now builds only when it is run, not when it is imported):
+
+- **The Drovers' Rest** (`drovers-rest`, 7,346 triangles) — "straw on the
+  floor and the south road at the door" (the city map's line for it).
+  Straw strewn over the floor, thickest by the door; a joint on a spit over
+  the hearth with a dripping pan under it; a drover's dog asleep on a
+  fleece by the fire; the tack wall — three saddles on their brackets,
+  bridles and halters on pegs, coils of rope, crooks; a bar of planks on two
+  barrels with casks on a rack behind; the tally board, head counted in and
+  out in chalk; hams hung from the beam; two long tables with the drovers'
+  dinner on them; muddy boots and a bench of fleeces by the door.
+- **The Lamplighters' Hall** (`lamplighters-hall`, 6,482) — "where the oil
+  is measured out and the rounds are set". Three oil casks on a cradle,
+  taps over a drip tray, a shelf of copper and brass measures and funnels;
+  the guild's banner with its lamp; a row of oil cans for every lamplighter,
+  each with a name under it; the board of the rounds — the city as rings, a
+  pin for every lamp, a coloured thread for every round, and one thread
+  that runs off the board; the poles with their hooks and wick-lighters; a
+  ladder; the wick bench with spools, scissors, glass chimneys and a lantern
+  in pieces; a table of lanterns, two of them lit; the clerk's desk by the
+  door.
+- **Ferrier's Yard** (`ferriers-yard`, 7,144) — "iron, hooves and an
+  argument, most watches". The forge, its brick hearth, hood and chimney;
+  the bellows on their lever; the quench tub and the coal bin; the anvil on
+  its stump with a shoe cooling on it; a rack of tongs and hammers; a wall
+  of shoes, rows of them, the horse's name chalked over each; the shoeing
+  stall with a blanket over its rail and a hoof stand; a barrel of shoes,
+  nail sacks and a cart wheel; and by the door the argument's table — two
+  stools set square to each other, two tankards, a price on a slate struck
+  out and written again.
+- **The Pilgrim Shrine** (`pilgrim-shrine`, 3,470, and
+  `pilgrim-shrine-violet`, 288) — "an offering table and a little violet
+  quiet". The offering table on two stone steps under a violet cloth, and
+  what people have left on it: candles, folded notes, coins, bowls, sprigs,
+  little carved things, a child's shoe; over it a pale moon on a violet
+  roundel; votive racks either side; kneelers either side of an aisle kept
+  clear for Pilgrim Sorell; prayer ribbons of every colour on a rail; staffs
+  and gourds; a shelf of tokens; the stoup by the door. The violet lamps are
+  a second asset: a model takes one glow colour, and the candles want warm.
+- **The New Chapel** (`new-chapel`, 2,934) — "newer than the city it stands
+  in, and it shows". Pews of pale new wood in two blocks of five; the altar
+  on its step under the sign of the hours (the Cathedral of Hours' twelve
+  marks and two hands); tall candle stands; the pulpit; the font by the
+  door; an iron crown of candles. And what is not finished: scaffolding up
+  the left wall before a mural sketched in charcoal and painted as far as
+  the shoulders — paint pots and a jar of brushes on the boards — pews not
+  yet set, stacked by the wall, sawhorses with a plank and a saw,
+  something under a sheet, buckets.
+
+Each has colliders from the script's numbers, a fire or candle light, and
+one thing to look at: the dog, the rounds, the shoes, the offerings, the
+mural. Six halls had no line in `INTERIOR_PURPOSES` and were entered as "a
+room with its own small routine"; they have their own now (the Cold Assay
+and the Wayhouse among them).
+
+The New Chapel's first light hung a metre from the altar cloth and burned
+it white in the first shots; it hangs over the step now.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the six asset markers and comment words), `audit-dom`,
+  `audit-dead` (632 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- The models from three sides each (Blender previews); after them the
+  Drovers' bridles were made smaller and the chapel lost three plaster
+  patches that read as blank notices, and the shots in the game are of the
+  changed models. In the game, nineteen shots across the five halls, and
+  the chapel's two again after its light moved; the entry toast names each
+  hall's own line.
+- Nineteen standpoints across the five halls, each held without the player
+  being moved. At the dog, the rounds, the shoes, the offerings and the
+  mural, E offers each; in the shrine's aisle, E offers talk with Pilgrim
+  Sorell, who stood at his post through the probe.
+- Runtime audit, r157 → r158: errors 0 → 0; villagers 374 → 374;
+  draw calls 467 → 472; triangles 2,112,097 → 2,133,239; colliders 11,689
+  → 11,619; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the carriageway 0 → 1,
+  intruding 231 → 231. The one in the carriageway is the shrine's new
+  stoup, at (98.6, 58.2), 1.3 m inside its front wall: the paving of the
+  street before the shrine runs into the building, and the stoup's collider
+  stands on it. Nobody walks or drives there, but the count is meant to be
+  0. On a copy of the file with the stoup 1.8 m further in, the boot found
+  no obstruction; r158 was archived by then, so the move is r159's.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r158".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0j. r157 — where the session before that left off (2026-10-01)
+
+**State: r157 / 1.57.0, sealed 2026-10-01 ("the taverns").** Same
+instruction — "update my interiors and whatnot". r157 fits out the four
+taverns, keeps the wild places' residents at their posts through the still
+hours, and gets Merrin Vale out of the Cinder and Keg.
+
+**Next:** the five halls that still have the generic furniture for their
+kind — the Drovers' Rest (a fifth tavern, in the new quarter south of the
+city), the Lamplighters' Hall and Ferrier's Yard (guilds), the Pilgrim
+Shrine and the New Chapel; then people in the taverns of an evening —
+nobody sits at any of these tables yet, and Barkeep Varn is the only one
+behind a bar. The
+towers of the Moon Archive and the Northwatch Guild, and stairs up to the
+outer wall's walk, are still to do. The Windows installers for r143–r157
+have not been built.
+
+### The taverns
+
+Each of the four was the same room: a bar slab across the middle, two
+blocks for tables, a stone drum, a hearth, a rug, and the storeroom
+filler's chests and barrels round the walls; the Gilded Finch's centrepiece
+was a glowing violet block on a counter by the door. `tools/assets/taverns.py`
+models each after what `INTERIOR_PURPOSES` says it is for:
+
+- **The Cinder and Keg** (`cinder-keg`, 13,580 triangles) — "a warm hearth,
+  a small stage, and tables meant for lingering". The bar runs across the
+  room with Barkeep Varn behind it, where he has always stood; behind him
+  the keg rack, two tiers of casks with taps, the back-bar shelves of
+  bottles, two chalkboards and the keg's end carved with a flame. A hearth
+  nook in the back left with two armchairs, a low table and a rug; a stage
+  in the back right with a curtain, a lute on a stool, a drum, a music
+  stand and candle footlights; round tables with stools; the regulars'
+  long table on the left wall with a settle, a game left half-played and a
+  shelf of plates over it; barrel tables and a dartboard on the right;
+  cloaks on pegs by the door; two cartwheel chandeliers.
+- **The Southgate Rest** (`southgate-rest`, 5,036) — "a travel-worn hearth
+  and a quiet place to set down a pack". A big hearth with a pot on its
+  crane, three odd pairs of boots drying before it and socks on a line
+  under the mantel, two settles facing in; the pack rail with packs,
+  bedrolls and hats, walking staffs, a bench with a pack set down, a
+  painted map of the south road; pallets in the back corner; the keeper's
+  desk with the ledger open, a bell and the board of room keys; stairs up
+  the right wall to a landing and the door to the rooms; a long table laid
+  with bowls and bread; lanterns for the road on hooks by the door.
+- **The Gilded Finch** (`gilded-finch`, 10,762) — "soft booths, a
+  musician's nook, and a late-night room". Panelled to dado height with a
+  gilt rail. The musician's nook on a half-round dais under a gilt arch,
+  a plum curtain behind, a harp, a viol on its stand, a stool, a music
+  stand and two tall candle stands; six booths down the walls with candles
+  under glass and pictures over them; the late-night room in the back left
+  behind a partition and a drawn curtain — floor cushions, a low table, a
+  lamp, a bottle and two glasses; a small polished bar with a mirror and
+  shelves of good bottles; small tables with armchairs facing; the finch
+  in its gilt cage over the middle of the room; a gilt chandelier.
+- **The Wayhouse** (`wayhouse`, 6,132) — "first roof inside the new wall,
+  and it knows it". The hearth with the stew pot on its crane and bowls
+  stacked by it, a datestone over the mantel with the new wall cut in it,
+  logs stacked beside; the serving table along the back wall with the
+  baker's bread in baskets (a baker's own line: "whatever is left by the
+  last goes to the Wayhouse"), soup, bowls and a cask; two long tables laid with
+  bowls, spoons and bread; pallets down the right wall with a shelf of
+  folded blankets; a rack of cloaks on the left under a carved board, sacks
+  of meal; the alms box on its post by the door.
+
+The generic tavern pieces and the filler skip all four (`FITTED_HALLS`).
+Each has colliders from the script's numbers, a fire light (the Finch: its
+chandelier and the late-night room's lamp), and one thing to look at:
+the empty stage, the drying boots, the finch (who answers with three
+notes), the alms box.
+
+### The wild places keep their residents at night
+
+r156 found that a resident with no house to go to went "indoors" in the
+still watch where they stood: made invisible and flagged indoors, and
+offered for talk only from inside a home they do not have. Out past the
+wall that was a lantern keeper vanishing from her grove and a skywatcher
+from the knoll in the hours they are there for. `updateShelter` now leaves
+a wild or canon-place resident with no dwelling and no door to keep the
+dark at their post. Residents of the wild places who do have a house — in
+Lowmere — still go in.
+
+### Merrin Vale
+
+Merrin Vale, who walks the Cinder Market's round, spawned at (47, 111):
+inside the Cinder and Keg's walls. She never got out — in r156 she stood
+at the same spot for the whole of a 24-second probe — and in r157's first shots she
+was standing in front of the stage like part of the furniture. She starts
+on the corner of her round now.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the four asset markers and comment words), `audit-dom`,
+  `audit-dead` (627 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- The models from three or four sides each (Blender previews). In the game,
+  nineteen shots across the four taverns — from each door, the hearths, the
+  stage, the bar from both sides, the stairs, the nook, the late-night room
+  from outside and in, the booths, the serving table, the pallets, the alms
+  box — looked at, then again after the fixes below.
+- Twenty standpoints across the four taverns, each held without the player
+  being moved, after two fixes: the Finch's first left-hand booth stood
+  across the approach to the late-night room's doorway (the booths moved
+  toward the front and the doorway 0.9 m east), and a point first chosen
+  before the Keg's stage stood in its step. At the bar E offers "talk with
+  Barkeep Varn"; at each of the four new things to look at, E offers it.
+- The still watch: Iselde of the Lanterns, Wren Halloway, Orren of the
+  Broken Hall, Sister Amery, Tobias Mere and Corvin Cliffwatch visible,
+  not indoors, and E offering talk with each; of 71 residents indoors in
+  that watch, three are of the wild places (Ada Wellwright, Old Brannoc,
+  Maud Millward, of Lowmere, who have houses).
+- Merrin Vale: at (27.4, 132.0) and then (22.7, 131.2), walking her round.
+- Runtime audit, r156 → r157: errors 0 → 0; villagers 374 → 374;
+  draw calls 467 → 467; triangles 2,083,155 → 2,112,097; colliders 11,776
+  → 11,689; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the carriageway 0 → 0,
+  intruding 231 → 231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r157".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0k. r156 — where the session before that left off (2026-10-01)
+
+**State: r156 / 1.56.0, sealed 2026-10-01 ("the watch-houses").** The
+owner's word on r154–r155: the shots "look crazy good" — carry on, update
+the interiors. r156 fits out the two guild halls, and finds and fixes why
+every hall's furniture had looked low.
+
+**Next:** keep the wild places' residents at their posts through the still
+hours (below, "Why the audit kept losing the wilds"); the four taverns (the
+Cinder and Keg, the Southgate Rest, the Gilded Finch — whose centrepiece is a
+glowing 1.1 m block on a counter by the door — and the Wayhouse), then the
+Pilgrim Shrine and the New Chapel. The
+Windows installers for r143–r156 have not been built.
+
+### Every hall's floor stood half a metre up
+
+r145's `hallExterior` laid the halls' plinth course as one solid stone block
+the size of the whole hall, 0.55 m high. It had no collider and no surface,
+so nobody stood on it: inside every hall the floor you saw was its top, and
+everything in the room — the tables, benches, beds, the residents and you —
+stood from the ground half a metre below it. Benches vanished into the
+floor, tables read as low boards, a brazier showed only its coals, and
+residents were cut off at the shin. The first shots of the Westwall Refuge
+showed cots as slivers of blanket on the floor, which is how it was found.
+The plinth is a course under the walls now, open at the 3 m door; the room's
+cobble floor, which itself stood at 0.24 m, is at the ground. Every hall
+with an outside — all but the Great Hall — changes, for the better: the
+archives' reading tables and desks stand at their height for the first time.
+
+### Two comments had swallowed code
+
+The Westwall Refuge's old furnishing ended a line with "// the shelf stands
+on these" and the next call, `interiorSolid(...)`, ran on after it on the
+same line — so it was part of the comment, and the stone table it built had
+never existed since r145. `audit-source` had listed `theseinteriorSolid` in
+section A all along, among the comment words. And the first form of the
+floor fix made the same mistake: a comment added mid-line commented out
+every hall's ceiling, which the next shots showed as the roof's underside.
+`tools/audit-comments.js` is new: it lists every comment in the gameplay
+script holding a call statement with arguments — `name(args);` — which prose
+comments never do, and exits 1 if there is one. Run on r155 it finds the Refuge's
+line; on r156 it finds nothing. It runs with the others now (§3).
+
+### The Northwatch Guild
+
+"A planning table, spare gear, and a room for the watch."
+`tools/assets/watch.py` builds `northwatch` (4,178 triangles, warm glow):
+the planning table under a map of the city — the walls as rings, the four
+avenues, wards blocked in, markers in the watch's blue and red — with
+candles, dividers and benches either side, a lamp over it; spear racks on the
+back wall under the watch's shields, the watch's banner between them over a
+chest of spare gear; three armour stands and a rail of cloaks, a bow rack and
+an arrow barrel on the left wall; two-tier bunks with footlockers and an
+iron stove between them on the right, a ward map, a notice board by the door;
+a ladder up to a hatch under the tower that stands on the roof's front
+corner; sconces down both walls.
+
+### The Westwall Refuge
+
+"A workbench, ward maps, and a watchful repair corner." `westwall-refuge`
+(3,164 triangles, warm glow): a long workbench with a vise and work on it
+under a board of tools; the ward maps on their boards over a map chest; the
+repair corner — an anvil on its block, a grindstone, broken spears and
+dented shields waiting, a water butt; cots down the left wall with a shelf
+of blankets over them; herbs hung to dry from a pole; provisions stacked by
+the door; a brazier in the middle of the room with three benches round it
+and firewood by it; a table with a lamp; sconces.
+
+Both: colliders from the script's numbers, a small fire light, and the
+generic guild slab and the storeroom filler skip them (`FITTED_HALLS`, which
+replaces r155's `FITTED_ARCHIVES`). The Scriptorium's long boxes are a box a
+bay now, as r155 said they should be.
+
+### Why the audit kept losing the wilds
+
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident and pressing E. Since r152 it has now and then reported one remote
+ward as not opening — the Lantern Grove, in r152's first run and r153's —
+and r153 put it down
+to the key landing before the game had drawn the player's arrival. r156's
+first run lost the Fallen Hall Ruin (Orren of the Broken Hall, on his ledge
+over the falls, left the player more than 3 m from him), and a second run of
+the dialogue walk alone lost the Lantern Grove instead. Two probes that
+teleported beside Orren on r155 and r156 landed the player 1.8 m from him;
+on a fresh boot the game offered talk with every one of the residents
+concerned at once.
+
+A run that logged each failed try found the cause: Wren Halloway on the
+Skywatch Knoll and Iselde of the Lanterns were flagged indoors, standing at
+their posts. The walk takes ten minutes and more of game time and a watch is
+170 s, so by the time it reached the wilds, which come last, the still watch
+had come round, and a resident with no house to go to goes "indoors" where
+they stand: hidden, and offered for talk only from inside a home they do not
+have. Nothing r156 changed is involved. The audit now walks each ward in the
+labour watch, tries each resident from four sides before moving on to the
+next (the ledge pushed the player away from two sides of Orren's four), and
+reports every failed try with what E was offering.
+
+That a lantern keeper, a skywatcher and the residents of the other wild
+places vanish into thin air in the small hours is the game's own fault, not
+the audit's; it is left for the next revision.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
+  A gains the two asset markers and a comment word, and loses
+  `theseinteriorSolid`), `audit-dom`, `audit-dead` (623 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Shots looked at: both guild halls from the door, from a back corner, from
+  the front corner and close, three times — as first built, after more was
+  added, and after the floor fix; eight halls from their doors after it (the
+  two guild halls, the Moon Archive, the Scriptorium, the Cinder and Keg —
+  that standpoint is outside it — the Southgate Rest, the Pilgrim Shrine, the
+  Gilded Finch); the models from two sides each.
+- Points stood on in each guild hall: two moved the player, each into a
+  piece of furniture (the planning table, the anvil); later, the arrow
+  barrel and the provisions.
+- Runtime audit, r155 → r156, with the audit as it now stands (its first
+  run, before the fix, opened 16 of the 17 wards): errors 0 → 0;
+  villagers 374 → 374;
+  draw calls 465 → 467; triangles 2,077,629 → 2,083,155; colliders 11,803
+  → 11,776; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; tries that failed before one opened: none; unreachable
+  interactions: none; road obstructions in the
+  carriageway 0 → 0, intruding 233 → 231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r156".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0l. r155 — where the session before that left off (2026-10-01)
+
+**State: r155 / 1.55.0, sealed 2026-10-01 ("the archives").** Same
+instruction. r154 fitted out the Moon Archive; the city's two other archive
+halls were the same 20 by 16 m room with a rug, a table and the storeroom
+filler's chests round the walls. r155 fits them out after what they are for.
+
+**Next:** the taverns, the guild halls and the shrines are still furnished
+by the old pieces and the filler; the Northwatch Guild ("a planning table,
+spare gear, and a room for the watch") is the obvious next. The towers of
+the Moon Archive and the Northwatch Guild; stairs up to the outer wall's
+walk. The Windows installers for r143–r155 have not been built.
+
+### The Eastwall Scriptorium
+
+"Ink-stained desks, tall ledgers, and the eastern wall's records."
+`tools/assets/archives.py` builds `scriptorium` (12,404 triangles, warm
+glow): ledger cases on the back wall, three bays either side; between them
+a cabinet of pigeonholes, each with a rolled record or two showing their
+ends, and three more down each side wall; two rows of three scribes' desks —
+a slanted top, a ledge with the inkwell, a quill, a page, a candle, a stool
+— with a lamp of candles over each row; one desk's page unfinished, the
+quill lying across it and a blot; the great ledger open on its stand by the
+door. `placeScriptorium()` lays it and its colliders.
+
+The room's one interaction, "read the unfinished page", stood at local
+(−2, 1). With the desks in, a body put there touched two of them (a probe
+standing there was moved), so it stands in the aisle beside the page now,
+at (−1.3, −0.8).
+
+### The Cold Assay
+
+"They weigh things here that nobody will name." `cold-assay` (5,490
+triangles, cool glow): a great beam balance on a stone counter against the
+back wall, a little out of true, a dark lump in one pan and a stack of
+weights in the other, spare weights by it; two bays of small brass-pulled
+drawers and two of shelves of stoppered jars down the right wall; a long
+table with something under a sheet, the assay book and an inkwell; an
+iron-bound strongbox; two cold lamps hung down the room. `cold-assay-fire`
+(236 triangles, fire glow): the assay furnace against the left wall, its
+mouth glowing, its flue to the ceiling, and a bench of crucibles, two of
+them hot, with tongs. A fire light at the furnace and a cool one under the
+lamps. The flue was first brick-red and, a metre from the fire light, read
+as a pipe of lava; it is black with soot now.
+
+`FITTED_ARCHIVES` names the three fitted halls; the generic archive pieces
+and the storeroom filler skip all three.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  three asset markers and two comment words), `audit-dom`, `audit-dead`
+  (620 functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Eight points in each room stood on: in the Scriptorium only the old
+  interaction point moved the player (it was moved, above); in the Assay only
+  a point at the end of the long table, which is the table.
+- Shots looked at: each room from the door, from a back corner, from the
+  front corner, and close (the page desk with "read the unfinished page"
+  offered; the furnace and the balance); the models from two sides each.
+- Runtime audit, r154 → r155: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 465; triangles 2,061,303 → 2,077,629; colliders 11,889
+  → 11,803; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; unreachable interactions: none; road obstructions in the
+  carriageway 0 → 0, intruding 231 → 233 — the two new ones are the
+  Scriptorium's back-left ledger cases and its left pigeonholes, each laid as
+  one long box inside the room; the audit measures a box by its bounding
+  circle, and theirs reach a street past the hall's wall. Next time that
+  room is touched they should be a box a bay.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r155".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0m. r154 — where the session before that left off (2026-10-01)
+
+**State: r154 / 1.54.0, sealed 2026-10-01 ("the Moon Archive").** Same
+instruction. With the city culled (r153) there is room to model rooms
+properly, and the Moon Archive — the city's library, whose archivist tells
+you it "remembers names the city has lost" — was a 20 by 16 m hall holding a
+rug, two plain shelves, a table and a stone block with a glowing top.
+
+**Next:** the Eastwall Scriptorium and the Cold Assay are archives too, and
+still the old furnishing; the library model's bookcases would suit both.
+The towers of the Moon Archive and the Northwatch Guild; stairs up to the
+outer wall's walk. The Windows installers for r143–r154 have not been built.
+
+### A library
+
+`tools/assets/moon-archive.py` builds two models laid at the room's middle
+by `placeMoonArchive()`:
+
+- `moon-archive` (10,680 triangles, warm glow): bookcases full to the
+  cornice — three bays either side of the back wall's window, four down each
+  side wall, the door end left clear — every shelf laid book by book in runs
+  of one binding, a gap now and then, the odd one leaning; a rolling ladder
+  on its brass rail; a map chest with scrolls under the window; two long
+  reading tables down the room with their benches, candles, open books and
+  a stack; a lamp of candles hung over each; a lectern with the register on
+  it and a celestial globe either side of the instrument.
+- `moon-archive-moon` (1,100 triangles, cool glow): the round window of
+  moon-glass in a stone ring with lead tracery, and the archive's
+  instrument where the old block stood — a pale moon in three brass rings on
+  a stone plinth, a soft blue lamp over it.
+
+The colliders are the script's numbers. The archivist's place (local 0, 1)
+and the shelves she reads at (0, −2.5) are clear; the instrument's
+interaction ("touch the archive instrument") is where it was, 0.6 m from the
+new moon.
+
+Two things found on the way. The first book pass was 14,760 triangles and
+packed to 202 KB, over `inline-glb`'s 200 KB limit; runs of two to four
+volumes of a binding brought it to 146 KB. And the moon-glass, written
+glowing at 0.88, burnt the instrument and the window to white under the
+bloom; it glows at 0.45 now.
+
+### The room filler leaves it alone
+
+`dressInterior` fills every hall's free floor and walls with what a
+storeroom holds — chests, barrels, sacks, crates, racks, stools — by a
+seeded hand of its own. In the library it set four chests a metre and a half
+in front of the back bookcases, barrels against the side ones and a stool by
+the lectern; and probes teleported into the archive's corners were thrown
+out of the building, because they landed inside a chest's collider (the
+same happened on r153, before the fit-out). The Moon Archive is furnished
+by hand now and the filler skips it; it draws from its own generator, so
+nothing else in the city moves. `EMBER.collidersAt(x, z, reach)` is new: what
+a probe standing there would touch, and whether it blocks.
+
+Also: the comment over `dressPoints` described r107's single merged mesh;
+it says what r153 made it.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the two
+  asset markers and a comment word), `audit-dom`, `audit-dead` (618
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Eight points in the room stood on, door to corners: none moves the player
+  now (on r153, two put them outside the building).
+- Shots looked at: the room from the door, from the back corner, the
+  instrument close, the window, a side bookcase close, the tables — before
+  and after the glass was toned down; the archivist at her place with "talk
+  with Archivist Lysa" and "touch the archive instrument" both offered.
+- Runtime audit, r153 → r154: errors 0 → 0; villagers 374 → 374;
+  draw calls 460 → 462; triangles 2,050,711 → 2,061,303; colliders 11,939
+  → 11,889 (the filler's and the old shelves' gone, the library's ten
+  in); doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
+  road obstructions in the carriageway 0 → 0, intruding 231 → 231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r154".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0n. r153 — where the session before that left off (2026-10-01)
+
+**State: r153 / 1.53.0, sealed 2026-10-01 ("the city culled").** Same
+instruction. Since r146 every account of the cost has ended the same way:
+the city's static geometry was laid as meshes that each covered the whole
+city, nothing in them could be culled, and every wall, roof and window frame
+in Vaneth was drawn whatever the camera faced. r153 pulls that lever.
+
+**Next:** with a quarter to nearly half of the city's triangles no longer
+drawn there is
+room to model more of it: the Moon Archive's interior (a 20 by 16 m room
+holding a rug, two shelves, a table and a plinth), the towers of the Moon
+Archive and the Northwatch Guild, stairs up to the outer wall's walk. The
+comment over `dressPoints` still describes the single merged mesh; correct
+it with the next change there. The Windows installers for r143–r153 have
+not been built.
+
+### Where the triangles were
+
+A probe hid one kind of thing at a time at the Cinder Market and counted
+what was left (r153's first form, with only `mergeAll` changed): of 1.68
+million triangles drawn, 884,000 were 476 meshes outside both `mergeAll`
+and the landmarks, the same number wherever the camera stood. The largest
+was the street kit's ground-floor window frames — 435,624 triangles in one
+mesh the size of the city — then its timber façades, stone trim and cloth.
+`dressPoints` laid each kind as one merged mesh; a comment there recorded
+that a per-instance batch had been tried in r107 and rejected, because 6,700
+bounds tests a frame made the north gate nearly three times slower.
+
+### Culling by squares
+
+`cellMesh(parts, material, prepare)` takes a set of pieces already in world
+space, groups them into 72 m squares (`MERGE_CELL`) by the middle of each
+piece's bounding box, merges each square, and lays the squares as the
+instances of one `THREE.BatchedMesh`: still one draw call, but each square
+is tested against the view — and against the moon's shadow camera when the
+shadow map is stamped — and drawn only if it is in it. A square is a few
+hundred pieces, so the tests are a few thousand a frame across the city, not
+one per piece. A set with one square stays a plain mesh; a big piece (a run
+of wall) belongs to the square its middle stands in and is culled by its own
+bounds, so nothing is cut. `prepare` finishes each square's geometry:
+`placeLandmark`'s normals and box-projected UVs are both in world space, so a
+square gets exactly what the whole set did.
+
+Three things use it: `mergeAll` (every material built with `collect()`),
+`dressPoints` (the street kit) and `placeLandmark` at more than one point
+(the wall torches, street lamps, shop signs, chimney crowns, festoons).
+`EMBER.batches()` reports it.
+
+### The runtime audit waits for frames
+
+`tools/audit-runtime.js` walks every ward's dialogue by teleporting beside a
+resident, waiting 500 ms, pressing E and looking 280 ms later. Twice since
+r152 it reported the Lantern Grove's one resident, Iselde of the Lanterns,
+as not opening (r152's first run, r153's first run). A probe that stood
+beside her eight times as she walked, waiting for frames, found E offering
+"talk with Iselde of the Lanterns" and the dialogue opening every time. The
+nearest resident is worked out in the frame, and out at the grove a harness
+frame takes three or four seconds: the key could land before the game had
+seen the player arrive. The audit now waits for four frames after the
+teleport and three after the key, instead of a fixed time.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A unchanged),
+  `audit-dom`, `audit-dead` (617 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- `EMBER.batches()`: 65 sets, 47 of them batched into 2,453 squares, 18
+  plain (one square each).
+- Shots at six standpoints, r152 and r153 (the market, the north avenue, a
+  west-ward street, over the roofs, the belfry over the city, the market
+  looking back), compared pixel by pixel: the differences are the clouds,
+  the smoke, and residents who had moved between the runs — no wall, roof,
+  frame or lamp missing anywhere.
+- Frame time, median of 30 frames, r152 and r153 alternated twice, and the
+  triangles drawn:
+
+  | standpoint | r152 | r153 | triangles |
+  |---|---|---|---|
+  | the Cinder Market | 3,220 / 3,290 ms | 3,046 / 3,043 ms | 1,885,661 → 1,240,447 |
+  | north avenue, looking in | 3,408 / 3,478 ms | 3,388 / 3,402 ms | 1,916,537 → 1,471,797 |
+  | west ward street | 2,698 / 2,781 ms | 2,550 / 2,556 ms | 1,786,081 → 1,253,738 |
+  | over the roofs | 2,397 / 2,414 ms | 2,293 / 2,279 ms | 1,838,959 → 1,216,094–1,382,595 |
+  | the belfry, over the city | 2,835 / 2,819 ms | 2,641 / 2,594 ms | 1,835,543 → 1,029,697 |
+  | outside the north gate | 960 / 937 ms | 823 / 791 ms | 675,836 → 200,084 |
+
+  A quarter to nearly half fewer triangles in the city and seven in ten fewer
+  outside it, for
+  a frame 1–8% quicker in the city and 14–16% outside: the harness renders in
+  software, where the triangles were not the whole of the cost. These compare
+  two builds; they are not a figure for any real machine.
+- Runtime audit, r152 → r153, with the audit waiting for frames (its first
+  run, with the old fixed waits, again could not open the grove): errors 0 →
+  0; villagers 374 → 374;
+  draw calls 460 → 460; triangles 2,060,677 → 2,050,711; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231.
+- All 15 captures looked at.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r153".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0o. r152 — where the session before that left off (2026-10-01)
+
+**State: r152 / 1.52.0, sealed 2026-10-01 ("the forest at night").** Same
+instruction. Everything outside the walls is forest, and every tree in it
+was a five-sided cylinder under two six-sided cones: from the walls, the
+belfry and every wild site, rows of Christmas trees. r152 models them, and
+lights the forest's edge with fireflies.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides; stairs up to the outer wall's walk. `BatchedMesh` (below)
+is the lever the city's merged batches never had — per-object culling in one
+draw call — and the obvious next use of it is the city's own repeated
+pieces. The Windows installers for r143–r152 have not been built.
+
+### The trees
+
+`tools/assets/trees.py` models five, each a few dozen triangles because
+they are drawn in thousands, and each drawn for its silhouette at night:
+
+- `tree-pine` (74 triangles): four tiers of drooping skirts on a bare trunk,
+  each tier's rim a star — the points are the branch tips, the notches
+  between them higher and further in — over a dished, darker underside, so
+  it reads as a canopy from below.
+- `tree-fir` (90): taller and narrower, five tiers to a spire.
+- `tree-broadleaf` (152): a trunk forking into three limbs under a crown of
+  three lumpy masses.
+- `tree-snag` (42): a dead pine, a bare grey trunk and four broken limbs.
+- `shrub` (72): two low masses.
+
+`plantForest()` lays them. The forest still places its 4,200 trees exactly
+as before — the same draws from the world stream, one turn per tree in the
+same order, and the same collider on every fifth — so nothing downstream of
+it moves. Which tree stands where is `planHash` of its position: more
+broadleaves at the edge, where the light gets in (a third of the trees at
+the edge, a twelfth deep in), firs three in ten, about one pine in seventeen
+dead. Shrubs, scattered by `planHash` from 8 m in front of the edge to 52 m
+into it, off the roads, clearings and brook, are visual only: you walk
+through undergrowth. Per-instance tints vary them.
+
+**The colours arrive twice as bright.** The models' vertex colours are
+linear in the game, and the first shots showed a forest of bright green
+trees and neon shrubs against the night. The tints take them back to about
+half (shrubs to 0.6 of that), which is close to the old cones' darkness with
+the new shapes still legible.
+
+### One draw call, culled per tree
+
+All 4,906 are one `THREE.BatchedMesh`: one draw call, with three.js culling
+each tree against the view on its own, and twice a second `updateForest()`
+hides every tree farther than the fog leaves anything to see
+(`2.35 / density + 12`, 447 m at the night fog). The old forest was three
+`InstancedMesh`es drawn whole wherever you looked. So the modelled forest
+costs less than the cones did — see the frame times below. `EMBER.forest()`
+reports the counts, how many are shown and the cut distance.
+
+### Fireflies
+
+Two hundred (`updateFireflies`), seated round the player — within 60 m, at
+random, nothing in the world moving for them — wherever the ground is from
+15 m before the forest's edge to 60 m into it, or within 10 m of the brook.
+Each drifts a metre or two and glows for a quarter of its own cycle of 2.5
+to 6 seconds. None inside the walls, indoors or in the rain. One draw call:
+the chimney smoke's point shader, additive — and with its own fog, because
+the stock fog include mixes toward the fog colour, which for added light
+would have been a glowing haze at distance; theirs fades them to nothing.
+The crickets (r151) are already out there with them.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  five asset markers and comment words), `audit-dom`, `audit-dead` (616
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- `EMBER.forest()`: 4,906 instances — 2,356 pines, 1,285 firs, 418
+  broadleaves, 141 snags (4,200 trees), 706 shrubs; cut at 447 m; 753 shown
+  from the Cinder Market.
+- Frame time, median of 30 frames, r151 and r152 alternated twice:
+
+  | standpoint | r151 | r152 |
+  |---|---|---|
+  | outside the north gate | 1,038 / 1,050 ms | 927 / 939 ms |
+  | on the outer wall, looking out | 1,006 / 1,050 ms | 937 / 911 ms |
+  | in the western forest | 1,401 / 1,458 ms | 1,314 / 1,262 ms |
+  | the Cinder Market | 3,513 / 3,562 ms | 3,305 / 3,365 ms |
+
+  Triangles drawn outside the gate 829,410 → 675,836, in the forest
+  1,689,264 → 1,550,866, at the market 2,067,451 → 1,882,731; draw calls
+  two fewer outside. The harness renders in software, so these compare the
+  two builds; they are not a figure for any real machine.
+- Fireflies at the forest's edge out past the north gate: 198 seated, 41
+  glowing at one moment; in the city, none.
+- Runtime audit, r151 → r152: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 460; triangles 2,245,477 → 2,060,677; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231. **This is the second run.** The first reported 96 branches: it
+  could not open the Lantern Grove's one resident, Iselde of the Lanterns.
+  The audit teleports beside a resident, waits 500 ms, presses E and looks
+  280 ms later; a frame at the grove takes 4.0 s on r151 and 2.8 s on r152,
+  so the press can land before the game has seen the player arrive. A probe
+  that waited for frames instead opened her at once on both builds, and the
+  audit run again — alone — walked all 102. (The capture run after the first
+  audit was spoiled the same way r150's first audit was: those probes were
+  run beside it on the same profile. It was run again too, alone.)
+- Shots looked at: five standpoints before and after (outside the gate, the
+  fields at the forest's edge, inside the western forest, over the forest
+  from 60 m, the outer wall looking out), the after shots at both tints;
+  the models from two sides each; the fireflies at the edge, enlarged; all
+  15 captures.
+- Variants 6/6 built, 6/6 booted (colliders 11,993 in five, as before).
+  Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
+  settles, "Emberwatch — r152".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0p. r151 — where the session before that left off (2026-10-01)
+
+**State: r151 / 1.51.0, sealed 2026-10-01 ("the city heard").** Same
+instruction. Vaneth had never made a sound: the only audio in the game was
+music you loaded yourself. r151 is a world-sound system, and the cathedral's
+bells are the first thing in it.
+
+**Next:** the forest — modelled pines, firs and broadleaves in place of the
+cone trees, already modelled (`tools/assets/trees.py`) and waiting. Then
+the towers of the Moon Archive and the Northwatch Guild, and stairs up to
+the outer wall's walk. The Windows installers for r143–r151 have not been
+built.
+
+### World sound
+
+`SOUND` is one AudioContext, a master gain, a compressor and one shared
+reverb — a synthetic impulse, a stone space about three and a half seconds
+long. Nothing is sampled: every sound is built here from oscillators and
+noise. Things in the world are positional (a PannerNode each, the listener
+riding with the camera). The settings panel has a **Sound** section: world
+sound on or off, and a volume (a square law, as a slider should be), kept in
+this browser (`emberwatch.sound.v1`); it goes quiet while the window is
+hidden. If the browser will not make a context, or making it throws, the game
+is silent, as it was. A browser will not start a context before a key or a
+click; Electron will, and either way the first key or click resumes it.
+
+- **The bells.** Each strike is synthesized from the partials of a church
+  bell, relative to its strike note: the hum an octave below, the prime, the
+  minor-third tierce, the quint, the nominal an octave above, and four
+  higher; each with its own level and its own decay (the hum lasts ten
+  seconds, the highest half a second), the two lowest doubled a fraction of
+  a hertz apart so they beat, and a knock of filtered noise for the clapper.
+  The big bell's strike note is 174 Hz, the small one's 232 Hz — the sizes
+  are 4:3, so the interval is a fourth. A swinging bell strikes at each end
+  of its swing; below a third of full swing it does not strike at all.
+- **Wind**: a low roar and a higher band of noise, gusting; at street level
+  a murmur, on the belfry or a wall a good deal more; a quarter of that
+  indoors.
+- **Rain**: as heavy as the rain falling; muffled indoors.
+- **Fires**: every hearth, forge and wall torch is a place a crackle can
+  come from (`TORCH_SPOTS` is new: the torches on the walls record where
+  they are); the two nearest within 22 m crackle, a voice that changes fire
+  fading out, moving and fading back in.
+- **Crickets**: seven of them, synthesized, out beyond the outer wall; a
+  few inside it; none indoors or in the rain.
+- **Footsteps**: a soft knock each stride, hollower on boards and stairs, a
+  splash in water.
+- **The doves**: their wings clapping as they go up.
+
+### Verifying sound without ears
+
+The harness cannot listen, so `EMBER.sound.renderBell(prime)` renders one
+strike offline and a probe takes its spectrum in the page. `EMBER.sound.report()`
+gives the context's state, the counters (strikes, steps, wing claps), which
+fires the crackle voices are on, and the ambience's levels.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise. The context ran (state
+"running") in the harness throughout.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  `OfflineAudioContext`, a browser global it does not know, and comment
+  words), `audit-dom`, `audit-dead` (609 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- One strike of each bell rendered offline and its spectrum taken in the
+  page, a quarter second in: the big bell's peaks at 86, 172, 205, 258, 345,
+  431, 517 and 689 Hz, the small one's at 118, 226, 280, 345, 463, 581, 689
+  and 926 Hz — the hum, prime, tierce, quint, nominal and the partials above,
+  within the 11 Hz the analysis can resolve. The big bell's loudness (RMS)
+  0.29 at the strike, 0.19 at 1 s, 0.07 at 2 s, 0.04 at 3 s, 0.024 at 4 s,
+  0.008 at 5 s. Nobody has listened to it: this is the shape of a bell, not
+  a judgement of how it sounds.
+- A peal, the player at the parvis: 14 strikes and 34 wing claps. On the
+  harness a frame near the cathedral takes about five seconds, and a bell
+  strikes at most once a frame; at a real frame rate every end of every
+  swing strikes.
+- Levels read off the running context: outside the north gate the wind
+  0.038 / 0.005 (its two bands) and the crickets 0.063; in the belfry, 19 m
+  up, the wind 0.099 / 0.039 and the crickets 0.012; at the city's centre,
+  which the game counts as indoors, the wind 0.010 and no crickets. 186
+  places a fire can crackle from: 147 wall torches, 32 forges, 7 hearths;
+  from the centre the two nearest hearths, each voice at 0.34.
+  Walking 30 frames, 4 footsteps.
+- The settings: the button turns world sound off and on and says so, the
+  report agrees, the slider sets the volume, and both are kept
+  (`{"on":false,"volume":0.7}` read back from storage).
+- Runtime audit, r150 → r151: errors 0 → 0; villagers 374 → 374;
+  draw calls 462 → 462; triangles 2,245,477 → 2,245,477; colliders 11,939
+  → 11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 231 →
+  231.
+- Shots looked at: the settings panel with its Sound section; all 15
+  captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r151".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0q. r150 — where the session before that left off (2026-10-01)
+
+**State: r150 / 1.50.0, sealed 2026-10-01 ("the bells ring the watch in").**
+Same instruction: keep modelling, build systems where they give the most
+polish. The Cathedral of Hours has always been said to turn the watches with
+its bells; until r150 the bells were part of a static model and nothing
+happened when the watch turned but a line of text. Now the bells swing, and
+the cathedral's doves go up.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides; stairs up to the outer wall's walk. The game has no
+sound at all — the bells are the obvious first thing to hear, but sound is a
+system of its own (a mixer, a mute, distance), not a one-off. The Windows
+installers for r143–r150 have not been built.
+
+### The bells swing
+
+- The bells were modelled into `cathedral-furnishing`, merged with the pews
+  and the frame, so they could not move. They are their own model now,
+  `cathedral-bell` (`tools/assets/cathedral.py`): the headstock with its
+  gudgeons and straps, the bell with two bands of moulding, the clapper; its
+  origin is the pivot, under the frame's beam. 256 triangles.
+- `cathedralBellTower()` hangs two as landmark movers — the second at three
+  quarters the size — in bronze (metalness 0.82: at 0.55 the belfry lantern
+  a metre away burnt them to a flat orange). `placeLandmark`'s mover path
+  takes the point's scale now.
+- A mover used to mean a wheel: `spin` radians a second. A mover with
+  `swing` swings that far either side of hanging, at its own `period`
+  (2.5 s the big bell, 2.1 s the small), scaled by `bellsRinging(t)`: 0 at
+  rest, rung up over 4 s, full for 16, dying away over 7, eased at both ends.
+  The angle is set from the clock, not accumulated, so a bell the player was
+  too far away to update is right again the moment they are near.
+- `applyWatch` calls `ringBells(t)` where it already showed "The bell turns
+  to …". `EMBER.sky.bells(hold)` rings them from the harness; `hold` keeps
+  them swinging for shots.
+
+### The doves
+
+Sixteen doves (`cathedralDoves`, `updateDoves`): ten along the nave's ridge,
+three round each spire's drum on the side away from the flèche. When the
+bells ring they go up — each after its own short delay, wings beating —
+wheel over the church on circles round the flèche (a third of the ridge
+birds inside the spires, the rest outside them), gliding and beating in
+turns, banked into the turn, and three seconds after the bells stop they
+come back down, each to where it sat. Nothing in the city is moved for them:
+their variety is `planHash`, not the world stream.
+
+- One mesh for the whole flock, rewritten only while it flies (at rest it is
+  drawn once and left alone): 23 triangles a bird — a plump body, a round
+  head, a tail, two wings of two panels that fold along the back.
+- 1.8 × life, pale, with a faint cool emissive. At life size and unlit they
+  were invisible against the night sky from the street: dark specks on a
+  dark sky.
+- A bird that strays into a spire or the flèche once clear of its perch is
+  put back out on its surface.
+- **The first version never flew on the harness.** `updateDoves` skipped
+  its work once the flock was drawn at rest, except in the two seconds after
+  a ring — and the harness draws a frame every three seconds, so it never
+  saw those two. It wakes on the ring itself now.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are the
+  `CATHEDRAL_BELL` asset marker and comment words), `audit-dom`,
+  `audit-dead` (590 functions, 0 dead), `test-switch-frames`,
+  `test-switch-b9`: clean.
+- A full ring, unheld, the player at the parvis, sampled every few
+  seconds: the bells read 0.34/−0.44, 0.59/0.04, 0.50/−0.70, −0.10/0.36 rad through the
+  peal and 0 from 24.7 s on; all 16 doves airborne from the first sample,
+  as high as 37.3 m and as far as 44.3 m from their perches, and all 16 back on them —
+  0.00 m off — by 35.8 s. Rung with the player far from the cathedral, the
+  doves went up and came back the same (every one on its perch by 42.4 s),
+  and the bells, correctly, did not move.
+- Runtime audit, r149 → r150: errors 0 → 0; villagers 374 → 374;
+  draw calls 459 → 462 (the two bells and the flock); triangles
+  2,244,877 → 2,245,477; colliders 11,939 → 11,939; doors 202 → 202;
+  dialogue 17 wards / 102 branches, none failed; road obstructions in the
+  carriageway 0 → 0, intruding 231 → 231.
+- Shots looked at: the bells from the belfry mid-swing, before and after
+  the bronze was darkened; both bells in their frame from the corner; the
+  flock over the west front from the parvis, enlarged; the perched doves on the ridge and on
+  a spire's drum, before and after they had heads; all 15 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r150".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0r. r149 — where the session before that left off (2026-09-30)
+
+**State: r149 / 1.49.0, sealed 2026-09-30 ("the bell tower").** Same
+instruction again. With the city lit at night, the payoff for all of it is a
+place high enough to look down on it, so r149 made one: the Cathedral of
+Hours' east tower, climbed from inside.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+still only outsides — stacked surfaces (below) make their stairs
+straightforward now; stairs up to the outer wall's walk. The Windows
+installers for r143–r149 have not been built.
+
+### The bell tower
+
+The east tower of the west front was a solid block of stone under its spire.
+It is hollow now (`tools/assets/cathedral.py`, the `BELL_*` numbers): a door
+from the east aisle into its foot; a square newel stair of stone steps
+winding up the inside walls — ten flights of eight, 1.9 m each, a landing at
+every corner — to a timber belfry floor at 19 m; open pointed arches on all
+four faces (the west tower keeps its louvres, and its lit glow is what you
+see across from the west arches); two bronze bells in a timber frame, a
+lantern, and a lamp half way up the shaft. `cathedralBellTower()` lays the
+walls as colliders with the door gap, and the steps, landings and floor as
+surfaces from the same numbers. A new capture, `vista-cathedral-belfry`,
+looks out of a south arch over the roofs, the chimney smoke and the citadel.
+
+Two things found by walking it: the flights are a metre wide, and with a
+body's half-metre radius the middle of a flight touched a wall collider set
+on the masonry's face — the climb stalled on the third step. The colliders
+sit 15 cm inside the masonry now. And the door was widened from 1.2 to 1.5 m
+for the same reason.
+
+### Stacked surfaces
+
+`surfaceAt` took the highest walkable surface under you, which is right for
+a deck or a rampart stair and impossible for a stair that passes over
+itself: on the first flight you would have been lifted to the fifth. A
+`SURFACES` record can now be marked `stacked`; given the walker's height
+(`surfaceAt`'s new third argument, which only the player passes), a stacked
+surface more than 1.5 m (`STACK_REACH`) above them does not count. Every
+unmarked surface and every caller without a height — residents, captures —
+behaves exactly as before. This is what any multi-storey interior needs.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are
+  comment words), `audit-dom`, `audit-dead` (585 functions, 0 dead),
+  `test-switch-frames`, `test-switch-b9`: clean.
+- Walked: from the east aisle through the tower door, up all ten flights
+  and onto the belfry floor, 14/14 legs; each flight's top read 1.9, 3.8,
+  … 19.0 m, the floor 19.0.
+- Runtime audit, r148 → r149: errors 0 → 0; villagers 374 → 374; draw
+  calls 459 → 459; triangles 2,243,105 → 2,244,877; colliders 11,931 →
+  11,939; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  231 — the new one is the tower's front-wall collider, which replaced
+  its single block: the audit measures a box by its bounding circle, and that
+  circle reaches the lane before the cathedral, but the box itself stops at
+  the façade, as the block did.
+- Shots looked at: the tower door from the aisle, the foot of the stair, a
+  flight half way up, the bells, the view from three arches; all 15
+  captures, the new belfry one among them.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r149".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0s. r148 — where the session before that left off (2026-09-30)
+
+**State: r148 / 1.48.0, sealed 2026-09-30 ("torchlit walls").** Still the
+same instruction. r148 went to the outer ring between the walls, which r145
+left as reading least finished: its houses and streets had caught up with
+the city's, but the ring road along the inner wall ran beside twelve metres
+of unlit stone, and both walls' towers were dark drums.
+
+**Next:** the towers of the Moon Archive and the Northwatch Guild, which are
+only outsides; stairs up to the outer wall's walk. The Windows installers
+for r143–r148 have not been built.
+
+### Torches on the walls
+
+`wallLights()` walks the segments `citadelWall` laid — one `WALL_WALKS`
+record per wall, so a build without walls (r0) places nothing — and hangs a
+torch in an iron sconce (`tools/assets/wall-sconce.py`, 102 triangles, at
+1.6 × so it reads on a twelve-metre face) three times between each pair of
+towers on the outer face of both walls, and once on the inner wall's inner
+face, where the city's last streets run. A sconce is left out wherever
+something already stands against the wall there. Each has a pool at the
+wall's foot and a wash up the stone; the middle torch of each span is a
+real, flickering light in the same tiered budget as every lamp. Arrow slits
+are lit up every tower, on the taper of its drum (at a fixed radius the
+lower ones sank into the stone).
+
+### Light washes
+
+A lamp on a wall lights the wall. The pool system (`LIGHT_POOLS`) learnt a
+second kind of record: `wash`, a soft round glow standing up the wall the
+light hangs on, centred at `y`. The wall torches use it, and so do the
+hooded door lanterns on the houses, which now warm the fronts they hang on
+as well as the step below.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are an
+  asset marker and comment words), `audit-dom`, `audit-dead` (584
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r147 → r148: errors 0 → 0; villagers 374 → 374; draw
+  calls 458 → 459; triangles 2,222,751 → 2,243,105; colliders 11,931 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  230.
+- Built, from `EMBER.wallLights`: 147 sconces (64 of them real lights), 180
+  lit slits, 9 sconce places left out where something stands against the
+  wall; light pools and washes 6,675 in all.
+- Shots looked at: a sconce close up and from the ring road, a tower with
+  its slits, a house front with its door lantern, the ring roads and the
+  four inner gates from outside; all 14 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r148".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0t. r147 — where the session before that left off (2026-09-30)
+
+**State: r147 / 1.47.0, sealed 2026-09-30 ("signs and lamps").** The same
+instruction as r146 — keep modelling, whatever gives the most polish —
+carried on to the two things every street has that were still boxes: the
+shop signs and the street lamps.
+
+**Next:** the outer ring between the walls; the towers of the Moon Archive
+and the Northwatch Guild, which are only outsides. The Windows installers
+for r143–r147 have not been built.
+
+### Hanging shop signs
+
+Every shop's sign was a board in the house's accent colour on a wooden
+arm — from the street a coloured card, the same on a baker's as on a
+bookseller's. Now the trade hangs from a wrought-iron bracket out of the
+wall (`tools/assets/shop-signs.py`): a pretzel, a cask, three lit candles
+on a shelf, open shears, a gilded key, a horseshoe, an open book, a lit
+bottle of green glass. `shopFront` records each sign in `SHOP_SIGNS`, just
+past the end of the awning (which spans 0.37 of the width either side of
+the door) so the emblem hangs clear of it and of the windows: over a house
+of two storeys or more at 3.45 m and 1.3 × size, to be read from across the
+street; over a single storey at 2.5 m and 0.85 ×, under the eaves.
+`placeShopSigns` lays each trade as one batch once every shop is built
+(eight draw calls; the apothecary's glass has its own green glow). The
+shop's lamp hangs off the bracket's end (`shop.lampY`). `shopFront` learnt
+the house's storeys from its callers for this.
+
+The first placement put the bracket inside the awning's span, where the
+emblem would have hung into the awning; shot, seen, moved.
+
+### Street lamps
+
+A street lamp was a tapered wooden pole with a glowing cube on it and a
+stick across. `placeCityLantern` now only records a lamp — its collider and
+its light, exactly as before — and `placeStreetLamps`, after `pruneLanterns`,
+lays a cast-iron lamp post with a four-paned lantern under a hood
+(`tools/assets/street-lamp.py`; lit and dark models) for every lamp that
+stands, with a pool of light under each lit one. The pools are laid last
+now, when every pool is known.
+
+### The Cinder Market's strings
+
+Its lantern strings were stepped boxes with a box lantern every 1.5 m. They
+sag as one thin tube now and carry the avenues' festoon lanterns.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are asset
+  markers and comment words), `audit-dom`, `audit-dead` (583 functions, 0
+  dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r146 → r147: errors 0 → 0; villagers 374 → 374; draw
+  calls 448 → 458; triangles 2,165,811 → 2,222,751; colliders 11,931 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none
+  failed; road obstructions in the carriageway 0 → 0, intruding 230 →
+  230.
+- Built, from `EMBER`: 143 shop signs (grocer 33, ironmonger 27, chandler
+  21, draper 20, baker 17, apothecary 10, saddler 10, bookseller 5); 57
+  street lamps, all lit; the market's 10 strings.
+- Shots looked at: a sign of each trade from across its street (and an
+  apothecary's close up), three lamps from the road, the market strings from
+  the avenue and from a stall row; all 14 captures.
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r147".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0u. r146 — where the session before that left off (2026-09-30)
+
+**State: r146 / 1.46.0, sealed 2026-09-30 ("the avenues at night").** The
+owner's word this time: keep working, keep modelling, build systems where
+they give the most polish. r146 is the street after dark — light where
+people live, chimneys against the sky and smoke off them — and the two
+avenues through the centre, which from the street read as wide empty roads.
+
+**Next:** hanging shop signs — a wrought-iron bracket with the trade hung
+from it (pretzel, cask, candles, shears, key, horseshoe, book, bottle) in
+place of the plain accent-coloured board every shop has. Then the outer
+ring between the walls. The Windows installers for r143–r146 have not been
+built.
+
+### Lit windows are leaded
+
+The window material was one flat emissive colour, so every lit window was a
+bright square with nothing in it — the most repeated shape in a night
+street. A 64 px canvas of leaded quarries (a frame, a mullion and a
+transom, lead cames between panes that are each a little warmer or dimmer)
+goes on `MATS.window` as map and emissive map: not one vertex added. It has
+its own fixed generator; the world's seeded stream is untouched.
+
+### Light on the street
+
+A lit window lit nothing, and a point-light budget of 5 or 14 cannot light
+two thousand windows. `LIGHT_POOLS`, laid by `streetLightPools()` as one
+additive mesh (one draw call, no light), puts a soft warm pool on the paving
+in front of every lit ground-floor window, every hall window, every door
+lantern and under every festoon (below). One texture holds both shapes, a
+pool thrown out from a wall and a round one; a record with `round` gets the
+second. The hooded door lanterns were drawn in the timber material — a brown
+box on a bracket — and their glass is lit now.
+
+**A CanvasTexture is flipped.** The first version drew the wall pool's
+bright end at the top of its canvas, which is the pool's far edge on the
+ground: every window's light lay a metre out in the street. The wall's edge
+is the canvas's bottom row.
+
+### Chimneys, and their smoke
+
+- `houseChimney()` gives three houses in five a stack, by a hash of the lot
+  (no roll): half on the ridge at its back end, as a terrace's stand at the
+  party wall, the rest up through the back slope. The shaft is sized to the
+  roof it pierces — `roofRiseAt()` works out `aRoof`'s hip or gable at any
+  point, `WARD_ROOF_FORM` maps `wardRoof`'s four roofs — a metre clear of it
+  and, off the ridge, half way up to the ridge as well. The shaft is a box in
+  the city's brick batch with its UVs at the brick texture's own size (the
+  old box stretched one tile over 0.7 × 2.3 m); the crown is modelled
+  (`tools/assets/chimney-crown.py`: a string course, two corbelled courses, a
+  mortared cap with soot, two or three clay pots; 104 and 132 triangles) and
+  laid as two batches. wardHouse, wardHome and cityHouse all call it.
+- The forges' tall stacks, the workshops' flues and the taverns' chimneys
+  are registered with the rest in `CHIMNEYS`: every chimney top that can
+  smoke.
+- `chimneySmoke()` / `updateChimneySmoke()`: the 40 chimneys nearest the
+  player smoke. A column is 16 soft points rising 8 m (a forge's 11 m, and
+  darker), leaning with one wind, spreading and thinning as it rises; the set
+  follows the player once a second, and a newly lit chimney fades in over two
+  seconds **of the clock** — faded by frames, it took half a minute on the
+  harness, whose frames are capped at 0.05 s and come every three seconds.
+  One draw call: points with their own size, alpha and shade in a small
+  shader fogged like the rest of the world.
+- The four fixed smoke columns in `buildCityAtmosphere` stood at points
+  written for a smaller city, and walked away from them: `+t*.018` moved each
+  column a metre a minute, forever. Removed. **`emberDiagnostics` read their
+  array** (`atmosphereParticles`), which parsed fine and threw at runtime —
+  the runtime audit caught it; it counts the motes and the smoke points now.
+
+### The avenues
+
+`tools/plan-avenues.py` reads a dump of the avenues' surroundings
+(`tools/probes/probe-avenue-dump.js`: the street plan, every house front,
+every collider within 26 m of a 10 m avenue, the interior doors and the
+interactions) and bakes two authored tables, both tested at build, left out
+and logged if they do not fit, never moved (`EMBER.avenues`):
+
+- **`AVENUE_FRONTAGE`** — houses facing an avenue from the gaps, fronts
+  2.6 m back from the kerb (the avenue's own fronts stand 2.3–3.7 m back),
+  rows of up to four with an alley after, clear of every crossing street's
+  kerb by 1.5 m (so a house can make a corner), every doorway, every
+  interaction, and out of the Cinder Market. `avenueFrontage()` builds them
+  as any infill house is built — `wardHouse` and `housePorch` — so the street
+  kit dresses them, `frontageStoreys` raises them and they get chimneys.
+- **`AVENUE_FESTOONS`** — strings of lanterns across the avenues between
+  iron poles 0.75 m back from either kerb (`tools/assets/festoon.py`: a
+  cast-iron post with a bracket arm, 186 triangles; a hanging lantern, 82),
+  kept 5 m off the crossings, which have lamps, and out of the market, which
+  has strings. Each string sags 0.85 m as a thin tube in the dark batch,
+  carries a lantern every 1.55 m at 1.3 × life size so it reads from down
+  the avenue, one real light at its middle and a round pool under it.
+
+Most of what lined the avenues turned out to be the sides and backs of
+houses standing close to them, not gaps: the planner's collider test turned
+most candidate footprints down, and it found room for 25 houses, not the
+hundred the plan view suggested. Hence —
+
+### Walls that face a street
+
+`wardHouse` windows its front wall only, so a house standing side-on or
+back-on to a street showed it a blank wall. `streetSideWindows()` gives a
+back or side wall with open ground in front of it and a carriageway within
+12 m, unbroken by anything standing between, windows on every storey — the
+upper ones out on the jetty where the house has one — lit, framed and
+pooled like a front's. Visual only: no collider, no roll. Everywhere in the
+city, not only on the avenues.
+
+### A second harness profile is a second world
+
+The first runtime audit of r146 ran on a second harness profile
+(`HARNESS_PROFILE`) and reported 90 more colliders and 3 more doors than
+r145, with about sixty homes open in different places. The world seed lives
+in the profile's localStorage and a fresh profile rolls a new one; on the
+standard profile the counts were r145's exactly. §3 says so now.
+
+### Known, and left
+
+- **The cost.** Nothing in the merged world is chunked: `mergeAll` makes one
+  mesh per material for the whole city, so every batch draws city-wide
+  whatever the camera sees, and r146's added triangles are paid in every
+  view. On the harness (software GL, median of 30 frames, r145 and r146
+  alternated twice, measured before the chimney pots lost their rims —
+  about 40,000 triangles fewer in the sealed file): the Cinder Market 3.9–4.1
+  → 4.3–4.4 s, the north avenue looking in 3.6 → 4.6–4.8 s, a west-ward
+  street 2.8–2.9 → 3.2 s, over the roofs 2.4 → 2.7–2.8 s. The software
+  renderer is vertex-bound, so this overstates what a GPU pays; it has not
+  been measured on hardware. Chunking the batches spatially would let the
+  frustum cull most of the city, at the price of draw calls — the lever, if
+  it is wanted.
+- The road-obstruction audit's `intruding` count went up by one: a new
+  corner house on the south avenue whose bounding circle (it measures boxes
+  by their diagonal) touches a side street. Its footprint keeps 0.9 m clear.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, the
+standard profile's seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are asset
+  markers and comment words), `audit-dom`, `audit-dead` (581 functions, 0
+  dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r145 → r146: errors 0 → 0; villagers 374 → 374; draw calls
+  442 → 448 (the six new meshes: two crown batches, the smoke, the pools,
+  the poles, the lanterns); triangles 1,910,147 → 2,165,811; colliders 11,876 →
+  11,931; doors 202 → 202; dialogue 17 wards / 102 branches, none failed;
+  residents moving over 30 s 182 → 169, the worst cluster per sample 2 →
+  3 (a separate five-sample run on the same build found no group of four);
+  road obstructions in the carriageway 0, intruding 229 → 230.
+- Built, from `EMBER`: frontage 25 of 25; festoons 14 of 14, 84 lanterns;
+  side windows on 499 walls, 1,510 windows; 5,818 light pools; 1,187 chimney
+  stacks (334 wide), 1,239 chimneys that can smoke (32 forges). Nothing left
+  out; the one crossing lamp r145 logged is still the only warning.
+- Shots looked at: each of the eight avenue segments from two standpoints
+  before and after, a festoon close up, six house fronts from across their
+  streets looking up at the chimneys, two views over the roofs, a street of
+  forges, its smoke darker and higher; all 14 captures, smoke over the town
+  in the city vistas.
+- Variants 6/6 built and 6/6 booted — after one fix: r0's transform cuts
+  every world stage from "planning the avenues" on, and the avenue tables and
+  builders had been put inside that range while `EMBER` still named them, so
+  r0 threw on boot. They are defined ahead of the assembly now, as
+  `innerInfill` is.
+- Smoke: game booted, WebGL, bridge, chooser installed, `requestDevice`
+  settles, "Emberwatch — r146".
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0v. r145 — where the session before that left off (2026-09-30)
+
+**State: r145 / 1.45.0, sealed 2026-09-30 ("halls and crossings").** The
+same instruction again; r145 carried r144's city work on to the landmark
+halls and the avenues' crossings, and closed r143's two missing walk proofs
+— one of which turned out to be a real bug.
+
+**Next:** the outer ring between the walls reads least finished now (the
+gate approaches and ring lanes past the inner wall), and the remaining
+places without an interior of their own (the Moon Archive and the Northwatch
+Guild are rooms, but their towers are only outside). The Windows installers
+for r143–r145 have not been built.
+
+### The landmark halls
+
+Eleven halls — the Cinder and Keg, the Southgate Rest, the Eastwall
+Scriptorium and Westwall Refuge, the Moon Archive, the Pilgrim Shrine, the
+Northwatch Guild, the Gilded Finch, the Wayhouse, the Cold Assay, the New
+Chapel — were `interiorHouse()` boxes seven metres high under a four-sided
+cone so flat it read as a lid: warehouses with a sign over the door.
+`hallExterior()` gives each:
+
+- a steep roof whose gable stands over the door, built as real triangles by
+  a new helper, `aTris(tris, key, centre)` (faces turned away from `centre`,
+  the rule `aRoof` uses; UVs projected in world units), with gable walls
+  under both ends — `aRoof` always runs its ridge along the longer side;
+- a plinth course, stepped buttresses (corners, sides, back), tall lit
+  windows down each side and at the back, two beside the door and one high
+  in the gable;
+- one feature by kind: a chimney and a half-timbered gable for a `tavern`,
+  a lit lantern turret for an `archive`, a crenellated tower for a `guild`,
+  a bell-cote with its bell for a `shrine` or `chapel`. Turrets and towers
+  stand on the wall-tops, above the room's ceiling.
+
+The room, its door and its wall colliders are untouched. A buttress or a
+chimney whose footprint would touch a road is left out, not moved (one lane
+ends at the Gilded Finch's back wall). The Great Hall (`capped` false) is
+the keep's and gets none of it.
+
+### The Rain Oath's causeway was under water
+
+r143 gave the Rain Oath a capture and no walk. Walking it found the
+causeway sagging to 0.8 m below the mere's surface in the middle, flags and
+all: it was a landform 2.7 m wide, narrower than the terrain grid can hold
+(see r143's note on cliffs — the same smear). It is a stone embankment now
+(`placeRainOath`), flagged and kerbed on its top, walked as a deck at 0.34
+m; the island's paving, which also sagged to 0.1 m on one side, is an
+octagon of two turned decks at 0.5 m inside the stones. **Any landform
+narrower than about three metres wants a deck, not terrain.**
+
+### Lamps at the avenues' crossings
+
+`tools/plan-crossings.py` reads the live street plan (dumped from
+`EMBER.kit.roads` and `EMBER.kit.rings`) and bakes `AVENUE_CROSSING_LAMPS`:
+a lamp on two opposite corners of every place a street, a lane or the
+citadel ring crosses — or ends on — one of the two 10 m avenues, 1.2 m back
+from both kerbs; none in the market square or at the four inner gates,
+which have their own pairs. `avenueCrossingLamps()` places each with
+`authoredLantern` after the kerbs, when everything else stands, and leaves
+out (and logs) any that does not fit. `EMBER.avenueLamps` exposes both.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, its own
+seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are asset
+  markers and comment words), `audit-dom`, `audit-dead` (572 functions, 0
+  dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit, r144 → r145: errors 0 → 0; villagers 374 → 374; draw calls
+  442 → 442 (the halls merge into the existing batches); triangles
+  1,896,207 → 1,910,147; colliders 11,690 → 11,876; dialogue 17 wards / 102
+  branches, none failed; residents moving over 30 s 184 → 182; road
+  obstructions in the carriageway 0, intruding 229 → 229.
+- Walk proofs: the Rain Oath 13/13 (path → causeway at 0.34 m → into the
+  ring → round the knight at 0.5 m → back); before the embankment the
+  causeway dipped to -0.79 m. The Skywatch 8/8 (the track at r 442 → up the
+  path → the crown at 10.9 m → round the armillary).
+- Crossing lamps: 46 records, 45 placed, 1 left out and logged
+  (`avenue-crossing-21-aa`); none pruned.
+- All 14 captures shot and looked at; the eleven halls shot from their
+  streets, the Cinder and Keg's room from inside (unchanged).
+- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
+  chooser installed, `requestDevice` settles, "Emberwatch — r145" (software
+  GL and Linux Web Bluetooth flags, as before).
+- Not run: `npm run dist` (no Windows toolchain here).
+
+---
+
+## 0w. r144 — where the session before that left off (2026-09-30)
+
+**State: r144 / 1.44.0, sealed 2026-09-30 ("market and cathedral").** Same
+instruction as r143 below; r143 built the places outside the walls, r144
+turned to the city itself — "continue and fix the city rebuild". The r142
+walkaround and the r143 street shots said the same three things about the
+inner city: the Cinder Market was an empty paved disc with a bonfire, the
+main avenues were wide roads lined with one-storey sheds, and from anywhere
+above street level the city was a flat field of red roofs with nothing
+standing up out of it. r144 answers each with one authored thing.
+
+**Next:** the rest of the city in the same way. The landmark halls (the Moon
+Archive, the Pilgrim Shrine, the Northwatch Guild, the Gilded Finch, the
+wall halls) are still `interiorHouse()` boxes with a cone on top; each wants
+the cathedral's treatment at a smaller scale. The avenues want light at
+their crossings (lamps belong at turns). The Rain Oath and the Skywatch
+still have no walk proof.
+
+### The Cinder Market (authored)
+
+It was a 31 m paved disc with the north avenue running through it, a ring of
+twelve stalls laid on trigonometry and eight bays nudged by `offRoad()` — one
+into the Cinder and Keg's west wall, so its keeper stood inside the tavern —
+and a stone fire drum on the avenue's kerb that had no collider.
+
+- **A table, not a generator** (`docs/AUTHORED-CITY-DRESSING.md`):
+  `CINDER_MARKET_STALLS` (34), `CINDER_MARKET_POLES` (20),
+  `CINDER_MARKET_LIGHTS` (10), each record with an id, an exact transform
+  and a purpose. `tools/plan-market.py` does only the arithmetic of laying
+  rows along the avenue and prints the table; re-run it and paste if the
+  avenue moves. Six rows parallel to the avenue: one facing it on each side
+  (`e1a`, `w1a`), one back to back with that (`e1b`, `w1b`), one across an
+  aisle (`e3`, `w3`). The east rows break round a hearth court.
+- **`cinderMarket()`** tests every stall's footprint (4.7 x 3.2, nine
+  points) against the roads and everything that stood before the market,
+  then builds; a record that does not fit is left out and logged, never
+  moved. The Cinder and Keg and the brick house are built first so the test
+  sees them. Each stall gets two colliders — the counter and the back rack —
+  and the keeper's place between them stays open.
+- **Stalls are modelled** (`tools/assets/market-stall.py`): a draper, a
+  grocer and a potter on one booth frame (striped awning, scalloped valance,
+  side cloths, counter, stock, a lantern on a bracket off the front post).
+- **Light:** lantern strings between 3.9 m poles across the avenue and both
+  aisles, sagging half a metre; one real light per string, the lanterns
+  themselves only glow.
+- **The hearth** moved 4 m east off the avenue's kerb (`MARKET_HEARTH`), a
+  stone drum with an iron rim and a collider, two benches. **The well**
+  (`MARKET_WELL`) is built at last — the "listen at the market well"
+  interaction had always pointed at a well nobody made — and the
+  interaction stands at it.
+- **People:** sixteen keepers stand behind their counters facing their
+  customers (`vanethMarketKeepers`, eight of them new), four at the hearth,
+  four walkers starting in the aisles. `EMBER.market` exposes the tables and
+  what was built; `tools/probes/probe-cinder-market.js` checks it.
+
+### Main streets stand taller
+
+Half the lots fronting the two avenues through the centre were a single
+storey. `frontageStoreys()` (in `innerInfill`) raises a lot whose front faces
+a main avenue (a road 9.5 m or wider) or the Cinder Market to two to four
+storeys by a fixed hash — 74 lots. A home's room is one storey whatever the
+shell, so only the street changes; the extra storeys get their windows.
+
+### The Cathedral of Hours (walk-in)
+
+The cathedral was a 12 x 22 box with a pyramid and two cylinders, standing
+on a collider circle that reached into the lane in front of it; it had no
+name. It is the Cathedral of Hours now — its bells turn the watches — and
+three Blender models on one transform (`tools/assets/cathedral.py`,
+`placeCathedral()`): the stone (textured), the glass and the furnishing
+(plain colour, glow mask).
+
+- Nave and clerestory on an arcade of five piers a side, two aisles, flying
+  buttresses with pinnacles, the west front between two towers whose
+  belfries glow and whose spires reach 44 m, a rose over a three-order
+  portal, the apse's five lancets, a flèche on the ridge.
+- Centre (89, -55.5), unrotated: the front faces the lane at z -34 across a
+  small parvis, the apse ends two metres short of the z -76 lane. The lots
+  already keep clear (`COMPILER_EXCLUSIONS` 89,-46 r22).
+- Colliders are traced from the script's plan numbers; the altar's dais is
+  two walkable decks. Four real lights inside, lamps either side of the
+  door. The verger, a kneeler and a pilgrim (role residents), talk and
+  directions for it, and "light a candle" at the votive rack.
+- Captures: `vista-cathedral-west-front`, `site-cathedral-nave`.
+- `inline-glb.js` finds markers by prefix, so the stone asset is
+  `CATHEDRAL_STONE`: a plain `CATHEDRAL` also matched `CATHEDRAL_GLASS`.
+
+### Verified
+
+Read off runs on the sealed file, in the harness (software WebGL, its own
+seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A's new names are all
+  words in comments or asset markers), `audit-dom`, `audit-dead` (569
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit (`tools/audit-runtime.js`, watch pinned to `labour`), r143
+  → r144: errors 0 → 0; villagers 363 → 374; draw calls 436 → 442 (three
+  stall models, three cathedral models); triangles 1,798,426 → 1,896,207;
+  colliders 11,475 → 11,690; dialogue 16 wards / 96 branches → 17 / 102,
+  none failed to open, pushed away or broke; residents moving over 30 s
+  168 → 184; road obstructions in the carriageway 0 → 0, intruding 229 →
+  229; blocked anchors 0; gate approaches 4, broken 0; unreachable
+  interactions none.
+- `probe-cinder-market.js`: 34 of 34 stalls built, none skipped, 20 poles,
+  10 strings, 10 lights; no stall footprint touches a road; all 16 keepers
+  within 0.9 m of their stall's spot. `innerBuilt.raised` 74.
+- Walk proof (`probe-walk.js`), the cathedral: lane → portal → narthex →
+  central aisle → before the dais → onto it (0.2 m, then 0.4 m) → through
+  the arcade → up the side aisle, 9/9. The collider map at 0.75 m shows the
+  aisle and apse walls closed and a 2.8 m door gap.
+- All 14 `VISUAL_CANON.captures` shot and looked at (two new:
+  `vista-cathedral-west-front`, `site-cathedral-nave`; the pilgrim was moved
+  out of the middle of the nave shot and the front shot tilted up to hold
+  the spires).
+- Variants: 6/6 built and 6/6 booted — after one fix: r0 neuters
+  `villager()`, and the keeper code read the last villager's `.g`; it now
+  checks one was made.
+- Smoke: game booted, WebGL up, bridge wired, chooser installed,
+  `requestDevice` settles, window title "Emberwatch — r144" (with this
+  container's software-GL and Linux Web Bluetooth flags, as for r143).
+- Not run: `npm run dist` (no Windows toolchain here).
+
+### Known, and left
+
+- The road audit's **`intruding` went 229 → 230**: the counter collider of
+  `cm-e1a-6`, a 4.6 x 0.63 box whose circle approximation (`hypot(hw,hd)`,
+  2.32 m) reaches the avenue although the box itself stops 1.8 m short of
+  it. Not a real intrusion.
+- The runtime audit's **worst resident cluster went 1 → 2**. Traced: once
+  the audit parks the player 100 m away, far residents freeze mid-walk, and
+  four of the eighteen who share the market's perimeter loop froze near its
+  south-west corner. Not visible in play; the loop is unchanged.
+
+---
+
+## 0x. r143 — where the session before that left off (2026-09-30)
+
+**State: r143 / 1.43.0, sealed 2026-09-30 ("places under the moon").** The
+owner's instruction: "design landmarks and places to explore, you have the
+visual canon … go wild just trying to match that visual canon as close as
+possible, fix the npcs, populate the world, continue and fix the city
+rebuild." Every reference place in `docs/REFERENCE-BUILD-MODE.md` is now a
+place you can walk into, climb and look out from, with its own proof capture,
+and the ones with a climb have a walk proof (`tools/probes/probe-walk.js`) run
+in the harness. Three places beyond the seven were added the same way. The
+r138 map-spine stand-ins they replace are gone.
+
+**Next, in the owner's order:** the city itself — "continue and fix the city
+rebuild". The places are outside or on the edge of it; the inner city still
+has the wide empty streets, the bare market and the plain house fronts the
+r142 walkaround showed. See "What is still open" at the end of this section.
+
+### How the places are built (read before adding another)
+
+- **Frames.** Each place has one frame, `axisFrame(cx, cz, ox, oz)`: `s`
+  along the place's axis, `t` across it, `at(s,t)` to world, `local(lx,lz)`
+  for model-local offsets. A model placed with `ry: F.ry` has its local +Z
+  along `s` and +X along `-t`. Most places are laid on **the moon's bearing**
+  (`MOON_DIR` flattened), so the proof shot looks along `+s` and holds the
+  moon: `OATH`, `LOW`, `RAIN`, `SKY`, `GROVE`. `FALLEN` faces out from the city
+  (`placeFrame`); `FOX` and `MILL` sit across the brook (`brookLine`, 38 steps
+  from the source to the pond); `CIT` is radial at the inner wall's south gate.
+- **Landforms** (`landform`, `planAuthoredLandforms`): mesa, ramp and bowl
+  shapes laid over the terrain noise before `raiseTerrain`. They take no
+  randomness. **A later landform wins where two meet** — Lowmere's order is
+  shoulder, valley floor, bluff, stair ramp, landing, crag, lane. The terrain
+  grid smears any cliff over about one cell, so a steep edge always gets a rock
+  model in front of it, with the landform's edge set *behind* the model's face.
+- **Surfaces** (`addStair`, `addDeck`, `surfacesAt`): stairs, decks, ledges and
+  bridge humps the player (and role and wild residents) stand on. `surfaceAt`
+  takes the highest of terrain, wall walk, stairs and surfaces; captures stand
+  on it too (`canonSetCapture`), so a proof camera can no longer end up inside
+  a rock.
+- **Models** (`placeLandmark`): Blender scripts in `tools/assets/*.py` on the
+  kit (`_kit.py`: `box`, `jbox`, `span`, `cyl`, `tube`, `leaf`, `extrude`,
+  `rock`, `arch_wall`), packed by `pack-glb.js`, inlined by `inline-glb.js`.
+  One GLB, one merged mesh, box-projected world UVs, or `tex:'none'` for plain
+  vertex colour (the mill, the oak — a wood texture over a plaster colour read
+  as mud). Vertex-colour **alpha below 1 is a glow mask** (the material's
+  `glow` colour): the Oathfield's fullers, the lychgate lantern, lit windows,
+  the armillary's orb, the oak's lanterns. `opts.mover` keeps a piece in its
+  own frame and turns it every frame (the mill wheel, `updateLandmarkMovers`,
+  only within 200 m). Points take `rx`/`rz` (tilt and roll) as well as `ry`,
+  and `s` (scale).
+- **Clearings.** `CANON_SITE_CLEARINGS` is filled by `planAuthoredLandforms`,
+  one entry list per place; it keeps the forest and the ruined ring's rubble
+  off. Do not put new places in `WILD_CLEARINGS` (see r141/r142 below: that
+  array also plants cairns and signposts).
+
+### The places (r143)
+
+| Place | Where | What | Proof (read off runs) |
+| --- | --- | --- | --- |
+| The Fallen Hall & the Veilscar | ruins clearing (338,-326) | modelled nave you walk into; a 15 m cliff, falls into a misted pool, a 40-tread stair, the wizard's shelf | `vista-ruin-waterfall`, `site-ritual-circle`, `vista-veilscar-ledge`; nave walk 5/5; stair walk up to 15.05 m, shelf 15.25 m |
+| The Oathfield | behind the graveyard, `OATH` | walled terrace, 56 planted oath-blades (glowing fullers, ribbons, three broken vows), lychgate from the graveyard's back gate, the winged angel with the moon between her wings | `site-memorial-field`, `vista-oathfield-angel`; walk graveyard → dais 10/10 |
+| The Watcher's Bluff over Lowmere | `LOW` (-468,-178), off the track | 21 m crag with a rock prow, ten-cottage hamlet round a green and a well, sunken lane, 56-tread stair, a watchtower on its own crag with its fire lit | `vista-lower-town-overlook`; walk track → prow 10/10, stair to 22.05 m |
+| The Foxglove crossing | `FOX` on the brook | the brook widened to a small river at the crossing; humpbacked arch, gate tower, lamps | `vista-river-bridge-castle` (the mill's gable in the distance) |
+| Foxglove Mill (new) | `MILL`, 40 m upstream | timber-framed mill house on a stone storey; an overshot wheel that turns under its flume on trestles; the water off the flume; a plank footbridge; the miller | shots from the footbridge, the yard and the wheel |
+| The Rain Oath | `RAIN` (382,322) | a mere, a kerbed causeway, an island ring of nine stones, the knight (remodelled) on a plinth facing the moon; rain wets it | `site-rain-oath` (no walk proof) |
+| The Skywatch knoll | `SKY` (-58,505) | a knoll, an armillary on its crown, the companions at the lip, a cobalt lamp line up the path | `site-quiet-companion-skywatch` (no walk proof) |
+| The Lantern Grove (new) | `GROVE` (500,-10), east past the track | a level clearing; a great bare oak hung with thirty lanterns (four real lights among the boughs, not thirty); eight sitting stones and a candle stone (one modelled boulder, `grove-stone`); the keeper | `vista-lantern-grove` and three more shots |
+| The High Step (new) | `CIT`, the inner wall's south gate | two flights and a landing up the wall's inner face to a watch landing on the wall walk; a guard, a pilgrim, a runner | `route-cliff-citadel-ascent`, `vista-high-step-head`; walk avenue → wall walk 8/8, to 12.9 m |
+
+### Residents
+
+- Role residents (`REFERENCE_BUILD_NPC_ROLES`) moved to their places. They
+  **keep their pose** when you come near and only turn their head, and only
+  if you are in front of them (|bearing| < 1.9 rad) — the greeting turn used
+  to spin a seated watcher round on his ledge to face the camera.
+- `WILD_RESIDENTS` (own stream, `wild-residents`): eleven people who live and
+  walk out there (Lowmere, the toll, the mill, the Oathfield, the Rain Oath,
+  the knoll, the grove, the track). They and the role figures stand on
+  `surfaceAt`, not `terrainAt`, beyond the city.
+- `VANETH_CONVERSATION` has entries for every new place; `VANETH_LANDMARKS`
+  lists them (`wild-*`) so residents can send you there.
+
+### The city: one lane off a house's back
+
+The one standing road warning — "1 collider(s) stand on a carriageway; worst
+-129,118.2" — was a crooked lane whose end stopped at (-130,115.3). `onRoad`
+treats a lane's end as round, so its last 3.5 m ran into the back of the house
+at (-131.9,119.8) and counted the furniture inside as standing in the road.
+The row now bends south of the house onto the street at x -122 (a comment
+above `crookedLanes` says which row). `roadObstructions.inRoad` 1 → 0,
+`intruding` 229 → 229, road overlaps, blocked anchors and broken gate
+approaches all 0.
+
+**Trap for the next re-bake:** `tools/plan-city.js` plans lanes 2.8–4 m wide
+and validates lots against that, but the game lays every lane at
+`LANE_MIN` = 7. Lots planned against a 3 m lane can stand in a 7 m one. A
+re-bake has to plan lanes at `LANE_MIN` too.
+
+### Also in r143: the sky, faces, the harness
+
+- **The night sky to the canon.** One `MOON_DIR` drives the moonlight, the
+  disc drawn in the sky shader, the water glint and the hills' baked shading
+  (the moon used to be a disc pinned at a world position, so from the
+  wilderness it sat behind you while its light came from elsewhere).
+  Blue-black zenith, cobalt horizon, moonlit cloud; the aurora is a faint
+  cobalt-violet veil, not half the frame. Meteors and the sky-eye omen are
+  staged events (a shower from one radiant every ~9 minutes with foreshadow,
+  peak and aftermath; the omen one Still Hours in three); rain comes and goes
+  and wets the stone. `EMBER.sky` forces any of them for probes.
+- **Faces that read at play distance.** An eye was one dark box three
+  centimetres wide; each is now a white, an iris and a lid line, with heavier
+  brows and mouth, and ears on humans — all merged into the head mesh, no
+  draw calls. `villager()` takes `look {variant, species, build}`, so every
+  reference role wears its part (the wizard's tall hat and lit staff); role
+  props sit at the palm grip, and sitting or kneeling roles lower their body
+  (`poseDrop`). `tools/probes/probe-npc-studio.js` pins a lineup for review.
+- **The harness waits for real frames.** It used to shoot a fixed 1.5 s after
+  each teleport; in software rendering that was one standpoint behind (the
+  first shot was always the spawn). It now waits for three rendered frames.
+
+### Removed, and why
+
+The r138 map-spine stand-ins the places replace: the 24-blade scatter and the
+cone "winged witness" in the graveyard, and its 12-post ring; the flat citadel
+"ascent" through the north gate (cobbles, cross-step bands on the carriageway,
+gate spires); the overlook's 12 stand-in houses and ledge bands by the outer
+wall; the Foxglove river ribbon laid under the ground and its revetments,
+stepping stones and glint posts; the rain-oath strip causeway; the skywatch
+ledge walk and parapet. `canonSword`, `canonPost`, `canonRouteLamp`,
+`canonPavingNode` and `KIT_OATH` went with them.
+
+### Verified
+
+All read off runs on the sealed file, in the harness (software WebGL, its own
+seed) unless it says otherwise.
+
+- `check-parse`, `audit-source` (B and C 0; section A 132, every new name a
+  word in a comment or an asset marker), `audit-dom`, `audit-dead` (565
+  functions, 0 dead), `test-switch-frames`, `test-switch-b9`: clean.
+- Runtime audit (`tools/audit-runtime.js`, watch pinned to `labour`), r142
+  archive → r143: errors 0 → 0; villagers 352 → 363; draw calls 449 → 436;
+  triangles 1,715,330 → 1,798,426; colliders 10,543 → 11,475; dialogue 14
+  wards / 84 branches → 16 / 96, none failed to open, pushed away or broke;
+  residents moving over 30 s 167 → 168, worst cluster 1; road obstructions
+  in the carriageway 1 → 0 (intruding 229 → 229); blocked anchors 0; gate
+  approaches 4, broken 0; unreachable interactions none.
+- Walk proofs (`probe-walk.js`): Fallen Hall nave 5/5 and the Veilscar stair
+  to 15.05 m, shelf 15.25 m; the Oathfield 10/10; Lowmere track → prow 10/10
+  (stair to 22.05 m); the High Step 8/8 (to the walk at 12.9 m).
+- All 12 `VISUAL_CANON.captures` shot and looked at. Three were reframed
+  after looking: the overlook (the hooded watcher, two metres from the
+  camera, was a black wall across the left third), the memorial field (Sister
+  Amery's walk started two metres in front of the camera; it now starts
+  halfway up the way) and the High Step's head (turned half right along the
+  walk; square to the wall the gate tower took half the frame).
+- Variants: `build-variants.js` 6/6 (r0's `villager` swap follows the new
+  `look` parameter) and `check-variants.js` 6/6, all reporting r143.
+- Smoke: game booted, WebGL up, bridge wired, chooser installed, `requestDevice`
+  settles and the chooser closes after cancel, window title "Emberwatch —
+  r143". This container has no GPU and no Bluetooth adapter, so it took
+  `--use-gl=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist`
+  and, on Linux, `--enable-experimental-web-platform-features` for
+  `navigator.bluetooth` to exist at all.
+- Not run: `npm run dist` (no Windows toolchain here).
+
+### What is still open
+
+- **The inner city** (the next job): wide streets with nothing in them, a bare
+  market, plain house fronts, back walls facing lanes.
+- The Rain Oath and the Skywatch knoll have captures but no walk proof.
+- The Windows installers were not built: the container this was done in has
+  no Windows toolchain. `cd app && npm run dist` on the owner's machine.
+- `plan-city.js`'s lane width (above).
+
+---
+
+## 0y. r142 — where the session before that left off (2026-09-28)
 
 **State: r142 / 1.42.0, sealed 2026-09-28.** r141 below fixed the one
 complaint it was given. The next session's instruction was broader and more
@@ -897,7 +2863,12 @@ the skim; same timeout), `probe-diagnostics-cost` (what a probe's own
 `E.diagnostics()` and scene walk cost a frame).
 `HARNESS_PROFILE=<dir>` gives a run its own storage, seed and
 settings, so a second harness can run beside the first; without it every run
-shares one profile. Harness localStorage persists between runs, so wilds progress,
+shares one profile. **Never run two on the same profile at once**: r150's
+first runtime audit was started on the standard profile and then other probes
+were run beside it on the same one; the audit's Electron processes were left
+defunct and it never reported. Run the audit alone, and give anything run
+beside it a profile of its own (a different seed: fine for a probe, never for
+numbers compared against another build). Harness localStorage persists between runs, so wilds progress,
 "said once" resident lines **and the bloom and graphics settings** carry over —
 that is state, not a regression. (A tuning run that turned bloom off made every
 later screenshot bloomless until this was understood; `probe-bloom` leaves it on.)
@@ -1483,6 +3454,7 @@ node tools/check-parse.js    # every <script> block parses
 node tools/audit-source.js   # called-never-defined, defined-never-called, dead bindings
 node tools/audit-dom.js      # markup ids vs script lookups, both directions
 node tools/audit-dead.js     # functions nothing live can reach (comments and strings ignored)
+node tools/audit-comments.js # comments that have swallowed a call statement; must be none
 node tools/test-switch-frames.js   # 12 assertions, the panel's own decode vs a real capture
 node tools/test-switch-b9.js       # 19 assertions, the b9 write frame
 ```
@@ -1495,6 +3467,13 @@ Since r116 it skips named function expressions — `(function name(){…})()`,
 dead. It still misses a dead function that shares its name with a live local variable
 (`keep`, `streets` and `building` were found by hand), so a clean run is not a
 proof.
+
+`audit-comments.js` (r156) catches code that a `//` comment has swallowed: a
+comment written after code, mid-line, runs to the end of the line, so a call
+written after it on the same line never runs and the file still parses. It
+lists every comment in the gameplay script that holds `name(args);`. It
+found one on its first run (r145's stone table in the Westwall Refuge),
+after r156's first floor fix had swallowed every hall's ceiling the same way.
 
 `audit-source.js` section A reports ~64 false positives — GLSL builtins
 (`vec2`, `mix`, `fbm`, `sin`, `exp`) and ordinary words followed by a bracket in
@@ -1525,7 +3504,10 @@ Four things to know before trusting a number from it:
   good for comparing two builds and meaningless as a figure for real hardware.
 - **Its preload removes `navigator.bluetooth`**, so no probe can reach a device.
 - **It keeps its own localStorage, so its world seed differs from the app's.**
-  Compare builds on the same harness, never harness against app.
+  Compare builds on the same harness, never harness against app — and on
+  the same profile: `HARNESS_PROFILE` points it at another, which is
+  another seed and another world (r146's first runtime audit reported
+  different doors and colliders for exactly that reason).
 
 Until r107 it lived in a temporary folder from a single session.
 
@@ -1560,6 +3542,11 @@ Six steps, in order. Skipping any of them has cost a revision before.
 5. **Build** — `cd app && npm run dist` (NSIS + portable).
 6. **Docs** — CATALOG.md timeline, this file, RESUME if a rule changed,
    NIGHT-LOG if the work was unattended.
+7. **Release** (since r159) — `node releases/build-notes.js` after the docs,
+   so the new revision's notes include them; commit and push. The workflow
+   `.github/workflows/publish-revisions.yml` then makes its dated commit, its
+   tag and its GitHub release with the game file attached, and brings any
+   release whose notes changed up to date. It keeps what is already published.
 
 ### Editing the file — the one hard rule
 

@@ -10,9 +10,10 @@
    world stages run. */
 const fs = require('fs'), path = require('path');
 
-const BASE = 'D:/_KEEP/Emberwatch/app/renderer/index.html';
-const SRC  = 'D:/_KEEP/Emberwatch/variants/src';
-const OUT  = 'D:/_KEEP/Emberwatch/variants';
+const ROOT = path.join(__dirname, '..');
+const BASE = path.join(ROOT, 'app', 'renderer', 'index.html');
+const SRC  = path.join(ROOT, 'variants', 'src');
+const OUT  = path.join(ROOT, 'variants');
 
 const VARIANTS = [
   { file: 'wardens.js',   out: 'emberwatch_wardens.html',
@@ -279,8 +280,9 @@ function bareWorld(html) {
   // world stages so cutting those did not stop them: 58 were still being made
   // and updated every frame against an empty nav grid. Neutering villager()
   // itself is one edit and stops all of them, wherever they are called from.
-  swap('function villager(name,x,z,robe,line,route=[],districtOverride){',
-       'function villager(){ return; }\nfunction villagerDisabledForR0(name,x,z,robe,line,route=[],districtOverride){',
+  // (r143 gave villager() an optional look parameter; the match follows it.)
+  swap('function villager(name,x,z,robe,line,route=[],districtOverride,look=null){',
+       'function villager(){ return; }\nfunction villagerDisabledForR0(name,x,z,robe,line,route=[],districtOverride,look=null){',
        'villager');
 
   // r0 is a campfire at night. The base restores whatever lighting mode was
