@@ -1889,7 +1889,7 @@
   "rev": 158,
   "title": "the last halls",
   "version": "1.58.0",
-  "date": "2026-10-02T12:30:00Z",
+  "date": "2026-10-02T11:48:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r158-the-last-halls.html"
@@ -1902,7 +1902,7 @@
   "rev": 159,
   "title": "the people",
   "version": "1.59.0",
-  "date": "2026-10-02T16:00:00Z",
+  "date": "2026-10-02T14:36:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r159-the-people.html"
@@ -1915,12 +1915,25 @@
   "rev": 160,
   "title": "bluetooth pairing",
   "version": "1.60.0",
-  "date": "2026-10-02T19:30:00Z",
+  "date": "2026-10-02T17:24:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r160-bluetooth-pairing.html"
   },
   "asset": "emberwatch-r160-bluetooth-pairing.html",
   "notes": "releases/notes/r160.md"
+ },
+ {
+  "tag": "r161",
+  "rev": 161,
+  "title": "peak pro plasma",
+  "version": "1.61.0",
+  "date": "2026-10-02T20:12:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r161-peak-pro-plasma.html"
+  },
+  "asset": "emberwatch-r161-peak-pro-plasma.html",
+  "notes": "releases/notes/r161.md"
  }
 ]

@@ -6,6 +6,25 @@ estimated.
 
 ---
 
+## 2026-10-02 — morning · r161 "Peak Pro Plasma"
+
+**What was wrong.** On a new Peak Pro Plasma every connection timed out at
+the Lorax handshake, in the desktop app and in Chrome. The flow never did
+anything that makes a Peak bond with the computer, and an unbonded Peak
+does not answer; the owner's older Peak had bonded long ago. The device
+list also showed every Bluetooth device in range.
+
+**What changed.** One version read starts the bond before Lorax (as
+puff.social does), the limits are asked for before the seed, and an
+unanswered request names itself. The list shows Puffco devices only, with a
+box to show everything. PROJECT.md §0 has the details.
+
+**What proved it.** A simulated Peak that ignores requests until bonded:
+r160 times out as the owner saw, r161 completes the handshake. Audits clean,
+smoke clean. Not tested on the real device.
+
+---
+
 ## 2026-10-02 — small hours · r159 "The people"
 
 **What was wrong.** The owner sent two reference videos — "think of ps2/xbox

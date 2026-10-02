@@ -4,7 +4,11 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r160 / 1.60.0**, sealed 2026-10-02 as "Bluetooth pairing":
+Current: **r161 / 1.61.0**, sealed 2026-10-02 as "Peak Pro Plasma": a
+Peak that has never bonded with the computer is bonded before Lorax, the
+limits are asked for before the seed, and the device list shows only
+Puffco devices (with a box to show everything) (§0). Before it,
+**r160 / 1.60.0**, sealed 2026-10-02 as "Bluetooth pairing" (§0g):
 the desktop shell now answers Windows/Linux Bluetooth pairing requests and
 the docs no longer claim that local HTML cannot use Web Bluetooth.
 The reported physical-device connection hang still needs Windows verification.
@@ -254,7 +258,75 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-02, r160)
+## 0. Start here — where the last session left off (2026-10-02, r161)
+
+**State: r161 / 1.61.0, sealed 2026-10-02 ("Peak Pro Plasma").** The owner,
+on r160: "it still will not connect … lorax connection times out every
+single time", on a Peak Pro Plasma bought recently, and asked whether the
+code only connects to the original Peak Pro; also for Bluetooth filtering
+("I don't need to see TVs and stuff"), and about long load times.
+
+**Next:** the owner's test on the Plasma, desktop app and Chrome both. If it
+still times out, the error now names the request the Peak did not answer;
+that is where to look.
+
+### Why a new Peak timed out
+
+A Peak that has never bonded with the computer accepts the connection, the
+version read and the reply subscription, then never answers a Lorax request.
+The connect flow (written against the owner's older Peak, bonded with this
+computer long before) deliberately did not read anything that would start a
+bond — "Do not read PUP … either action can make the device buzz and
+re-enter pairing mode repeatedly" — so on the new Plasma the setup request
+and then the access-seed request went unanswered, and the seed's 5 s timeout
+was the error the owner saw every time. puff.social, whose Lorax client this
+one follows, reads the PUP app version (or, without PUP, the SiLabs version)
+before anything else, commented "This triggers pairing on lorax", then asks
+for the limits (`GET_LIMITS`, 0x02) before the access seed. r161 does the
+same: the PUP and SiLabs services are requested, one version read starts the
+bond, the limits come first, and a request that gets no answer now says
+which request it was. Nothing written to the device changed.
+
+Shown with a simulated Peak in the harness that ignores every request until
+its PUP version has been read: on r160 the setup request and the seed went
+unanswered (the owner's failure); on r161 the bond read came first and the
+limits, setup, seed and unlock requests all followed. That proves the order,
+not the device: the simulation is built on what puff.social does, and no
+Plasma was available here.
+
+### Only Puffco devices in the list
+
+The device request filters for Puffco now: any device advertising the
+Lorax, legacy, PUP or SiLabs service, Puffco's Bluetooth manufacturer id
+(3075), a name starting Peak or Puffco, or one still named by its address
+with one of the prefixes puff.social lists for Puffco devices (what an
+unrenamed Peak advertises). A box under Connect, "show every nearby
+Bluetooth device", lists everything, for a Peak renamed past all of those.
+
+### Load time
+
+Timed in the harness with marks at every world stream: the boot script
+finishes at 6.3 s on r158 and 7.2 s on r161 (software rendering; the
+residents' kit is most of the second). That is not the "crazy" load the
+owner saw. The portable `.exe` unpacks its whole app (about 100 MB) into a
+temporary folder on every launch, which the installed version does not; the
+setup `.exe` is the one to use day to day. Not measured on Windows.
+
+### Verified
+
+- `check-parse`, `audit-source` (B and C 0), `audit-dom`, `audit-dead`
+  (668, 0 dead), `audit-comments`, `test-switch-frames`, `test-switch-b9`:
+  clean.
+- The simulated Peak, r160 against r161, as above; the request options
+  carry 105 filters and the four services.
+- Smoke: game booted, bridge, chooser installed, `requestDevice` settles,
+  "Emberwatch — r161".
+- Variants 6/6 built, 6/6 booted.
+- Not run: the runtime audit; a real Peak.
+
+---
+
+## 0g. r160 — where the session before that left off (2026-10-02)
 
 **State: r160 / 1.60.0, sealed 2026-10-02 ("Bluetooth pairing").** The owner
 reported that the desktop Bluetooth connection hangs while the local HTML
