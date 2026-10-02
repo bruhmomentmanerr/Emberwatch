@@ -1,98 +1,85 @@
-**r157 — the taverns** · 1.57.0 · 2026-10-01 · phase 5, world depth
+**r158 — the last halls** · 1.58.0 · 2026-10-02 · phase 5, world depth
 
 ### Summary
 
-the taverns. The Cinder and Keg (bar, keg rack, hearth nook, a curtained stage, round tables, the regulars' long table), the Southgate Rest (boots drying at the hearth, the pack rail, the keeper's desk, stairs to the rooms), the Gilded Finch (booths, the musician's nook, the late-night room, the finch in its cage) and the Wayhouse (stew pot, the baker's bread, long tables, pallets, the alms box) fitted out (tools/assets/taverns.py), one thing to look at in each. Residents of the wild places with no house keep their posts through the still watch; Merrin Vale no longer spawns inside the Cinder and Keg. Verified: parse/audit/dead/ comments clean; nineteen shots twice and twenty standpoints in the taverns; the wild places in the still watch; runtime audit against r156, no errors, 102 dialogue branches none broken, road obstructions 0; all captures looked at; 6/6 variants built and booted; smoke clean (r157 in the title).
+the last halls. The Drovers' Rest (straw, a joint on the spit, the dog by the fire, the tack wall, the tally board), the Lamplighters' Hall (oil casks and measures, the cans, the board of the rounds), Ferrier's Yard (forge and bellows, a wall of named shoes, the shoeing stall), the Pilgrim Shrine (the offering table, votive racks, kneelers, ribbons, violet lamps as a second asset) and the New Chapel (pale pews, the sign of the hours, the scaffolding before a half-painted mural) fitted out (tools/assets/halls.py); every hall furnished by hand, every hall with its own line on entering. Verified: parse/audit/dead/comments clean; nineteen shots and nineteen standpoints in the five halls; runtime audit against r157, no errors, 102 dialogue branches none broken, road obstructions 1; all captures looked at; 6/6 variants built and booted; smoke clean (r158 in the title).
 
 ### Patch notes
 
-**State: r157 / 1.57.0, sealed 2026-10-01 ("the taverns").** Same
-instruction — "update my interiors and whatnot". r157 fits out the four
-taverns, keeps the wild places' residents at their posts through the still
-hours, and gets Merrin Vale out of the Cinder and Keg.
+**State: r158 / 1.58.0, sealed 2026-10-02 ("the last halls").** Same
+instruction — "update my interiors and whatnot". r158 fits out the five
+halls that still had the generic furniture for their kind. Every one of
+the fifteen halls built with `interiorHouse` is now furnished by hand
+(`FITTED_HALLS`; the Great Hall always was).
 
-**Next:** the five halls that still have the generic furniture for their
-kind — the Drovers' Rest (a fifth tavern, in the new quarter south of the
-city), the Lamplighters' Hall and Ferrier's Yard (guilds), the Pilgrim
-Shrine and the New Chapel; then people in the taverns of an evening —
-nobody sits at any of these tables yet, and Barkeep Varn is the only one
-behind a bar. The
-towers of the Moon Archive and the Northwatch Guild, and stairs up to the
-outer wall's walk, are still to do. The Windows installers for r143–r157
-have not been built.
+**Next:** move the shrine's stoup off the street's paving (below,
+"Verified"). Then people in the halls of an evening. Nobody sits at any of these
+tables yet; the only residents inside a hall are Barkeep Varn behind his
+bar, Pilgrim Sorell in the shrine's aisle and the keepers in their shops.
+Then the towers of the Moon Archive and the Northwatch Guild, and stairs
+up to the outer wall's walk. The Windows installers for r143–r158 have not
+been built.
 
-### The taverns
+### The last five halls
 
-Each of the four was the same room: a bar slab across the middle, two
-blocks for tables, a stone drum, a hearth, a rug, and the storeroom
-filler's chests and barrels round the walls; the Gilded Finch's centrepiece
-was a glowing violet block on a counter by the door. `tools/assets/taverns.py`
-models each after what `INTERIOR_PURPOSES` says it is for:
+`tools/assets/halls.py`, which borrows the helpers in `taverns.py` (that
+script now builds only when it is run, not when it is imported):
 
-- **The Cinder and Keg** (`cinder-keg`, 13,580 triangles) — "a warm hearth,
-  a small stage, and tables meant for lingering". The bar runs across the
-  room with Barkeep Varn behind it, where he has always stood; behind him
-  the keg rack, two tiers of casks with taps, the back-bar shelves of
-  bottles, two chalkboards and the keg's end carved with a flame. A hearth
-  nook in the back left with two armchairs, a low table and a rug; a stage
-  in the back right with a curtain, a lute on a stool, a drum, a music
-  stand and candle footlights; round tables with stools; the regulars'
-  long table on the left wall with a settle, a game left half-played and a
-  shelf of plates over it; barrel tables and a dartboard on the right;
-  cloaks on pegs by the door; two cartwheel chandeliers.
-- **The Southgate Rest** (`southgate-rest`, 5,036) — "a travel-worn hearth
-  and a quiet place to set down a pack". A big hearth with a pot on its
-  crane, three odd pairs of boots drying before it and socks on a line
-  under the mantel, two settles facing in; the pack rail with packs,
-  bedrolls and hats, walking staffs, a bench with a pack set down, a
-  painted map of the south road; pallets in the back corner; the keeper's
-  desk with the ledger open, a bell and the board of room keys; stairs up
-  the right wall to a landing and the door to the rooms; a long table laid
-  with bowls and bread; lanterns for the road on hooks by the door.
-- **The Gilded Finch** (`gilded-finch`, 10,762) — "soft booths, a
-  musician's nook, and a late-night room". Panelled to dado height with a
-  gilt rail. The musician's nook on a half-round dais under a gilt arch,
-  a plum curtain behind, a harp, a viol on its stand, a stool, a music
-  stand and two tall candle stands; six booths down the walls with candles
-  under glass and pictures over them; the late-night room in the back left
-  behind a partition and a drawn curtain — floor cushions, a low table, a
-  lamp, a bottle and two glasses; a small polished bar with a mirror and
-  shelves of good bottles; small tables with armchairs facing; the finch
-  in its gilt cage over the middle of the room; a gilt chandelier.
-- **The Wayhouse** (`wayhouse`, 6,132) — "first roof inside the new wall,
-  and it knows it". The hearth with the stew pot on its crane and bowls
-  stacked by it, a datestone over the mantel with the new wall cut in it,
-  logs stacked beside; the serving table along the back wall with the
-  baker's bread in baskets (a baker's own line: "whatever is left by the
-  last goes to the Wayhouse"), soup, bowls and a cask; two long tables laid with
-  bowls, spoons and bread; pallets down the right wall with a shelf of
-  folded blankets; a rack of cloaks on the left under a carved board, sacks
-  of meal; the alms box on its post by the door.
+- **The Drovers' Rest** (`drovers-rest`, 7,346 triangles) — "straw on the
+  floor and the south road at the door" (the city map's line for it).
+  Straw strewn over the floor, thickest by the door; a joint on a spit over
+  the hearth with a dripping pan under it; a drover's dog asleep on a
+  fleece by the fire; the tack wall — three saddles on their brackets,
+  bridles and halters on pegs, coils of rope, crooks; a bar of planks on two
+  barrels with casks on a rack behind; the tally board, head counted in and
+  out in chalk; hams hung from the beam; two long tables with the drovers'
+  dinner on them; muddy boots and a bench of fleeces by the door.
+- **The Lamplighters' Hall** (`lamplighters-hall`, 6,482) — "where the oil
+  is measured out and the rounds are set". Three oil casks on a cradle,
+  taps over a drip tray, a shelf of copper and brass measures and funnels;
+  the guild's banner with its lamp; a row of oil cans for every lamplighter,
+  each with a name under it; the board of the rounds — the city as rings, a
+  pin for every lamp, a coloured thread for every round, and one thread
+  that runs off the board; the poles with their hooks and wick-lighters; a
+  ladder; the wick bench with spools, scissors, glass chimneys and a lantern
+  in pieces; a table of lanterns, two of them lit; the clerk's desk by the
+  door.
+- **Ferrier's Yard** (`ferriers-yard`, 7,144) — "iron, hooves and an
+  argument, most watches". The forge, its brick hearth, hood and chimney;
+  the bellows on their lever; the quench tub and the coal bin; the anvil on
+  its stump with a shoe cooling on it; a rack of tongs and hammers; a wall
+  of shoes, rows of them, the horse's name chalked over each; the shoeing
+  stall with a blanket over its rail and a hoof stand; a barrel of shoes,
+  nail sacks and a cart wheel; and by the door the argument's table — two
+  stools set square to each other, two tankards, a price on a slate struck
+  out and written again.
+- **The Pilgrim Shrine** (`pilgrim-shrine`, 3,470, and
+  `pilgrim-shrine-violet`, 288) — "an offering table and a little violet
+  quiet". The offering table on two stone steps under a violet cloth, and
+  what people have left on it: candles, folded notes, coins, bowls, sprigs,
+  little carved things, a child's shoe; over it a pale moon on a violet
+  roundel; votive racks either side; kneelers either side of an aisle kept
+  clear for Pilgrim Sorell; prayer ribbons of every colour on a rail; staffs
+  and gourds; a shelf of tokens; the stoup by the door. The violet lamps are
+  a second asset: a model takes one glow colour, and the candles want warm.
+- **The New Chapel** (`new-chapel`, 2,934) — "newer than the city it stands
+  in, and it shows". Pews of pale new wood in two blocks of five; the altar
+  on its step under the sign of the hours (the Cathedral of Hours' twelve
+  marks and two hands); tall candle stands; the pulpit; the font by the
+  door; an iron crown of candles. And what is not finished: scaffolding up
+  the left wall before a mural sketched in charcoal and painted as far as
+  the shoulders — paint pots and a jar of brushes on the boards — pews not
+  yet set, stacked by the wall, sawhorses with a plank and a saw,
+  something under a sheet, buckets.
 
-The generic tavern pieces and the filler skip all four (`FITTED_HALLS`).
-Each has colliders from the script's numbers, a fire light (the Finch: its
-chandelier and the late-night room's lamp), and one thing to look at:
-the empty stage, the drying boots, the finch (who answers with three
-notes), the alms box.
+Each has colliders from the script's numbers, a fire or candle light, and
+one thing to look at: the dog, the rounds, the shoes, the offerings, the
+mural. Six halls had no line in `INTERIOR_PURPOSES` and were entered as "a
+room with its own small routine"; they have their own now (the Cold Assay
+and the Wayhouse among them).
 
-### The wild places keep their residents at night
-
-r156 found that a resident with no house to go to went "indoors" in the
-still watch where they stood: made invisible and flagged indoors, and
-offered for talk only from inside a home they do not have. Out past the
-wall that was a lantern keeper vanishing from her grove and a skywatcher
-from the knoll in the hours they are there for. `updateShelter` now leaves
-a wild or canon-place resident with no dwelling and no door to keep the
-dark at their post. Residents of the wild places who do have a house — in
-Lowmere — still go in.
-
-### Merrin Vale
-
-Merrin Vale, who walks the Cinder Market's round, spawned at (47, 111):
-inside the Cinder and Keg's walls. She never got out — in r156 she stood
-at the same spot for the whole of a 24-second probe — and in r157's first shots she
-was standing in front of the stage like part of the furniture. She starts
-on the corner of her round now.
+The New Chapel's first light hung a metre from the altar cloth and burned
+it white in the first shots; it hangs over the step now.
 
 ### Verified
 
@@ -100,41 +87,39 @@ Read off runs on the sealed file, in the harness (software WebGL, the
 standard profile's seed) unless it says otherwise.
 
 - `check-parse`, `audit-comments` (none), `audit-source` (B and C 0; section
-  A gains the four asset markers and comment words), `audit-dom`,
-  `audit-dead` (627 functions, 0 dead), `test-switch-frames`,
+  A gains the six asset markers and comment words), `audit-dom`,
+  `audit-dead` (632 functions, 0 dead), `test-switch-frames`,
   `test-switch-b9`: clean.
-- The models from three or four sides each (Blender previews). In the game,
-  nineteen shots across the four taverns — from each door, the hearths, the
-  stage, the bar from both sides, the stairs, the nook, the late-night room
-  from outside and in, the booths, the serving table, the pallets, the alms
-  box — looked at, then again after the fixes below.
-- Twenty standpoints across the four taverns, each held without the player
-  being moved, after two fixes: the Finch's first left-hand booth stood
-  across the approach to the late-night room's doorway (the booths moved
-  toward the front and the doorway 0.9 m east), and a point first chosen
-  before the Keg's stage stood in its step. At the bar E offers "talk with
-  Barkeep Varn"; at each of the four new things to look at, E offers it.
-- The still watch: Iselde of the Lanterns, Wren Halloway, Orren of the
-  Broken Hall, Sister Amery, Tobias Mere and Corvin Cliffwatch visible,
-  not indoors, and E offering talk with each; of 71 residents indoors in
-  that watch, three are of the wild places (Ada Wellwright, Old Brannoc,
-  Maud Millward, of Lowmere, who have houses).
-- Merrin Vale: at (27.4, 132.0) and then (22.7, 131.2), walking her round.
-- Runtime audit, r156 → r157: errors 0 → 0; villagers 374 → 374;
-  draw calls 467 → 467; triangles 2,083,155 → 2,112,097; colliders 11,776
-  → 11,689; doors 202 → 202; dialogue 17 wards / 102 branches, none
+- The models from three sides each (Blender previews); after them the
+  Drovers' bridles were made smaller and the chapel lost three plaster
+  patches that read as blank notices, and the shots in the game are of the
+  changed models. In the game, nineteen shots across the five halls, and
+  the chapel's two again after its light moved; the entry toast names each
+  hall's own line.
+- Nineteen standpoints across the five halls, each held without the player
+  being moved. At the dog, the rounds, the shoes, the offerings and the
+  mural, E offers each; in the shrine's aisle, E offers talk with Pilgrim
+  Sorell, who stood at his post through the probe.
+- Runtime audit, r157 → r158: errors 0 → 0; villagers 374 → 374;
+  draw calls 467 → 472; triangles 2,112,097 → 2,133,239; colliders 11,689
+  → 11,619; doors 202 → 202; dialogue 17 wards / 102 branches, none
   failed; tries that failed before one opened: none; unreachable
-  interactions: none; road obstructions in the carriageway 0 → 0,
-  intruding 231 → 231.
+  interactions: none; road obstructions in the carriageway 0 → 1,
+  intruding 231 → 231. The one in the carriageway is the shrine's new
+  stoup, at (98.6, 58.2), 1.3 m inside its front wall: the paving of the
+  street before the shrine runs into the building, and the stoup's collider
+  stands on it. Nobody walks or drives there, but the count is meant to be
+  0. On a copy of the file with the stoup 1.8 m further in, the boot found
+  no obstruction; r158 was archived by then, so the move is r159's.
 - All 15 captures looked at.
 - Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r157".
+  chooser installed, `requestDevice` settles, "Emberwatch — r158".
 - Not run: `npm run dist` (no Windows toolchain here).
 
 ### In the code
 
-- 4.42 MB (+701,414 bytes on r156).
-- 4 functions added: `placeCinderKeg`, `placeGildedFinch`, `placeSouthgateRest`, `placeWayhouse`.
+- 4.94 MB (+549,515 bytes on r157).
+- 5 functions added: `placeDroversRest`, `placeFerriersYard`, `placeLamplightersHall`, `placeNewChapel`, `placePilgrimShrine`.
 
 ### Play it
 
