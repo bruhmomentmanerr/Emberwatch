@@ -6,6 +6,23 @@ estimated.
 
 ---
 
+## 2026-10-02 — morning · r162 "Load time"
+
+**What was wrong.** "Why does it take a full minute to load?" Every
+landmark, kit piece and the forest arrives after the loader has gone, and
+each one recompiled the shaders of the entire scene under all three light
+tiers: 68 passes on one boot, 67 of them after the loader, 16,872 ms in the
+harness.
+
+**What changed.** Only the piece that just arrived is compiled, and pieces
+that arrive together share one pass on the next tick. PROJECT.md §0.
+
+**What proved it.** Same harness: 2 passes, 556 ms. Screenshots after load
+show the city whole; audits clean; variants 6/6. Not measured on Windows,
+where each compile costs more.
+
+---
+
 ## 2026-10-02 — morning · r161 "Peak Pro Plasma"
 
 **What was wrong.** On a new Peak Pro Plasma every connection timed out at

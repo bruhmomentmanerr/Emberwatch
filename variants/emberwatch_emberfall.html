@@ -215,7 +215,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r161 Peak Pro Plasma</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r162 Load time</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4759,6 +4759,8 @@ const FRAME_COST={nav:0,villagers:0,render:0,watch:0,shelter:0,meetings:0,walk:0
 // with only a console warning to show for it. Nothing reads it before
 // warmShaders writes it, so the only thing that matters is that it exists.
 let shaderWarmMs=0;
+// (r162) warmShaders' queue, declared up here for the same reason.
+const warmQueue=new Set(); let warmTimer=0, shaderWarmPasses=0;
 function renderFrame(){ const started=performance.now(); renderer.info.reset(); renderer.render(scene,camera); if(BLOOM.on)bloom.render(); FRAME_COST.render=performance.now()-started; }
 
 // lights
@@ -8100,7 +8102,7 @@ function plantForest(spots){
     }
     mesh.name='forest'; mesh.castShadow=false; mesh.receiveShadow=false; mesh.frustumCulled=false;
     scene.add(mesh); FOREST.mesh=mesh; FOREST.spots=spots; FOREST.shown=new Uint8Array(spots.length).fill(1);
-    if(typeof warmShaders==='function')warmShaders();
+    if(typeof warmShaders==='function')warmShaders(mesh);
   }).catch(error=>console.warn('the forest did not load',error));
 }
 // Fireflies (r152). Out at the forest's edge and along the brook, within
@@ -39604,7 +39606,7 @@ function placeLandmark(name,b64,points,opts={}){
     if(opts.mover){ const p=points[0]; base.computeVertexNormals(); boxProjectUV(base,opts.tile||4);
       const mesh=new THREE.Mesh(base,material); mesh.name='landmark-'+name; mesh.rotation.order='YXZ'; mesh.rotation.y=p.ry||0; mesh.position.set(p.x,p.y||0,p.z); if(p.s)mesh.scale.setScalar(p.s);
       mesh.castShadow=opts.shadow!==false; mesh.receiveShadow=true; scene.add(mesh); LANDMARK_MOVERS.push({mesh,...opts.mover}); restampShadows();
-      if(typeof warmShaders==='function')warmShaders(); return; }
+      if(typeof warmShaders==='function')warmShaders(mesh); return; }
     const parts=[], m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(0,0,0,'YXZ'), at=new THREE.Vector3(), sc=new THREE.Vector3();
     for(const p of points){ at.set(p.x,p.y||0,p.z); q.setFromEuler(e.set(p.rx||0,p.ry||0,p.rz||0,'YXZ')); sc.set(p.s||1,p.s||1,p.s||1); parts.push(base.clone().applyMatrix4(m.compose(at,q,sc))); }
     base.dispose();
@@ -39612,7 +39614,7 @@ function placeLandmark(name,b64,points,opts={}){
     if(!mesh)return; mesh.name='landmark-'+name;
     mesh.castShadow=opts.shadow!==false; mesh.receiveShadow=true; scene.add(mesh); LANDMARK_MESHES.push(mesh);
     restampShadows();
-    if(typeof warmShaders==='function')warmShaders();
+    if(typeof warmShaders==='function')warmShaders(mesh);
   },error=>console.warn('landmark '+name+' did not parse',error));
 }
 // Falling water: a sheet whose streaks run down it, thickening to foam where
@@ -40090,7 +40092,7 @@ function dressPoints(points,b64,material){
     // The pieces arrive a tick after the city is built, which is after the
     // shader warm-up has already run; warm the new material now rather than
     // compiling it in the middle of the first street the player walks down.
-    if(typeof warmShaders==='function')warmShaders();
+    if(typeof warmShaders==='function')warmShaders(mesh);
   });
 }
 function dressCityFronts(){
@@ -46605,7 +46607,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r161',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r162',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -46745,18 +46747,38 @@ function syncResidentBatch(){ if(residentBatch)residentBatch.sync(); }
 // and compiles it against the lights currently shown, so doing that once per
 // tier while the loader is still up moves the whole cost into loading. A layer
 // that adds lights calls EMBER.warmShaders() again once they exist.
-function warmShaders(){
+//
+// (r162) The owner: "why does it take a full minute to load?" Most of it was
+// this. Every landmark, kit piece and the forest arrive one by one after the
+// loader is gone, and each called warmShaders(), which compiled the whole
+// scene three times over: 68 calls on one boot, 67 of them after the loader
+// had gone, 200-300 ms each in the harness — 17 s of the game frozen in
+// steps right after it looked loaded, and on Windows, where each new program
+// is a slow Direct3D compile, much more. Now a caller passes the piece it just
+// added and only that is compiled (against the scene's lights, under each
+// tier), and the pieces that arrive together are warmed in one pass on the
+// next tick. With no piece (the boot, a variant's lamps) the whole scene is.
+function warmTiers(roots){
   // Every tier is exactly its size in lights (r115), so warming a tier is
   // showing that many dark pads and nothing else.
   const started=performance.now(), saved=lights.map(entry=>entry.light.visible), padSaved=padLights.map(pad=>pad.visible);
   lights.forEach(entry=>{ entry.light.visible=false; });
-  for(const tier of LIGHT_TIERS){ padLights.forEach((pad,index)=>{ pad.visible=index<tier; }); renderer.compile(scene,camera); }
+  for(const tier of LIGHT_TIERS){ padLights.forEach((pad,index)=>{ pad.visible=index<tier; }); for(const root of roots)renderer.compile(root,camera,scene); }
   lights.forEach((entry,index)=>{ entry.light.visible=saved[index]; });
   padLights.forEach((pad,index)=>{ pad.visible=padSaved[index]; });
   lightCullAt=-1;
-  shaderWarmMs+=performance.now()-started;
+  shaderWarmMs+=performance.now()-started; shaderWarmPasses++;
 }
-LMSG.textContent='warming the lamps…'; warmShaders();
+function warmShaders(root){
+  warmQueue.add(root&&root.isObject3D?root:scene);
+  if(warmTimer)return;
+  warmTimer=setTimeout(()=>{
+    warmTimer=0;
+    const roots=warmQueue.has(scene)?[scene]:[...warmQueue].filter(root=>root.parent); warmQueue.clear();
+    if(roots.length)warmTiers(roots);
+  },0);
+}
+LMSG.textContent='warming the lamps…'; warmTiers([scene]);
 // The diagnostics can run while the city is still being built, before the batch exists.
 function residentBatchInfo(){ try{ return residentBatch?{residents:residentBatch.residents,instances:residentBatch.instances,vertices:residentBatch.vertices,indices:residentBatch.indices}:null; }catch{ return null; } }
 window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shops:SHOPS,roads:ROAD_RECTS,rings:ROAD_RINGS},
@@ -46927,7 +46949,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Emberfall — variant layer over base r161 -->
+<!-- Emberwatch — Emberfall — variant layer over base r162 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBERFALL                                      variant layer
