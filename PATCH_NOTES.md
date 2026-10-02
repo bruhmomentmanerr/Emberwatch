@@ -1,217 +1,83 @@
-**r159 — the people** · 1.59.0 · 2026-10-02 · phase 5, world depth
+**r160 — bluetooth pairing** · 1.60.0 · 2026-10-02 · phase 5, world depth
 
 ### Summary
 
-the people. Every resident rebuilt from a kit (NPC KIT in index.html): a mask atlas drawn at load (29 patterns and 32 painted faces), lofted and tubed surfaces with pattern coordinates, colours in the vertices, one material; a look per resident from their name, people and trade, and hand-made looks for the characters in the owner's reference videos; knees, used by the walk and the poses; a far version built at low detail. The hooded watcher and the two Skywatch companions are kit people too; the shrine's stoup moved off the paving. Verified: parse/audit/dead/comments clean; lineup, walk, pose, at-home and posed-figure shots; frame cost against r158 at six standpoints; 6/6 variants built and booted; smoke clean (r159 in the title, road obstructions 0). The runtime audit and the captures were stopped unfinished, at the owner's word to push.
+Bluetooth pairing. Windows/Linux native pairing confirmation and PIN comparison for the selected device; cancel, dialog failure and window closure settle callbacks. PIN-entry devices are directed to system settings first. Corrected the false file:// Bluetooth claim in docs and all release notes. Physical-device Windows test still required.
 
 ### Patch notes
 
-**State: r159 / 1.59.0, sealed 2026-10-02 ("the people").** The owner
-sent two reference videos (AI video, "think of ps2/xbox era rpg … if you
-want to copy, copy") and asked for the residents to look "less like
-planned/generated geometry and more unique per npc". r159 rebuilds every
-resident from a kit of modelled, patterned parts, gives each one a look of
-their own, and puts knees in their legs.
+**State: r160 / 1.60.0, sealed 2026-10-02 ("Bluetooth pairing").** The owner
+reported that the desktop Bluetooth connection hangs while the local HTML
+connects in Chrome. This revision implements the missing pairing handler
+and corrects the inaccurate documentation about `file://`.
 
-**Next:** people in the halls of an evening (nobody sits at the hall
-tables yet). The kit can do more than it is asked to: the reference
-frames also have scarves worn over the mouth, shawls, wide sleeves on the
-long-ears, and carried things (baskets, a lantern on a pole) that are
-still the old primitives. A middle level of detail between the near rig
-and the far version, if the frame cost below ever matters on real
-hardware. Then the towers of the Moon Archive and the Northwatch Guild,
-and stairs up to the outer wall's walk. The Windows installers for
-r143–r159 have not been built.
+### Bluetooth pairing
 
-### What the references asked for
+The existing in-game chooser already releases pointer lock and answers the
+device-selection callback. The desktop main process lacked the separate
+Windows/Linux pairing handler. Electron's session API documentation says
+pairing requiring additional validation is automatically cancelled without
+it; this is a plausible missing step, not a diagnosis proven on the device.
 
-Frames were pulled from both videos with ffmpeg (imageio-ffmpeg in the
-Blender venv) and looked at side by side with the r158 lineup. The r158
-residents were five- to eight-sided primitives in flat colours — a
-cylinder torso, a sphere head with box eyes, cylinder limbs — and four
-hundred of them read as one doll in eight costumes. The reference people
-are PS2/Xbox-era RPG characters: tartan shirts and dresses, knit,
-striped stockings, frilled white dresses with puffed sleeves, witch hats
-with bent tips, round glasses, elf ears, chunky locks of hair with a
-lighter band, faces painted on — eyes, brows, a mouth — and every one of
-them different.
+The handler is registered only when the platform exposes the API. It checks
+the initiating frame and selected device, then uses a native dialog to ask
+for confirmation or display a PIN to compare. Cancel is the default choice.
+Requests settle once even if a dialog fails, another pairing request arrives
+or the window closes. Devices requiring PIN entry are told to pair in system
+Bluetooth settings and reconnect; no PIN is guessed. macOS handles pairing
+itself. The renderer's BLE commands and device-write paths are unchanged.
 
-### The kit
+### Documentation and release
 
-`// >>> NPC KIT` in `index.html`, between the villagers' materials and
-`mergeTinted`. Nothing is loaded from a file:
+Chrome can use Web Bluetooth from a local HTML file on supported systems;
+the owner already does. The README, catalog, architecture/handoff docs,
+main-process comments and harness comments now say this accurately. The
+release-note generator corrects the same false claim in every release's
+"Play it" text. The desktop app's stable origin, fetch/CORS support and
+custom discovery/pairing prompts remain useful.
 
-- **One mask atlas**, drawn on a canvas at load: 1024², eight by eight
-  tiles of 128. Twenty-nine patterns and a plain tile (tartan, dark tartan, gingham, windowpane,
-  stripe, thin stripe, pinstripe, knit, cable, linen, leather, fleece,
-  quilt, lace, dots, floral, twill, patch, a hem band, two hairs, wood,
-  metal, chain, scale, fur, candy, an emblem, feather) and thirty-two
-  faces. Each tile is a mask in three channels: R takes the resident's
-  second colour, G darkens, B lightens to a pale ivory. A tartan is red
-  where the mask says "second colour" and shadowed where the threads
-  cross; a face is skin with the eyes, brows, mouth, freckles or a scar
-  drawn into it.
-- **Surfaces lofted from rings and tubes** (`NpcMesh`: `surf`, `loft`,
-  `tube`), smooth-shaded, with pattern coordinates in metres so a check
-  is the same size on a sleeve as on a back. Torso and skirt are lofts
-  through Catmull-Rom rings; collars, frills, hems, aprons, vests, belts
-  with buckles, cuirasses, tabards, cloaks with hoods, scarves, satchels
-  and wings hang on it. The head is a loft too, with the face projected
-  onto its front, a nose, and human, gnome or elf ears; hair is a cap
-  plus locks (tubes that taper), in twelve styles, with buns and braids;
-  beards in four; hats in ten (the witch's has its bent tip); glasses.
-- **Colours ride in the vertices** as sRGB bytes, two per vertex, with a
-  tile and the pattern coordinates; the shader (`NPC_KIT_MAT`,
-  `onBeforeCompile` on the colour chunk) decodes them and samples the
-  atlas. One material and one atlas serve every resident, so the resident
-  batch is still one draw call — indexed now, where it was not.
-- **A look per resident** (`npcKitLook`), seeded from their name: their
-  people set the proportions (gnomes short-legged and big-headed,
-  long-ears tall and narrow, stonekin broad), their trade the outfit, and
-  the seed everything else — face, skin and eye colour, hair style and
-  colour, beard, pattern and colours of every garment, hat, glasses,
-  boots, elder or not. The visual canon's style tags keep their meaning:
-  glasses, long locks, banded socks, moon-pale cuffs, and the rare
-  sky-marked resident, whose fins became small wings. A trade still
-  decides what is carried.
-- **Hand-made looks** (`NPC_KIT_LOOKS`) for the characters the reference
-  frames show: Wren Halloway in a tartan shirt and a witch's hat; Lysa
-  Star-Eyed, the winged long-ear in a frilled white dress with round
-  glasses and striped stockings; Orren of the Broken Hall, the wizard;
-  Corvin Cliffwatch, hooded; Nell Red-Sock; and Barkeep Varn, Archivist
-  Lysa, Pilgrim Sorell and Chamberlain Ash as their rooms describe them.
-
-### Knees, and poses that use them
-
-The rig is the same one every system drives (a head pivot, two arms with
-a grip at the palm, two legs) with a knee in each leg: thigh 0.43 and shin
-0.49 of the leg length L, under a hip at 0.92 L. In the walk a knee bends
-while its leg swings forward and straightens to take the weight. The
-reference roles' poses were worked again for two-part legs: sitting on
-the ground with a knee drawn up, kneeling with one shin flat behind,
-crouching at a blade, running. Indoors, a sitter is lowered by the
-difference between the kit's hip and the old figures' 0.54, the height
-every seat in the city was placed for. The pipe smoke rises from the kit's
-pipe, at the kit's head height.
-
-### Far away
-
-Each resident's far version (shown past 46 m, hidden again inside 41 m)
-is the same look built again at low detail, not the near parts baked
-together. A third detail tier (`npcSeg`) was added for it after the first
-measurements: about two thirds of the old low-detail segment counts,
-fewer hair locks, and no nose, glasses, thumbs or buckles at that range.
-Measured over all 374 residents in the game, an average figure is 5,171
-triangles near (head 1,996 — the hair is most of it — torso 1,323, shins and
-boots 785, arms 747, thighs 320). The far version was 1,698 at the old low
-detail and is 1,059 with the new tier. The resident batch holds 4,288 parts,
-1,595,510 vertices and 6,987,834 indices; r158's held 4,029 parts and
-2,204,136 vertices, not indexed. Triangles drawn, `probe-resident-batch`, r158
-→ r159: the north gate 2,133,239 → 2,169,375, the market 1,282,709 →
-1,363,693, the market looking back 651,383 → 712,289. Frame cost in software
-WebGL at the six standpoints of the city frame-cost probe, one run each, median
-of 30 frames, r158 → r159: the Cinder Market 3,775.8 → 4,017.5 ms, the north
-avenue 4,063.4 → 4,365.3, a west-ward street 3,191.7 → 3,238.5, over the roofs
-2,810.8 → 2,918.4, the belfry 3,337.4 → 3,397.8, outside the north gate 974.7 →
-1,021.0. Software rendering is only good for comparison; nothing was
-measured on a GPU.
-
-### The posed figures
-
-The hooded watcher on the Lowmere prow and the two companions on the
-Skywatch knoll were modelled figures in one flat colour. They are
-kit people now (`placePosedFigures`): the hooded watcher standing in a
-cloak to the boots, and on the knoll a winged long-ear in a pale dress
-hugging her knees and a woman in a witch's hat leaning back on her hands,
-both looking up at the moon. The knoll pair sat 0.8 m nearer the edge
-before; out there the crown has begun to fall away and a seated figure's
-legs floated over the slope, so they sit further in. The two models are
-no longer in the page (`tools/assets/hooded-watcher.py` and its `.glb`
-files stay, as history).
-
-### Also
-
-- The Pilgrim Shrine's stoup is 1.8 m further in (r158's audit found its
-  collider on the street's paving): the model and its collider.
-- The resident batch is named (`resident-batch`). `probe-resident-batch`
-  took "the" BatchedMesh in the scene, which since r153 is a street
-  cell, and threw; it asks by name now.
-- The first run in the game showed pale skins going grey under the
-  cobalt night; the palette was warmed.
-
-### Every revision released
-
-After the seal the owner asked for every revision to be published as a
-downloadable GitHub version with its commits and patch notes, and for a
-project overview.
-
-- `releases/build-notes.js` writes `releases/manifest.json`, a notes file per
-  revision (`releases/notes/`) and `CHANGELOG.md`, from the archive, the
-  CATALOG timeline, the sessions' sections of this file and its revision
-  table. A revision with no written notes gets what can be read off it: its
-  name, the caption in its own panel header, its phase, its size, and the
-  functions it added and removed against the one before. 147 revisions,
-  r04 to r159 — the 145 archived files, and r137 and r139, which were
-  never archived but survive in the repository's first commit (the copy at
-  its root, and its live game). Versions are given from r132 on, where the
-  record has them; dates come from the timeline and the sessions, and three
-  that neither gives are placed between their neighbours.
-- `releases/publish.js`, run by `.github/workflows/publish-revisions.yml` on
-  GitHub, gives every revision a commit of its own — the game file and its
-  notes, the one before as its parent, the owner as author, dated on the
-  revision's day — a tag on it, and a release with the game file attached.
-  The repository's history begins at r139, so for the revisions before it
-  these are the only commits there are; comparing two tags shows what changed.
-  It keeps what is already published, so a rerun finishes an interrupted one.
-  A second job builds the Windows installer and the portable build for the
-  newest revision on GitHub's Windows runner (unsigned) and attaches them to
-  its release; the save survives installing over an older version, since every
-  version is the same app (`com.emberwatch.app`).
-- `README.md` is the overview: what the game is, how to play any revision,
-  what is in it, how it is built, the repository, the history.
+The package and lockfile are stamped 1.60.0, the desktop title and renderer
+diagnostics r160. The archive is `emberwatch_3_r160-bluetooth-pairing.html`;
+it must remain byte-identical to the live renderer. Six variants use r160.
+The Windows release workflow builds the setup and portable executables.
 
 ### Verified
 
-Read off runs on the sealed file, in the harness (software WebGL, the
-standard profile's seed) unless it says otherwise.
+- Parse, source (sections B/C zero), DOM, dead-code and comment audits passed;
+  the captured Switch-frame and b9 tests passed. The renderer differs from
+  the r159 archive only in its two revision stamps; the r160 archive is
+  byte-identical to the live renderer, and shipped archives were not edited.
+- `node tools/test-bluetooth-pairing.js` passed confirmation, PIN display,
+  cancellation, dialog failure, frame/device scope, overlapping requests,
+  window closure and API-unavailable platform checks without device writes.
+- Electron 43.4.1 desktop smoke: r160 in the title and diagnostics, secure
+  context, Bluetooth API, preload bridge, WebGL, game boot and chooser present.
+  A real request rejected with `NotFoundError` on this adapter-less Linux host
+  rather than hanging; this does not test physical pairing.
+- `tools/smoke-bluetooth.js` loaded the real app/main/preload/renderer and
+  passed synthetic chooser selection/cancellation and pairing confirmation.
+  The actual session handler was registered, and the WebGL context stayed
+  healthy. The chooser screenshot was inspected. Discovery and dialog
+  answers were simulated; no radio, GATT connection or device writes occurred.
+- Variants built 6/6 and `node tools/check-variants.js` booted/reported 6/6,
+  all at r160. Package and lockfile both read 1.60.0. Release generation found
+  148 unique revisions with notes; publishing dry-run built the history.
+- Windows setup and portable builds are produced by the release workflow
+  after the source push. That job now uses Node 24 and runs the audits,
+  including the pairing tests, before packaging.
 
-- `check-parse`, `audit-comments` (none), `audit-source` (B and C 0),
-  `audit-dom`, `audit-dead` (668 functions, 0 dead), `test-switch-frames`,
-  `test-switch-b9`: clean.
-- The kit in a studio page first (its own figures, faces close up), then in
-  the game: a lineup outside the north gate of a resident of every trade and
-  people and the place-bound roles, the faces, the far versions at 30 and
-  55 m. Pale skins went grey under the cobalt night on the first run; the
-  palette was warmed and the lineup taken again.
-- Walking: eight residents held walking on the spot, from the side — the
-  knee bends through the swing.
-- Poses: the fourteen place-bound residents side by side, side-on: sitting
-  with a knee drawn up (Corvin lowered 0.721 m), kneeling, crouching,
-  running.
-- At home: the 65 residents with a home stood at their own doors in the
-  still watch, and the game's own shelter code took in all 65 — 20 to sit,
-  32 to the hearth, 13 to bed. Shots of each pose from the room and from the
-  side: on their stools at the table, crouched at the fire. (The r114
-  at-home probe, which waits for residents to walk home, found 2 of 65 home
-  after four minutes on r158 as on r159: they walk slowly, not a
-  regression.)
-- The posed figures from their canon captures and from four sides; the knoll
-  pair moved further in twice after looking.
-- Not run: the runtime audit and the canon captures. Both were started on
-  the sealed file and stopped when the owner asked for the work to be
-  pushed. The smoke run's own diagnostics (below) are what there is: no
-  error, 374 villagers, road obstructions in the carriageway 0.
-- Variants 6/6 built, 6/6 booted. Smoke: game booted, WebGL, bridge,
-  chooser installed, `requestDevice` settles, "Emberwatch — r159"; road
-  obstructions in the carriageway 0.
-- Not run: `npm run dist` (no Windows toolchain here).
+**Next:** install r160 on Windows, put the device in pairing mode, close any
+other app connected to it, and retry Connect. Check the pairing prompt and
+that GATT/services and telemetry become available. Repeat with an existing
+bond and with Cancel. No physical device or Windows Bluetooth adapter is
+available in this cloud environment, so the reported hang is not yet proven
+resolved. The next city/NPC work remains the r159 handoff below.
 
 ### In the code
 
-- 4.97 MB (+26,192 bytes on r158).
-- 37 functions added: `NpcMesh`, `npcBrim`, `npcBuildArm`, `npcBuildBeard`, `npcBuildGlasses`, `npcBuildHair`, `npcBuildHat`, `npcBuildHead`, `npcBuildLeg`, `npcBuildShin`, `npcBuildTorso`, `npcBuildWings`, `npcCap`, `npcDarken`, `npcDims`, `npcFaceTile`, `npcHairLine`, `npcHairLocks`, `npcHash`, `npcHeadShape`, `npcKitGeometry`, `npcKitLod`, `npcKitLook`, `npcKitParts`, `npcKitRig`, `npcLighten`, `npcLock`, `npcMaskAtlas`, `npcMaskTiles`, `npcNoise`, `npcPaint`, `npcRand`, `npcRgb`, `npcSeg`, `npcSleeveRings`, `npcTorsoRings`, `placePosedFigures`.
-- 1 function removed: `buildVillagerLod`.
+- 4.97 MB (+7 bytes on r159).
+- No functions added or removed.
 
 ### Play it
 
-Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. The Bluetooth device panel needs a secure origin, which a file opened from disk does not have; the desktop app in `app/` gives it one.
+Download the `.html` below and open it in a Chromium browser (Chrome or Edge): the whole game is that one file. Chrome can also use Web Bluetooth from a local HTML file on supported systems; browser, OS and adapter support still matter. The newest release also includes the Windows desktop app, with its own Bluetooth chooser and pairing prompts.
