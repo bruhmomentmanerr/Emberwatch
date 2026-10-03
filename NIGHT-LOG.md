@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-03 · r165 "Facing out"
+
+**What was wrong.** In bright light, close up: hands, toes and beards
+ending in spikes; boots cut through by the calf; and, underneath both,
+every sleeve, thigh, shin and boot built inside out since r159, because a
+loft written from the joint down faces inward. From outside you saw each
+limb's far inner wall, lit backwards, with whatever was inside showing
+through it.
+
+**What changed.** `loft` orders its rings; `tube` rounds ends that close to
+nothing; boots are sized from the shin all round; thighs start inside the
+hips; shoulder caps lower; necks shorter. PROJECT.md §0.
+
+**What proved it.** A test of the kit's loft (descending rings: 0 normals
+out of 39 before, 39 of 39 after); studio close-ups of ten residents
+before and after; the market lineup in the game; audits, variants 6/6,
+smoke.
+
+---
+
 ## 2026-10-02 — afternoon · r164 "Windows pairing"
 
 **What was wrong.** On the owner's machine the Peak Pro Plasma was listed,

@@ -1974,5 +1974,18 @@
   },
   "asset": "emberwatch-r164-windows-pairing.html",
   "notes": "releases/notes/r164.md"
+ },
+ {
+  "tag": "r165",
+  "rev": 165,
+  "title": "facing out",
+  "version": "1.65.0",
+  "date": "2026-10-03T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r165-facing-out.html"
+  },
+  "asset": "emberwatch-r165-facing-out.html",
+  "notes": "releases/notes/r165.md"
  }
 ]

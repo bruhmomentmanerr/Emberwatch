@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.64.0 / build r164 ("Windows pairing")**,
+Current sealed source: **1.65.0 / build r165 ("Facing out")**,
 2026-10-02. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (152 revisions, r04 to r164). r143 to r158 were
+executables (153 revisions, r04 to r165). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r164'
+                      the strain-archive lookups work. BUILD_REVISION = 'r165'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r164-windows-pairing.html
+                      emberwatch_3_r165-facing-out.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r164, minus the revisions
+                    Phase 5 currently contains r70-r165, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r164-windows-pairing.html
+                    emberwatch_3_r165-facing-out.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,16 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 3      r165       Facing out. Every sleeve, thigh, shin and boot had
+                          been built inside out since r159 (lofts written
+                          top to bottom face inward); loft now orders its
+                          rings. Hands, thumbs, toes, beards, human ears and
+                          staff feet end in round domes, not points. Boots
+                          follow the shin front, side and back; thighs start
+                          inside the hips; shoulder caps lower; necks
+                          shorter. Verified: a loft normals test, studio
+                          close-ups before and after, in-game lineup,
+                          audits, variants 6/6, smoke.
     Oct 2      r164       Windows pairing. The desktop app's pairing handler
                           had refused every real request since r160: it
                           required the device id to equal the chooser's, but
