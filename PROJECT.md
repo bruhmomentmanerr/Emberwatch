@@ -4,10 +4,15 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r165 / 1.65.0**, sealed 2026-10-03 as "Facing out": half of
+Current: **r166 / 1.66.0**, sealed 2026-10-03 as "Faces and figures": the
+residents' heads and painted faces redrawn after the reference frames (a
+round skull, big eyes with an iris and catchlights, a small nose and
+mouth), each resident one presentation that hair, beard, face and shape
+follow, and fuller, broader figures (§0). Before it,
+**r165 / 1.65.0**, sealed 2026-10-03 as "Facing out": half of
 every resident (sleeves, thighs, shins, boots) had been built inside out
 since r159 and now faces out; hands, toes, beards and ears end round
-instead of in points; boots fit the leg (§0). Before it,
+instead of in points; boots fit the leg (§0b). Before it,
 **r164 / 1.64.0**, sealed 2026-10-02 as "Windows pairing": the
 desktop app had refused every Windows pairing request since r160 (it
 compared the chooser's id with the device name Chromium sends), so a Peak
@@ -273,7 +278,70 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-03, r165)
+## 0. Start here — where the last session left off (2026-10-03, r166)
+
+**State: r166 / 1.66.0, sealed 2026-10-03 ("Faces and figures").** The
+owner, on r165: "do you see what i mean? they're all very skinny and weird
+and disproportionate, and the faces gotta be reworked".
+
+**Next:** the owner's look. Still open on the residents: rigid joints (§0d),
+and clothes that are painted tubes where the references' are loose and
+folded. The Plasma test of r164's pairing fix is still owed.
+
+### Against the references
+
+The reference videos are still in the session uploads; frames were pulled
+with the imageio ffmpeg binary in the scratch Blender venv. The girl in the
+blue tartan dress and the pair under the meteors were the measure:
+
+- **Faces.** Theirs: a round, wide skull, cheekbones as wide as the
+  temples, a small chin standing forward, large eyes at mid-head with a big
+  iris, a dark pupil and catchlights under a heavy lash line, slim brows,
+  a small nose, a small mouth close to the chin. Ours: a narrow egg,
+  longest chin to crown, narrow slit eyes, a tube of a nose standing off
+  the face with its top above the eyes, and a long jaw below the mouth.
+  r166: `NPC_HEAD_RINGS` redrawn (wider, rounder, the chin raised and
+  forward, a flatter face front); all thirty-two painted faces redrawn
+  (`npcFaceTile`): eyes about a sixth wider and far taller, the iris
+  filling the eye lid to lid, a pupil, two catchlights, a heavy upper lash
+  line with a flick, a lid crease, slim brows well above, a shadow under a
+  small nose, a small mouth with a lower lip, shading under the
+  cheekbones; the face projection a little lower; the nose small and
+  round-tipped, between the eyes.
+- **Who they are.** The kit chose hair, beard, face, body shape and dress
+  each on its own, so one figure could carry a moustache with long red
+  hair and lashes, or a bust with a beard. Every resident now has one
+  presentation (`fem` in the look): a hand-made look may say; a beard
+  says man, a dress woman, the town-dress trade women; otherwise the seed,
+  a little under half women. Hair styles, beards (men only), faces (every
+  third, the heavier-lashed, are women's: `NPC_FACES_MEN`), the jaw and the
+  body's shape follow it. Wren Halloway, the reference's boy, is
+  beardless. This re-rolls every unscripted resident's look.
+- **Skinny.** About a tenth fuller for every people and build; the legs of
+  humans and long-ears shorter; shoulders broader (the arms' pivots at
+  0.19 W, the torso's shoulder line out to meet them); larger hands;
+  heads about 5 % larger; the head lower on a fuller neck.
+- Also: hair locks are chunkier clumps over a fuller cap, and use only the
+  top of the hair tile, so long hair no longer has a pale band across it at
+  the shoulders (the sheen stays a ring on the crown); a puffed sleeve has
+  no shoulder cap on top of its puff.
+
+Building the residents costs the same: `villager()` 1,237 and 1,156 ms on
+r166 against 1,208 ms on r165, same session.
+
+### Verified
+
+- `check-parse`, `audit-source` (A 229, B and C 0), `audit-dom`,
+  `audit-dead` (685, 0 dead), `audit-comments`, `test-switch-frames`,
+  `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- Studio head close-ups after each pass, against the reference frames; the
+  full row r165 against r166; the market lineup and close views in the game.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r166 in the title.
+- Not run: the runtime audit.
+
+---
+
+## 0b. r165 — where the session before that left off (2026-10-03)
 
 **State: r165 / 1.65.0, sealed 2026-10-03 ("Facing out").** The owner, on
 r164: "loads better now, push some more npc fixes".

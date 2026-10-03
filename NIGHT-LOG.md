@@ -6,6 +6,23 @@ estimated.
 
 ---
 
+## 2026-10-03 · r166 "Faces and figures"
+
+**What was wrong.** "They're all very skinny and weird and
+disproportionate, and the faces gotta be reworked." Against the reference
+frames: narrow egg heads with slit eyes and a tube nose; hair, beard, face
+and body shape chosen independently, so figures mixed a moustache with
+lashes and long hair; thin bodies with long legs and narrow shoulders.
+
+**What changed.** A rounder head; every face repainted with big eyes;
+one presentation per resident that the rest follows; fuller, broader
+figures with larger heads and hands. PROJECT.md §0.
+
+**What proved it.** Studio close-ups beside the reference frames after
+each pass; the market lineup in the game; audits, variants 6/6, smoke.
+
+---
+
 ## 2026-10-03 · r165 "Facing out"
 
 **What was wrong.** In bright light, close up: hands, toes and beards
