@@ -1,94 +1,67 @@
-**r167 — knight and wizard** · 1.67.0 · 2026-10-03 · phase 5, world depth
+**r168 — proportions** · 1.68.0 · 2026-10-03 · phase 5, world depth
 
 ### Summary
 
-Knight and wizard. The Rain Oath knight rebuilt from the kit after the reference: kneeling, plate, a barred helm, a torn pale cape, both hands on a greatsword burning blue; the r141 statue's model removed. The wizard's staff gnarled with a claw round a violet crystal; wizard hats taller. Peak: filters on control services only (Chrome's chooser opens again), and a pairing already in progress on Windows is waited for. Verified: simulated Peaks, studio and in-game shots, audits, variants 6/6, smoke.
+Proportions. The residents measured over 120 of them in head heights: 5.4 heads tall with hips at 2.5, big heads on short legs. Heads a fifth smaller, legs longer, widths a tenth less, women's shoulders narrower, thighs fuller at the top: humans now 7 heads, hips at 3.6. Verified: the measurements, studio and in-game shots, audits, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r167 / 1.67.0, sealed 2026-10-03 ("Knight and wizard").** The
-owner, on r166: "also the knight and wizard characters. Keep pushing
-updates with the NPCs." Then, mid-work, their Peak Pro Plasma's status
-report from the desktop app (the bond read failed with "Connection already
-in progress.", no pairing prompt in the log) and "it wont even open the
-chrome bluetooth menu anymore".
+**State: r168 / 1.68.0, sealed 2026-10-03 ("Proportions").** The owner,
+on r167: "continue, still stocky and skinny".
 
-**Next:** the owner's Peak test of r167, in Chrome and in the desktop app,
-and the status report's "last connection" log if it fails. If Windows
-still reports a pairing in progress: pair the Peak once in Windows
-Settings (Bluetooth & devices, Add device) while it flashes blue. Then the
-residents (§0a lists what is still open).
+**Next:** the owner's look at the residents. Still open: rigid joints, and
+clothes that are smooth tubes where the references' are loose and folded
+(§0b). The Peak test of r167 is still owed (§0a).
 
-### The Peak: Chrome's chooser, and a pairing already under way
+### Measured, not guessed
 
-- **Chrome stopped opening its chooser** in r161, when the device list
-  started filtering on all four Puffco services. One of them, SiLabs OTA,
-  is a firmware-update service: the kind Chrome's server-delivered Web
-  Bluetooth blocklist bars, and a blocklisted UUID in a *filter* rejects
-  the whole request before anything is shown (`BluetoothBlocklist::
-  IsExcluded(filters)` in Chromium), where in `optionalServices` it is only
-  dropped. Chrome's built-in list does not hold it; the additions arrive
-  from Google's servers and the desktop app gets none, which is why the
-  app's chooser still opened. Now only Lorax and legacy are filters, as
-  on puff.social; PUP and SiLabs are optional services. And if a browser
-  refuses the filtered request for any reason but the player closing it,
-  the unfiltered request is made at once, in the same click, and logged.
-- **"Connection already in progress."** In Chromium's Windows backend
-  (`BluetoothDeviceWinrt::Pair`, `BluetoothPairingWinrt::OnPair`) that is
-  `ERROR_INPROGRESS`: a pairing with that Peak is already running, either
-  one Windows began on its own (Swift Pair) or one left from an earlier
-  attempt. It came back in 0.1 s and r166 gave up; the pairing prompt
-  never reached our handler, so the log had no pairing line. Now the bond
-  read is retried while that pairing runs its course (waits of 2, 3, 4
-  and 6 s), only for that error; a pairing refused or failed is not
-  retried. If it never finishes, the message says to close other apps
-  using the Peak and pair it once in Windows Settings.
-- Simulated in the harness, three Peaks: one whose bond read is "in
-  progress" twice and then bonds (the handshake continues), one that never
-  finishes (the new message after four retries), and a browser refusing
-  the filtered request with a SecurityError (every device offered, unlock
-  reached). The filtered request is now 103 filters, with no SiLabs.
+r166 had answered "skinny" by making everything fuller and the heads
+bigger, which made the figures stockier. This time the residents were
+measured: a studio page builds 120 of them at rest and reports their
+proportions in head heights (chin to crown), the unit figure artists judge
+proportions in: height, hip height, shoulder span, the thickness of upper
+arm, forearm, thigh and calf, chest, waist and hips.
 
-### The knight
+| | r167 | r168 | a stylised-realistic adult |
+|---|---|---|---|
+| height (humans) | 5.6 heads | 7.0 | about 7 |
+| height (all adults) | 5.4 | 6.55 | |
+| gnomes | 4.6 | 5.45 | small people, big heads |
+| hip height (humans) | 2.6 heads | 3.6 | about half the height |
+| shoulders, men / women | 2.07 (both) | 2.26 / 2.09 | about 2.2 / 2.0 |
+| thigh at the top, against hips | 0.57 / 1.35 | 0.73 / 1.45 (men) | two thighs about the hips |
 
-The Rain Oath knight was the r141 Blender statue: a low-poly figure in one
-flat blue with a stick for a sword. He is now built from the kit
-(`npcBuildKnight`, in "what they carry"), after the owner's reference
-frame: kneeling on one knee, both gauntlets on a greatsword driven into
-the stone, its guard at his helm and its blade burning blue (a canvas of
-branching veins as its emissive map, and a blue lamp before him); a great
-helm barred across the face and bowed; layered pauldrons, couters and
-poleyns; mail at the throat and under the faulds; a pale cape torn at the
-hem. Dark steel in a metal-and-roughness material sharing the kit's
-shader. 4,140 triangles, built in 14 ms in the studio. `placeRainOath`
-runs long before the kit exists, so it records where he kneels
-(`RAIN_KNIGHT_AT`) and he is built just after `// <<< NPC KIT`; he faces
-the moon. The statue's embedded model (`OATH_KNIGHT_GLB`, 26 KB) is gone
-from the file; its source stays in `tools/assets/oath-knight.py`.
+Big heads on short legs read as stocky; thin thighs against wide hips, and
+everyone's shoulders a man's, read as skinny and boxy. r168:
 
-### The wizard
+- **Heads** about a fifth smaller (humans `H` 1.18 to 0.94; every people's
+  set from the table in `npcKitLook`), **legs** longer (humans `L` 0.92 to
+  1.0, long-ears 1.04). Overall height is about the same, so doors, seats
+  and interiors are unaffected.
+- **Widths** about a tenth less for every people: with the smaller head the
+  shoulders measured 2.4 heads, and 0.65 m in metres.
+- **Women's shoulders** a tenth narrower than men's (`shape.shoulder`, used
+  by `npcDims` and the torso's shoulder rings).
+- **Thighs** fuller at the top, so the two together are about as wide as
+  the hips, tapering to the same knee.
 
-Orren of the Broken Hall's staff was a straight black pole with a ring
-and a diamond; it is now gnarled dark wood that wanders as it rises, with
-knots, ending in a claw of three prongs round a long violet crystal, its
-light violet (`npcPropWizardStaff`). His hat, and every wizard's, is
-taller with a wider brim, as the reference's.
+The measuring page is `measure.js` in the session's studio scratch; the
+numbers above are read off it.
 
 ### Verified
 
 - `check-parse`, `audit-source` (A 229, B and C 0), `audit-dom`,
   `audit-dead` (688, 0 dead), `audit-comments`, `test-switch-frames`,
   `test-switch-b9`, `test-bluetooth-pairing`: clean.
-- The three simulated Peaks above.
-- The knight in a studio page and at the Rain Oath in the game; the old
-  statue gone, no errors; Orren front, back and his staff in the game.
-- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r167 in the title.
-- Not run: the runtime audit; a real Peak.
+- The measurements above; the studio row r167 against r168; the market
+  lineup and close views in the game.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r168 in the title.
+- Not run: the runtime audit.
 
 ### In the code
 
-- 4.98 MB (−12,687 bytes on r166).
-- 3 functions added: `npcBladeFire`, `npcBuildKnight`, `npcPropWizardStaff`.
+- 4.98 MB (+941 bytes on r167).
+- No functions added or removed.
 
 ### Play it
 
