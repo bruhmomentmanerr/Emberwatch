@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-03 · r167 "Knight and wizard"
+
+**What was wrong.** The Rain Oath knight was a flat-blue low-poly statue
+with a stick for a sword; the wizard's staff a pole with a diamond. On the
+owner's machine Chrome no longer opened its Bluetooth chooser, and the
+desktop app's bond read failed at once with "Connection already in
+progress.".
+
+**What changed.** The knight rebuilt from the kit after the reference; the
+wizard's staff and hat. The device request filters on the control
+services only, with a fallback to every device; the bond read waits out a
+pairing Windows already has under way. PROJECT.md §0.
+
+**What proved it.** Three simulated Peaks (in progress then bonded; never
+finishing; a refused filtered request); the knight and wizard in the
+studio and the game; audits, variants 6/6, smoke. Not tested on the real
+Peak.
+
+---
+
 ## 2026-10-03 · r166 "Faces and figures"
 
 **What was wrong.** "They're all very skinny and weird and

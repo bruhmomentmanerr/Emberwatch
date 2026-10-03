@@ -23,7 +23,7 @@ stop a real heat cycle.
 - **Any revision, in a browser:** every revision is a
   [release](../../releases) with the game attached as one `.html` file.
   Download it and open it in Chrome or Edge. The latest is
-  [r166 — Faces and figures](../../releases/latest).
+  [r167 — Knight and wizard](../../releases/latest).
 - **Installed, with the device panel:** the newest release also carries the
   Windows desktop app — `Emberwatch-<version>-setup.exe` (an installer) and
   `Emberwatch-<version>-portable.exe`. Chrome can also connect to devices
@@ -114,9 +114,9 @@ the release, its notes and the installer.
 | 2 | r20–r35 | Aug 18–19 | Vaneth, and the strain archive |
 | 3 | r36–r52 | Aug 19–20 | residents you can talk to, collision, the city compiler |
 | 4 | r53–r69 | Aug 20–21 | streets, crowds, the inner city, Electron |
-| 5 | r70–r166 | Aug 31 – Oct 3 | world depth: districts, interiors, beyond the wall, physical light, the reference places, sound, the forest, the halls, the people |
+| 5 | r70–r167 | Aug 31 – Oct 3 | world depth: districts, interiors, beyond the wall, physical light, the reference places, sound, the forest, the halls, the people |
 
-Every revision that survives — 154 of them, r04 to r166 — is published as a
+Every revision that survives — 155 of them, r04 to r167 — is published as a
 tag and a release with its game file and patch notes (`CHANGELOG.md` has them all
 in one place). The repository itself begins at r139; the revisions before it
 lived only as files, so each tag points at a commit made for it from the

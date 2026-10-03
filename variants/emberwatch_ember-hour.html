@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r166 Faces and figures</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r167 Knight and wizard</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4757,6 +4757,9 @@ renderer.info.autoReset=false;
 // guessing: r116-r118 chased 300 ms frames on the harness with nothing to
 // point at. `EMBER.frameCost` reads it.
 const FRAME_COST={nav:0,villagers:0,render:0,watch:0,shelter:0,meetings:0,walk:0,anchor:0,rooms:0};
+// (r167) Where the Rain Oath knight kneels, set by placeRainOath; he is built
+// after the residents' kit, which he is made from (see "// <<< NPC KIT").
+let RAIN_KNIGHT_AT=null;
 // Declared up here, not beside warmShaders() at the bottom where it used to
 // be. The street kit parses its glTF asynchronously and calls warmShaders()
 // from that callback, which can land before the bottom of this block has been
@@ -9914,254 +9917,6 @@ const FOXGLOVE_BRIDGE_GLB =
   '4QLcAuEC3QLfAt4C4gLfAuIC4wLdAuEC4gLdAuIC3gLcAt8C4wLcAuMC4ALkAuUC5gLkAuYC5wLoAu4C7ALoAuwC6gLkAukC6wLk' +
   'AusC5QLnAuYC7QLnAu0C7wLlAusC7QLlAu0C5gLkAucC7wLkAu8C6QI=';
 // <<< ASSET FOXGLOVE_BRIDGE
-// >>> ASSET OATH_KNIGHT (built by tools/assets/oath-knight.py, packed by tools/assets/pack-glb.js)
-const OATH_KNIGHT_GLB =
-  'Z2xURgIAAACcRwAAMAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
-  'Z2xiIChyMTQzKSBmcm9tIEtocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIn0sImV4dGVuc2lvbnNVc2VkIjpbIktIUl9t' +
-  'ZXNoX3F1YW50aXphdGlvbiJdLCJleHRlbnNpb25zUmVxdWlyZWQiOlsiS0hSX21lc2hfcXVhbnRpemF0aW9uIl0sInNjZW5lIjow' +
-  'LCJzY2VuZXMiOlt7Im5vZGVzIjpbMF19XSwibm9kZXMiOlt7Im1lc2giOjAsIm5hbWUiOiJvYXRoLWtuaWdodCIsInRyYW5zbGF0' +
-  'aW9uIjpbMCwwLjcwOTQ4MTk5OTI3ODA2ODUsLTAuMDYwNzA2OTEzNDcxMjIxOTI0XSwic2NhbGUiOlswLjUyODk5OTk4NDI2NDM3' +
-  'MzgsMC45MTA2NTcxMjI3MzEyMDg4LDAuODE5NzA2ODU3MjA0NDM3M119XSwibWVzaGVzIjpbeyJuYW1lIjoib2F0aC1rbmlnaHQi' +
-  'LCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJDT0xPUl8wIjoxfSwiaW5kaWNlcyI6Mn1dfV0sImFj' +
-  'Y2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyMiwibm9ybWFsaXplZCI6dHJ1ZSwiY291bnQiOjc2' +
-  'NCwidHlwZSI6IlZFQzMiLCJtaW4iOlstMzI3NjcsLTMyNzY3LC0zMjc2N10sIm1heCI6WzMyNzY3LDMyNzY3LDMyNzY3XX0seyJi' +
-  'dWZmZXJWaWV3IjoxLCJjb21wb25lbnRUeXBlIjo1MTIxLCJub3JtYWxpemVkIjp0cnVlLCJjb3VudCI6NzY0LCJ0eXBlIjoiVkVD' +
-  'NCJ9LHsiYnVmZmVyVmlldyI6MiwiY29tcG9uZW50VHlwZSI6NTEyMywiY291bnQiOjQwMzIsInR5cGUiOiJTQ0FMQVIifV0sImJ1' +
-  'ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVPZmZzZXQiOjAsImJ5dGVMZW5ndGgiOjYxMTIsImJ5dGVTdHJpZGUiOjgsInRh' +
-  'cmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlT2Zmc2V0Ijo2MTEyLCJieXRlTGVuZ3RoIjozMDU2LCJieXRlU3RyaWRlIjo0' +
-  'LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6OTE2OCwiYnl0ZUxlbmd0aCI6ODA2NCwidGFyZ2V0Ijoz' +
-  'NDk2M31dLCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjoxNzIzMn1dfSAgUEMAAEJJTgBk4a3vzgoAAJTwyvLRCwAAqPjO+mkNAADa' +
-  '9fgD2Q4AAHnp/wl0DwAAUNkQCvIOAADvzCQEjw0AACHKAPvyCwAANdLr8tsKAADU22DoCVMAAFXo8OreUwAA/O6K8S5VAACt7Bb5' +
-  'XVYAAHviDf7cVgAALNUb/nFWAAD7yjv5TVUAAKvItPH4UwAAU88M6xNTAADU22/y1kkAAOvmsvJtTAAA0exe8/pSAADE6iH0bloA' +
-  'ALrhoPRLXwAA7dWg9EtfAADjzCH0bloAANbKXvP6UgAAvdCy8m1MAADU23+rmlQAACHlt6vFVgAAFOpHrERcAABc6OushGIAAMfg' +
-  'Vq2ZZgAA4dZWrZlmAABMz+ushGIAAJTNR6xEXAAAh9K3q8VWAABO75DzNVIAAJrpkOs1UgAA1NtA6DVSAAAOzpDrNVIAAFnIkPM1' +
-  'UgAADs6Q+zVSAADU2+H+NVIAAJrpkPs1UgAAsvCQ815iAACV6v7qXmIAANTbcedeYgAAEs3+6l5iAAD1xpDzXmIAABLNI/xeYgAA' +
-  '1Nuw/15iAACV6iP8XmIAAIbMSJxPUQAAIutInE9RAAAi60ic/38AAIbMSJz/fwAAhsw2qU9RAAAi6zapT1EAACLrNqn/fwAAhsw2' +
-  'qf9/AAA9Npf64wUAAMMwvvmrDwAAyiIH+d8UAADcEsj4EBMAAG4IH/kXCwAAYAji+a8AAAC5Erf6t/gAAKIiOvvo9gAAqTAt+xz8' +
-  'AACiN0qrtP4AAB8zl6rCBgAAnicBqgsLAAB/Gs2pjgkAAOgRFKr9AgAA3RG1qmz6AABjGmSr2/MAAH0n0Kte8gAACjPFq6f2AAB6' +
-  'E9SqtP4AAGIXDrFg/gAARiFetDP+AACFLDezQ/4AANwzJK6I/gAA3DOEp+H+AACFLHCiJv8AAEYhSaE2/wAAYheapAn/AABDFpin' +
-  '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' +
-  'bXMAABsIQTltcwAAGBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki' +
-  '/xgZIv8YGSL/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/xgZIv8Y' +
-  'GSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/' +
-  'GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR' +
-  '/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88' +
-  'QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/' +
-  'PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR' +
-  '/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88' +
-  'QVH/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/' +
-  'CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/CBBM/wgQTP8IEEz/BAgi' +
-  '/wgQTP8ECCL/CBBM/wQIIv8IEEz/BAgi/wgQTP8ECCL/CBBM/wQIIv8IEEz/BAgi/wgQTP8ECCL/CBBM/wQIIv8IEEz/BAgi/wgQ' +
-  'TP8ECCL/CBBM/wQIIv8IEEz/BAgi/wgQTP8ECCL/CBBM/wQIIv8IEEz/BAgi/wgQTP8ECCL/CBBM/wQIIv8IEEz/BAgi/wQIIv8E' +
-  'CCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/' +
-  'BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/BAgi/wQIIv8ECCL/CAUD/wgFA/8IBQP/CAUD' +
-  '/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgF' +
-  'A/8IBQP/CAUD/wgFA/8IBQP/CAUD/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/PEFR/zxBUf88QVH/PEFR/zxBUf88' +
-  'QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/' +
-  'PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki' +
-  '/xgZIv8YGSL/GBki/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/GBki/xgZIv8Y' +
-  'GSL/GBki/xgZIv8YGSL/GBki/xgZIv88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/' +
-  'PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf8YGSL/GBki' +
-  '/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88' +
-  'QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/' +
-  'GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv88QVH/PEFR/zxBUf88QVH/PEFR' +
-  '/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxB' +
-  'Uf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88' +
-  'QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf88QVH/PEFR/zxBUf8BAQL/' +
-  'AQEC/wEBAv8BAQL/AQEC/wEBAv8BAQL/AQEC/xgZIv8YGSL/GBki/xgZIv8YGSL/GBki/xgZIv8YGSL/BAQJ/wQECf8EBAn/BAQJ' +
-  '/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQE' +
-  'Cf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8E' +
-  'BAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/' +
-  'BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ/wQECf8EBAn/BAQJ' +
-  '/wQECf9RW3P/UVtz/1Fbc/9RW3P/UVtz/1Fbc/9RW3P/UVtz/1Fbc/9RW3P/UVtz/1Fbc/8lQ/9AJUP/QCVD/0AlQ/9AJUP/QCVD' +
-  '/0AlQ/9AJUP/QCVD/0AlQ/9AJUP/QCVD/0AlQ/9AJUP/QCVD/0AlQ/9AVzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/8I' +
-  'BQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/CAUD/wgFA/8IBQP/VzwT/1c8E/9XPBP/' +
-  'VzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/9XPBP/VzwT/1c8E/8AAAEACgAA' +
-  'AAoACQABAAIACwABAAsACgACAAMADAACAAwACwADAAQADQADAA0ADAAEAAUADgAEAA4ADQAFAAYADwAFAA8ADgAGAAcAEAAGABAA' +
-  'DwAHAAgAEQAHABEAEAAIAAAACQAIAAkAEQAAAAgABwAHAAYABQAFAAQAAwADAAIAAQABAAAABwAHAAUAAwAHAAMAAQARAAkACgAK' +
-  'AAsADAAMAA0ADgAOAA8AEAAQABEACgAKAAwADgAKAA4AEAASABMAHAASABwAGwATABQAHQATAB0AHAAUABUAHgAUAB4AHQAVABYA' +
-  'HwAVAB8AHgAWABcAIAAWACAAHwAXABgAIQAXACEAIAAYABkAIgAYACIAIQAZABoAIwAZACMAIgAaABIAGwAaABsAIwASABoAGQAZ' +
-  'ABgAFwAXABYAFQAVABQAEwATABIAGQAZABcAFQAZABUAEwAjABsAHAAcAB0AHgAeAB8AIAAgACEAIgAiACMAHAAcAB4AIAAcACAA' +
-  'IgAkACwALQAkAC0AJQAlAC0ALgAlAC4AJgAmAC4ALwAmAC8AJwAnAC8AMAAnADAAKAAoADAAMQAoADEAKQApADEAMgApADIAKgAq' +
-  'ADIAMwAqADMAKwArADMALAArACwAJAArACQAJQAlACYAJwAnACgAKQApACoAKwArACUAJwAnACkAKwAsADMAMgAyADEAMAAwAC8A' +
-  'LgAuAC0ALAAsADIAMAAwAC4ALAA0ADUANgA0ADYANwA4ADsAOgA4ADoAOQA0ADgAOQA0ADkANQA3ADYAOgA3ADoAOwA1ADkAOgA1' +
-  'ADoANgA0ADcAOwA0ADsAOAA8AD0ARgA8AEYARQA9AD4ARwA9AEcARgA+AD8ASAA+AEgARwA/AEAASQA/AEkASABAAEEASgBAAEoA' +
-  'SQBBAEIASwBBAEsASgBCAEMATABCAEwASwBDAEQATQBDAE0ATABEADwARQBEAEUATQA8AEQAQwBDAEIAQQBBAEAAPwA/AD4APQA9' +
-  'ADwAQwBDAEEAPwBDAD8APQBNAEUARgBGAEcASABIAEkASgBKAEsATABMAE0ARgBGAEgASgBGAEoATABOAE8AWABOAFgAVwBPAFAA' +
-  'WQBPAFkAWABQAFEAWgBQAFoAWQBRAFIAWwBRAFsAWgBSAFMAXABSAFwAWwBTAFQAXQBTAF0AXABUAFUAXgBUAF4AXQBVAFYAXwBV' +
-  'AF8AXgBWAE4AVwBWAFcAXwBOAFYAVQBVAFQAUwBTAFIAUQBRAFAATwBPAE4AVQBVAFMAUQBVAFEATwBfAFcAWABYAFkAWgBaAFsA' +
-  'XABcAF0AXgBeAF8AWABYAFoAXABYAFwAXgBgAGgAaQBgAGkAYQBhAGkAagBhAGoAYgBiAGoAawBiAGsAYwBjAGsAbABjAGwAZABk' +
-  'AGwAbQBkAG0AZQBlAG0AbgBlAG4AZgBmAG4AbwBmAG8AZwBnAG8AaABnAGgAYABnAGAAYQBhAGIAYwBjAGQAZQBlAGYAZwBnAGEA' +
-  'YwBjAGUAZwBoAG8AbgBuAG0AbABsAGsAagBqAGkAaABoAG4AbABsAGoAaABwAHEAcgBwAHIAcwB0AHcAdgB0AHYAdQBwAHQAdQBw' +
-  'AHUAcQBzAHIAdgBzAHYAdwBxAHUAdgBxAHYAcgBwAHMAdwBwAHcAdAB4AHkAhwB4AIcAhgB5AHoAiAB5AIgAhwB6AHsAiQB6AIkA' +
-  'iAB7AHwAigB7AIoAiQB8AH0AiwB8AIsAigB9AH4AjAB9AIwAiwB+AH8AjQB+AI0AjAB/AIAAjgB/AI4AjQCAAIEAjwCAAI8AjgCB' +
-  'AIIAkACBAJAAjwCCAIMAkQCCAJEAkACDAIQAkgCDAJIAkQCEAIUAkwCEAJMAkgCFAHgAhgCFAIYAkwCGAIcAlQCGAJUAlACHAIgA' +
-  'lgCHAJYAlQCIAIkAlwCIAJcAlgCJAIoAmACJAJgAlwCKAIsAmQCKAJkAmACLAIwAmgCLAJoAmQCMAI0AmwCMAJsAmgCNAI4AnACN' +
-  'AJwAmwCOAI8AnQCOAJ0AnACPAJAAngCPAJ4AnQCQAJEAnwCQAJ8AngCRAJIAoACRAKAAnwCSAJMAoQCSAKEAoACTAIYAlACTAJQA' +
-  'oQCUAJUAowCUAKMAogCVAJYApACVAKQAowCWAJcApQCWAKUApACXAJgApgCXAKYApQCYAJkApwCYAKcApgCZAJoAqACZAKgApwCa' +
-  'AJsAqQCaAKkAqACbAJwAqgCbAKoAqQCcAJ0AqwCcAKsAqgCdAJ4ArACdAKwAqwCeAJ8ArQCeAK0ArACfAKAArgCfAK4ArQCgAKEA' +
-  'rwCgAK8ArgChAJQAogChAKIArwCiAKMAsQCiALEAsACjAKQAsgCjALIAsQCkAKUAswCkALMAsgClAKYAtAClALQAswCmAKcAtQCm' +
-  'ALUAtACnAKgAtgCnALYAtQCoAKkAtwCoALcAtgCpAKoAuACpALgAtwCqAKsAuQCqALkAuACrAKwAugCrALoAuQCsAK0AuwCsALsA' +
-  'ugCtAK4AvACtALwAuwCuAK8AvQCuAL0AvACvAKIAsACvALAAvQCwALEAvwCwAL8AvgCxALIAwACxAMAAvwCyALMAwQCyAMEAwACz' +
-  'ALQAwgCzAMIAwQC0ALUAwwC0AMMAwgC1ALYAxAC1AMQAwwC2ALcAxQC2AMUAxAC3ALgAxgC3AMYAxQC4ALkAxwC4AMcAxgC5ALoA' +
-  'yAC5AMgAxwC6ALsAyQC6AMkAyAC7ALwAygC7AMoAyQC8AL0AywC8AMsAygC9ALAAvgC9AL4AywB4AIUAhACEAIMAggCCAIEAgACA' +
-  'AH8AfgB+AH0AfAB8AHsAegB6AHkAeAB4AIQAggCCAIAAfgB+AHwAegB6AHgAggCCAH4AegDLAL4AvwC/AMAAwQDBAMIAwwDDAMQA' +
-  'xQDFAMYAxwDHAMgAyQDJAMoAywDLAL8AwQDBAMMAxQDFAMcAyQDJAMsAwQDBAMUAyQDMAM0A3wDMAN8A3gDNAM4A4ADNAOAA3wDO' +
-  'AM8A4QDOAOEA4ADPANAA4gDPAOIA4QDQANEA4wDQAOMA4gDRANIA5ADRAOQA4wDSANMA5QDSAOUA5ADTANQA5gDTAOYA5QDUANUA' +
-  '5wDUAOcA5gDVANYA6ADVAOgA5wDWANcA6QDWAOkA6ADXANgA6gDXAOoA6QDYANkA6wDYAOsA6gDZANoA7ADZAOwA6wDaANsA7QDa' +
-  'AO0A7ADbANwA7gDbAO4A7QDcAN0A7wDcAO8A7gDdAMwA3gDdAN4A7wDeAN8A8wDeAPMA8QDfAOAA9QDfAPUA8wDgAOEA9wDgAPcA' +
-  '9QDhAOIA+QDhAPkA9wDiAOMA+wDiAPsA+QDjAOQA/QDjAP0A+wDkAOUA/wDkAP8A/QDlAOYAAQHlAAEB/wDmAOcAAwHmAAMBAQHn' +
-  'AOgABQHnAAUBAwHoAOkABwHoAAcBBQHpAOoACQHpAAkBBwHqAOsACwHqAAsBCQHrAOwADQHrAA0BCwHsAO0ADwHsAA8BDQHtAO4A' +
-  'EQHtABEBDwHuAO8AEwHuABMBEQHvAN4A8QDvAPEAEwHwAPIAFQHwABUBFAHyAPQAFgHyABYBFQH0APYAFwH0ABcBFgH2APgAGAH2' +
-  'ABgBFwH4APoAGQH4ABkBGAH6APwAGgH6ABoBGQH8AP4AGwH8ABsBGgH+AAABHAH+ABwBGwEAAQIBHQEAAR0BHAECAQQBHgECAR4B' +
-  'HQEEAQYBHwEEAR8BHgEGAQgBIAEGASABHwEIAQoBIQEIASEBIAEKAQwBIgEKASIBIQEMAQ4BIwEMASMBIgEOARABJAEOASQBIwEQ' +
-  'ARIBJQEQASUBJAESAfAAFAESARQBJQEUARUBJwEUAScBJgEVARYBKAEVASgBJwEWARcBKQEWASkBKAEXARgBKgEXASoBKQEYARkB' +
-  'KwEYASsBKgEZARoBLAEZASwBKwEaARsBLQEaAS0BLAEbARwBLgEbAS4BLQEcAR0BLwEcAS8BLgEdAR4BMAEdATABLwEeAR8BMQEe' +
-  'ATEBMAEfASABMgEfATIBMQEgASEBMwEgATMBMgEhASIBNAEhATQBMwEiASMBNQEiATUBNAEjASQBNgEjATYBNQEkASUBNwEkATcB' +
-  'NgElARQBJgElASYBNwE3ASYBJwEnASgBKQEpASoBKwErASwBLQEtAS4BLwEvATABMQExATIBMwEzATQBNQE1ATYBNwE3AScBKQEp' +
-  'ASsBLQEtAS8BMQExATMBNQE1ATcBKQEpAS0BMQEpATEBNQE4ATkBRwE4AUcBRgE5AToBSAE5AUgBRwE6ATsBSQE6AUkBSAE7ATwB' +
-  'SgE7AUoBSQE8AT0BSwE8AUsBSgE9AT4BTAE9AUwBSwE+AT8BTQE+AU0BTAE/AUABTgE/AU4BTQFAAUEBTwFAAU8BTgFBAUIBUAFB' +
-  'AVABTwFCAUMBUQFCAVEBUAFDAUQBUgFDAVIBUQFEAUUBUwFEAVMBUgFFATgBRgFFAUYBUwE4AUUBRAFEAUMBQgFCAUEBQAFAAT8B' +
-  'PgE+AT0BPAE8ATsBOgE6ATkBOAE4AUQBQgFCAUABPgE+ATwBOgE6ATgBQgFCAT4BOgFTAUYBRwFHAUgBSQFJAUoBSwFLAUwBTQFN' +
-  'AU4BTwFPAVABUQFRAVIBUwFTAUcBSQFJAUsBTQFNAU8BUQFRAVMBSQFJAU0BUQFUAVUBVgFUAVYBVwFYAVsBWgFYAVoBWQFUAVgB' +
-  'WQFUAVkBVQFXAVYBWgFXAVoBWwFVAVkBWgFVAVoBVgFUAVcBWwFUAVsBWAFcAV0BZwFcAWcBZgFdAV4BaAFdAWgBZwFeAV8BaQFe' +
-  'AWkBaAFfAWABagFfAWoBaQFgAWEBawFgAWsBagFhAWIBbAFhAWwBawFiAWMBbQFiAW0BbAFjAWQBbgFjAW4BbQFkAWUBbwFkAW8B' +
-  'bgFlAVwBZgFlAWYBbwFmAWcBcQFmAXEBcAFnAWgBcgFnAXIBcQFoAWkBcwFoAXMBcgFpAWoBdAFpAXQBcwFqAWsBdQFqAXUBdAFr' +
-  'AWwBdgFrAXYBdQFsAW0BdwFsAXcBdgFtAW4BeAFtAXgBdwFuAW8BeQFuAXkBeAFvAWYBcAFvAXABeQFcAWUBZAFkAWMBYgFiAWEB' +
-  'YAFgAV8BXgFeAV0BXAFcAWQBYgFiAWABXgFiAV4BXAF5AXABcQFxAXIBcwFzAXQBdQF1AXYBdwF3AXgBeQF5AXEBcwFzAXUBdwFz' +
-  'AXcBeQF6AXsBgwF6AYMBggF7AXwBhAF7AYQBgwF8AX0BhQF8AYUBhAF9AX4BhgF9AYYBhQF+AX8BhwF+AYcBhgF/AYABiAF/AYgB' +
-  'hwGAAYEBiQGAAYkBiAGBAXoBggGBAYIBiQF6AYEBgAGAAX8BfgF+AX0BfAF8AXsBegF6AYABfgF+AXwBegGJAYIBgwGDAYQBhQGF' +
-  'AYYBhwGHAYgBiQGJAYMBhQGFAYcBiQGKAYsBkwGKAZMBkgGLAYwBlAGLAZQBkwGMAY0BlQGMAZUBlAGNAY4BlgGNAZYBlQGOAY8B' +
-  'lwGOAZcBlgGPAZABmAGPAZgBlwGQAZEBmQGQAZkBmAGRAYoBkgGRAZIBmQGKAZEBkAGQAY8BjgGOAY0BjAGMAYsBigGKAZABjgGO' +
-  'AYwBigGZAZIBkwGTAZQBlQGVAZYBlwGXAZgBmQGZAZMBlQGVAZcBmQGaAaIBowGaAaMBmwGbAaMBpAGbAaQBnAGcAaQBpQGcAaUB' +
-  'nQGdAaUBpgGdAaYBngGeAaYBpwGeAacBnwGfAacBqAGfAagBoAGgAagBqQGgAakBoQGhAakBogGhAaIBmgGhAZoBmwGbAZwBnQGd' +
-  'AZ4BnwGfAaABoQGhAZsBnQGdAZ8BoQGiAakBqAGoAacBpgGmAaUBpAGkAaMBogGiAagBpgGmAaQBogGqAasBrAGqAawBrQGuAbEB' +
-  'sAGuAbABrwGqAa4BrwGqAa8BqwGtAawBsAGtAbABsQGrAa8BsAGrAbABrAGqAa0BsQGqAbEBrgGyAbMBvQGyAb0BvAGzAbQBvgGz' +
-  'Ab4BvQG0AbUBvwG0Ab8BvgG1AbYBwAG1AcABvwG2AbcBwQG2AcEBwAG3AbgBwgG3AcIBwQG4AbkBwwG4AcMBwgG5AboBxAG5AcQB' +
-  'wwG6AbsBxQG6AcUBxAG7AbIBvAG7AbwBxQG8Ab0BxwG8AccBxgG9Ab4ByAG9AcgBxwG+Ab8ByQG+AckByAG/AcABygG/AcoByQHA' +
-  'AcEBywHAAcsBygHBAcIBzAHBAcwBywHCAcMBzQHCAc0BzAHDAcQBzgHDAc4BzQHEAcUBzwHEAc8BzgHFAbwBxgHFAcYBzwGyAbsB' +
-  'ugG6AbkBuAG4AbcBtgG2AbUBtAG0AbMBsgGyAboBuAG4AbYBtAG4AbQBsgHPAcYBxwHHAcgByQHJAcoBywHLAcwBzQHNAc4BzwHP' +
-  'AccByQHJAcsBzQHJAc0BzwHQAdEB2QHQAdkB2AHRAdIB2gHRAdoB2QHSAdMB2wHSAdsB2gHTAdQB3AHTAdwB2wHUAdUB3QHUAd0B' +
-  '3AHVAdYB3gHVAd4B3QHWAdcB3wHWAd8B3gHXAdAB2AHXAdgB3wHQAdcB1gHWAdUB1AHUAdMB0gHSAdEB0AHQAdYB1AHUAdIB0AHf' +
-  'AdgB2QHZAdoB2wHbAdwB3QHdAd4B3wHfAdkB2wHbAd0B3wHgAeEB6QHgAekB6AHhAeIB6gHhAeoB6QHiAeMB6wHiAesB6gHjAeQB' +
-  '7AHjAewB6wHkAeUB7QHkAe0B7AHlAeYB7gHlAe4B7QHmAecB7wHmAe8B7gHnAeAB6AHnAegB7wHgAecB5gHmAeUB5AHkAeMB4gHi' +
-  'AeEB4AHgAeYB5AHkAeIB4AHvAegB6QHpAeoB6wHrAewB7QHtAe4B7wHvAekB6wHrAe0B7wHwAfgB+QHwAfkB8QHxAfkB+gHxAfoB' +
-  '8gHyAfoB+wHyAfsB8wHzAfsB/AHzAfwB9AH0AfwB/QH0Af0B9QH1Af0B/gH1Af4B9gH2Af4B/wH2Af8B9wH3Af8B+AH3AfgB8AH3' +
-  'AfAB8QHxAfIB8wHzAfQB9QH1AfYB9wH3AfEB8wHzAfUB9wH4Af8B/gH+Af0B/AH8AfsB+gH6AfkB+AH4Af4B/AH8AfoB+AEAAgEC' +
-  'AgIAAgICAwIEAgcCBgIEAgYCBQIAAgQCBQIAAgUCAQIDAgICBgIDAgYCBwIBAgUCBgIBAgYCAgIAAgMCBwIAAgcCBAIIAgkCEQII' +
-  'AhECEAIJAgoCEgIJAhICEQIKAgsCEwIKAhMCEgILAgwCFAILAhQCEwIMAg0CFQIMAhUCFAINAg4CFgINAhYCFQIOAg8CFwIOAhcC' +
-  'FgIPAggCEAIPAhACFwIIAg8CDgIOAg0CDAIMAgsCCgIKAgkCCAIIAg4CDAIMAgoCCAIXAhACEQIRAhICEwITAhQCFQIVAhYCFwIX' +
-  'AhECEwITAhUCFwIYAhkCJQIYAiUCJAIZAhoCJgIZAiYCJQIaAhsCJwIaAicCJgIbAhwCKAIbAigCJwIcAh0CKQIcAikCKAIdAh4C' +
-  'KgIdAioCKQIeAh8CKwIeAisCKgIfAiACLAIfAiwCKwIgAiECLQIgAi0CLAIhAiICLgIhAi4CLQIiAiMCLwIiAi8CLgIjAhgCJAIj' +
-  'AiQCLwIkAiUCMQIkAjECMAIlAiYCMgIlAjICMQImAicCMwImAjMCMgInAigCNAInAjQCMwIoAikCNQIoAjUCNAIpAioCNgIpAjYC' +
-  'NQIqAisCNwIqAjcCNgIrAiwCOAIrAjgCNwIsAi0COQIsAjkCOAItAi4COgItAjoCOQIuAi8COwIuAjsCOgIvAiQCMAIvAjACOwIw' +
-  'AjECPQIwAj0CPAIxAjICPgIxAj4CPQIyAjMCPwIyAj8CPgIzAjQCQAIzAkACPwI0AjUCQQI0AkECQAI1AjYCQgI1AkICQQI2AjcC' +
-  'QwI2AkMCQgI3AjgCRAI3AkQCQwI4AjkCRQI4AkUCRAI5AjoCRgI5AkYCRQI6AjsCRwI6AkcCRgI7AjACPAI7AjwCRwI8Aj0CSQI8' +
-  'AkkCSAI9Aj4CSgI9AkoCSQI+Aj8CSwI+AksCSgI/AkACTAI/AkwCSwJAAkECTQJAAk0CTAJBAkICTgJBAk4CTQJCAkMCTwJCAk8C' +
-  'TgJDAkQCUAJDAlACTwJEAkUCUQJEAlECUAJFAkYCUgJFAlICUQJGAkcCUwJGAlMCUgJHAjwCSAJHAkgCUwIYAiMCIgIiAiECIAIg' +
-  'Ah8CHgIeAh0CHAIcAhsCGgIaAhkCGAIYAiICIAIgAh4CHAIcAhoCGAIgAhwCGAJTAkgCSQJJAkoCSwJLAkwCTQJNAk4CTwJPAlAC' +
-  'UQJRAlICUwJTAkkCSwJLAk0CTwJPAlECUwJLAk8CUwJUAlUCVgJUAlYCVwJYAlsCWgJYAloCWQJUAlgCWQJUAlkCVQJXAlYCWgJX' +
-  'AloCWwJVAlkCWgJVAloCVgJUAlcCWwJUAlsCWAJcAl0CXgJcAl4CXwJgAmMCYgJgAmICYQJcAmACYQJcAmECXQJfAl4CYgJfAmIC' +
-  'YwJdAmECYgJdAmICXgJcAl8CYwJcAmMCYAJkAmUCdQJkAnUCdAJlAmYCdgJlAnYCdQJmAmcCdwJmAncCdgJnAmgCeAJnAngCdwJo' +
-  'AmkCeQJoAnkCeAJpAmoCegJpAnoCeQJqAmsCewJqAnsCegJrAmwCfAJrAnwCewJsAm0CfQJsAn0CfAJtAm4CfgJtAn4CfQJuAm8C' +
-  'fwJuAn8CfgJvAnACgAJvAoACfwJwAnECgQJwAoECgAJxAnICggJxAoICgQJyAnMCgwJyAoMCggJzAmQCdAJzAnQCgwJ0AnUChQJ0' +
-  'AoUChAJ1AnYChgJ1AoYChQJ2AncChwJ2AocChgJ3AngCiAJ3AogChwJ4AnkCiQJ4AokCiAJ5AnoCigJ5AooCiQJ6AnsCiwJ6AosC' +
-  'igJ7AnwCjAJ7AowCiwJ8An0CjQJ8Ao0CjAJ9An4CjgJ9Ao4CjQJ+An8CjwJ+Ao8CjgJ/AoACkAJ/ApACjwKAAoECkQKAApECkAKB' +
-  'AoICkgKBApICkQKCAoMCkwKCApMCkgKDAnQChAKDAoQCkwKEAoUClQKEApUClAKFAoYClgKFApYClQKGAocClwKGApcClgKHAogC' +
-  'mAKHApgClwKIAokCmQKIApkCmAKJAooCmgKJApoCmQKKAosCmwKKApsCmgKLAowCnAKLApwCmwKMAo0CnQKMAp0CnAKNAo4CngKN' +
-  'Ap4CnQKOAo8CnwKOAp8CngKPApACoAKPAqACnwKQApECoQKQAqECoAKRApICogKRAqICoQKSApMCowKSAqMCogKTAoQClAKTApQC' +
-  'owKUApUCpQKUAqUCpAKVApYCpgKVAqYCpQKWApcCpwKWAqcCpgKXApgCqAKXAqgCpwKYApkCqQKYAqkCqAKZApoCqgKZAqoCqQKa' +
-  'ApsCqwKaAqsCqgKbApwCrAKbAqwCqwKcAp0CrQKcAq0CrAKdAp4CrgKdAq4CrQKeAp8CrwKeAq8CrgKfAqACsAKfArACrwKgAqEC' +
-  'sQKgArECsAKhAqICsgKhArICsQKiAqMCswKiArMCsgKjApQCpAKjAqQCswJkAnMCcgJyAnECcAJwAm8CbgJuAm0CbAJsAmsCagJq' +
-  'AmkCaAJoAmcCZgJmAmUCZAJkAnICcAJwAm4CbAJsAmoCaAJoAmYCZAJkAnACbAJsAmgCZAKzAqQCpQKmAqcCqAKzAqUCpgKxArIC' +
-  'swKvArACsQKtAq4CrwKrAqwCrQKoAqkCqgKqAqsCrQKtAq8CsQKxArMCpgKmAqgCqgKqAq0CsQKmAqoCsQK0ArUCuQK0ArkCuAK1' +
-  'ArYCugK1AroCuQK2ArcCuwK2ArsCugK3ArQCuAK3ArgCuwK4ArkCvQK4Ar0CvAK5AroCvgK5Ar4CvQK6ArsCvwK6Ar8CvgK7ArgC' +
-  'vAK7ArwCvwK3ArYCtQK3ArUCtAK8Ar0CvgK8Ar4CvwLAAsECwgLAAsICwwLEAscCxgLEAsYCxQLAAsQCxQLAAsUCwQLDAsICxgLD' +
-  'AsYCxwLBAsUCxgLBAsYCwgLAAsMCxwLAAscCxALIAskCygLIAsoCywLMAs8CzgLMAs4CzQLIAswCzQLIAs0CyQLLAsoCzgLLAs4C' +
-  'zwLJAs0CzgLJAs4CygLIAssCzwLIAs8CzALQAtEC0gLQAtIC0wLUAtcC1gLUAtYC1QLQAtQC1QLQAtUC0QLTAtIC1gLTAtYC1wLR' +
-  'AtUC1gLRAtYC0gLQAtMC1wLQAtcC1ALYAtkC4QLYAuEC4ALZAtoC4gLZAuIC4QLaAtsC4wLaAuMC4gLbAtwC5ALbAuQC4wLcAt0C' +
-  '5QLcAuUC5ALdAt4C5gLdAuYC5QLeAt8C5wLeAucC5gLfAtgC4ALfAuAC5wLYAt8C3gLeAt0C3ALcAtsC2gLaAtkC2ALYAt4C3ALc' +
-  'AtoC2ALnAuAC4QLhAuIC4wLjAuQC5QLlAuYC5wLnAuEC4wLjAuUC5wLoAvIC8wLoAvMC6QLpAvMC9ALpAvQC6gLqAvQC9QLqAvUC' +
-  '6wLrAvUC9gLrAvYC7ALsAvYC9wLsAvcC7QLtAvcC+ALtAvgC7gLuAvgC+QLuAvkC7wLvAvkC+gLvAvoC8ALwAvoC+wLwAvsC8QLx' +
-  'AvsC8gLxAvIC6ALxAugC6QLpAuoC6wLrAuwC7QLtAu4C7wLvAvAC8QLxAukC6wLrAu0C7wLrAu8C8QLyAvsC+gL6AvkC+AL4AvcC' +
-  '9gL2AvUC9AL0AvMC8gLyAvoC+AL4AvYC9AL4AvQC8gI=';
-// <<< ASSET OATH_KNIGHT
 // >>> ASSET FALLEN_HALL (built by tools/assets/fallen-hall.py, packed by tools/assets/pack-glb.js)
 const FALLEN_HALL_GLB =
   'Z2xURgIAAACowAAANAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
@@ -39919,7 +39674,9 @@ function placeRainOath(){
   // The island's ring and plinth, and the knight on it facing the moon.
   { const [x,z]=at(0,0);
     placeLandmark('rain-oath-ring',RAIN_OATH_RING_GLB,[{x,y:R.island,z,ry:F.ry}],{tex:'stone',name:'rain-ring',tile:3,glow:0x5a78ff});
-    placeLandmark('oath-knight',OATH_KNIGHT_GLB,[{x,y:R.plinth,z,ry:F.ry}],{tex:'none',name:'oath-knight',metal:.35,rough:.5,glow:0x4a68ff});
+    // (r167) The knight is now the kit's, after the owner's reference frame;
+    // built once the kit exists. He faces the moon.
+    RAIN_KNIGHT_AT={x,y:R.plinth,z,ry:Math.atan2(MOON_DIR.x,MOON_DIR.z)};
     addCollider(x,z,1.7);
     // The ring's paving is walked at its own height: the island's landform
     // sagged to 0.1 under it on one side. Two turned squares make an octagon
@@ -41778,7 +41535,7 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r166';
+const NPC_KIT_VERSION='npc-kit-r167';
 const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,face0:32});
 const NPC_FACE_COUNT=32;
 const NPC_FACES_MEN=[...Array(NPC_FACE_COUNT).keys()].filter(i=>i%3);   // (r166) every third face, with the heavier lashes, is a woman's
@@ -42259,8 +42016,9 @@ function npcBuildHat(m,hs,spec,detail){
   const H=hs.H, paint=npcPaint(h.c,h.c2||h.c,h.t||NPC_TILE.linen,h.s||.25), band=npcPaint(h.band||h.c2||h.c,h.band||h.c2||h.c,NPC_TILE.solid);
   const crown=hs.top, k=detail>.6;
   if(h.kind==='witch'||h.kind==='wizard'){
-    const tall=h.kind==='wizard'?1.2:1;
-    npcBrim(m,.255*H,.09*H,.3*H,.035*H,paint,detail,.008*H);
+    // (r167) a wizard's is taller with a wider brim, as in the owner's reference
+    const tall=h.kind==='wizard'?1.6:1;
+    npcBrim(m,.255*H,.09*H,h.kind==='wizard'?.38*H:.3*H,h.kind==='wizard'?.05*H:.035*H,paint,detail,.008*H);
     m.tube([[0,.24*H,-.012*H],[0,.36*H,-.02*H],[0,(.36+.16*tall)*H,-.045*H],[.015*H,(.42+.2*tall)*H,-.1*H],[.05*H,(.44+.21*tall)*H,-.19*H],[.08*H,(.42+.2*tall)*H,-.25*H]],
       [.118*H,.1*H,.068*H,.04*H,.018*H,0],k?12:6,paint,{uRep:3,vRep:2});
     m.loft([[.255*H,.112*H,.112*H,.112*H,0,-.012*H],[.29*H,.108*H,.108*H,.108*H,0,-.014*H]],k?14:8,band);
@@ -42699,6 +42457,125 @@ function npcPropBow(r,arc){
   m.tube([a0,[(a0[0]+a1[0])/2,(a0[1]+a1[1])/2,0],a1],[.004,.004,.004],3,npcPaint(0xd8d0bc,0xd8d0bc),{ref:[0,0,1]});
   return npcPropMesh(m);
 }
+// A wizard's staff, after the owner's reference (r167): gnarled dark wood
+// that wanders as it rises, knots along it, and a crown of three twisted
+// prongs closing like a claw round a long violet crystal. The staff is in
+// the kit's material; the crystal is its own glowing mesh. Centred as the
+// pole it replaces: y from -len/2 to len/2, the crystal near the top.
+function npcPropWizardStaff(len,seed){
+  const R=npcRand(seed), m=new NpcMesh(0,1), wood=npcWood(0x2a2018), n=12, pts=[], radii=[];
+  for(let i=0;i<=n;i++){ const t=i/n, y=-len/2+.012+(len*.9-.012)*t, bend=Math.sin(t*Math.PI*2.3+seed%7)*.035+Math.sin(t*Math.PI*5.1)*.012;
+    pts.push([bend+(R()-.5)*.01,y,(R()-.5)*.022]);
+    const knot=i%3===1?1.35:1; radii.push((.03-.008*t)*knot*(1+(R()-.5)*.15)); }
+  pts.unshift([pts[0][0],-len/2,pts[0][2]]); radii.unshift(0);
+  m.tube(pts,radii,7,wood,{ref:[1,0,0],vLen:true,cap:'round'});
+  // the claw: three prongs out from the top, up and back in over the crystal
+  const top=pts[pts.length-1], cy=len/2-.08;
+  for(let k=0;k<3;k++){ const a=k/3*Math.PI*2+.4, c=Math.cos(a), s=Math.sin(a), w=R()*.012;
+    m.tube([[top[0],top[1]-.02,top[2]],[top[0]+c*.05,top[1]+.04,top[2]+s*.05],[top[0]+c*(.065+w),cy+.02,top[2]+s*(.065+w)],[top[0]+c*.035,cy+.12,top[2]+s*.035],[top[0]+c*.01,cy+.16,top[2]+s*.01]],
+      [.016,.014,.012,.008,0],5,wood,{ref:[0,1,0]}); }
+  const staff=npcPropMesh(m);
+  const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(.05,0).scale(1,2.4,1),
+    new THREE.MeshStandardMaterial({color:0x9a6cff,emissive:0xa070ff,emissiveIntensity:1.8,roughness:.25,metalness:.1}));
+  crystal.position.set(top[0],cy+.04,top[2]); crystal.rotation.y=.4;
+  const g=new THREE.Group(); g.add(staff,crystal); g.userData.crystalY=cy+.04; g.userData.crystalX=top[0]; return g;
+}
+// ---- the knight at the Rain Oath (r167) ----------------------------------------
+// After the owner's reference frame: a knight in dark plate kneeling on one
+// knee in the rain, both gauntlets on the grip of a greatsword driven into the
+// ground before him, its blade burning blue. A great helm with a barred face,
+// layered pauldrons, mail at the throat and under the faulds, a pale cape
+// torn at the hem. It replaces the Blender statue of r141 (tools/assets/
+// oath-knight.py): a low-poly figure in one flat colour with a stick for a
+// sword. He is built here from the kit's own lofts and tubes, posed in place,
+// in knight space: facing +z, the ground at y 0.
+const NPC_KIT_METAL=new THREE.MeshStandardMaterial({roughness:.4,metalness:.45,vertexColors:true});
+NPC_KIT_METAL.onBeforeCompile=NPC_KIT_MAT.onBeforeCompile;
+NPC_KIT_METAL.customProgramCacheKey=()=>NPC_KIT_VERSION+'-metal';
+// The blade's fire: dark blue steel under bright veins that branch and
+// rejoin, drawn once on a canvas and used as the blade's emissive map.
+function npcBladeFire(){
+  const cv=document.createElement('canvas'); cv.width=64; cv.height=512;
+  const g=cv.getContext('2d'), R=npcRand(1307);
+  g.fillStyle='#10287a'; g.fillRect(0,0,64,512);
+  for(let k=0;k<46;k++){
+    let x=R()*64, y=R()*512; g.strokeStyle=k%3?'#3d7dff':'#bfe0ff'; g.lineWidth=k%3?2.2:1.2; g.beginPath(); g.moveTo(x,y);
+    for(let s=0;s<9;s++){ x=Math.max(0,Math.min(64,x+(R()-.5)*18)); y+=8+R()*22; g.lineTo(x,y); }
+    g.stroke();
+  }
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; return tex;
+}
+function npcBuildKnight(){
+  const steel=npcPaint(0x2e3238,0x2e3238,NPC_TILE.solid), edge=npcPaint(0x5a606a,0x5a606a,NPC_TILE.solid),
+        mail=npcPaint(0x2c3036,0x8a929c,NPC_TILE.chain,.07), leather=npcPaint(0x261a12,0x3a2a1e,NPC_TILE.leather,.2),
+        cape=npcPaint(0xa8acb6,0xe2e4ea,NPC_TILE.linen,.3), slot=npcPaint(0x060608,0x060608);
+  const A=new NpcMesh(), C=new NpcMesh();                 // armour (metal), cloth and leather
+  const limb=(m,a,b,ra,rb,paint,seg=10)=>m.tube([a,[(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2],b],[ra,[(ra[0]+rb[0])/2,(ra[1]+rb[1])/2],rb],seg,paint,{ref:Math.abs(b[1]-a[1])>Math.abs(b[2]-a[2])?[0,0,1]:[0,1,0]});
+  const cop=(m,c,r,paint)=>m.loft([[c[1]-r,0,0,0,c[0],c[2]],[c[1]-r*.6,r*.8,r*.85,r*.8,c[0],c[2]],[c[1],r,r*1.05,r,c[0],c[2]],[c[1]+r*.6,r*.8,r*.85,r*.8,c[0],c[2]],[c[1]+r,0,0,0,c[0],c[2]]],10,paint,{sub:1});
+  // the body in plate, leaning a little over the sword
+  A.loft([[.6,.17,.13,.14,0,-.04],[.72,.16,.125,.13,0,-.03],[.86,.185,.155,.14,0,-.01],[1.0,.215,.185,.15,0,.01],[1.13,.235,.175,.152,0,.02],[1.23,.22,.14,.14,0,.02],[1.29,.13,.1,.1,0,.03]],16,steel,{sub:2});
+  A.loft([[.98,.218,.19,.152,0,.012],[1.0,.222,.196,.155,0,.012]],16,edge,{sub:1});                         // the breastplate's rim
+  C.loft([[1.27,.12,.1,.1,0,.03],[1.33,.1,.09,.09,0,.035],[1.38,.08,.075,.075,0,.04]],14,mail,{sub:1});         // mail at the throat
+  // faulds over a mail skirt, the belt over both
+  A.loft([[.5,.235,.21,.22,0,-.03],[.6,.2,.17,.18,0,-.035],[.72,.172,.135,.14,0,-.03]],16,steel,{sub:2,two:true});
+  for(const y of[.535,.6,.665])A.loft([[y-.006,.2+(.6-y)*.4,.175+(.6-y)*.4,.185+(.6-y)*.4,0,-.033],[y+.006,.198+(.6-y)*.4,.173+(.6-y)*.4,.183+(.6-y)*.4,0,-.033]],16,edge,{sub:1});
+  C.loft([[.36,.25,.24,.24,0,-.03,.02,13],[.5,.225,.2,.21,0,-.03]],16,mail,{sub:1,two:true});
+  C.loft([[.7,.176,.14,.145,0,-.03],[.76,.178,.142,.147,0,-.028]],16,leather,{sub:1});
+  A.loft([[.705,0,0,0,0,.115],[.71,.035,.012,.012,0,.115],[.755,.035,.012,.012,0,.115],[.76,0,0,0,0,.115]],6,edge,{sub:1});
+  // legs: the left knee up and its foot planted, the right knee down on the stone
+  const hipL=[-.13,.64,-.03], kneeL=[-.15,.55,.38], ankleL=[-.15,.11,.42], hipR=[.13,.64,-.03], kneeR=[.15,.1,.05], ankleR=[.15,.11,-.42];
+  limb(A,hipL,kneeL,[.105,.095],[.085,.08],steel); limb(A,kneeL,ankleL,[.075,.07],[.06,.058],steel);
+  limb(A,hipR,kneeR,[.105,.095],[.085,.08],steel); limb(A,kneeR,ankleR,[.075,.07],[.06,.058],steel);
+  cop(A,[kneeL[0],kneeL[1]+.02,kneeL[2]+.04],.075,edge); cop(A,[kneeR[0],kneeR[1]+.01,kneeR[2]+.05],.075,edge);
+  A.tube([[-.15,.1,.36],[-.15,.07,.44],[-.15,.05,.56],[-.15,.04,.64]],[[.062,.05],[.064,.048],[.056,.038],[0,0]],8,steel,{ref:[0,1,0],cap:'round'});
+  A.tube([[.15,.14,-.44],[.15,.09,-.5],[.15,.045,-.54],[.15,.03,-.56]],[[.06,.05],[.058,.046],[.05,.036],[0,0]],8,steel,{ref:[1,0,0],cap:'round'});
+  // the arms, down to both gauntlets on the grip
+  const grip=[0,0,.52];
+  for(const s of[-1,1]){
+    const sh=[s*.27,1.22,.01], el=[s*.31,.98,.22], wr=[s*.07,s<0?1.12:1.02,.44], fist=[s*.012,s<0?1.13:1.03,grip[2]];
+    limb(A,sh,el,[.078,.075],[.066,.064],steel); cop(A,el,.068,edge); limb(A,el,wr,[.064,.06],[.056,.052],steel);
+    // a gauntlet: a flared cuff and a heavy fist closed round the grip
+    A.tube([[wr[0]+(el[0]-wr[0])*.12,wr[1]+(el[1]-wr[1])*.12,wr[2]+(el[2]-wr[2])*.12],wr,fist],[[.082,.074],[.07,.064],[.064,.06]],10,steel,{ref:[0,1,0]});
+    A.tube([[fist[0]-s*.035,fist[1]+.03,fist[2]+.02],[fist[0]+s*.03,fist[1]+.03,fist[2]+.045],[fist[0]+s*.055,fist[1]+.01,fist[2]+.02]],[.03,.032,0],6,edge,{cap:'round'});
+    // pauldrons: a dome over the shoulder and two lames below it
+    A.loft([[1.1,.13,.14,.14,s*.29,.01],[1.2,.142,.152,.152,s*.275,.01],[1.29,.105,.115,.115,s*.255,.01],[1.335,0,0,0,s*.245,.01]],14,steel,{sub:2});
+    for(const [y,r] of[[1.07,.15],[1.02,.142]])A.loft([[y-.035,r,r*1.04,r*1.04,s*.3,.01],[y+.02,r*1.02,r*1.06,r*1.06,s*.295,.01]],14,edge,{sub:1,two:true});
+  }
+  // the helm: a great helm, barred across the face, bowed toward the sword
+  const helm=new NpcMesh();
+  helm.loft([[-.02,.1,.11,.12],[.06,.116,.13,.126],[.14,.12,.13,.125],[.22,.115,.12,.12],[.27,.09,.095,.095],[.295,.04,.042,.042],[.3,0,0,0]],16,steel,{sub:2});
+  helm.loft([[.135,.123,.134,.128],[.162,.123,.134,.128]],16,slot,{sub:1,a0:Math.PI-1.05,a1:Math.PI+1.05});
+  for(let k=-4;k<=4;k++){ const th=Math.PI+k*.16, r=.136, x=Math.sin(th)*r*.92, z=-Math.cos(th)*r;
+    helm.tube([[x,.02,z*.96],[x,.12,z],[x,.2,z*.98]],[.007,.008,.007],4,edge); }
+  helm.tube([[0,.24,.12],[0,.29,.06],[0,.305,-.02],[0,.29,-.1],[0,.24,-.13]],[.012,.014,.014,.014,.012],5,edge);
+  const parts=[A.geometry()], cloth=[C.geometry()];
+  const hg=helm.geometry(); hg.applyMatrix4(new THREE.Matrix4().makeRotationX(.3).setPosition(0,1.32,.06)); parts.push(hg);
+  // the cape, pale and torn, from the shoulders down the back to the stone
+  const capeM=new NpcMesh();
+  capeM.loft([[.03,.5,.42,.62,.06,-.2,.07,11],[.45,.4,.34,.44,.04,-.13,.035,9],[.9,.31,.24,.27,0,-.06],[1.2,.275,.18,.18,0,-.02],[1.3,.2,.14,.14,0,0]],18,cape,{sub:2,a0:-2.05,a1:1.6,two:true});
+  cloth.push(capeM.geometry());
+  // the sword, planted: grip, guard and pommel in steel, the blade on fire
+  // His gauntlets hold the blade below the guard, as in the reference: the
+  // guard stands at his helm, the grip and pommel above it.
+  const hilt=new NpcMesh();
+  hilt.tube([[-.33,1.2,0],[-.2,1.25,0],[0,1.265,0],[.2,1.25,0],[.33,1.2,0]],[0,.03,.034,.03,0],8,edge,{ref:[0,1,0],cap:'round'});
+  hilt.loft([[1.27,.026,.026,.026],[1.5,.024,.024,.024]],8,leather,{sub:1,uRep:1,vRep:5});
+  hilt.loft([[1.49,0,0,0],[1.505,.04,.034,.034],[1.545,.048,.04,.04],[1.575,.034,.028,.028],[1.585,0,0,0]],10,edge,{sub:1});
+  const tilt=new THREE.Matrix4().makeRotationX(-.06).setPosition(grip[0],grip[1],grip[2]);
+  const hiltG=hilt.geometry(); hiltG.applyMatrix4(tilt); parts.push(hiltG);
+  const blade=new NpcMesh();
+  blade.loft([[-.14,0,0,0],[-.04,.07,.016,.016],[.5,.084,.02,.02],[1.0,.088,.022,.022],[1.25,.092,.024,.024]],10,steel,{sub:2,uv:(t,s)=>[t,s]});
+  const bladeG=blade.geometry(); bladeG.applyMatrix4(tilt);
+  const metal=new THREE.Mesh(THREE.BufferGeometryUtils.mergeGeometries(parts,false),NPC_KIT_METAL);
+  const clothMesh=new THREE.Mesh(THREE.BufferGeometryUtils.mergeGeometries(cloth,false),NPC_KIT_MAT);
+  const fire=new THREE.Mesh(bladeG,new THREE.MeshStandardMaterial({color:0x183a9a,emissive:0x4a86ff,emissiveIntensity:1.9,emissiveMap:npcBladeFire(),roughness:.3,metalness:.2}));
+  parts.forEach(g=>g.dispose()); cloth.forEach(g=>g.dispose());
+  const g=new THREE.Group(); g.name='rain-oath-knight';
+  for(const m of[metal,clothMesh,fire]){ m.castShadow=true; m.receiveShadow=true; g.add(m); }
+  // the blade's light on his armour and the wet stone
+  const light=lampLight(0x4a7cff,.75,6); light.position.set(0,.8,.66); g.add(light); lights.push({light,base:.75,phase:2.3,fire:true,child:true});
+  return g;
+}
 // ---- the rig ---------------------------------------------------------------------
 // Builds every part of a resident from their look. Returns the groups the
 // rest of the game drives (head pivot, arm and leg pivots — now with knees —
@@ -42742,6 +42619,7 @@ function npcKitLod(spec){
   const o=new THREE.Mesh(merged,NPC_KIT_MAT); o.castShadow=false; o.receiveShadow=true; o.visible=false; return o;
 }
 // <<< NPC KIT
+if(RAIN_KNIGHT_AT){ const knight=npcBuildKnight(); knight.position.set(RAIN_KNIGHT_AT.x,RAIN_KNIGHT_AT.y,RAIN_KNIGHT_AT.z); knight.rotation.y=RAIN_KNIGHT_AT.ry; scene.add(knight); }
 // Residents were 95% of the frame. Measured at the spawn on r77: 3,208 of
 // 3,386 draw calls were villagers — 208 of them at 16.1 meshes each. Everything
 // static within a resident is merged into one mesh per moving part, and since
@@ -43147,19 +43025,19 @@ const REFERENCE_BUILD_NPC_ROLES=[
 // straight while the arm holds it forward.
 const ROLE_STAFF_ARM=-.34;
 function addReferenceRoleProp(npc,role){
-  const glowMat=()=>new THREE.MeshStandardMaterial({color:0x9fb7ff,emissive:0x5f78ff,emissiveIntensity:1.6,roughness:.5});
   const grip=side=>(side<0?npc.parts.leftArm:npc.parts.rightArm).userData.grip||npc.g;
   const hold=(item,side)=>{ item.name='reference-role-prop-'+role.id; grip(side).add(item); npc.lodHide?.push(item); return item; };
   if(role.prop==='staff'||role.prop==='staff-glow'){
     // The grip sits at the palm. A staff taller than its bearer stands on the
     // ground a little ahead of the feet: most of it rises above the hand.
-    const staff=new THREE.Group(), wood=npcMaterial(role.prop==='staff-glow'?0x2b2438:0x4a3522);
-    const shaft=npcPropPole(1.95,.038,.03,role.prop==='staff-glow'?0x2b2438:0x4a3522,role.id.length*97); shaft.position.y=.36; staff.add(shaft);   // (r163) the kit's
+    const staff=new THREE.Group();
     if(role.prop==='staff-glow'){
-      const cage=new THREE.Mesh(new THREE.TorusGeometry(.085,.014,5,10),wood); cage.position.y=1.40; staff.add(cage);
-      const orb=new THREE.Mesh(new THREE.OctahedronGeometry(.075,0),glowMat()); orb.position.y=1.40; staff.add(orb);
-      const light=lampLight(0x8ea4ff,.34,7); light.position.set(0,1.42,0); staff.add(light); lights.push({light,base:.34,phase:1.3,fire:true,child:true});
-    }
+      // (r167) the wizard's: gnarled, a claw of three prongs round a violet
+      // crystal, as in the owner's reference; it was a pole with a ring and a
+      // diamond on it
+      const gnarled=npcPropWizardStaff(1.95,role.id.length*97); gnarled.position.y=.36; staff.add(gnarled);
+      const light=lampLight(0xa07cff,.38,7); light.position.set(gnarled.userData.crystalX,.36+gnarled.userData.crystalY,0); staff.add(light); lights.push({light,base:.38,phase:1.3,fire:true,child:true});
+    }else{ const shaft=npcPropPole(1.95,.038,.03,0x4a3522,role.id.length*97); shaft.position.y=.36; staff.add(shaft); }   // (r163) the kit's
     staff.rotation.x=-ROLE_STAFF_ARM; staff.userData.upright=true; hold(staff,1);
   }else if(role.prop==='lantern'){
     const lantern=new THREE.Group();
@@ -45465,11 +45343,28 @@ const PUFF=(function(){
     // prefix list). The panel's "show every device" box lists everything, for
     // a Peak renamed to something none of these match.
     const showAll=!!document.getElementById('puffAllDevices')?.checked;
-    const filters=[...requested.map(uuid=>({services:[uuid]})),{manufacturerData:[{companyIdentifier:3075}]},
-      ...['Peak','PEAK','Puffco','PUFFCO','Puff'].map(namePrefix=>({namePrefix})),...PUFFCO_NAME_PREFIXES.map(namePrefix=>({namePrefix}))];
+    //
+    // (r167) Only the control services (Lorax and legacy) are filters, as on
+    // puff.social; PUP and SiLabs are asked for in optionalServices alone.
+    // r161 filtered on all four, and Chrome stopped opening its chooser: the
+    // SiLabs service is a firmware-update service, the kind Chrome's
+    // server-delivered Bluetooth blocklist bars, and a blocklisted UUID in a
+    // filter rejects the whole request before anything is shown, where in
+    // optionalServices it is only dropped. The desktop app has no such list,
+    // which is why its chooser still opened.
+    const filters=[LORAX.service,...LEGACY.services].map(uuid=>({services:[uuid]})).concat([{manufacturerData:[{companyIdentifier:3075}]},
+      ...['Peak','PEAK','Puffco','PUFFCO','Puff'].map(namePrefix=>({namePrefix})),...PUFFCO_NAME_PREFIXES.map(namePrefix=>({namePrefix}))]);
     connectLog=[]; connectStarted=performance.now(); bondError='';
     logStep('choosing a device'+(showAll?' (every device shown)':''));
-    device=await navigator.bluetooth.requestDevice(showAll?{acceptAllDevices:true,optionalServices:requested}:{filters,optionalServices:requested});
+    try{ device=await navigator.bluetooth.requestDevice(showAll?{acceptAllDevices:true,optionalServices:requested}:{filters,optionalServices:requested}); }
+    catch(error){
+      // A browser that refuses the filtered request at once, with anything
+      // but NotFoundError, the player closing the chooser, gets the
+      // unfiltered one, once, still within the same click.
+      if(showAll||error?.name==='NotFoundError'){ logStep('chooser closed: '+(error?.name||'')+' '+String(error?.message||error)); throw error; }
+      logStep('filtered request refused: '+(error?.name||'error')+': '+String(error?.message||error)+'; showing every device');
+      device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:requested});
+    }
     logStep('chose '+(device.name||'an unnamed device'));
     const bondedDevice=device;
     bondedDevice.addEventListener('gattserverdisconnected',()=>{if(device!==bondedDevice)return;protocol='';chars={};loraxChars=null;flushPending('Peak Pro disconnected.');},{once:true});
@@ -45493,9 +45388,24 @@ const PUFF=(function(){
     // on lorax"). One read, here, before the reply channel is opened.
     const bondChar=services.get(BOND.pup)?.characteristics.find(ch=>ch.uuid.toLowerCase()===BOND.pupVersion)||
       services.get(BOND.silabs)?.characteristics.find(ch=>ch.uuid.toLowerCase()===BOND.silabsVersion);
-    if(bondChar) try{ logStep('bond read ('+(bondChar.uuid.toLowerCase()===BOND.pupVersion?'PUP':'SiLabs')+' version)'); await bondChar.readValue(); logStep('bond read answered'); }catch(error){
-      bondError=String(error?.message||error); logStep('bond read failed: '+bondError+(device.gatt.connected?'':' (and the Peak disconnected)'));
-      if(!device.gatt.connected) throw new Error('The Peak dropped the connection while bonding: '+bondError+'. Hold its button until the light flashes blue, then connect again.');
+    // (r167) "Connection already in progress" is Windows saying a pairing
+    // with this Peak is already under way: one it began on its own, from Swift
+    // Pair's "new device found" notice when a Peak flashes blue, or one left over
+    // from an earlier attempt. It came back in a tenth of a second on the
+    // owner's Plasma and the attempt gave up. Now the read is tried again
+    // while that pairing runs its course, for up to about fifteen seconds,
+    // and only for that error: a pairing refused or failed is not retried,
+    // so the Peak is not sent back into pairing over and over.
+    if(bondChar){
+      const which=bondChar.uuid.toLowerCase()===BOND.pupVersion?'PUP':'SiLabs';
+      for(let attempt=0,waits=[0,2000,3000,4000,6000];attempt<waits.length;attempt++){
+        if(waits[attempt]){ logStep('waiting '+(waits[attempt]/1000)+' s for the pairing already under way'); await delay(waits[attempt]); }
+        if(!device.gatt.connected)break;
+        try{ logStep('bond read ('+which+' version)'+(attempt?' again':'')); await bondChar.readValue(); logStep('bond read answered'); bondError=''; break; }
+        catch(error){ bondError=String(error?.message||error); logStep('bond read failed: '+bondError+(device.gatt.connected?'':' (and the Peak disconnected)'));
+          if(!/in progress/i.test(bondError))break; }
+      }
+      if(!device.gatt.connected) throw new Error('The Peak dropped the connection while bonding: '+bondError.replace(/\.+$/,'')+'. Hold its button until the light flashes blue, then connect again.');
     }
     else logStep('no PUP or SiLabs service to bond through');
     try {
@@ -45517,7 +45427,9 @@ const PUFF=(function(){
         // A Peak that never bonded never answers. Say so, with the bond's own
         // error, rather than only that the Peak was silent.
         if(bondError&&/did not answer/.test(String(error?.message||error)))
-          throw new Error('Windows did not finish pairing with the Peak, so it will not take commands: '+bondError+'. Hold its button until the light flashes blue, press Connect, and answer Pair if Windows asks.');
+          throw new Error(/in progress/i.test(bondError)
+            ?'Windows is still pairing with the Peak somewhere else, so it will not take commands: '+bondError.replace(/\.+$/,'')+'. Close other apps using it (the Puffco app, another Emberwatch or Chrome tab), then pair it once in Windows: Settings, Bluetooth & devices, Add device, Bluetooth, and pick the Peak while its light flashes blue. If it is already listed there, remove it first. Then press Connect here.'
+            :'Windows did not finish pairing with the Peak, so it will not take commands: '+bondError.replace(/\.+$/,'')+'. Hold its button until the light flashes blue, press Connect, and answer Pair if Windows asks. If that keeps failing, pair it once in Windows: Settings, Bluetooth & devices, Add device.');
         if(!device?.gatt?.connected||/did not answer/.test(String(error?.message||error))) throw error;
       }
       // Emberwatch currently consumes only request/reply packets. Do not reject
@@ -46840,7 +46752,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r166',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r167',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47194,7 +47106,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Ember Hour — variant layer over base r166 -->
+<!-- Emberwatch — Ember Hour — variant layer over base r167 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBER HOUR                                     variant layer
