@@ -1,95 +1,76 @@
-**r164 — windows pairing** · 1.64.0 · 2026-10-02 · phase 5, world depth
+**r165 — facing out** · 1.65.0 · 2026-10-03 · phase 5, world depth
 
 ### Summary
 
-Windows pairing. The desktop app's pairing handler had refused every real request since r160: it required the device id to equal the chooser's, but Chromium sends the device's display name. Now it asks "Pair with Peak Pro?". The Puffco panel logs each step of a connection into the status report, and a failed bond is named as the cause. Verified: the pairing test, rebuilt on what Chromium sends, fails on r163 and passes; simulated Peak; audits; variants 6/6; smoke. Not tested on Windows.
+Facing out. Every sleeve, thigh, shin and boot had been built inside out since r159 (lofts written top to bottom face inward); loft now orders its rings. Hands, thumbs, toes, beards, human ears and staff feet end in round domes, not points. Boots follow the shin front, side and back; thighs start inside the hips; shoulder caps lower; necks shorter. Verified: a loft normals test, studio close-ups before and after, in-game lineup, audits, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r164 / 1.64.0, sealed 2026-10-02 ("Windows pairing").** The owner
-tested r163 in the portable exe on their RTX 4060 machine: the load "has
-definitely improved", the Bluetooth filter works (the Peak was listed), and
-the Peak Pro Plasma still would not connect: first "The Peak dropped the
-connection while bonding", then, with the Peak flashing blue, "it appears to
-not be registering the bond" and "Peak Pro did not answer the limits
-request". They also said "under no circumstance should my forty sixty take
-that long to load a browser game".
+**State: r165 / 1.65.0, sealed 2026-10-03 ("Facing out").** The owner, on
+r164: "loads better now, push some more npc fixes".
 
-**Next:** the owner's test of r164 on the Plasma, in the desktop app (setup
-or portable exe). Windows should now ask "Pair with Peak Pro?"; answer Pair.
-If it still fails, the status report ("copy status" in the Puffco panel)
-now ends with the connection's own log, step by step; that log is what to
-read. Then the residents (§0d) and the load line from the owner's machine.
+**Next:** the owner's look at the residents; the Plasma test of r164's
+pairing fix is still owed. The residents' joints are still rigid pieces
+(§0d says what a continuous body would take).
 
-### Why the Peak never bonded in the desktop app
+### What the residents still got wrong
 
-Not the Peak and not the protocol: the desktop shell refused every pairing
-request. r160's pairing handler answered only a request whose
-`details.deviceId` equalled the id the chooser returned. It never does.
-Chromium's `WebBluetoothPairingManagerImpl` hands the prompt
-`ContainStringForDisplay(device->GetNameForDisplay())`, the device's
-display name in Unicode isolation marks, and Electron's
-`ElectronBluetoothDelegate::ShowDevicePairPrompt` passes that on as
-`deviceId`; the chooser's ids are addresses. Both were read in the sources
-(Chromium main, Electron main). So every real pairing request got
-`{confirmed: false}` without a dialog, Windows never bonded, and a Peak new
-to this computer accepted the connection and then ignored every Lorax
-request. The owner's older Peak only ever worked because Windows had bonded
-it long before. The pairing test had the same wrong assumption built in (it
-passed the chooser's id as `deviceId`), so it passed.
+Shot close in a brightly lit studio page built from the kit, front and
+three-quarter, the figures had faults that night hid:
 
-r164:
+- **Half the body was inside out.** `NpcMesh.loft` builds an outward
+  surface only from rings written bottom to top. Every sleeve, thigh, shin
+  and boot was written from the joint down, so since r159 each was built
+  facing inward: normals and winding both reversed. A small test with the
+  kit's own code showed it plainly (rings ascending: 39 normals out, 0 in;
+  descending: 0 out, 39 in). From outside you saw the far inner wall, lit
+  backwards, and whatever was inside showed through it: the leg through
+  the boot (the boot looked like a dark band with the stocking showing
+  below it), the arm's skin through its sleeve. Much of the flat,
+  geometric look was this. `loft` now orders its rings, so a loft faces
+  out whichever way it is written.
+- **Points.** Every hand, thumb, toe, beard lock, human or gnome ear and
+  staff foot narrowed to a point and read as a spike. `tube` takes
+  `cap:'round'` (`npcRoundEnds`): an end that closes to nothing becomes a
+  dome over its last span. Hair locks, elves' ears, hat tips and feathers
+  keep their points. The hand is a fuller mitten with the thumb laid along
+  it.
+- **Boots cut by the calf.** A boot ring took the shin's side radius only,
+  so a calf deeper than it is wide came through the leather in a sawtooth.
+  Each boot ring is now the shin's own front, side and back at that height,
+  plus the leather.
+- **What facing out uncovered:** thighs wider than the hips at the top
+  stood off the seat in flaps; they now start inside it. The shin's top
+  sits inside the thigh at the knee.
+- **Shoulder caps** stood above the sloped shoulder like pads; lower, and
+  leaning out with the slope. Their pattern is laid on from above (a check
+  wrapped round the cap gathered to a bullseye on top).
+- **Necks** looked long on the sloped shoulders: the head stands at
+  0.585 T above the hip (was 0.6), on a fuller neck.
 
-- `app/main.js`: the handler still answers only this window's own page,
-  only after a device was picked in its chooser, and still asks before
-  pairing; it no longer compares ids. The dialog names the device ("Pair
-  with Peak Pro?", the isolation marks stripped), and the window is brought
-  forward first, because the Peak gives up on a bond nobody answers. The
-  frame check also accepts the same frame through another wrapper object
-  (same process and routing id). Each request's fate (asked, confirmed,
-  cancelled, refused and why) is sent to the page.
-- `app/preload.js`: `emberBluetooth.onPairing`.
-- The Puffco panel: a note while Windows is asking; a log of every step of
-  the last connection attempt (chosen, connected, services, bond read and
-  its result, Lorax version, listening, limits, unlocked, or where it
-  stopped), at the end of the status report. When the bond read failed and
-  the Peak then stays silent, the error says Windows did not finish pairing
-  and gives the bond read's own error, instead of only that the Peak did
-  not answer.
-- `tools/test-bluetooth-pairing.js`: details shaped as Chromium and Electron
-  send them; asserts a request naming the device is confirmed, the dialog
-  names it without isolation marks, the page hears the question and the
-  answer, and a foreign frame is still refused without a dialog. Run
-  against r163's handler it fails with "Pair accepts a request that names
-  the device, as Chromium sends it".
-
-### On the load
-
-The owner's word, "under no circumstance should my forty sixty take that
-long to load a browser game", stands as the target. What is left and known
-is in §0d: the residents' build, the mask atlas, and the unlit programs
-compiled once per light tier. The load line in the menu (r163) on the
-owner's machine is the next number to read.
+Building the residents costs a little more for the domes and the fitted
+boots: `villager()` over a boot, in this session's harness, 1,088 and 1,073
+ms on r164 against 1,281 and 1,140 ms on r165. One boot read "loaded in 6.0
+s · page 0.3 · world 1.9 · people 1.9 · lamps 0.3 · first frame 1.7"
+(this session's container runs faster than the last one's; compare within
+a session only).
 
 ### Verified
 
 - `check-parse`, `audit-source` (A 229, B and C 0), `audit-dom`,
-  `audit-dead` (684, 0 dead), `audit-comments`, `test-switch-frames`,
+  `audit-dead` (685, 0 dead), `audit-comments`, `test-switch-frames`,
   `test-switch-b9`, `test-bluetooth-pairing`: clean.
-- A simulated Peak in the harness whose bond read fails with an
-  authentication error and which then never answers: the panel reads
-  "Windows did not finish pairing with the Peak, so it will not take
-  commands: GATT operation failed due to authentication…", and the report's
-  log shows each step to the limits timeout. One that bonds: bond read,
-  limits, setup, seed, unlock, then the first read, in that order.
-- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r164 in the title.
-- Not run: a real Peak; Windows. The pairing itself happens in Windows and
-  can only be seen there.
+- The loft normals test above, before and after.
+- Studio close-ups, ten residents front and three-quarter, before and
+  after each fix; head close-ups front and back. The market lineup in the
+  game.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r165 in the title.
+- Not run: the runtime audit.
 
 ### In the code
 
-- 4.98 MB (+3,366 bytes on r163).
-- 2 functions added: `logStep`, `notePairing`.
+- 4.99 MB (+3,511 bytes on r164).
+- 1 function added: `npcRoundEnds`.
 
 ### Play it
 
