@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r165 Facing out</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r166 Faces and figures</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -41778,9 +41778,10 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r165';
+const NPC_KIT_VERSION='npc-kit-r166';
 const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,face0:32});
 const NPC_FACE_COUNT=32;
+const NPC_FACES_MEN=[...Array(NPC_FACE_COUNT).keys()].filter(i=>i%3);   // (r166) every third face, with the heavier lashes, is a woman's
 function npcHash(x,y,s){ let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,1442695041))|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
 function npcNoise(u,v,f,s){
   // Value noise that repeats every 1 in u and v, f cells across.
@@ -41849,54 +41850,64 @@ function npcMaskTiles(){
 // G line and shadow, B the whites and the catchlights. Skin is the resident's
 // own first colour, so one painted face serves many people of every people.
 // The face spans u 0..1 cheek to cheek and v 0 at the chin, 1 above the brow.
+// (r166) Redrawn after the owner's reference frames: large eyes with a big
+// iris, a dark pupil and two catchlights under a heavy upper lash line and a
+// lid crease, slim brows set well above them, a nose that is a shadow under
+// its tip rather than two dots, a small mouth with a lower lip, and soft
+// shading under the cheekbones. The old eyes were narrow slits a third the
+// size, which at any distance read as a mask.
 function npcFaceTile(i,sm,band){
-  const shape=i%5, ew=.142+((i*7)%4)*.012, es=.155+((i*3)%4)*.01, ey=.5+((i*5)%3)*.01;
-  const hR=[.6,.45,.3,.42,.4][shape], tilt=[0,.06,0,-.22,.3][shape], iris=.62+((i*11)%3)*.09;
-  const brow=(i*5)%6, mouth=(i*3)%7, lash=(i%3===0)?1.45:1, mw=.06+((i*13)%3)*.012;
+  const shape=i%5, ew=.17+((i*7)%4)*.01, es=.17+((i*3)%4)*.008, ey=.5+((i*5)%3)*.012;
+  const hR=[.66,.58,.52,.6,.55][shape], tilt=[0,.05,0,-.16,.22][shape], iris=.86+((i*11)%3)*.04;
+  const brow=(i*5)%6, mouth=(i*3)%7, lash=(i%3===0)?1.35:1, mw=.048+((i*13)%3)*.008;
   const freckles=i%4===1, mole=i%7===3, elder=i%6===5, stubble=i%5===2&&!elder, scar=i===13||i===29;
   return (u,v)=>{
     let R=0,G=0,B=0;
     const x=u-.5, ax=Math.abs(x);
-    G+=.11*sm(.30,.47,ax)+.15*(1-sm(.03,.1,v));                                          // the sides turn away; under the chin
-    G+=.06*band(Math.abs(v-.42),.05,.03)*sm(.15,.24,ax);                                  // under the cheekbones
-    G+=.1*band(Math.hypot(x/.06,(v-.355)/.018),1,.5);                                     // under the nose
+    G+=.12*sm(.3,.48,ax)+.2*(1-sm(.06,.14,v));                                          // the sides turn away; under the chin
+    G+=.08*band(Math.hypot((ax-.3)/.12,(v-.36)/.07),1,.6);                               // under the cheekbones
+    G+=.12*band(Math.hypot(x/.045,(v-.342)/.014),1,.6);                                  // the shadow under the nose
+    if(x<0)G+=.05*band(Math.abs(ax-.035)/.018+Math.max(0,Math.abs(v-.45)/.06-1),1,.5);  // one side of the bridge in shade
+    B=Math.max(B,.1*band(Math.hypot(x/.02,(v-.385)/.02),1,.6));                         // light on the tip
     for(const s of[-1,1]){
-      const dx=(u-(.5+s*es))*s, dy=v-ey, a=ew/2, b=ew*hR;
-      const q=Math.max(0,1-(dx/a)*(dx/a)), yU=b*Math.pow(q,shape===0?.5:.9)+tilt*dx, yL=-b*.82*Math.pow(q,shape===0?.5:.8)+tilt*dx*.4;
-      G+=.12*band(Math.hypot(dx/(a*1.3),(dy-b*.9)/(b*1.6+.02)),1,.4);                    // the socket under the brow
+      const dx=(u-(.5+s*es))*s, dy=v-ey, a=ew/2, b=a*hR*2;
+      const q=Math.max(0,1-(dx/a)*(dx/a)), yU=b*Math.pow(q,.6)+tilt*dx, yL=-b*.7*Math.pow(q,.85)+tilt*dx*.35;
+      G+=.1*band(Math.hypot(dx/(a*1.25),(dy-b*.95)/(b*1.3+.02)),1,.5);                  // the socket under the brow
       if(Math.abs(dx)<a&&dy<yU&&dy>yL){
-        B=.92; R=0;
-        const iy=dy+b*.12, ri=b*iris, d=Math.hypot(dx,iy);
-        if(d<ri){ R=1; B=0; if(d<ri*.45)G=Math.max(G,.8); }
-        if(Math.hypot(dx+ri*.32,iy-ri*.38)<ri*.3){ B=1; R=0; G=0; }
-        G=Math.max(G,.25*(1-sm(0,b*.45,yU-dy)));
+        B=.9; R=0; G=Math.max(G,.22*(1-sm(0,b*.4,yU-dy)));                             // the white, shadowed under the lid
+        const iy=dy+b*.06, ri=b*iris*.8, d=Math.hypot(dx*1.05,iy);
+        if(d<ri){ R=1; B=0; G=.25*sm(ri*.6,ri,d);                          // the iris, darker at its rim
+          if(d<ri*.42)G=Math.max(G,.88); }                                             // the pupil
+        if(Math.hypot(dx+ri*.32,iy-ri*.36)<ri*.3){ B=1; R=0; G=0; }                    // the main catchlight
+        if(Math.hypot(dx-ri*.34,iy+ri*.34)<ri*.13){ B=.85; R=0; G=0; }                 // and a small one below
       }
-      const lt=.012*lash*(1+.6*Math.max(0,dx/a));
-      if(dx>-a*1.02&&dx<a*1.18&&dy>=yU-.002&&dy<yU+lt+(dx>a*.7?(dx-a*.7)*.12:0))G=.92;   // the upper lid and lashes
-      if(Math.abs(dx)<a*.95&&dy<=yL+.002&&dy>yL-.006)G=Math.max(G,.45);
-      if(elder&&Math.abs(dx)<a*.9&&dy<yL-.012&&dy>yL-.03&&dy>yL-.03+.018*(dx/a)*(dx/a))G=Math.max(G,.2);
-      // the brow
-      const by=ey+b+.05+[.0,.006,-.004,.0,-.006,.0][brow], arch=[.012,.026,.002,.01,.008,.012][brow], btilt=[0,0,0,-.35,.32,0][brow];
-      const bt=[.011,.011,.012,.01,.013,.019][brow]*(1-.45*Math.max(0,(dx+a)/(2.4*a)));
-      const yb=by+arch*(1-Math.pow((dx-a*.1)/(a*1.2),2))+btilt*(-dx)*.3;
-      if(dx>-a*1.0&&dx<a*1.35&&Math.abs(dy+ey-yb)<bt)G=Math.max(G,.78);
-      if(elder&&dx>a*1.05&&dx<a*1.45){ for(const k of[-1,0,1]) if(Math.abs(dy-k*.018-(dx-a*1.05)*k*.4)<.003)G=Math.max(G,.22); }
+      // the upper lid and lashes: heavy, thickening outward, with a flick
+      const lt=(.012+.01*Math.max(0,dx/a))*lash;
+      if(dx>-a*1.02&&dx<a*1.12&&dy>=yU-.003&&dy<yU+lt)G=.95;
+      if(dx>a*.8&&dx<a*1.28&&Math.abs(dy-(yU+(dx-a*.8)*.55))<.006*lash)G=.95;
+      if(Math.abs(dx)<a*.95&&Math.abs(dy-(yU+.028+.012*q))<.0035)G=Math.max(G,.32);      // the lid crease
+      if(dx>-a*.2&&dx<a*.98&&dy<=yL+.002&&dy>yL-.005)G=Math.max(G,.4);                 // the lower lashes, outer half
+      if(elder&&Math.abs(dx)<a*.9&&dy<yL-.012&&dy>yL-.028&&dy>yL-.028+.016*(dx/a)*(dx/a))G=Math.max(G,.2);
+      // the brow: slim, well above the eye
+      const by=ey+b+.075+[.0,.008,-.004,.004,-.006,.012][brow], arch=[.014,.024,.004,.012,.008,.018][brow], btilt=[0,0,0,-.3,.28,0][brow];
+      const bt=[.007,.007,.008,.006,.009,.012][brow]*(1-.5*Math.max(0,(dx+a)/(2.6*a)));
+      const yb=by+arch*(1-Math.pow((dx-a*.1)/(a*1.25),2))+btilt*(-dx)*.3;
+      if(dx>-a*.95&&dx<a*1.3&&Math.abs(dy+ey-yb)<bt)G=Math.max(G,.72);
+      if(elder&&dx>a*1.08&&dx<a*1.45){ for(const k of[-1,0,1]) if(Math.abs(dy-k*.018-(dx-a*1.08)*k*.4)<.003)G=Math.max(G,.2); }
       if(scar&&s===1&&Math.abs((dx-.01)*1.6-(dy-.02))<.006&&dy>-.09&&dy<.11)G=Math.max(G,.5);
     }
-    // nostrils, the line of the nose
-    for(const s of[-1,1]) if(Math.hypot(u-.5-s*.023,(v-.385)*1.3)<.009)G=Math.max(G,.55);
-    if(Math.abs(ax-.032)<.004&&v>.4&&v<.5)G=Math.max(G,.12);
-    // the mouth
-    const my=.255, c=[0,.03,.045,-.025,0,.0,0][mouth];
-    if(mouth===6&&Math.hypot(x/(mw*.55),(v-my)/.022)<1){ G=Math.max(G,.8); if(v>my+.008)B=.6; }
-    else if(ax<mw){ const t=x/mw, ym=my+c*t*t+(mouth===4?.022*Math.max(0,t):0)-(mouth===5?.004:0), th=.0065*(1-.5*t*t)*(mouth===5?1.3:1);
-      if(Math.abs(v-ym)<th)G=Math.max(G,.68);
-      if(v<ym-.008&&v>ym-.034&&ax<mw*.72)G+=.11; }
-    if(elder){ for(const s of[-1,1]){ const t=(.36-v)/.12; if(t>0&&t<1&&Math.abs(x-s*(.05+t*.045))<.004)G=Math.max(G,.2); }
-      for(const yy of[.8,.84]) if(Math.abs(v-yy)<.003&&ax<.14)G=Math.max(G,.15); }
-    if(freckles&&v>.36&&v<.5&&ax>.04&&ax<.22&&npcHash(Math.floor(u*90),Math.floor(v*90),i)>.86)G=Math.max(G,.3);
-    if(mole&&Math.hypot(x-.11,v-.31)<.007)G=Math.max(G,.6);
-    if(stubble&&v<.34&&ax<.3&&!(Math.abs(v-.255)<.03&&ax<mw))G+=.08+npcNoise(u,v,64,i)*.18;
+    // the mouth: a small upper line, a lower lip in shade, a few expressions
+    const my=.225, c=[0,.022,.034,-.02,0,0,0][mouth];
+    if(mouth===6&&Math.hypot(x/(mw*.5),(v-my)/.02)<1){ G=Math.max(G,.82); if(v>my+.006)B=.55; }
+    else if(ax<mw){ const t=x/mw, ym=my+c*t*t+(mouth===4?.016*Math.max(0,t):0), th=.0055*(1-.45*t*t)*(mouth===5?1.25:1);
+      if(Math.abs(v-ym)<th)G=Math.max(G,.7);
+      if(v<ym-.006&&v>ym-.026&&ax<mw*.7)G+=.12*(1-ax/(mw*.7));                         // the lower lip
+      if(v>ym+.006&&v<ym+.016&&ax<mw*.8)G+=.05; }
+    if(elder){ for(const s of[-1,1]){ const t=(.34-v)/.11; if(t>0&&t<1&&Math.abs(x-s*(.055+t*.045))<.004)G=Math.max(G,.2); }
+      for(const yy of[.82,.86]) if(Math.abs(v-yy)<.003&&ax<.14)G=Math.max(G,.15); }
+    if(freckles&&v>.33&&v<.47&&ax>.05&&ax<.24&&npcHash(Math.floor(u*90),Math.floor(v*90),i)>.86)G=Math.max(G,.28);
+    if(mole&&Math.hypot(x-.12,v-.3)<.007)G=Math.max(G,.6);
+    if(stubble&&v<.33&&ax<.3&&!(Math.abs(v-.255)<.03&&ax<mw))G+=.08+npcNoise(u,v,64,i)*.18;
     return [R,Math.min(1,G),B];
   };
 }
@@ -42090,10 +42101,14 @@ function npcKitGeometry(source,color){
 // top of the neck), the face toward +z: [y, rx, rf, rb, cx, cz]. The face is
 // painted on by projecting x and y onto a face tile; the back of the head takes
 // the tile's blank margin.
+// (r166) After the owner's reference frames: a wider, rounder skull, cheekbones
+// as wide as the temples, the jaw narrowing to a small chin that stands
+// forward, and a flatter face front for the painted features. The r159 head
+// was a narrow egg, longest from chin to crown, which read as a mask.
 const NPC_HEAD_RINGS=[
-  [-.05,.045,.045,.045,0,-.01],[0,.05,.05,.05,0,-.006],[.03,.046,.07,.055,0,0],[.06,.066,.088,.07,0,0],
-  [.1,.078,.095,.085,0,0],[.14,.084,.098,.095,0,-.004],[.18,.088,.096,.1,0,-.008],[.22,.09,.092,.104,0,-.012],
-  [.26,.086,.08,.1,0,-.016],[.295,.066,.058,.08,0,-.02],[.315,.03,.025,.04,0,-.022],[.322,0,0,0,0,-.022]
+  [-.05,.054,.054,.054,0,-.012],[.01,.056,.058,.06,0,-.008],[.05,.058,.084,.066,0,0],[.078,.08,.093,.078,0,0],
+  [.105,.097,.097,.087,0,0],[.135,.104,.099,.096,0,-.002],[.17,.106,.098,.105,0,-.006],[.22,.106,.092,.112,0,-.012],
+  [.26,.1,.08,.108,0,-.016],[.295,.078,.058,.086,0,-.02],[.315,.04,.028,.046,0,-.022],[.322,0,0,0,0,-.022]
 ];
 function npcHeadShape(spec){
   // The resident's own head: the table above, scaled by their head size and
@@ -42117,15 +42132,18 @@ function npcBuildHead(m,spec,detail){
   const skin=npcPaint(spec.skin,spec.eye,NPC_TILE.face0+spec.face);
   // the face projection: eyes at v .5, the mouth at .25, the chin at 0
   m.loft(hs.rings,seg,skin,{sub:detail>.6?2:1,uv:(t,s,q)=>{
-    const front=q[2]>-.004*H, u=front?.5+q[0]/(.21*H):(q[0]>0?.985:.015), v=(q[1]-.03*H)/(.29*H);
+    const front=q[2]>-.004*H, u=front?.5+q[0]/(.21*H):(q[0]>0?.985:.015), v=(q[1]-.015*H)/(.29*H);
     return [Math.min(.985,Math.max(.015,u)),Math.min(.985,Math.max(.015,v))];
   }});
   const plain=npcPaint(spec.skin,spec.skin);
   const fz=y=>{ const r=hs.at(y); return r[5]+r[2]; };
   // the nose (not on the far version)
   const nb=spec.nose||1;
-  if(detail>.3)m.tube([[0,.19*H,fz(.19*H)-.008*H],[0,.165*H,fz(.165*H)+.004*H],[0,.142*H,fz(.142*H)+.018*H*nb],[0,.128*H,fz(.128*H)+.008*H*nb]],
-    [[.006*H,.004*H],[.011*H*nb,.008*H],[.016*H*nb,.012*H*nb],[.012*H*nb,.006*H]],npcSeg(detail,6,4),plain);
+  // (r166) Smaller and softer: it starts between the eyes and ends in a round
+  // tip; the painted shadow under it does the rest. It was a tube standing
+  // off the face, its top above the eyes.
+  if(detail>.3)m.tube([[0,.16*H,fz(.16*H)-.006*H],[0,.145*H,fz(.145*H)],[0,.128*H,fz(.128*H)+.006*H*nb],[0,.118*H,fz(.118*H)+.004*H*nb],[0,.112*H,fz(.112*H)-.002*H]],
+    [[.004*H,.003*H],[.007*H*nb,.005*H],[.01*H*nb,.008*H*nb],[.009*H*nb,.006*H],[0,0]],npcSeg(detail,6,4),plain,{cap:'round'});
   // ears
   for(const s of[-1,1]){
     const r=hs.at(.17*H), ex=s*(r[1]-.004*H);
@@ -42171,9 +42189,14 @@ function npcLock(m,hs,L,paint,seg){
   const pts=[],rad=[],n=seg>=5?6:4;
   for(let k=0;k<n;k++){ const t=k/(n-1),a=(1-t)*(1-t),b=2*(1-t)*t,c2=t*t;
     pts.push([a*S[0]+b*C[0]+c2*E[0],a*S[1]+b*C[1]+c2*E[1],a*S[2]+b*C[2]+c2*E[2]]);
-    const taper=t<.3?1+t*.4:Math.max(.08,1.12-(t-.3)*1.5); rad.push([L.w*H*taper*.5,L.t*H*Math.max(.3,1-t*.6)*.5]); }
+    // (r166) chunkier: a lock is a clump, not a ribbon
+    const taper=t<.3?1+t*.4:Math.max(.08,1.12-(t-.3)*1.5); rad.push([L.w*H*taper*.62,L.t*H*Math.max(.35,1-t*.55)*.75]); }
   rad[n-1]=[0,0];
-  m.tube(pts,rad,seg,paint,{ref:[p[3],p[4],p[5]]});
+  // (r166) The hair tile's sheen sits a third of the way down it. A lock used
+  // the whole tile along its length, so long hair had a pale band across it at
+  // the shoulders. A lock uses the tile's top quarter: the strands without the
+  // band, which stays a ring round the crown on the cap.
+  m.tube(pts,rad,seg,paint,{ref:[p[3],p[4],p[5]],vRep:.25});
 }
 function npcHairLocks(style,hs,spec){
   // Locks for a style, from a seeded jitter so no two heads lie the same way.
@@ -42203,7 +42226,7 @@ function npcHairLocks(style,hs,spec){
 function npcBuildHair(m,hs,spec,detail){
   const hr=spec.hair; if(!hr||hr.style==='bald')return;
   const H=hs.H, paint=npcPaint(hr.c,hr.c2,hr.curly?NPC_TILE.hairCurl:NPC_TILE.hair,.3);
-  if(hr.style!=='fringe')npcCap(m,hs,npcHairLine(hr.style),.012*H,paint,detail,{uRep:4,vRep:1});
+  if(hr.style!=='fringe')npcCap(m,hs,npcHairLine(hr.style),.02*H,paint,detail,{uRep:4,vRep:1});   // (r166) fuller over the skull
   const locks=npcHairLocks(hr.style,hs,spec), seg=npcSeg(detail,5,3);
   locks.forEach((L,k)=>{ if(detail>.6||k%(detail>.3?3:4)===0)npcLock(m,hs,L,paint,seg); });
   if(hr.style==='bun'){ const c=[0,.24*H,-.11*H]; m.loft([[c[1]-.06*H,0,0,0,0,c[2]],[c[1]-.05*H,.05*H,.05*H,.05*H,0,c[2]],[c[1],.07*H,.07*H,.07*H,0,c[2]],[c[1]+.05*H,.05*H,.05*H,.05*H,0,c[2]],[c[1]+.065*H,0,0,0,0,c[2]]],npcSeg(detail,10,6),paint,{uRep:3,vRep:1}); }
@@ -42285,14 +42308,14 @@ function npcBuildGlasses(m,hs,spec,detail){
 // torso. Legs are a thigh and a shin with a knee between them.
 function npcDims(spec){
   const L=spec.legs,T=spec.torso,W=spec.width,hip=.92*L;
-  return {L,T,W,hip,thigh:.43*L,shin:.43*L,foot:.06*L,shoulderY:hip+.47*T,shoulderX:.178*W,neckY:hip+.585*T,legX:.092*W};   // (r165) the head a little lower on a sloped shoulder
+  return {L,T,W,hip,thigh:.43*L,shin:.43*L,foot:.06*L,shoulderY:hip+.47*T,shoulderX:.19*W,neckY:hip+.57*T,legX:.092*W};   // (r165, r166) the head lower on a sloped shoulder
 }
 function npcTorsoRings(d,sh){
   const {hip,T,W}=d;
   return [
     [hip-.1,0,0,0,0,-.008],[hip-.07,.108*W,.088*W,.1*W,0,-.008],[hip-.02,.156*W*sh.hip,.1*W,.126*W*sh.hip,0,-.008],[hip+.06,.158*W*sh.hip,.1*W,.124*W*sh.hip,0,-.004],
     [hip+.15*T,.134*W*sh.waist,.096*W,.092*W,0,.004],[hip+.25*T,.148*W,.112*W*sh.chest,.1*W,0,.008],[hip+.35*T,.164*W,.124*W*sh.chest,.11*W,0,.008],
-    [hip+.43*T,.176*W,.116*W,.114*W,0,.002],[hip+.49*T,.178*W,.102*W,.104*W,0,-.006],[hip+.53*T,.122*W,.084*W,.082*W,0,-.008],[hip+.55*T,.074,.07,.07,0,-.004],[hip+.6*T,.056,.054,.054,0,0]
+    [hip+.43*T,.186*W,.116*W,.114*W,0,.002],[hip+.49*T,.19*W,.102*W,.104*W,0,-.006],[hip+.53*T,.13*W,.084*W,.082*W,0,-.008],[hip+.55*T,.08,.076,.074,0,-.004],[hip+.59*T,.062,.06,.06,0,0]
   ];
 }
 const npcGrow=(rings,dr,dy=0)=>rings.map(r=>r[1]===0?r.slice():[r[0]+dy,r[1]+dr,r[2]+dr,r[3]+dr,r[4]||0,r[5]||0,r[6]||0,r[7]||0]);
@@ -42384,14 +42407,15 @@ function npcBuildArm(m,spec,d,s,detail){
   // grows out of the shoulder instead of hanging from it as a separate tube
   const c0=A[0], capPaint=sl==='none'?skin:top.paint;
   // (r165) lower, and leaning out with the slope of the shoulder: higher, it
-  // stood above the shoulder line like a pad
-  // Its pattern is laid on from above: wrapped round, a check or a stripe
-  // gathered to a bullseye at the top of the shoulder.
-  m.loft([[-.004,c0[1],c0[2],c0[3],0,0],[.016,c0[1]*.9,c0[2]*.92,c0[3]*.92,s*.006,0],[.03,c0[1]*.56,c0[2]*.6,c0[3]*.6,s*.013,-.002],[.036,0,0,0,s*.018,-.004]],seg,capPaint,{sub,uv:(t,s2,q)=>[q[0]/capPaint.s,q[2]/capPaint.s]});
+  // stood above the shoulder line like a pad. Its pattern is laid on from
+  // above: wrapped round, a check or a stripe gathered to a bullseye at the
+  // top of the shoulder. (r166) None over a puffed sleeve, which is its own
+  // round shoulder; a cap on it made a second ball.
+  if(sl!=='puff')m.loft([[-.004,c0[1],c0[2],c0[3],0,0],[.016,c0[1]*.9,c0[2]*.92,c0[3]*.92,s*.006,0],[.03,c0[1]*.56,c0[2]*.6,c0[3]*.6,s*.013,-.002],[.036,0,0,0,s*.018,-.004]],seg,capPaint,{sub,uv:(t,s2,q)=>[q[0]/capPaint.s,q[2]/capPaint.s]});
   // the hand: a mitten and a thumb, palm toward the thigh, held a little
   // forward with the forearm and fuller than it was
   const hp=spec.gloves||skin, x=s*.037, hz=.024;
-  m.tube([[x,-.475,.026+hz],[x,-.522,.032+hz],[x*.92,-.57,.035+hz],[x*.85,-.612,.033+hz],[x*.8,-.648,.03+hz]],[[.033,.022],[.046,.026],[.047,.026],[.04,.023],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0],cap:'round'});
+  m.tube([[x,-.475,.026+hz],[x,-.522,.032+hz],[x*.92,-.57,.035+hz],[x*.85,-.612,.033+hz],[x*.8,-.648,.03+hz]],[[.036,.024],[.051,.029],[.052,.029],[.044,.025],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0],cap:'round'});
   if(detail>.3)m.tube([[x-s*.006,-.498,.05+hz],[x-s*.012,-.528,.066+hz],[x-s*.012,-.552,.07+hz],[x-s*.011,-.57,.069+hz]],[.016,.014,.012,0],npcSeg(detail,6,4),hp,{cap:'round'});
   return [x,-.56,.045+hz];
 }
@@ -42450,29 +42474,29 @@ function npcDarken(hex,k){ const c=npcRgb(hex).map(v=>Math.round(v*(1-k))); retu
 // The hand-made looks: the characters the reference frames show, and the
 // keepers of the halls. Fields here override what the name would have rolled.
 const NPC_KIT_LOOKS={
-  'Wren Halloway':{species:1,ears:'human',face:6,eye:0x3a3020,skin:0xe6b896,hair:{style:'short',c:0x1a1c26,c2:0x50586e},hat:{kind:'witch',c:0x1c1d2a,c2:0x2e3048,t:NPC_TILE.linen},
+  'Wren Halloway':{fem:false,beard:null,species:1,ears:'human',face:6,eye:0x3a3020,skin:0xe6b896,hair:{style:'short',c:0x1a1c26,c2:0x50586e},hat:{kind:'witch',c:0x1c1d2a,c2:0x2e3048,t:NPC_TILE.linen},
     top:{kind:'shirt',pattern:'tartan',c:0xa0262a,c2:0x23305a,sleeve:'long',collar:'turtle',len:'hip'},under:0x18181e,legwear:{kind:'trousers',c:0x23262e},boots:{kind:'boot',c:0x2a1e16}},
-  'Lysa Star-Eyed':{species:2,ears:'elf',face:16,eye:0x4a5a8a,skin:0xf4ddd0,hair:{style:'bob',c:0xb5975a,c2:0xe8d8a0},glasses:{c:0x141418},
+  'Lysa Star-Eyed':{fem:true,species:2,ears:'elf',face:16,eye:0x4a5a8a,skin:0xf4ddd0,hair:{style:'bob',c:0xb5975a,c2:0xe8d8a0},glasses:{c:0x141418},
     top:{kind:'dress',pattern:'linen',c:0xe2e0ea,c2:0xffffff,sleeve:'puff',collar:'frill',len:'knee',frill:0xeceaf0},under:0xe2e0ea,belt:{sash:true,c:0x141418},
     legwear:{kind:'stockings',stripe:[0xe8e4e8,0x16161c]},boots:{kind:'boot',c:0x1c1a20},wings:{c:0xd2d8e8,c2:0xffffff}},
   'Orren of the Broken Hall':{species:1,ears:'human',face:5,eye:0x6a7480,elder:true,hair:{style:'wild',c:0xb8b4ae,c2:0xe8e6e2},beard:{style:'long'},hat:{kind:'wizard',c:0x2a2440,c2:0x3e365e},
     top:{kind:'robe',pattern:'linen',c:0x2d273f,c2:0x463c66,sleeve:'bell',len:'ankle',hemband:true},belt:{c:0x6a5a3a},legwear:{kind:'trousers',c:0x1e1a28},boots:{kind:'shoe',c:0x2a1e16}},
-  'Corvin Cliffwatch':{species:1,face:20,hair:{style:'short',c:0x2e1f17},cloak:{c:0x2a3038,c2:0x1c2228,hood:true},top:{kind:'tunic',pattern:'leather',c:0x3a2a1e,c2:0x2a1c14,sleeve:'long',len:'thigh'},
+  'Corvin Cliffwatch':{fem:false,species:1,face:20,hair:{style:'short',c:0x2e1f17},cloak:{c:0x2a3038,c2:0x1c2228,hood:true},top:{kind:'tunic',pattern:'leather',c:0x3a2a1e,c2:0x2a1c14,sleeve:'long',len:'thigh'},
     belt:{c:0x2a1c14,buckle:0x8a7a5a},legwear:{kind:'trousers',c:0x2a2c30},boots:{kind:'tall',c:0x2a1e16},gloves:0x2a1e16},
   'Nell Red-Sock':{species:2,ears:'elf',child:true,face:26,eye:0x2a4a6a,skin:0xf0dcd4,hair:{style:'bob',c:0x4a2a1e,c2:0x8a5a3a},hat:{kind:'beret',c:0x23305a,c2:0x1a2240,t:NPC_TILE.knit},
     top:{kind:'dress',pattern:'tartanDark',c:0x2e3c6e,c2:0x182038,sleeve:'long',len:'knee'},under:0x1a1a22,belt:{c:0xb0262a,buckle:0xc8a050},
     legwear:{kind:'stockings',stripe:[0xb0262a,0xe8e2d8]},boots:{kind:'shoe',c:0x5a2a1e}},
   'Barkeep Varn':{beard:{style:'mustache'},top:{kind:'shirt',pattern:'stripeThin',c:0xd8d0bc,c2:0x7a3a2a,sleeve:'rolled',len:'hip'},vest:{c:0x3a2a1e,pattern:'leather'},apron:{len:'knee',c:0xc8bca0},hat:null},
-  'Archivist Lysa':{hair:{style:'bun',c:0x4a2c1c,c2:0x8a5a3a},glasses:{c:0x5a4a2a},top:{kind:'coat',pattern:'windowpane',c:0x2e3a5a,c2:0x8a9ab8,sleeve:'long',len:'calf',collar:'shirt'},hat:null},
+  'Archivist Lysa':{fem:true,hair:{style:'bun',c:0x4a2c1c,c2:0x8a5a3a},glasses:{c:0x5a4a2a},top:{kind:'coat',pattern:'windowpane',c:0x2e3a5a,c2:0x8a9ab8,sleeve:'long',len:'calf',collar:'shirt'},hat:null},
   'Pilgrim Sorell':{cloak:{c:0x6a5e48,c2:0x4a4234,hood:false},top:{kind:'robe',pattern:'linen',c:0x8f8061,c2:0x6a5e48,sleeve:'long',len:'ankle'},belt:{c:0x5a4a32},hat:{kind:'wide',c:0x5a4a32}},
-  'Chamberlain Ash':{top:{kind:'coat',pattern:'pinstripe',c:0x3a2a52,c2:0x8a7aa8,sleeve:'long',len:'knee',collar:'shirt',hemband:true},glasses:false,hat:{kind:'cap',c:0x2a1e3a,c2:0x8a6a3a}},
+  'Chamberlain Ash':{fem:false,top:{kind:'coat',pattern:'pinstripe',c:0x3a2a52,c2:0x8a7aa8,sleeve:'long',len:'knee',collar:'shirt',hemband:true},glasses:false,hat:{kind:'cap',c:0x2a1e3a,c2:0x8a6a3a}},
   // the canon places' posed figures (placePosedFigures), from the reference:
   // on the knoll a winged one in a pale dress and one in a witch's hat, and
   // on the Lowmere prow the hooded watcher, cloaked to the boots
   'the winged watcher':{species:2,ears:'elf',face:12,eye:0x4a5a8a,skin:0xf0cfbc,hair:{style:'braids',c:0x2a2440,c2:0x5a5080},glasses:false,beard:null,hat:null,
     top:{kind:'dress',pattern:'linen',c:0xd8dcea,c2:0xffffff,sleeve:'puff',collar:'frill',len:'calf',frill:0xeceaf0},under:0xd8dcea,
     legwear:{kind:'stockings',stripe:[0xe8e4e8,0x2a2a3a]},boots:{kind:'boot',c:0x2a2430},wings:{c:0xd2d8e8,c2:0xffffff}},
-  'the hatted watcher':{species:1,ears:'human',face:3,skin:0xdca07a,hair:{style:'long',c:0x4a2c1c,c2:0x8a5a3a},glasses:false,beard:null,
+  'the hatted watcher':{fem:false,species:1,ears:'human',face:3,skin:0xdca07a,hair:{style:'long',c:0x4a2c1c,c2:0x8a5a3a},glasses:false,beard:null,
     hat:{kind:'witch',c:0x2a1e3a,c2:0x4a3a6a,t:NPC_TILE.linen},top:{kind:'shirt',pattern:'tartan',c:0x2e4a2e,c2:0x7a1e22,sleeve:'long',len:'hip',collar:'turtle'},
     under:0x1a1a22,legwear:{kind:'trousers',c:0x2a2c34},boots:{kind:'boot',c:0x2a1e16}},
   'the hooded watcher':{species:1,ears:'human',face:20,elder:false,hair:{style:'short',c:0x2e1f17},beard:{style:'full'},glasses:false,
@@ -42483,24 +42507,38 @@ function npcKitLook(name,o){
   // o: {signature, species, variant, bodyType, robe, look}
   const R=npcRand(o.signature^0x9e3779b9), pick=a=>a[Math.floor(R()*a.length)], chance=p=>R()<p, j=a=>(R()-.5)*a;
   const L=NPC_KIT_LOOKS[name]||{}, species=L.species??o.species, v=o.variant;
-  const base=[{L:.78,T:.88,W:1.12,H:1.28},{L:.97,T:1,W:1,H:1.12},{L:1.02,T:1.02,W:.9,H:1.08},{L:.92,T:1.04,W:1.22,H:1.12},{L:.82,T:.92,W:1.08,H:1.2}][species];
-  const build=[{W:.9,T:1.02},{W:1,T:1},{W:1.14,T:.98}][o.bodyType]||{W:1,T:1};
+  // (r166) About a tenth fuller for every people and build, and the legs of
+  // the humans and long-ears a little shorter: the owner, on r165, "they're
+  // all very skinny and weird and disproportionate". The references' people
+  // are solid figures with broad shoulders, not long thin ones.
+  const base=[{L:.78,T:.88,W:1.22,H:1.33},{L:.92,T:1,W:1.1,H:1.18},{L:.96,T:1.02,W:1,H:1.14},{L:.9,T:1.04,W:1.32,H:1.17},{L:.82,T:.92,W:1.18,H:1.25}][species];
+  const build=[{W:.95,T:1.02},{W:1.05,T:1},{W:1.18,T:.98}][o.bodyType]||{W:1.05,T:1};
   const elder=L.elder??chance(.17), child=!!L.child;
+  // (r166) Whether a resident reads as a man or a woman. Until r166 hair,
+  // beard, face, body shape and dress were each rolled on their own, so a
+  // moustache came with long red hair and lashes, or a bust with a beard:
+  // two people's parts on one figure, which is most of what read as "weird".
+  // The references' people read plainly as a boy and a girl. A hand-made look
+  // may say (fem), a beard says man, a dress says woman, the town-dress trade
+  // is women's; otherwise the seed decides, a little under half women.
+  const fem=L.fem??(L.beard?false:L.top?.kind==='dress'?true:o.variant===5?true:chance(.46));
   const spec={rand:R,seed:o.signature,species,child,elder,
     legs:base.L*(1+j(.06))*(child?.78:1),torso:base.T*build.T*(1+j(.05))*(child?.8:1),width:base.W*build.W*(1+j(.07))*(child?.82:1),head:base.H*(1+j(.06))*(child?1.12:1),
-    jaw:1+j(.25)+(species===3?.15:0),cheek:1+j(.2),nose:(species===0?1.45:species===3?1.2:1)*(1+j(.3)),
-    shape:chance(.5)?{hip:1+j(.06),waist:1+j(.06),chest:1+j(.06)}:{hip:1.1+j(.06),waist:.88+j(.05),chest:1.14+j(.06)},
+    jaw:(1+j(.2)+(species===3?.15:0))*(fem?.94:1.06),cheek:1+j(.2),nose:(species===0?1.45:species===3?1.2:1)*(1+j(.3)),
+    shape:fem?{hip:1.1+j(.06),waist:.88+j(.05),chest:1.12+j(.06)}:{hip:.98+j(.05),waist:1+j(.05),chest:1.02+j(.05)},fem,
     ears:L.ears||['gnome','human','elf','human','elf'][species],
     skin:L.skin||pick(NPC_KIT_PAL.skin[species]), eye:L.eye||pick(NPC_KIT_PAL.eye),
-    face:L.face??(elder?[5,11,17,23,29][Math.floor(R()*5)]:Math.floor(R()*NPC_FACE_COUNT))
+    // every third face, with the heavier lashes, is a woman's
+    face:L.face??(elder?[5,11,17,23,29][Math.floor(R()*5)]:fem?3*Math.floor(R()*11):NPC_FACES_MEN[Math.floor(R()*NPC_FACES_MEN.length)])
   };
   if(species===3)spec.brow=npcDarken(spec.skin,.15);
   // hair
   const hc=elder?pick(NPC_KIT_PAL.grey):pick(NPC_KIT_PAL.hair[species]);
-  const styles=elder?['fringe','short','bun','long','cropped','swept']:['short','bob','long','pigtails','bun','ponytail','braids','spiky','swept','curly','cropped','bob','short','long'];
+  const styles=elder?(fem?['bun','long','swept','bob']:['fringe','short','cropped','swept'])
+    :fem?['bob','long','pigtails','bun','ponytail','braids','swept','curly','bob','long']:['short','spiky','swept','cropped','curly','short','swept','short'];
   spec.hair=L.hair?{c2:npcLighten(L.hair.c,.35),...L.hair}:{style:pick(styles),c:hc,c2:species===4?npcLighten(hc,.25):npcLighten(hc,.35)};
   spec.hair.curly=spec.hair.style==='curly'||species===4;
-  const beardP=[.55,.22,.05,.4,.15][species]+(elder?.15:0);
+  const beardP=fem?0:[.55,.3,.08,.45,.2][species]+(elder?.15:0);
   spec.beard=L.beard!==undefined?(L.beard&&{c:spec.hair.c,c2:spec.hair.c2,...L.beard}):(chance(beardP)?{style:pick(['full','full','mustache','goatee',elder?'long':'full']),c:spec.hair.c,c2:spec.hair.c2}:null);
   // clothes, by trade
   const robe=o.robe, second=pick(NPC_KIT_PAL.second), trousers=pick(NPC_KIT_PAL.trousers), under=pick(NPC_KIT_PAL.under), leather=pick(NPC_KIT_PAL.leather);
@@ -42524,6 +42562,10 @@ function npcKitLook(name,o){
   spec.under=npcPaint(L.under||under,L.under||under,top.collar==='turtle'?NPC_TILE.knit:NPC_TILE.linen,.12);
   // legs and feet
   const dress=top.kind==='dress'||top.kind==='robe';
+  // (r166) A random moustache on someone in a frilled dress read as a mistake,
+  // not a person; the people of the references in dresses have none. A robe
+  // (a wizard, a pilgrim) may keep a beard.
+  if(top.kind==='dress'&&L.beard===undefined)spec.beard=null;
   let lw;
   if(L.legwear){ lw=L.legwear.stripe?{kind:'stockings',paint:npcPaint(L.legwear.stripe[0],L.legwear.stripe[1],NPC_TILE.stripe,.1)}:{kind:L.legwear.kind,paint:npcPaint(L.legwear.c,L.legwear.c,NPC_TILE.twill,.2)}; }
   else if(dress&&top.len!=='ankle'){ const st=pick(NPC_KIT_PAL.stockings); lw=chance(.5)?{kind:'stockings',paint:npcPaint(st[0],st[1],NPC_TILE.stripe,.1)}:chance(.6)?{kind:'stockings',paint:npcPaint(st[1],st[1],NPC_TILE.knit,.1)}:{kind:'bare'}; }
@@ -46798,7 +46840,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r165',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r166',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
