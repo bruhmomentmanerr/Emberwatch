@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r167 Knight and wizard</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r168 Proportions</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -41535,7 +41535,7 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r167';
+const NPC_KIT_VERSION='npc-kit-r168';
 const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,face0:32});
 const NPC_FACE_COUNT=32;
 const NPC_FACES_MEN=[...Array(NPC_FACE_COUNT).keys()].filter(i=>i%3);   // (r166) every third face, with the heavier lashes, is a woman's
@@ -42065,15 +42065,15 @@ function npcBuildGlasses(m,hs,spec,detail){
 // hip at 0.92 x legs, the shoulders and the neck above it by fractions of the
 // torso. Legs are a thigh and a shin with a knee between them.
 function npcDims(spec){
-  const L=spec.legs,T=spec.torso,W=spec.width,hip=.92*L;
-  return {L,T,W,hip,thigh:.43*L,shin:.43*L,foot:.06*L,shoulderY:hip+.47*T,shoulderX:.19*W,neckY:hip+.57*T,legX:.092*W};   // (r165, r166) the head lower on a sloped shoulder
+  const L=spec.legs,T=spec.torso,W=spec.width,hip=.92*L,sq=spec.shape.shoulder||1;
+  return {L,T,W,hip,sq,thigh:.43*L,shin:.43*L,foot:.06*L,shoulderY:hip+.47*T,shoulderX:.182*W*sq,neckY:hip+.57*T,legX:.092*W};   // (r165, r166) the head lower on a sloped shoulder
 }
 function npcTorsoRings(d,sh){
   const {hip,T,W}=d;
   return [
     [hip-.1,0,0,0,0,-.008],[hip-.07,.108*W,.088*W,.1*W,0,-.008],[hip-.02,.156*W*sh.hip,.1*W,.126*W*sh.hip,0,-.008],[hip+.06,.158*W*sh.hip,.1*W,.124*W*sh.hip,0,-.004],
     [hip+.15*T,.134*W*sh.waist,.096*W,.092*W,0,.004],[hip+.25*T,.148*W,.112*W*sh.chest,.1*W,0,.008],[hip+.35*T,.164*W,.124*W*sh.chest,.11*W,0,.008],
-    [hip+.43*T,.186*W,.116*W,.114*W,0,.002],[hip+.49*T,.19*W,.102*W,.104*W,0,-.006],[hip+.53*T,.13*W,.084*W,.082*W,0,-.008],[hip+.55*T,.08,.076,.074,0,-.004],[hip+.59*T,.062,.06,.06,0,0]
+    [hip+.43*T,.18*W*d.sq,.116*W,.114*W,0,.002],[hip+.49*T,.182*W*d.sq,.102*W,.104*W,0,-.006],[hip+.53*T,.126*W*(1+(d.sq-1)*.6),.084*W,.082*W,0,-.008],[hip+.55*T,.08,.076,.074,0,-.004],[hip+.59*T,.062,.06,.06,0,0]
   ];
 }
 const npcGrow=(rings,dr,dy=0)=>rings.map(r=>r[1]===0?r.slice():[r[0]+dy,r[1]+dr,r[2]+dr,r[3]+dr,r[4]||0,r[5]||0,r[6]||0,r[7]||0]);
@@ -42183,7 +42183,9 @@ function npcBuildLeg(m,spec,d,s,detail){
   // middle, so a thigh any wider at the hip came out through the sides of the
   // hips. Inside out until r165, it never showed; facing out, it stood off the
   // hips in flaps.
-  const thigh=[[.04,.056*W,.07*W,.072*W],[-.04,.064*W,.084*W,.088*W],[-.25*t,.078*W,.09*W,.096*W],[-.6*t,.07*W,.078*W,.078*W],[-.95*t,.06*W,.064*W,.058*W],[-t-.01,.059*W,.062*W,.056*W]];
+  // (r168) fuller at the top, so the two thighs together are about as wide
+  // as the hips (they were 0.57 of a head each against hips of 1.35)
+  const thigh=[[.04,.06*W,.074*W,.076*W],[-.04,.074*W,.092*W,.098*W],[-.25*t,.088*W,.098*W,.106*W],[-.6*t,.076*W,.084*W,.084*W],[-.95*t,.061*W,.065*W,.059*W],[-t-.01,.059*W,.062*W,.056*W]];
   const g=lw.kind==='trousers'||lw.kind==='breeches'?.006:0;
   m.loft(npcGrow(thigh,g),seg,lw.kind==='bare'?npcPaint(spec.skin,spec.skin):lw.thigh||lw.paint,{sub});
 }
@@ -42265,11 +42267,19 @@ function npcKitLook(name,o){
   // o: {signature, species, variant, bodyType, robe, look}
   const R=npcRand(o.signature^0x9e3779b9), pick=a=>a[Math.floor(R()*a.length)], chance=p=>R()<p, j=a=>(R()-.5)*a;
   const L=NPC_KIT_LOOKS[name]||{}, species=L.species??o.species, v=o.variant;
-  // (r166) About a tenth fuller for every people and build, and the legs of
-  // the humans and long-ears a little shorter: the owner, on r165, "they're
-  // all very skinny and weird and disproportionate". The references' people
-  // are solid figures with broad shoulders, not long thin ones.
-  const base=[{L:.78,T:.88,W:1.22,H:1.33},{L:.92,T:1,W:1.1,H:1.18},{L:.96,T:1.02,W:1,H:1.14},{L:.9,T:1.04,W:1.32,H:1.17},{L:.82,T:.92,W:1.18,H:1.25}][species];
+  // (r168) Proportions set against a canon and measured in head heights
+  // (chin to crown, the way figures are judged): the owner, on r167, "still
+  // stocky and skinny". Measured over 120 residents, r167's were 5.4 heads
+  // tall (gnomes 4.6) with hips 2.5 heads off the ground: big heads on short
+  // legs. A stylised-realistic adult, as in the references, is about 7 heads
+  // with the hips near half the height. Humans and long-ears are now about
+  // 6.8, stonekin 6.4 and mossfolk 6 (both stout by nature), gnomes 5 (small
+  // people with big heads, still). r166 had made heads bigger; this undoes it.
+  // Widths a tenth less than r167's: with the smaller head they measured
+  // 2.4 heads across the shoulders, and 0.65 m in metres, where a broad man is
+  // about 2.2. Limbs keep their shapes, so they do not get thinner against
+  // the body.
+  const base=[{L:.8,T:.9,W:1.12,H:1.08},{L:1.0,T:1,W:1.0,H:.94},{L:1.04,T:1.02,W:.91,H:.92},{L:.94,T:1.04,W:1.19,H:.98},{L:.88,T:.94,W:1.08,H:1.02}][species];
   const build=[{W:.95,T:1.02},{W:1.05,T:1},{W:1.18,T:.98}][o.bodyType]||{W:1.05,T:1};
   const elder=L.elder??chance(.17), child=!!L.child;
   // (r166) Whether a resident reads as a man or a woman. Until r166 hair,
@@ -42283,7 +42293,9 @@ function npcKitLook(name,o){
   const spec={rand:R,seed:o.signature,species,child,elder,
     legs:base.L*(1+j(.06))*(child?.78:1),torso:base.T*build.T*(1+j(.05))*(child?.8:1),width:base.W*build.W*(1+j(.07))*(child?.82:1),head:base.H*(1+j(.06))*(child?1.12:1),
     jaw:(1+j(.2)+(species===3?.15:0))*(fem?.94:1.06),cheek:1+j(.2),nose:(species===0?1.45:species===3?1.2:1)*(1+j(.3)),
-    shape:fem?{hip:1.1+j(.06),waist:.88+j(.05),chest:1.12+j(.06)}:{hip:.98+j(.05),waist:1+j(.05),chest:1.02+j(.05)},fem,
+    // (r168) a woman's shoulders a tenth narrower than a man's: they were
+    // the same, 2.24 heads across against hips of 1.58, which read as boxy
+    shape:fem?{hip:1.1+j(.06),waist:.88+j(.05),chest:1.12+j(.06),shoulder:.9}:{hip:.98+j(.05),waist:1+j(.05),chest:1.02+j(.05),shoulder:1},fem,
     ears:L.ears||['gnome','human','elf','human','elf'][species],
     skin:L.skin||pick(NPC_KIT_PAL.skin[species]), eye:L.eye||pick(NPC_KIT_PAL.eye),
     // every third face, with the heavier lashes, is a woman's
@@ -46752,7 +46764,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r167',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r168',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47106,7 +47118,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — The Long Night — variant layer over base r167 -->
+<!-- Emberwatch — The Long Night — variant layer over base r168 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — THE LONG NIGHT                                 variant layer

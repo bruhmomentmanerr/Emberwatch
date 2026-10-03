@@ -1980,7 +1980,7 @@
   "rev": 165,
   "title": "facing out",
   "version": "1.65.0",
-  "date": "2026-10-03T12:30:00Z",
+  "date": "2026-10-03T11:48:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r165-facing-out.html"
@@ -1993,7 +1993,7 @@
   "rev": 166,
   "title": "faces and figures",
   "version": "1.66.0",
-  "date": "2026-10-03T16:00:00Z",
+  "date": "2026-10-03T14:36:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r166-faces-and-figures.html"
@@ -2006,12 +2006,25 @@
   "rev": 167,
   "title": "knight and wizard",
   "version": "1.67.0",
-  "date": "2026-10-03T19:30:00Z",
+  "date": "2026-10-03T17:24:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r167-knight-and-wizard.html"
   },
   "asset": "emberwatch-r167-knight-and-wizard.html",
   "notes": "releases/notes/r167.md"
+ },
+ {
+  "tag": "r168",
+  "rev": 168,
+  "title": "proportions",
+  "version": "1.68.0",
+  "date": "2026-10-03T20:12:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r168-proportions.html"
+  },
+  "asset": "emberwatch-r168-proportions.html",
+  "notes": "releases/notes/r168.md"
  }
 ]

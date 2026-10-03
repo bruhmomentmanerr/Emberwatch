@@ -4,11 +4,15 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r167 / 1.67.0**, sealed 2026-10-03 as "Knight and wizard": the
+Current: **r168 / 1.68.0**, sealed 2026-10-03 as "Proportions": the
+residents measured in head heights and set to a canon: heads a fifth
+smaller, legs longer, widths a tenth less, women's shoulders narrower than
+men's, thighs fuller at the top; humans 7 heads tall where they were 5.6
+(§0). Before it, **r167 / 1.67.0**, sealed 2026-10-03 as "Knight and wizard": the
 Rain Oath knight rebuilt from the kit after the reference (kneeling, a
 greatsword burning blue), the wizard's gnarled staff and taller hat, and
 two Peak fixes: Chrome's chooser opens again, and a pairing Windows already
-has under way is waited for (§0). Before it,
+has under way is waited for (§0a). Before it,
 **r166 / 1.66.0**, sealed 2026-10-03 as "Faces and figures": the
 residents' heads and painted faces redrawn after the reference frames (a
 round skull, big eyes with an iris and catchlights, a small nose and
@@ -283,7 +287,63 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-03, r167)
+## 0. Start here — where the last session left off (2026-10-03, r168)
+
+**State: r168 / 1.68.0, sealed 2026-10-03 ("Proportions").** The owner,
+on r167: "continue, still stocky and skinny".
+
+**Next:** the owner's look at the residents. Still open: rigid joints, and
+clothes that are smooth tubes where the references' are loose and folded
+(§0b). The Peak test of r167 is still owed (§0a).
+
+### Measured, not guessed
+
+r166 had answered "skinny" by making everything fuller and the heads
+bigger, which made the figures stockier. This time the residents were
+measured: a studio page builds 120 of them at rest and reports their
+proportions in head heights (chin to crown), the unit figure artists judge
+proportions in: height, hip height, shoulder span, the thickness of upper
+arm, forearm, thigh and calf, chest, waist and hips.
+
+| | r167 | r168 | a stylised-realistic adult |
+|---|---|---|---|
+| height (humans) | 5.6 heads | 7.0 | about 7 |
+| height (all adults) | 5.4 | 6.55 | |
+| gnomes | 4.6 | 5.45 | small people, big heads |
+| hip height (humans) | 2.6 heads | 3.6 | about half the height |
+| shoulders, men / women | 2.07 (both) | 2.26 / 2.09 | about 2.2 / 2.0 |
+| thigh at the top, against hips | 0.57 / 1.35 | 0.73 / 1.45 (men) | two thighs about the hips |
+
+Big heads on short legs read as stocky; thin thighs against wide hips, and
+everyone's shoulders a man's, read as skinny and boxy. r168:
+
+- **Heads** about a fifth smaller (humans `H` 1.18 to 0.94; every people's
+  set from the table in `npcKitLook`), **legs** longer (humans `L` 0.92 to
+  1.0, long-ears 1.04). Overall height is about the same, so doors, seats
+  and interiors are unaffected.
+- **Widths** about a tenth less for every people: with the smaller head the
+  shoulders measured 2.4 heads, and 0.65 m in metres.
+- **Women's shoulders** a tenth narrower than men's (`shape.shoulder`, used
+  by `npcDims` and the torso's shoulder rings).
+- **Thighs** fuller at the top, so the two together are about as wide as
+  the hips, tapering to the same knee.
+
+The measuring page is `measure.js` in the session's studio scratch; the
+numbers above are read off it.
+
+### Verified
+
+- `check-parse`, `audit-source` (A 229, B and C 0), `audit-dom`,
+  `audit-dead` (688, 0 dead), `audit-comments`, `test-switch-frames`,
+  `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- The measurements above; the studio row r167 against r168; the market
+  lineup and close views in the game.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r168 in the title.
+- Not run: the runtime audit.
+
+---
+
+## 0a. r167 — where the session before that left off (2026-10-03)
 
 **State: r167 / 1.67.0, sealed 2026-10-03 ("Knight and wizard").** The
 owner, on r166: "also the knight and wizard characters. Keep pushing

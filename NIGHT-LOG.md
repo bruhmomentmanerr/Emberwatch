@@ -6,6 +6,22 @@ estimated.
 
 ---
 
+## 2026-10-03 · r168 "Proportions"
+
+**What was wrong.** "Still stocky and skinny." Measured over 120 residents
+in head heights: 5.4 heads tall (humans 5.6), hips 2.5 heads up, thighs
+0.57 of a head against hips of 1.35, and women with men's shoulders. r166
+had made the heads bigger.
+
+**What changed.** Heads a fifth smaller, legs longer, widths a tenth less,
+women's shoulders narrower, thighs fuller at the top. PROJECT.md §0.
+
+**What proved it.** The same measurement after: humans 7.0 heads, hips at
+3.6, men's shoulders 2.26 and women's 2.09; the studio row and the market
+in the game; audits, variants 6/6, smoke.
+
+---
+
 ## 2026-10-03 · r167 "Knight and wizard"
 
 **What was wrong.** The Rain Oath knight was a flat-blue low-poly statue
