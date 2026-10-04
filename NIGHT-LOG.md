@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-04 · r170 "Cloth in folds"
+
+**What was wrong.** The clothes were smooth tubes and cones where the
+reference frames' are loose and folded. Aprons over skirts looked torn: the
+skirt came through their lower edge. And walking legs came through long
+skirts, robes and coats, which hang from the torso and do not move.
+
+**What changed.** Folds on skirts, robes, coats, cloaks, aprons, puffed and
+bell sleeves, and gathers at the waist, with darker valleys. Aprons, tabards
+and cloaks built over the skirt. Skirts fitted round the legs at the
+resident's stride, and long skirts take shorter steps. PROJECT.md §0.
+
+**What proved it.** The studio from front, back and the side at full
+stride, r169 against r170: legs came through the knee-length dress, the
+robe, the long skirt and the coat in r169, and through none of the ten in
+r170. In-game shots; strides read off 374 residents; boot within the runs'
+spread; audits, variants 6/6, smoke.
+
+---
+
 ## 2026-10-04 · r169 "Faces in the form"
 
 **What was wrong.** "Like a JPEG on top of the shape … the eyes … are like

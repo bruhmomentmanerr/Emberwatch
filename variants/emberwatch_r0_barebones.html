@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r169 Faces in the form</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r170 Cloth in folds</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -41704,7 +41704,7 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r169';
+const NPC_KIT_VERSION='npc-kit-r170';
 const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,iris:30,face0:32});
 const NPC_FACE_COUNT=32;
 const NPC_FACES_MEN=[...Array(NPC_FACE_COUNT).keys()].filter(i=>i%3);   // (r166) every third face, with the heavier lashes, is a woman's
@@ -41879,10 +41879,10 @@ function npcPaint(c,c2,t=NPC_TILE.solid,s=.3){ return {c:typeof c==='number'?npc
 // `inner` (set on an arm) is the side facing the body, darkened toward the
 // armpit. The colours are sRGB bytes, so 0.86 here is about 0.72 in light.
 function NpcMesh(ox=0,oy=0,inner=0){ this.p=[]; this.n=[]; this.c=[]; this.c2=[]; this.uv=[]; this.tl=[]; this.ix=[]; this.count=0; this.ox=ox; this.oy=oy; this.inner=inner; }
-NpcMesh.prototype.vert=function(x,y,z,nx,ny,nz,u,v,paint){
+NpcMesh.prototype.vert=function(x,y,z,nx,ny,nz,u,v,paint,ks){
   const Y=y+this.oy, up=.86+.14*(ny*.5+.5), low=.9+.1*Math.min(1,Math.max(0,Y/.95));
   const pit=this.inner&&nx*this.inner>.2?1-.14*nx*this.inner*Math.min(1,Math.max(0,(y+.22)/.22)):1;
-  const k=up*low*pit, c=paint.c, c2=paint.c2;
+  const k=up*low*pit*ks, c=paint.c, c2=paint.c2;
   this.p.push(x,y,z); this.n.push(nx,ny,nz); this.c.push(c[0]*k,c[1]*k,c[2]*k); this.c2.push(c2[0]*k,c2[1]*k,c2[2]*k);
   this.uv.push(u,v); this.tl.push(paint.t%8,(paint.t/8)|0); return this.count++;
 };
@@ -41891,9 +41891,13 @@ NpcMesh.prototype.vert=function(x,y,z,nx,ny,nz,u,v,paint){
 // the cross product of dP/ds and dP/dt. `flip` turns the surface over, `two`
 // emits both sides.
 // A collapsed ring (a pole) takes the direction along the surface instead.
+// (r170) opt.ks(t, s, point), if given, darkens each vertex's colours by
+// its factor, for the valleys of a fold. It is read once, outside the loop:
+// read for every vertex, from options of many shapes, it cost a fifth of the
+// residents' build.
 NpcMesh.prototype.surf=function(nu,nv,wrap,P,paint,opt={}){
   const pts=[]; for(let i=0;i<=nv;i++){ const row=[]; for(let j=0;j<=nu;j++)row.push(P(j/nu,i/nv)); pts.push(row); }
-  const UV=opt.uv||((t,s)=>[t*(opt.uRep||1),s*(opt.vRep||1)]);
+  const UV=opt.uv||((t,s)=>[t*(opt.uRep||1),s*(opt.vRep||1)]), KS=opt.ks||null;
   const sides=opt.two?[false,true]:[!!opt.flip];
   for(const flip of sides){
     const base=this.count, cols=nu+1, sg=flip?-1:1;
@@ -41905,7 +41909,7 @@ NpcMesh.prototype.surf=function(nu,nv,wrap,P,paint,opt={}){
       let nx=sy*tz-sz*ty,ny=sz*tx-sx*tz,nz=sx*ty-sy*tx,L=Math.hypot(nx,ny,nz);
       if(L<1e-10){ nx=sx;ny=sy;nz=sz; if(i===0){nx=-nx;ny=-ny;nz=-nz;} L=Math.hypot(nx,ny,nz)||1; }
       const q=pts[i][j], uv=UV(j/nu,i/nv,q);
-      this.vert(q[0],q[1],q[2],sg*nx/L,sg*ny/L,sg*nz/L,uv[0],uv[1],paint);
+      this.vert(q[0],q[1],q[2],sg*nx/L,sg*ny/L,sg*nz/L,uv[0],uv[1],paint,KS?KS(j/nu,i/nv,q):1);
     }
     for(let i=0;i<nv;i++)for(let j=0;j<nu;j++){
       const a=base+i*cols+j,b=a+1,c=a+cols+1,d=a+cols;
@@ -41938,14 +41942,34 @@ NpcMesh.prototype.loft=function(rings,seg,paint,opt={}){
   const uRep=opt.uRep||Math.max(1,Math.round(avg*span/paint.s)), vRep=opt.vRep||len/paint.s;
   // (r163) surf walks a row at a time, so the ring is worked out once per row
   // rather than once per vertex: it was a fifth of the residents' build.
-  let rowS=-1, rowR=null;
+  // (r170) opt.folds hangs the cloth in folds, by npcFold, worked out once
+  // per vertex and kept, so the valleys can be darkened from the same values.
+  const fo=opt.folds?npcFold(opt.folds):null, FV=fo?new Float32Array((rows+1)*(seg+1)):null;
+  let rowS=-1, rowR=null, rowW=0;
   return this.surf(seg,rows,!part,(t,s)=>{
-    if(s!==rowS){ rowS=s; rowR=ring(s); }
+    if(s!==rowS){ rowS=s; rowR=ring(s); rowW=fo?fo.wy(rowR[0]):0; }
     const R=rowR, th=part?a0+(a1-a0)*t:t*Math.PI*2, sn=Math.sin(th), cs=-Math.cos(th);
-    const w=1+(R[6]?R[6]*Math.sin(th*R[7]):0);
+    let f=1; if(rowW>0){ const v=fo.at(th,rowW); FV[Math.round(s*rows)*(seg+1)+Math.round(t*seg)]=v; f=1+fo.amp*v; }
+    const w=(1+(R[6]?R[6]*Math.sin(th*R[7]):0))*f;
     return [R[4]+R[1]*sn*w, R[0], R[5]+(cs>=0?R[2]:R[3])*cs*w];
-  },paint,{uRep,vRep,flip:opt.flip,two:opt.two,uv:opt.uv});
+  },paint,{uRep,vRep,flip:opt.flip,two:opt.two,uv:opt.uv,ks:fo?(t,s)=>fo.shade(FV[Math.round(s*rows)*(seg+1)+Math.round(t*seg)]):null});
 };
+// (r170) Cloth hanging in folds. The residents' clothes were smooth tubes and
+// cones where the reference frames' are loose and folded. A fold pattern is
+// two waves round the garment, n and about one and a half n of them, at
+// phases from the garment's seed, leaning a little as they deepen; shaped so
+// the ridges are broad and round and the valleys narrow and deep, the way
+// hanging cloth falls. wy(y) says how free the cloth hangs at a height: 0
+// where it is held (a waist, a shoulder seam, a gathered cuff), 1 where it
+// hangs. at(th, w) is the push out (or in) at angle th where wy gave w, as a
+// fraction of the radius before amp; shade(v) the colour factor for a push
+// of v, darker down in the valleys.
+function npcFold(f){
+  const n=f.n, n2=Math.round(n*1.5), p1=npcHash(f.seed|0,n,11)*6.2832, p2=npcHash(f.seed|0,n2,13)*6.2832, lean=f.lean??.35, dark=f.dark??.3;
+  return {amp:f.amp, wy:f.wy,
+    at:(th,w)=>{ const a=th+lean*w, v=.65*Math.sin(n*a+p1)+.35*Math.sin(n2*a+p2); return w*(v-.3*(v*v-.5)); },
+    shade:v=>v<0?1-dark*Math.min(1,-v/1.15):1};
+}
 // A tube along a path: radii[i] is r or [across, through]; `ref` picks which
 // way "across" points (perpendicular to the path). u runs round, v along.
 // (r165) cap:'round' turns an end whose radius closes to nothing into a dome
@@ -42366,37 +42390,65 @@ function npcBuildTorso(m,spec,d,detail){
   const seg=npcSeg(detail,16,8), sub=detail>.6?2:1, R=npcTorsoRings(d,spec.shape), top=spec.top, waistY=R[4][0];
   const skin=npcPaint(spec.skin,spec.skin);
   m.loft(R.slice(0,5),seg,spec.lower,{sub});                                    // hips and seat: the legwear's top
-  m.loft(R.slice(4,11),seg,top.paint,{sub});                                     // the body of the top
+  // (r170) A dress, a robe, or a belted shirt or tunic gathers at the waist
+  // in small soft folds that die out toward the chest. Armour does not.
+  const gather=detail>.6&&!spec.cuirass&&(top.kind==='dress'||top.kind==='robe'||spec.belt)?{n:8,amp:.028,seed:spec.seed+1,lean:.15,dark:.22,
+    wy:y=>{ const k=1-(y-waistY)/(.18*d.T); return k<=0?0:Math.pow(Math.min(1,k),1.5); }}:null;
+  m.loft(R.slice(4,11),gather?Math.max(seg,32):seg,top.paint,{sub,folds:gather});   // the body of the top
   m.loft(R.slice(10,12),seg,top.collar==='turtle'?spec.under:skin,{sub:1});      // the neck
   if(top.collar==='turtle')m.loft([[R[10][0]-.01,.07,.066,.066],[R[11][0]-.01,.058,.056,.056]],seg,spec.under,{sub:1});
   if(top.collar==='frill')m.loft([[R[10][0]-.02,.07,.064,.062,0,0,.0,0],[R[10][0]+.005,.11,.1,.096,0,0,.08,14]],seg,npcPaint(top.frill||0xe8e4dc,0xffffff,NPC_TILE.lace,.12),{sub:1,two:true,vRep:1,uRep:6});
   if(top.collar==='shirt')for(const s of[-1,1])m.tube([[s*.02,R[10][0]+.015,.06],[s*.05,R[10][0]-.01,.075],[s*.06,R[10][0]-.04,.07]],[[.03,.004],[.028,.004],[0,0]],4,spec.under,{ref:[0,0,1]});
   // below the waist: a hem, a skirt, a coat's skirts or a robe
   const hips=R[3], lenY={waist:waistY,hip:d.hip-.06,thigh:d.hip-.24*d.L,knee:d.hip-.42*d.L,calf:d.hip-.62*d.L,ankle:d.hip-.84*d.L}[top.len||'waist'];
+  let hang=null, skirtAt=null;
   if(top.len&&top.len!=='waist'){
     const skirt=top.kind==='dress'||top.kind==='robe', rw=R[4][1]+.008, flare={hip:1.04,thigh:1.1,knee:skirt?1.38:1.16,calf:skirt?1.6:1.3,ankle:skirt?1.85:1.45}[top.len];
-    const hem=[lenY,hips[1]*flare+.02,hips[2]*flare+.03,hips[3]*flare+.03,0,0,top.pleats?.035:0,top.pleats?14:0];
-    const rings=[[waistY,rw,R[4][2]+.01,R[4][3]+.01],[d.hip+.04,hips[1]+.014,hips[2]+.014,hips[3]+.014],
-      [lenY+(d.hip-lenY)*.45,(hips[1]+.014+hem[1])/2+.004,(hips[2]+hem[2])/2+.01,(hips[3]+hem[3])/2+.01,0,0,hem[6]*.5,hem[7]],hem];
-    m.loft(rings,seg,top.paint,{sub,two:skirt});
-    if(top.frill)m.loft([[lenY+.012,hem[1]-.004,hem[2]-.004,hem[3]-.004,0,0,.02,18],[lenY-.05,hem[1]*1.1,hem[2]*1.1,hem[3]*1.1,0,0,.06,18]],seg,npcPaint(top.frill,0xffffff,NPC_TILE.lace,.12),{sub:1,two:true,vRep:1,uRep:9});
-    if(top.hemband)m.loft([[lenY+.07,hem[1]*.985+.002,hem[2]*.985+.002,hem[3]*.985+.002,0,0,hem[6],hem[7]],[lenY-.002,hem[1]+.003,hem[2]+.003,hem[3]+.003,0,0,hem[6],hem[7]]],seg,top.hemband,{sub:1,vRep:1});
+    const design=[lenY,hips[1]*flare+.02,hips[2]*flare+.03,hips[3]*flare+.03,0,0,top.pleats?.035:0,top.pleats?14:0];
+    // (r170) Hanging in folds from the hips to the hem, deepest at the hem;
+    // a skirt in nine to eleven, a coat's skirts in seven. A pleated skirt
+    // keeps its pleats. The frill and the hem band take the same folds.
+    hang=!top.pleats&&detail>.6?{n:skirt?9+(spec.seed>>>3)%3:7,amp:skirt?.09:.06,dark:skirt?.38:.32,seed:spec.seed,
+      wy:y=>{ const k=(d.hip+.02-y)/((d.hip+.02-lenY)||1); return k<=0?0:Math.pow(Math.min(1,k),1.15); }}:null;
+    // (r170) the designed shape, then fitted round the legs (npcSkirtClear)
+    const rings=npcSkirtClear([[waistY,rw,R[4][2]+.01,R[4][3]+.01],[d.hip+.04,hips[1]+.014,hips[2]+.014,hips[3]+.014],[d.hip-.03,hips[1]+.016,hips[2]+.016,hips[3]+.016],
+      [lenY+(d.hip-lenY)*.45,(hips[1]+.014+design[1])/2+.004,(hips[2]+design[2])/2+.01,(hips[3]+design[3])/2+.01,0,0,design[6]*.5,design[7]],design],d,spec,hang,detail>.6?.1:.25);
+    const hem=rings[rings.length-1], hs=hang?Math.max(seg,hang.n*4):seg;
+    m.loft(rings,hs,top.paint,{sub:1,two:skirt,folds:hang});
+    // the skirt's reach at a height (side, front, back), straight on below its hem
+    skirtAt=y=>{ let k=0; while(k<rings.length-2&&rings[k+1][0]>y)k++; const a=rings[k],b=rings[k+1],f=Math.min(1,Math.max(0,(a[0]-y)/((a[0]-b[0])||1)));
+      return [1,2,3].map(i=>a[i]+(b[i]-a[i])*f); };
+    if(top.frill)m.loft([[lenY+.012,hem[1]-.004,hem[2]-.004,hem[3]-.004,0,0,.02,18],[lenY-.05,hem[1]*1.1,hem[2]*1.1,hem[3]*1.1,0,0,.06,18]],hs,npcPaint(top.frill,0xffffff,NPC_TILE.lace,.12),{sub:1,two:true,vRep:1,uRep:9,folds:hang});
+    if(top.hemband)m.loft([[lenY+.07,hem[1]*.985+.002,hem[2]*.985+.002,hem[3]*.985+.002,0,0,hem[6],hem[7]],[lenY-.002,hem[1]+.003,hem[2]+.003,hem[3]+.003,0,0,hem[6],hem[7]]],hs,top.hemband,{sub:1,vRep:1,folds:hang});
   }
   // over the top: a vest, a cuirass, a tabard, an apron, a belt
   if(spec.vest){ const v=npcGrow(R.slice(4,8),.012); v[0][0]-=.03; m.loft(v,seg,spec.vest,{sub});
     for(let k=0;k<4;k++)m.loft([[R[5][0]+k*.06-.01,0,0,0,0,R[5][2]+.016],[R[5][0]+k*.06,.009,.009,.009,0,R[5][2]+.02],[R[5][0]+k*.06+.01,0,0,0,0,R[5][2]+.016]],4,npcPaint(0xb09060,0xb09060)); }
   if(spec.cuirass){ const c=npcGrow(R.slice(4,9),.024); c[0][0]+=.03; c[c.length-1]=[c[c.length-1][0]-.02,c[c.length-1][1]*.62,c[c.length-1][2]*.9,c[c.length-1][3]*.9]; m.loft(c,seg,spec.cuirass,{sub}); }
+  // (r170) Over a skirt (or a coat's skirts), an apron, a tabard or a cloak
+  // is built over it: it used to take the hips' measure, and a skirt that
+  // flared wider came through its lower edge, which read as torn. An apron
+  // follows the skirt's folds; a tabard and a cloak stand clear of their ridges.
+  const fm=hang?1+.85*hang.amp:1, over=(y,dr)=>{ const s=skirtAt(y); return [s[0]*fm+dr,s[1]*fm+dr,s[2]*fm+dr]; };
   if(spec.tabard){ for(const front of[true,false]){ const a0=front?Math.PI-.62:-.62, a1=front?Math.PI+.62:.62;
-    m.loft([[d.hip-.22*d.L,hips[1]+.05,hips[2]+.05,hips[3]+.05],[waistY,R[4][1]+.04,R[4][2]+.04,R[4][3]+.04],[R[6][0],R[6][1]+.036,R[6][2]+.036,R[6][3]+.036],[R[8][0]-.01,R[8][1]+.02,R[8][2]+.03,R[8][3]+.03]],seg,spec.tabard,{sub,a0,a1,two:true,uRep:1,vRep:1}); } }
+    const tl=d.hip-.22*d.L, ts=skirtAt?over(tl,.015):[0,0,0];
+    m.loft([[tl,Math.max(hips[1]+.05,ts[0]),Math.max(hips[2]+.05,ts[1]),Math.max(hips[3]+.05,ts[2])],[waistY,R[4][1]+.04,R[4][2]+.04,R[4][3]+.04],[R[6][0],R[6][1]+.036,R[6][2]+.036,R[6][3]+.036],[R[8][0]-.01,R[8][1]+.02,R[8][2]+.03,R[8][3]+.03]],seg,spec.tabard,{sub,a0,a1,two:true,uRep:1,vRep:1}); } }
   if(spec.apron){ const a=spec.apron, low=a.len==='knee'?d.hip-.4*d.L:d.hip-.24*d.L;
-    m.loft([[low,hips[1]*1.06+.03,hips[2]+.06,hips[3]],[d.hip,hips[1]+.03,hips[2]+.04,hips[3]],[waistY,R[4][1]+.02,R[4][2]+.022,R[4][3]]],seg,a.paint,{sub,a0:Math.PI-.95,a1:Math.PI+.95,two:true});
+    // (r170) in a few soft folds below the waist tie
+    const af=detail>.6?{n:13,amp:.045,seed:spec.seed+2,lean:.1,wy:y=>Math.max(0,Math.min(1,(waistY-y)/((waistY-low)||1)))}:null;
+    if(skirtAt){ const on=y=>{ const s=skirtAt(y); return [y,s[0]+.02,s[1]+.028,s[2]]; }, mid=(low+d.hip)/2, h=on(d.hip);
+      m.loft([on(low),on(mid),[d.hip,Math.max(hips[1]+.03,h[1]),Math.max(hips[2]+.04,h[2]),hips[3]],[waistY,R[4][1]+.02,R[4][2]+.022,R[4][3]]],hang?Math.max(seg,hang.n*4):seg,a.paint,{sub,a0:Math.PI-.95,a1:Math.PI+.95,two:true,folds:hang}); }
+    else m.loft([[low,hips[1]*1.06+.03,hips[2]+.06,hips[3]],[d.hip,hips[1]+.03,hips[2]+.04,hips[3]],[waistY,R[4][1]+.02,R[4][2]+.022,R[4][3]]],af?Math.max(seg,24):seg,a.paint,{sub,a0:Math.PI-.95,a1:Math.PI+.95,two:true,folds:af});
     if(a.bib)m.loft([[waistY,R[4][1]+.02,R[4][2]+.022,R[4][3]],[R[6][0],R[6][1]+.02,R[6][2]+.024,R[6][3]],[R[7][0]+.01,R[7][1]+.01,R[7][2]+.02,R[7][3]]],seg,a.paint,{sub,a0:Math.PI-.5,a1:Math.PI+.5,two:true}); }
   if(spec.belt){ const b=spec.belt, w=b.sash?.04:.024;
     m.loft([[waistY-w,R[4][1]+.012,R[4][2]+.014,R[4][3]+.014],[waistY+w,R[4][1]+.012,R[4][2]+.014,R[4][3]+.014]],seg,b.paint,{sub:1,vRep:1});
     const fz=R[4][2]+.03; if(b.buckle&&detail>.3) m.loft([[waistY-.026,0,0,0,0,fz],[waistY-.024,.024,.008,.008,0,fz],[waistY+.024,.024,.008,.008,0,fz],[waistY+.026,0,0,0,0,fz]],4,npcPaint(b.buckle,b.buckle,NPC_TILE.metal,.1),{sub:1});
     if(b.sash) m.tube([[.05,waistY,R[4][2]+.02],[.07,waistY-.12,R[4][2]+.03],[.08,waistY-.28,R[4][2]+.02]],[[.04,.008],[.035,.008],[.03,.006]],4,b.paint,{ref:[0,0,1]}); }
   if(spec.cloak){ const c=spec.cloak, low=d.hip-.6*d.L;
-    m.loft([[low,.32*d.W,.3,.3,0,-.03],[d.hip,.26*d.W,.2,.2,0,-.02],[R[7][0],.215*d.W,.12,.13],[R[8][0],.2*d.W,.1,.105],[R[9][0]+.01,.1,.08,.08]],seg,c.paint,{sub,a0:-1.95,a1:1.95,two:true});
+    // (r170) falling in folds from the shoulders, deeper toward the hem
+    const cf=detail>.6?{n:11,amp:.09,dark:.36,seed:spec.seed+3,wy:y=>{ const k=(R[8][0]-y)/((R[8][0]-low)||1); return k<=0?0:Math.pow(Math.min(1,k),.9); }}:null;
+    const cl=skirtAt?over(low,.03):[0,0,0], ch=skirtAt?over(d.hip,.03):[0,0,0];
+    m.loft([[low,Math.max(.32*d.W,cl[0]),.3,Math.max(.3,cl[2]),0,-.03],[d.hip,Math.max(.26*d.W,ch[0]),.2,Math.max(.2,ch[2]),0,-.02],[R[7][0],.215*d.W,.12,.13],[R[8][0],.2*d.W,.1,.105],[R[9][0]+.01,.1,.08,.08]],cf?Math.max(seg,36):seg,c.paint,{sub,a0:-1.95,a1:1.95,two:true,folds:cf});
     m.loft([[R[10][0]-.005,.085,.08,.078],[R[10][0]+.03,.075,.07,.07]],seg,c.paint,{sub:1}); }
   if(spec.scarf){ const sc=spec.scarf, y=R[10][0]+.01, pts=[]; for(let i=0;i<=12;i++){ const a=i/12*Math.PI*2; pts.push([Math.sin(a)*.07,y,-Math.cos(a)*.068]); }
     m.tube(pts,pts.map(()=>[.026,.018]),5,sc,{ref:[0,1,0]});
@@ -42437,7 +42489,11 @@ function npcBuildArm(m,spec,d,s,detail){
   const sc=(r,k,dy=0)=>[r[0]+dy,r[1]*k,r[2]*k,r[3]*k,r[4],r[5]];
   if(sl==='long'){ m.loft(A,seg,top.paint,{sub}); m.loft([sc(A[6],1.12,.04),sc(A[6],1.12)],seg,cuff,{sub:1}); }
   else if(sl==='puff'){
-    m.loft([A[0],sc(A[0],1.5,-.03),sc(A[1],1.55,-.02),sc(A[2],1.1),A[3],A[4],sc(A[4],1.45,-.04),sc(A[5],1.35),sc(A[6],1.0,.02),A[6]],seg,top.paint,{sub});
+    // (r170) each puff gathered into its seam and its band, in folds that
+    // run the length of the puff and die out where it is gathered
+    const pz=(y,a,b)=>{ const k=(a-y)/(a-b); return k<=0||k>=1?0:Math.sqrt(Math.sin(Math.PI*k)); };
+    const pf=detail>.6?{n:9,amp:.14,dark:.4,seed:spec.seed+4+s,lean:0,wy:y=>Math.max(pz(y,.01,-.17),pz(y,-.27,-.47))}:null;
+    m.loft([A[0],sc(A[0],1.5,-.03),sc(A[1],1.55,-.02),sc(A[2],1.1),A[3],A[4],sc(A[4],1.45,-.04),sc(A[5],1.35),sc(A[6],1.0,.02),A[6]],pf?Math.max(seg,30):seg,top.paint,{sub,folds:pf});
     m.loft([sc(A[6],1.05,.02),sc(A[6],1.1,-.01)],seg,cuff,{sub:1});
     if(top.frill)m.loft([[A[6][0]-.005,A[6][1]*1.05,A[6][2]*1.05,A[6][3]*1.05,A[6][4],A[6][5]],[A[6][0]-.045,A[6][1]*1.7,A[6][2]*1.7,A[6][3]*1.7,A[6][4],A[6][5]+.004,.06,12]],seg,npcPaint(top.frill,0xffffff,NPC_TILE.lace,.1),{sub:1,two:true,vRep:1,uRep:4});
   }
@@ -42445,7 +42501,9 @@ function npcBuildArm(m,spec,d,s,detail){
   else if(sl==='short'){ m.loft(A.slice(0,3),seg,top.paint,{sub}); m.loft([sc(A[2],1.15,.01),sc(A[2],1.12,-.015)],seg,cuff,{sub:1}); m.loft(A.slice(2),seg,skin,{sub}); }
   else if(sl==='none'){ m.loft(A,seg,skin,{sub}); m.loft([sc(A[0],1.1,.02),sc(A[1],1.05)],seg,cuff,{sub:1}); }
   else if(sl==='bell'){ m.loft(A.slice(0,4),seg,top.paint,{sub}); m.loft(A.slice(3),seg,skin,{sub});
-    m.loft([A[3],[-.32,.07,.075,.075,s*.014,.0],[-.42,.1,.1,.1,s*.016,.01],[-.5,.125,.12,.12,s*.018,.015]],seg,top.paint,{sub,two:true}); }
+    // (r170) the bell falling open in folds toward its mouth
+    const bf=detail>.6?{n:8,amp:.08,seed:spec.seed+6+s,wy:y=>Math.max(0,Math.min(1,(-.3-y)/.2))}:null;
+    m.loft([A[3],[-.32,.07,.075,.075,s*.014,.0],[-.42,.1,.1,.1,s*.016,.01],[-.5,.125,.12,.12,s*.018,.015]],bf?Math.max(seg,28):seg,top.paint,{sub,two:true,folds:bf}); }
   // (r163) the shoulder: a rounded cap over the top of the sleeve, so the arm
   // grows out of the shoulder instead of hanging from it as a separate tube
   const c0=A[0], capPaint=sl==='none'?skin:top.paint;
@@ -42462,6 +42520,56 @@ function npcBuildArm(m,spec,d,s,detail){
   if(detail>.3)m.tube([[x-s*.006,-.498,.05+hz],[x-s*.012,-.528,.066+hz],[x-s*.012,-.552,.07+hz],[x-s*.011,-.57,.069+hz]],[.016,.014,.012,0],npcSeg(detail,6,4),hp,{cap:'round'});
   return [x,-.56,.045+hz];
 }
+// A thigh's rings from the hip pivot down, and a shin's from the knee: [y, rx,
+// rf, rb]. (r170) Shared with npcLegReach, which a skirt is built clear of.
+function npcThighRings(W,t){ return [[.04,.06*W,.074*W,.076*W],[-.04,.074*W,.092*W,.098*W],[-.25*t,.088*W,.098*W,.106*W],[-.6*t,.076*W,.084*W,.084*W],[-.95*t,.061*W,.065*W,.059*W],[-t-.01,.059*W,.062*W,.056*W]]; }
+function npcShinRings(W,h){ return [[.02,.054*W,.056*W,.052*W],[-.1*h,.064*W,.063*W,.074*W],[-.33*h,.068*W,.064*W,.084*W],[-.7*h,.051*W,.051*W,.054*W],[-.92*h,.042*W,.042*W,.044*W],[-h,.04*W,.04*W,.04*W]]; }
+// (r170) How far a standing leg reaches at a height y of the figure: its side,
+// front and back from its own middle, with trousers, stockings and boots.
+function npcLegReach(spec,d,y){
+  const yl=y-d.hip, lw=spec.legwear;
+  const at=(rings,v)=>{ let k=0; while(k<rings.length-2&&rings[k+1][0]>v)k++; const a=rings[k],b=rings[k+1],f=Math.min(1,Math.max(0,(a[0]-v)/((a[0]-b[0])||1)));
+    return [1,2,3].map(i=>a[i]+(b[i]-a[i])*f); };
+  if(yl>-d.thigh){ const g=lw.kind==='trousers'||lw.kind==='breeches'?.006:0; return at(npcThighRings(d.W,d.thigh),yl).map(r=>r+g); }
+  return at(npcShinRings(d.W,d.shin),yl+d.thigh).map(r=>r+.02);
+}
+// (r170) A skirt clear of the legs. Skirts and coats' skirts hang from the
+// torso and do not move, and the legs inside them swing: a step's knee came
+// out through the front of a knee-length dress, a stride through a robe, and
+// a full thigh through the side of a skirt at the hip even standing. The
+// skirt gets a ring every tenth of a metre or so from the hips to the hem
+// (a quarter for the far version), each as wide as the design asks or as the
+// legs need there, whichever is more: a leg's side, its front and back as far
+// as it swings at this resident's stride (spec.stride: long skirts take
+// short steps), and room under the valleys of the folds or the pleats.
+function npcSkirtClear(design,d,spec,hang,step){
+  // (every ring takes the pleats' count from the hem, so a pleat never runs
+  // a fractional number of times round and opens a seam)
+  const fq=design[design.length-1][7]||0, pad=r=>{ const o=[0,0,0,0,0,0,0,fq]; r.forEach((v,i)=>{ if(i<7)o[i]=v||0; }); return o; };
+  const out=[pad(design[0])], sw=Math.sin(.4*(spec.stride||1));
+  for(let k=1;k<design.length;k++){
+    const a=design[k-1], b=design[k], n=k===1?1:Math.max(1,Math.round((a[0]-b[0])/step));
+    for(let i=1;i<=n;i++){
+      const f=i/n, y=a[0]+(b[0]-a[0])*f, r=[y]; for(let m=1;m<8;m++)r.push((a[m]||0)+((b[m]||0)-(a[m]||0))*f);
+      r[7]=fq;
+      if(y<d.hip+.06){
+        // each leg's section, a little fuller, at both ends of its swing
+        // (back a little further, for the knee's bend), must lie inside the
+        // ring's ellipse with room under the folds; if any point does not,
+        // the ring grows as a whole until it does
+        const L=npcLegReach(spec,d,y), drop=Math.max(0,d.hip-y), room=(1-1.15*(hang?hang.amp*hang.wy(y):0))*(1-(r[6]||0));
+        let k=0;
+        for(const zc of[drop*sw*1.1,-drop*sw*1.2])for(let q=0;q<12;q++){
+          const a=q/12*Math.PI*2, c=Math.cos(a), s=Math.sin(a), px=d.legX+(L[0]+.014)*c, pz=zc+(s>=0?L[1]:L[2])*s+.014*s;
+          k=Math.max(k,Math.hypot(px/r[1],pz/(pz>=0?r[2]:r[3])));
+        }
+        k/=room; if(k>1){ r[1]*=k; r[2]*=k; r[3]*=k; }
+      }
+      out.push(r);
+    }
+  }
+  return out;
+}
 function npcBuildLeg(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, W=d.W, t=d.thigh, lw=spec.legwear;
   // (r165) Its top inside the seat: the leg pivot stands .092 W out from the
@@ -42470,13 +42578,13 @@ function npcBuildLeg(m,spec,d,s,detail){
   // hips in flaps.
   // (r168) fuller at the top, so the two thighs together are about as wide
   // as the hips (they were 0.57 of a head each against hips of 1.35)
-  const thigh=[[.04,.06*W,.074*W,.076*W],[-.04,.074*W,.092*W,.098*W],[-.25*t,.088*W,.098*W,.106*W],[-.6*t,.076*W,.084*W,.084*W],[-.95*t,.061*W,.065*W,.059*W],[-t-.01,.059*W,.062*W,.056*W]];
+  const thigh=npcThighRings(W,t);
   const g=lw.kind==='trousers'||lw.kind==='breeches'?.006:0;
   m.loft(npcGrow(thigh,g),seg,lw.kind==='bare'?npcPaint(spec.skin,spec.skin):lw.thigh||lw.paint,{sub});
 }
 function npcBuildShin(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, W=d.W, h=d.shin, lw=spec.legwear, b=spec.boots, L=d.L;
-  const shin=[[.02,.054*W,.056*W,.052*W],[-.1*h,.064*W,.063*W,.074*W],[-.33*h,.068*W,.064*W,.084*W],[-.7*h,.051*W,.051*W,.054*W],[-.92*h,.042*W,.042*W,.044*W],[-h,.04*W,.04*W,.04*W]];   // (r163) a calf
+  const shin=npcShinRings(W,h);   // (r163) a calf
   const paint=lw.kind==='bare'?npcPaint(spec.skin,spec.skin):lw.kind==='breeches'?lw.shin:lw.paint;
   m.loft(npcGrow(shin,lw.kind==='trousers'?.006:0),seg,paint,{sub});
   const bp=npcPaint(b.c,b.c2||b.c,NPC_TILE.leather,.25), topY=b.kind==='tall'?-.18*h:b.kind==='boot'?-.55*h:-.9*h;
@@ -42612,6 +42720,9 @@ function npcKitLook(name,o){
   else { top={kind:'coat',pattern:pick(['linen','pinstripe','windowpane','twill']),c:robe,c2:second,sleeve:'long',len:pick(['knee','calf']),collar:'shirt',hemband:chance(.4)}; }
   if(L.top)top={...L.top};
   const topPaint=pat(top.pattern,top.c,top.c2);
+  // (r170) Someone in a long skirt takes shorter steps (the game scales the
+  // legs' swing by it), and the skirt is fitted to that stride.
+  spec.stride=top.len&&top.len!=='waist'?{thigh:.9,knee:.65,calf:.5,ankle:.4}[top.len]||1:1;
   spec.top={kind:top.kind,paint:topPaint,sleeve:top.sleeve,collar:top.collar||null,len:top.len,frill:top.frill||null,pleats:!!top.pleats,
     hemband:top.hemband?npcPaint(top.c2||second,npcLighten(top.c2||second,.4),NPC_TILE.hemband,.25):null,cuff:null};
   spec.under=npcPaint(L.under||under,L.under||under,top.collar==='turtle'?NPC_TILE.knit:NPC_TILE.linen,.12);
@@ -43106,7 +43217,7 @@ function villagerDisabledForR0(name,x,z,robe,line,route=[],districtOverride,look
   const lodHide=g.children.slice(), lodMesh=npcKitLod(spec); g.add(lodMesh);
   const stature=NPC_STATURE[species]*(spec.child?.82:1);g.position.set(x,0,z);g.scale.setScalar(stature);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(g);
   const held={left:propArm===leftArm||offhandArm===leftArm,right:propArm===rightArm||offhandArm===rightArm};
-  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null,gaitSpeed=[1.14,1,.98,.84,.92][species]*build.pace; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082)*gaitSpeed,routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg,leftKnee,rightKnee},kitHip:rig.dims.hip,kitHat:!!spec.hat,kitPipeY:rig.dims.neckY+.075*H,held,variant,outfit:NPC_OUTFITS[variant],bodyType:build.name,species,people:NPC_PEOPLES[species],smokes,styleTags,visualCanonPose:null});
+  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null,gaitSpeed=[1.14,1,.98,.84,.92][species]*build.pace; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082)*gaitSpeed,routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg,leftKnee,rightKnee},kitHip:rig.dims.hip,kitHat:!!spec.hat,kitStride:spec.stride||1,kitPipeY:rig.dims.neckY+.075*H,held,variant,outfit:NPC_OUTFITS[variant],bodyType:build.name,species,people:NPC_PEOPLES[species],smokes,styleTags,visualCanonPose:null});
   // One errand per stop on their round, so every waypoint is somewhere they
   // are going *for* a reason rather than an anonymous coordinate.
   const created=villagers[villagers.length-1];
@@ -45169,11 +45280,15 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
       // Haulers instead hold both arms back toward their cart's shafts.
       if(npc.cart){parts.leftArm.rotation.x=.52+gait*.10;parts.rightArm.rotation.x=.48-gait*.08;}
       else {const leftSwing=npc.held?.left ? .32 : 1,rightSwing=npc.held?.right ? .32 : 1;parts.leftArm.rotation.x=gait*armLean*leftSwing;parts.rightArm.rotation.x=-gait*.86*armLean*rightSwing;}
-      parts.leftLeg.rotation.x=-gait*legLean;parts.rightLeg.rotation.x=gait*legLean;
+      // (r170) Someone in a long skirt or coat takes shorter steps (kitStride:
+      // 0.4 in a robe to the ankle, 1 in trousers), and the skirt is fitted
+      // to that stride, so the legs no longer come through the cloth.
+      const stride=npc.kitStride||1;
+      parts.leftLeg.rotation.x=-gait*legLean*stride;parts.rightLeg.rotation.x=gait*legLean*stride;
       // (r159) A knee bends while its leg swings forward and straightens to take
       // the weight: the swing is the gait's own derivative, so it peaks as the
       // foot passes under the body.
-      if(parts.leftKnee){const swing=movingNpc?Math.cos(t*cadence+npc.phase)*gaitAmp*legLean*2:0;parts.leftKnee.rotation.x=.05+Math.max(0,swing);parts.rightKnee.rotation.x=.05+Math.max(0,-swing);}
+      if(parts.leftKnee){const swing=movingNpc?Math.cos(t*cadence+npc.phase)*gaitAmp*legLean*2*stride:0;parts.leftKnee.rotation.x=.05+Math.max(0,swing);parts.rightKnee.rotation.x=.05+Math.max(0,-swing);}
       parts.headPivot.rotation.y=npc.talking?Math.sin(t*1.6+npc.phase)*.12:Math.sin(t*.7+npc.phase)*.09;
       parts.headPivot.rotation.z=(npc.species===4?Math.sin(t*1.18+npc.phase)*.065:npc.species===0?Math.sin(t*1.35+npc.phase)*.035:0);
       applyReferenceBuildNpcPose(npc,t,movingNpc);
@@ -47051,7 +47166,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r169',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r170',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47405,7 +47520,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch r0 — variant layer over base r169 -->
+<!-- Emberwatch r0 — variant layer over base r170 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — R0 / BAREBONES                                 variant layer

@@ -2032,12 +2032,25 @@
   "rev": 169,
   "title": "faces in the form",
   "version": "1.69.0",
-  "date": "2026-10-04T16:00:00Z",
+  "date": "2026-10-04T13:40:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r169-faces-in-the-form.html"
   },
   "asset": "emberwatch-r169-faces-in-the-form.html",
   "notes": "releases/notes/r169.md"
+ },
+ {
+  "tag": "r170",
+  "rev": 170,
+  "title": "cloth in folds",
+  "version": "1.70.0",
+  "date": "2026-10-04T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r170-cloth-in-folds.html"
+  },
+  "asset": "emberwatch-r170-cloth-in-folds.html",
+  "notes": "releases/notes/r170.md"
  }
 ]
