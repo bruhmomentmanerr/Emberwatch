@@ -1,67 +1,97 @@
-**r168 — proportions** · 1.68.0 · 2026-10-03 · phase 5, world depth
+**r169 — faces in the form** · 1.69.0 · 2026-10-04 · phase 5, world depth
 
 ### Summary
 
-Proportions. The residents measured over 120 of them in head heights: 5.4 heads tall with hips at 2.5, big heads on short legs. Heads a fifth smaller, legs longer, widths a tenth less, women's shoulders narrower, thighs fuller at the top: humans now 7 heads, hips at 3.6. Verified: the measurements, studio and in-game shots, audits, variants 6/6, smoke.
+Faces in the form. The faces had been outlines painted on a tile over a smooth head, with a tube for a nose: decals, the owner said, "like stickers". Now sculpted into the head's surface (sockets, brow, nose, lips, cheeks, chin), with eyeballs under lids and a lash line, and the paint only colour. People take about 0.16 s longer to build. Verified: studio and in-game face shots r168 against r169, audits, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r168 / 1.68.0, sealed 2026-10-03 ("Proportions").** The owner,
-on r167: "continue, still stocky and skinny".
+**State: r169 / 1.69.0, sealed 2026-10-04 ("Faces in the form").** The
+owner, on r168: "I think the issue is with the faces being like … a JPEG
+on top of the … shape. You could do as much work as you want on … making a
+nose bridge defined, but it doesn't really matter if … the eyes that
+you're going to put on it are like stickers compared."
 
-**Next:** the owner's look at the residents. Still open: rigid joints, and
-clothes that are smooth tubes where the references' are loose and folded
-(§0b). The Peak test of r167 is still owed (§0a).
+**Next:** the owner's look at the faces. Still open on the residents: rigid
+joints, and clothes that are smooth tubes where the references' are loose
+and folded. The Peak test of r167 is still owed.
 
-### Measured, not guessed
+### What was wrong
 
-r166 had answered "skinny" by making everything fuller and the heads
-bigger, which made the figures stockier. This time the residents were
-measured: a studio page builds 120 of them at rest and reports their
-proportions in head heights (chin to crown), the unit figure artists judge
-proportions in: height, hip height, shoulder span, the thickness of upper
-arm, forearm, thigh and calf, chest, waist and hips.
+Every face was a 128-pixel tile with the features drawn on in dark outline
+(eyes with lashes and a lid crease, brows, a mouth) laid over a smooth egg
+of a head, and the nose was a separate tube stuck on. Nothing in the shape
+agreed with the paint, so the features read as decals, however the head
+was shaped.
 
-| | r167 | r168 | a stylised-realistic adult |
-|---|---|---|---|
-| height (humans) | 5.6 heads | 7.0 | about 7 |
-| height (all adults) | 5.4 | 6.55 | |
-| gnomes | 4.6 | 5.45 | small people, big heads |
-| hip height (humans) | 2.6 heads | 3.6 | about half the height |
-| shoulders, men / women | 2.07 (both) | 2.26 / 2.09 | about 2.2 / 2.0 |
-| thigh at the top, against hips | 0.57 / 1.35 | 0.73 / 1.45 (men) | two thighs about the hips |
+### What r169 does
 
-Big heads on short legs read as stocky; thin thighs against wide hips, and
-everyone's shoulders a man's, read as skinny and boxy. r168:
+- **The face is in the head's surface.** The head is now one surface,
+  `npcHeadSurface`, sampled closely through the face (rows close together
+  through the mouth and the nose, columns bunched toward the front) and
+  carrying a relief: sockets, a brow ridge, a nose bridge rising to a small
+  tip with its wings, round cheeks and the cheekbones, an upper and a lower
+  lip with the line between them and the corners of the mouth, a chin; for
+  an elder, hollows under the cheekbones and bags under the eyes.
+  `npcFaceRow(y, F)` works the relief out one row of the head at a time.
+- **Real eyes.** `npcBuildEyes`: an eyeball in each socket, turned a little
+  outward, with a tile of its own (`NPC_TILE.iris`, tile 30: the iris in the
+  resident's eye colour, a pupil, two catchlights, the shadow of the lid);
+  an upper and a lower lid that meet at the corners in an almond, tilted
+  per face; a lash line in geometry along the upper lid, heavier and
+  flicked out at the corner for a woman.
+- **The paint is colour only.** The face tile draws no outlines now: the
+  brows in the hair's colour, soft shade that agrees with the sculpt, the
+  lips a little darker than the skin, freckles, a mole, stubble, a scar,
+  the lines of age.
+- **After the reference frames:** large eyes set wide, a small straight
+  nose, a small mouth with full lips, round cheeks, a small chin. Each
+  resident's eye size, spacing, openness and tilt, and the mouth's width,
+  come from the face index their look already rolls (`npcFaceForm`).
+- **What sits on the face follows it:** glasses on the eyes and clear of
+  the brow and the bridge; the moustache under the nose and over the lip; a
+  smoker's pipe at the corner of the mouth (it was at the nose). Side locks
+  of hair end a little further out, so the new cheeks do not show through
+  them, and a bob's front locks hang beside the cheek rather than over it.
+- The far version (shown beyond 46 m) keeps a smooth head and no eyes.
 
-- **Heads** about a fifth smaller (humans `H` 1.18 to 0.94; every people's
-  set from the table in `npcKitLook`), **legs** longer (humans `L` 0.92 to
-  1.0, long-ears 1.04). Overall height is about the same, so doors, seats
-  and interiors are unaffected.
-- **Widths** about a tenth less for every people: with the smaller head the
-  shoulders measured 2.4 heads, and 0.65 m in metres.
-- **Women's shoulders** a tenth narrower than men's (`shape.shoulder`, used
-  by `npcDims` and the torso's shoulder rings).
-- **Thighs** fuller at the top, so the two together are about as wide as
-  the hips, tapering to the same knee.
+### What it costs, measured
 
-The measuring page is `measure.js` in the session's studio scratch; the
-numbers above are read off it.
+| | r168 | r169 |
+|---|---|---|
+| a near head, vertices | 531 | 1,375 |
+| a near head, build (Node) | 0.19 ms | 0.68 ms |
+| the resident batch, vertices | 1,892,237 | 2,219,901 |
+| the studio row of ten, triangles | 63,244 | 77,676 |
+| boot, residents stage (three runs each) | 2.20, 2.14, 2.30 s | 2.36, 2.43, 2.32 s |
+| boot, total | 6.62, 6.53, 6.82 s | 6.83, 7.09, 6.74 s |
+
+About a sixth of a second more to build the people in the harness. The
+first draft cost about three times that; the relief worked out per row,
+the angles per column, a lighter eye, and fewer columns and rows round the
+back of the head where the hair covers it brought it down, with the faces
+unchanged in the studio. A leaner `NpcMesh.surf` was also tried: its output
+was bit-identical over 120 residents and it was no faster, so it was not
+kept.
 
 ### Verified
 
-- `check-parse`, `audit-source` (A 229, B and C 0), `audit-dom`,
-  `audit-dead` (688, 0 dead), `audit-comments`, `test-switch-frames`,
-  `test-switch-b9`, `test-bluetooth-pairing`: clean.
-- The measurements above; the studio row r167 against r168; the market
-  lineup and close views in the game.
-- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r168 in the title.
+- `check-parse`, `audit-source` (A 228, one fewer than r168; B and C 0),
+  `audit-dom`, `audit-dead` (694, 0 dead), `audit-comments`,
+  `test-switch-frames`, `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- The studio: ten residents' faces from the front and three-quarter, r168
+  against r169, at every tuning pass; the face surface's and the eyes'
+  normals checked in Node.
+- In the game: residents pinned by the market hearth, their faces from
+  under half a metre and their figures from 2 m, r168 against r169.
+- The measurements above.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r169 in the title.
 - Not run: the runtime audit.
 
 ### In the code
 
-- 4.98 MB (+941 bytes on r167).
-- No functions added or removed.
+- 4.99 MB (+7,452 bytes on r168).
+- 6 functions added: `npcBuildEyes`, `npcFaceForm`, `npcFaceRow`, `npcHeadRing`, `npcHeadSurface`, `npcIrisTile`.
 
 ### Play it
 
