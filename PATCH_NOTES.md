@@ -1,97 +1,91 @@
-**r169 — faces in the form** · 1.69.0 · 2026-10-04 · phase 5, world depth
+**r170 — cloth in folds** · 1.70.0 · 2026-10-04 · phase 5, world depth
 
 ### Summary
 
-Faces in the form. The faces had been outlines painted on a tile over a smooth head, with a tube for a nose: decals, the owner said, "like stickers". Now sculpted into the head's surface (sockets, brow, nose, lips, cheeks, chin), with eyeballs under lids and a lash line, and the paint only colour. People take about 0.16 s longer to build. Verified: studio and in-game face shots r168 against r169, audits, variants 6/6, smoke.
+Cloth in folds. Skirts, robes, coats, cloaks, aprons and sleeves hang in folds with darker valleys; aprons, tabards and cloaks are built over the skirt beneath, not through it (the "torn" aprons); skirts are fitted round the legs and long ones take shorter steps, so a stride no longer comes through the cloth. Verified: studio shots front, back and at full stride r169 against r170, in-game shots, audits, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r169 / 1.69.0, sealed 2026-10-04 ("Faces in the form").** The
-owner, on r168: "I think the issue is with the faces being like … a JPEG
-on top of the … shape. You could do as much work as you want on … making a
-nose bridge defined, but it doesn't really matter if … the eyes that
-you're going to put on it are like stickers compared."
+**State: r170 / 1.70.0, sealed 2026-10-04 ("Cloth in folds").** The
+owner, on r169: "continue working on it". Next on the residents after the
+faces were the clothes: smooth tubes and cones, where the reference frames'
+are loose and folded.
 
-**Next:** the owner's look at the faces. Still open on the residents: rigid
-joints, and clothes that are smooth tubes where the references' are loose
-and folded. The Peak test of r167 is still owed.
+**Next:** the owner's look at the clothes and the faces. Still open: rigid
+joints (an arm is one piece, a knee is two tubes meeting), long sleeves and
+trousers without wrinkles, and a skirt that does not drape when its wearer
+sits. The Peak test of r167 is still owed.
 
-### What was wrong
+### What r170 does
 
-Every face was a 128-pixel tile with the features drawn on in dark outline
-(eyes with lashes and a lid crease, brows, a mouth) laid over a smooth egg
-of a head, and the nose was a separate tube stuck on. Nothing in the shape
-agreed with the paint, so the features read as decals, however the head
-was shaped.
-
-### What r169 does
-
-- **The face is in the head's surface.** The head is now one surface,
-  `npcHeadSurface`, sampled closely through the face (rows close together
-  through the mouth and the nose, columns bunched toward the front) and
-  carrying a relief: sockets, a brow ridge, a nose bridge rising to a small
-  tip with its wings, round cheeks and the cheekbones, an upper and a lower
-  lip with the line between them and the corners of the mouth, a chin; for
-  an elder, hollows under the cheekbones and bags under the eyes.
-  `npcFaceRow(y, F)` works the relief out one row of the head at a time.
-- **Real eyes.** `npcBuildEyes`: an eyeball in each socket, turned a little
-  outward, with a tile of its own (`NPC_TILE.iris`, tile 30: the iris in the
-  resident's eye colour, a pupil, two catchlights, the shadow of the lid);
-  an upper and a lower lid that meet at the corners in an almond, tilted
-  per face; a lash line in geometry along the upper lid, heavier and
-  flicked out at the corner for a woman.
-- **The paint is colour only.** The face tile draws no outlines now: the
-  brows in the hair's colour, soft shade that agrees with the sculpt, the
-  lips a little darker than the skin, freckles, a mole, stubble, a scar,
-  the lines of age.
-- **After the reference frames:** large eyes set wide, a small straight
-  nose, a small mouth with full lips, round cheeks, a small chin. Each
-  resident's eye size, spacing, openness and tilt, and the mouth's width,
-  come from the face index their look already rolls (`npcFaceForm`).
-- **What sits on the face follows it:** glasses on the eyes and clear of
-  the brow and the bridge; the moustache under the nose and over the lip; a
-  smoker's pipe at the corner of the mouth (it was at the nose). Side locks
-  of hair end a little further out, so the new cheeks do not show through
-  them, and a bob's front locks hang beside the cheek rather than over it.
-- The far version (shown beyond 46 m) keeps a smooth head and no eyes.
+- **Cloth hangs in folds.** `NpcMesh.loft` takes `opt.folds` (`npcFold`):
+  two waves round the garment, n and about one and a half n of them, at
+  phases from the resident's seed, leaning a little as they deepen, with
+  broad round ridges and narrow deep valleys; the valleys are darker in
+  the vertex colour. A weight by height says how freely the cloth hangs:
+  0 where it is held (a waist, a seam, a gathered band), 1 where it hangs.
+  - skirts, dresses and robes: nine to eleven folds from the hips to the
+    hem, deepest at the hem; coats' skirts seven. A pleated skirt keeps its
+    pleats. The frill and the hem band take the skirt's folds.
+  - a dress, a robe, or a belted shirt or tunic gathers in small soft folds
+    above the waist; armour does not.
+  - cloaks fall in folds from the shoulders; aprons in a few soft ones.
+  - puffed sleeves are gathered into their seam and band, in folds along
+    the puff; bell sleeves fall open in folds.
+- **What hangs over a skirt is built over it.** An apron, a tabard or a
+  cloak took the hips' measure, and a skirt that flared wider came through
+  its lower edge, which read as torn. An apron now follows the skirt's shape
+  and its folds; a tabard and a cloak stand clear of the skirt's ridges.
+- **Skirts clear the legs.** Skirts and coats' skirts hang from the torso
+  and do not move; the legs inside swing about 0.4 rad as residents walk.
+  A step's knee came out through the front of a knee-length dress, a stride
+  through a robe, and since r168's fuller thighs, a thigh through the side
+  of a coat at the hip even standing. Now:
+  - someone in a long skirt takes shorter steps: `spec.stride` from the
+    skirt's length (thigh 0.9, knee 0.65, calf 0.5, ankle 0.4), which the
+    walk scales the legs' swing and the knees' bend by (`npc.kitStride`).
+    Of the 374 residents, 156 keep a full stride, 114 take 0.9, 42 take
+    0.65, 46 take 0.5 and 16 take 0.4 (read off the game).
+  - every skirt is fitted round the legs (`npcSkirtClear`): a ring every
+    tenth of a metre from the hips to the hem, each grown as a whole until
+    both legs' sections, at both ends of the stride, lie inside it with room
+    under the folds or pleats. The legs' rings are shared with the leg
+    builders (`npcThighRings`, `npcShinRings`, `npcLegReach`).
+- A shading option read for every vertex from option objects of many
+  shapes cost a fifth of the residents' build in Node (2.16 against 2.66 ms
+  a resident, the same output); it is read once per surface.
 
 ### What it costs, measured
 
-| | r168 | r169 |
+| | r169 | r170 |
 |---|---|---|
-| a near head, vertices | 531 | 1,375 |
-| a near head, build (Node) | 0.19 ms | 0.68 ms |
-| the resident batch, vertices | 1,892,237 | 2,219,901 |
-| the studio row of ten, triangles | 63,244 | 77,676 |
-| boot, residents stage (three runs each) | 2.20, 2.14, 2.30 s | 2.36, 2.43, 2.32 s |
-| boot, total | 6.62, 6.53, 6.82 s | 6.83, 7.09, 6.74 s |
+| vertices a resident, near and far (Node, 120 residents) | 5,563 | 5,848 |
+| the resident batch, vertices | 2,219,901 | 2,332,931 |
+| boot, residents stage (three runs each) | 2.15, 2.16, 2.43 s | 2.39, 2.24, 2.32 s |
+| boot, total | 6.39, 6.20, 6.86 s | 6.70, 6.52, 6.56 s |
 
-About a sixth of a second more to build the people in the harness. The
-first draft cost about three times that; the relief worked out per row,
-the angles per column, a lighter eye, and fewer columns and rows round the
-back of the head where the hair covers it brought it down, with the faces
-unchanged in the studio. A leaner `NpcMesh.surf` was also tried: its output
-was bit-identical over 120 residents and it was no faster, so it was not
-kept.
+Within the runs' own spread.
 
 ### Verified
 
-- `check-parse`, `audit-source` (A 228, one fewer than r168; B and C 0),
-  `audit-dom`, `audit-dead` (694, 0 dead), `audit-comments`,
-  `test-switch-frames`, `test-switch-b9`, `test-bluetooth-pairing`: clean.
-- The studio: ten residents' faces from the front and three-quarter, r168
-  against r169, at every tuning pass; the face surface's and the eyes'
-  normals checked in Node.
-- In the game: residents pinned by the market hearth, their faces from
-  under half a metre and their figures from 2 m, r168 against r169.
-- The measurements above.
-- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r169 in the title.
-- Not run: the runtime audit.
+- `check-parse`, `audit-source` (A 228, B and C 0), `audit-dom`,
+  `audit-dead` (699, 0 dead), `audit-comments`, `test-switch-frames`,
+  `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- The studio, brighter lit: the ten residents front, three-quarter and back,
+  r169 against r170; each posed at the far end of its own stride and shot
+  from the side, r169 (full stride) against r170. In r169 legs came through
+  the knee-length dress, the robe, the long skirt and the coat; in r170 none
+  do.
+- In the game: residents pinned by the market hearth, r169 against r170;
+  the strides read off the residents.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r170 in the title.
+- Not run: the runtime audit. Not seen: a resident sitting in a long skirt
+  (the legs go forward through it, as before).
 
 ### In the code
 
-- 4.99 MB (+7,452 bytes on r168).
-- 6 functions added: `npcBuildEyes`, `npcFaceForm`, `npcFaceRow`, `npcHeadRing`, `npcHeadSurface`, `npcIrisTile`.
+- 4.99 MB (+9,029 bytes on r169).
+- 5 functions added: `npcFold`, `npcLegReach`, `npcShinRings`, `npcSkirtClear`, `npcThighRings`.
 
 ### Play it
 
