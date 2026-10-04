@@ -1,7 +1,7 @@
 {
   "name": "emberwatch",
   "productName": "Emberwatch",
-  "version": "1.68.0",
+  "version": "1.69.0",
   "description": "Emberwatch — the black city of Vaneth, with live Puffco Peak Pro control",
   "main": "main.js",
   "private": true,

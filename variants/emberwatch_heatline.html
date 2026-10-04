@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r168 Proportions</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r169 Faces in the form</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -41526,7 +41526,7 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 // The kit keeps the rig every other system uses (a head pivot, two arms with a
 // grip at the palm, two legs) and replaces what hangs on it:
 //   - one mask atlas, drawn at load (no image files): cloth, hair and material
-//     patterns and thirty-two painted faces, each a mask in three channels — R
+//     patterns, thirty-two faces' colouring and an eye, each a mask in three channels — R
 //     takes a resident's second colour, G darkens, B lightens to a pale ivory;
 //   - surfaces lofted from rings and tubes, smooth-shaded, with pattern
 //     coordinates, so a shirt is a shirt and not a tapered cylinder;
@@ -41535,8 +41535,8 @@ const NPC_STYLE_COUNTS={glasses:0,hairLocks:0,cuffs:0,sockBands:0,moonPale:0,sky
 //   - knee joints, and a cheaper version of each figure for far away.
 // Colours ride in the vertices as sRGB bytes (two per vertex) and the shader
 // decodes them, so one material and one atlas serve the whole population.
-const NPC_KIT_VERSION='npc-kit-r168';
-const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,face0:32});
+const NPC_KIT_VERSION='npc-kit-r169';
+const NPC_TILE=Object.freeze({solid:0,tartan:1,gingham:2,windowpane:3,tartanDark:4,stripe:5,stripeThin:6,pinstripe:7,knit:8,cable:9,linen:10,leather:11,fleece:12,quilt:13,lace:14,dots:15,floral:16,twill:17,patch:18,hemband:19,hair:20,hairCurl:21,wood:22,metal:23,chain:24,scale:25,fur:26,candy:27,emblem:28,feather:29,iris:30,face0:32});
 const NPC_FACE_COUNT=32;
 const NPC_FACES_MEN=[...Array(NPC_FACE_COUNT).keys()].filter(i=>i%3);   // (r166) every third face, with the heavier lashes, is a woman's
 function npcHash(x,y,s){ let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,1442695041))|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
@@ -41601,71 +41601,59 @@ function npcMaskTiles(){
     return [v<.24?1:0,band(Math.abs(r-.19),.018)*.4,star||band(Math.abs(r-.19),.01)?.85:0]; };                 // the watch's emblem
   T[29]=(u,v)=>[0,band(pd(fr(v*10-Math.abs(u-.5)*3),0),.08)*.22+sm(.38,.5,Math.abs(u-.5))*.25,band(Math.abs(u-.5),.018)*.7];
   for(let i=0;i<NPC_FACE_COUNT;i++)T[NPC_TILE.face0+i]=npcFaceTile(i,sm,band);
+  T[NPC_TILE.iris]=npcIrisTile(sm);
   return T;
 }
-// Thirty-two faces, painted as masks: R the iris (the resident's eye colour),
-// G line and shadow, B the whites and the catchlights. Skin is the resident's
-// own first colour, so one painted face serves many people of every people.
-// The face spans u 0..1 cheek to cheek and v 0 at the chin, 1 above the brow.
-// (r166) Redrawn after the owner's reference frames: large eyes with a big
-// iris, a dark pupil and two catchlights under a heavy upper lash line and a
-// lid crease, slim brows set well above them, a nose that is a shadow under
-// its tip rather than two dots, a small mouth with a lower lip, and soft
-// shading under the cheekbones. The old eyes were narrow slits a third the
-// size, which at any distance read as a mask.
+// Thirty-two faces, painted now as colour and soft shade only, since the
+// features are in the form: R the brows, in the face's second colour, the
+// hair's, darkened; G shade that agrees with the sculpt, the lips a little
+// darker than the skin, and the lines of age; B nothing. The face spans u
+// 0..1 cheek to cheek (x = (u - .5) x .21 head units) and v 0 at the chin to
+// 1 above the brow (y = .015 + v x .29), so the eyes sit at v .52, u .5 ± .2,
+// and the mouth at v .203.
 function npcFaceTile(i,sm,band){
-  const shape=i%5, ew=.17+((i*7)%4)*.01, es=.17+((i*3)%4)*.008, ey=.5+((i*5)%3)*.012;
-  const hR=[.66,.58,.52,.6,.55][shape], tilt=[0,.05,0,-.16,.22][shape], iris=.86+((i*11)%3)*.04;
-  const brow=(i*5)%6, mouth=(i*3)%7, lash=(i%3===0)?1.35:1, mw=.048+((i*13)%3)*.008;
-  const freckles=i%4===1, mole=i%7===3, elder=i%6===5, stubble=i%5===2&&!elder, scar=i===13||i===29;
+  const brow=(i*5)%6, mouth=(i*3)%7, fem=i%3===0;
+  const freckles=i%4===1, mole=i%7===3, elder=i%6===5, stubble=i%5===2&&!elder&&!fem, scar=i===13||i===29;
+  const mw=.019*(1+((i*13)%3)*.1)/.21, flat=q=>Math.exp(-(q*q*q*q)), my=.203;
   return (u,v)=>{
     let R=0,G=0,B=0;
     const x=u-.5, ax=Math.abs(x);
-    G+=.12*sm(.3,.48,ax)+.2*(1-sm(.06,.14,v));                                          // the sides turn away; under the chin
-    G+=.08*band(Math.hypot((ax-.3)/.12,(v-.36)/.07),1,.6);                               // under the cheekbones
-    G+=.12*band(Math.hypot(x/.045,(v-.342)/.014),1,.6);                                  // the shadow under the nose
-    if(x<0)G+=.05*band(Math.abs(ax-.035)/.018+Math.max(0,Math.abs(v-.45)/.06-1),1,.5);  // one side of the bridge in shade
-    B=Math.max(B,.1*band(Math.hypot(x/.02,(v-.385)/.02),1,.6));                         // light on the tip
+    G+=.1*sm(.3,.48,ax)+.14*(1-sm(.06,.15,v));                                           // the sides turn away; under the chin
+    for(const s of[-1,1]){ const dx=u-(.5+s*.2), dy=v-.52; G+=.08*Math.exp(-((dx/.11)**2+(dy/.07)**2)); }   // the sockets' shade
+    G+=.06*Math.exp(-((x/.04)**2+((v-.314)/.016)**2));                                   // under the nose
+    G+=.06*Math.exp(-((x/.05)**2+((v-.141)/.016)**2));                                   // under the lower lip
+    G+=.11*(flat(x/mw)*Math.exp(-(((v-my-.021)/.017)**2))+flat(x/(mw*.85))*Math.exp(-(((v-my+.024)/.02)**2)));   // the lips
+    // the line between them, its corners a little up or down
+    const c=[0,.01,.016,-.01,0,.005,-.005][mouth], lw=mw*1.05;
+    if(ax<lw*1.2){ const q=x/lw; G=Math.max(G,.3*flat(q)*Math.exp(-(((v-my-c*q*q)/.006)**2))); }
+    // the brows, in the hair's colour, along the ridge, tapering outward
     for(const s of[-1,1]){
-      const dx=(u-(.5+s*es))*s, dy=v-ey, a=ew/2, b=a*hR*2;
-      const q=Math.max(0,1-(dx/a)*(dx/a)), yU=b*Math.pow(q,.6)+tilt*dx, yL=-b*.7*Math.pow(q,.85)+tilt*dx*.35;
-      G+=.1*band(Math.hypot(dx/(a*1.25),(dy-b*.95)/(b*1.3+.02)),1,.5);                  // the socket under the brow
-      if(Math.abs(dx)<a&&dy<yU&&dy>yL){
-        B=.9; R=0; G=Math.max(G,.22*(1-sm(0,b*.4,yU-dy)));                             // the white, shadowed under the lid
-        const iy=dy+b*.06, ri=b*iris*.8, d=Math.hypot(dx*1.05,iy);
-        if(d<ri){ R=1; B=0; G=.25*sm(ri*.6,ri,d);                          // the iris, darker at its rim
-          if(d<ri*.42)G=Math.max(G,.88); }                                             // the pupil
-        if(Math.hypot(dx+ri*.32,iy-ri*.36)<ri*.3){ B=1; R=0; G=0; }                    // the main catchlight
-        if(Math.hypot(dx-ri*.34,iy+ri*.34)<ri*.13){ B=.85; R=0; G=0; }                 // and a small one below
-      }
-      // the upper lid and lashes: heavy, thickening outward, with a flick
-      const lt=(.012+.01*Math.max(0,dx/a))*lash;
-      if(dx>-a*1.02&&dx<a*1.12&&dy>=yU-.003&&dy<yU+lt)G=.95;
-      if(dx>a*.8&&dx<a*1.28&&Math.abs(dy-(yU+(dx-a*.8)*.55))<.006*lash)G=.95;
-      if(Math.abs(dx)<a*.95&&Math.abs(dy-(yU+.028+.012*q))<.0035)G=Math.max(G,.32);      // the lid crease
-      if(dx>-a*.2&&dx<a*.98&&dy<=yL+.002&&dy>yL-.005)G=Math.max(G,.4);                 // the lower lashes, outer half
-      if(elder&&Math.abs(dx)<a*.9&&dy<yL-.012&&dy>yL-.028&&dy>yL-.028+.016*(dx/a)*(dx/a))G=Math.max(G,.2);
-      // the brow: slim, well above the eye
-      const by=ey+b+.075+[.0,.008,-.004,.004,-.006,.012][brow], arch=[.014,.024,.004,.012,.008,.018][brow], btilt=[0,0,0,-.3,.28,0][brow];
-      const bt=[.007,.007,.008,.006,.009,.012][brow]*(1-.5*Math.max(0,(dx+a)/(2.6*a)));
-      const yb=by+arch*(1-Math.pow((dx-a*.1)/(a*1.25),2))+btilt*(-dx)*.3;
-      if(dx>-a*.95&&dx<a*1.3&&Math.abs(dy+ey-yb)<bt)G=Math.max(G,.72);
-      if(elder&&dx>a*1.08&&dx<a*1.45){ for(const k of[-1,0,1]) if(Math.abs(dy-k*.018-(dx-a*1.08)*k*.4)<.003)G=Math.max(G,.2); }
-      if(scar&&s===1&&Math.abs((dx-.01)*1.6-(dy-.02))<.006&&dy>-.09&&dy<.11)G=Math.max(G,.5);
+      const dx=(u-(.5+s*.2))*s, arch=[.012,.022,.004,.012,.008,.016][brow], tilt=[0,0,0,-.25,.25,0][brow];
+      const th=(fem?.009:.013)*(1-.55*Math.max(0,(dx+.07)/.18)), by=.638+arch*(1-((dx-.01)/.1)**2)+tilt*(-dx)*.3;
+      if(dx>-.075&&dx<.11){ const e=Math.abs(v-by)/th; if(e<1.4){ const k=1-sm(.6,1.4,e); R=Math.max(R,k*(dx<-.055?(dx+.075)/.02:1)); } }
     }
-    // the mouth: a small upper line, a lower lip in shade, a few expressions
-    const my=.225, c=[0,.022,.034,-.02,0,0,0][mouth];
-    if(mouth===6&&Math.hypot(x/(mw*.5),(v-my)/.02)<1){ G=Math.max(G,.82); if(v>my+.006)B=.55; }
-    else if(ax<mw){ const t=x/mw, ym=my+c*t*t+(mouth===4?.016*Math.max(0,t):0), th=.0055*(1-.45*t*t)*(mouth===5?1.25:1);
-      if(Math.abs(v-ym)<th)G=Math.max(G,.7);
-      if(v<ym-.006&&v>ym-.026&&ax<mw*.7)G+=.12*(1-ax/(mw*.7));                         // the lower lip
-      if(v>ym+.006&&v<ym+.016&&ax<mw*.8)G+=.05; }
-    if(elder){ for(const s of[-1,1]){ const t=(.34-v)/.11; if(t>0&&t<1&&Math.abs(x-s*(.055+t*.045))<.004)G=Math.max(G,.2); }
-      for(const yy of[.82,.86]) if(Math.abs(v-yy)<.003&&ax<.14)G=Math.max(G,.15); }
-    if(freckles&&v>.33&&v<.47&&ax>.05&&ax<.24&&npcHash(Math.floor(u*90),Math.floor(v*90),i)>.86)G=Math.max(G,.28);
-    if(mole&&Math.hypot(x-.12,v-.3)<.007)G=Math.max(G,.6);
-    if(stubble&&v<.33&&ax<.3&&!(Math.abs(v-.255)<.03&&ax<mw))G+=.08+npcNoise(u,v,64,i)*.18;
+    if(elder){ for(const s of[-1,1]){ const t=(.321-v)/.104; if(t>0&&t<1&&Math.abs(x-s*(.076+t*.048))<.005)G=Math.max(G,.16); }   // nose to mouth
+      for(const yy of[.79,.84]) if(Math.abs(v-yy)<.004&&ax<.14)G=Math.max(G,.12);                                          // the forehead
+      for(const s of[-1,1]) if(Math.abs((u-(.5+s*.3))*s-(v-.52)*.5)<.004&&v>.48&&v<.57)G=Math.max(G,.14); }             // the eyes' corners
+    if(freckles&&v>.33&&v<.47&&ax>.05&&ax<.24&&npcHash(Math.floor(u*90),Math.floor(v*90),i)>.86)G=Math.max(G,.24);
+    if(mole&&Math.hypot(x-.12,v-.293)<.008)G=Math.max(G,.5);
+    if(stubble&&v<.31&&ax<.3&&!(Math.abs(v-my)<.04&&ax<mw*1.1))G+=.06+npcNoise(u,v,64,i)*.16;
+    if(scar&&Math.abs((x-.2)*1.6-(v-.52))<.006&&v>.44&&v<.64)G=Math.max(G,.4);
     return [R,Math.min(1,G),B];
+  };
+}
+// An eye's tile: the white, an iris in the resident's eye colour with a dark
+// rim and a lighter ring inside it, a pupil, a catchlight and a small second
+// one, and the shadow the upper lid casts across the top.
+function npcIrisTile(sm){
+  return (u,v)=>{
+    const x=u-.5, y=v-.5, d=Math.hypot(x,y);
+    let R=0,G=.12*sm(.28,.5,Math.abs(x)),B=0;
+    if(d<.25){ R=1; G=.5*sm(.19,.25,d); if(d<.12)G=Math.max(G,.95*(1-sm(.105,.12,d))); B=.25*Math.exp(-(((d-.17)/.03)**2))*(y<0?1:.4); }
+    G=Math.min(1,G+.4*sm(.04,.3,y));
+    if(Math.hypot(x+.07,y-.075)<.05){ B=1; R=0; G=0; }
+    if(Math.hypot(x-.07,y+.07)<.022){ B=.85; R=0; G=0; }
+    return [R,G,B];
   };
 }
 function npcMaskAtlas(){
@@ -41855,9 +41843,9 @@ function npcKitGeometry(source,color){
 }
 // ---- the head -----------------------------------------------------------------
 // Rings from the neck to the crown in the head pivot's space (the pivot is the
-// top of the neck), the face toward +z: [y, rx, rf, rb, cx, cz]. The face is
-// painted on by projecting x and y onto a face tile; the back of the head takes
-// the tile's blank margin.
+// top of the neck), the face toward +z: [y, rx, rf, rb, cx, cz]. The face's
+// colour is projected from x and y onto a face tile, the back of the head
+// taking the tile's blank margin; since r169 its features are in the surface.
 // (r166) After the owner's reference frames: a wider, rounder skull, cheekbones
 // as wide as the temples, the jaw narrowing to a small chin that stands
 // forward, and a flatter face front for the painted features. The r159 head
@@ -41884,23 +41872,147 @@ function npcHeadShape(spec){
   const top=rings[rings.length-1][0];
   return {rings,at,point,top,H};
 }
-function npcBuildHead(m,spec,detail){
-  const hs=npcHeadShape(spec), H=hs.H, seg=npcSeg(detail,16,8);
-  const skin=npcPaint(spec.skin,spec.eye,NPC_TILE.face0+spec.face);
-  // the face projection: eyes at v .5, the mouth at .25, the chin at 0
-  m.loft(hs.rings,seg,skin,{sub:detail>.6?2:1,uv:(t,s,q)=>{
+// ---- the face, in the form (r169) ------------------------------------------------
+// The owner, on r168: the faces read "like a JPEG on top of the shape … the
+// eyes that you're going to put on it are like stickers". They were: eyes,
+// brows and mouth drawn in black outline on a 128-pixel tile laid over a
+// smooth egg of a head, with a nose stuck on as a separate tube. Nothing in
+// the shape agreed with the paint. Now the face is sculpted into the head's
+// own surface: sockets, a brow ridge, a nose bridge rising to a small tip
+// with its wings, round cheeks and the cheekbones over them, lips and the
+// line between them, a chin. The eyes are eyeballs seated in the sockets
+// under real lids with a lash line, and the paint is only colour and soft
+// shade that agrees with the sculpt: brows in the hair's colour, the lips a
+// little darker, freckles, stubble, age.
+//
+// Where each resident's features sit, and their character, from the face
+// index their look already rolls: eye size, spacing, openness and tilt;
+// the mouth's width. All in head units, multiplied by H.
+// After the owner's reference frames: large eyes set wide, a small straight
+// nose, a small mouth with full lips, round cheeks, a small chin.
+function npcFaceForm(spec){
+  const i=spec.face, sh=i%5, fem=spec.fem??(i%3===0);
+  return {ex:.042*[1,1.04,.97,1.02,.98][sh], eyeY:.166, re:.0245*[1,.95,1.06,.98,1.03][sh]*(fem?1.06:1), open:[1,.88,1.1,.94,1][sh], tilt:[0,.12,0,-.14,.18][sh],
+    nose:spec.nose||1, noseTip:.116, mouthY:.074, mw:.019*(1+((i*13)%3)*.1), fem, elder:!!spec.elder||i%6===5,
+    lash:npcDarken((spec.hair&&spec.hair.c)||0x2a1e16,.6)};
+}
+// The relief, in head units, added to the face toward the front: positive
+// stands out, negative goes in. Gaussians, so every feature runs smoothly
+// into the next; the lips' are flatter across, so they end in corners.
+// It is worked out a row of the head at a time: npcFaceRow(y, F) takes each
+// feature's share at that height once, and returns the relief across the
+// row as a function of x. A feature with no share at that height is skipped.
+function npcFaceRow(y,F){
+  const e=(c,s)=>{ const a=(y-c)/s; return a*a<16?Math.exp(-a*a):0; }, my=F.mouthY, top=F.eyeY+.002, nt=F.noseTip;
+  const sock=.014*e(F.eyeY+.002,.02), brow=(F.fem?.003:.006)*e(F.eyeY+.036,.013);                  // the sockets, the brow ridge
+  let nh=0, nw=1;                                                                                // the nose: a soft bridge to a small tip
+  if(y<top+.03&&y>nt-.05){ const t=Math.min(1,Math.max(0,(top-y)/(top-nt)));
+    nh=(.003+.015*F.nose*Math.pow(t,2.2))*(y<nt?e(nt,.012):1)*(y>top?e(top,.007):1); nw=.011+.007*t; }
+  const tip=.004*F.nose*e(nt+.002,.008), wing=.005*F.nose*e(nt-.004,.006);                        // its tip and wings
+  const cheek=.009*e(.12,.026), bone=.004*e(F.eyeY-.03,.014);                                    // the cheeks, the cheekbones
+  const ul=.005*e(my+.006,.005), ll=.006*e(my-.007,.006), ln=.003*e(my,.0025), cn=.002*e(my,.004); // the lips, the line between, the corners
+  const chin=.01*e(my-.046,.017);
+  const hol=F.elder?.004*e(my+.015,.02):0, bag=F.elder?.003*e(F.eyeY-.028,.006):0;               // an elder's hollows and the bags under the eyes
+  const pair=(x,c,s)=>{ const a=(x-c)/s, b=(x+c)/s; return Math.exp(-a*a)+Math.exp(-b*b); }, one=(x,s)=>Math.exp(-(x/s)*(x/s)), flat=u=>Math.exp(-(u*u*u*u));
+  return x=>{
+    let d=0;
+    if(sock)d-=sock*pair(x,F.ex,.03);
+    if(brow)d+=brow*flat(x/.075);
+    if(nh)d+=nh*one(x,nw);
+    if(tip)d+=tip*one(x,.009);
+    if(wing)d+=wing*pair(x,.0135,.008);
+    if(cheek)d+=cheek*pair(x,.046,.026);
+    if(bone)d+=bone*pair(x,.062,.02);
+    if(ul)d+=ul*flat(x/F.mw);
+    if(ll)d+=ll*flat(x/(F.mw*.85));
+    if(ln)d-=ln*flat(x/(F.mw*1.05));
+    if(cn)d-=cn*pair(x,F.mw*1.15,.004);
+    if(chin)d+=chin*one(x,.022);
+    if(hol)d-=hol*pair(x,.062,.018);
+    if(bag)d-=bag*pair(x,F.ex,.02);
+    return d;
+  };
+}
+// The head's rings joined by a Catmull-Rom curve, as loft joins them, so the
+// finely sampled surface below is as smooth as the loft was.
+function npcHeadRing(rings,s){
+  const n=rings.length, f=s*(n-1), k=Math.min(n-2,Math.floor(f)), t=f-k, R=[];
+  const cr=(p0,p1,p2,p3)=>.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t*t+(-p0+3*p1-3*p2+p3)*t*t*t);
+  for(let m=0;m<6;m++){ const g=i=>rings[Math.max(0,Math.min(n-1,i))][m], v=cr(g(k-1),g(k),g(k+1),g(k+2)); R.push(m>=1&&m<=3?Math.max(0,v):v); }
+  if(s>=1-1e-9)R[1]=R[2]=R[3]=0;
+  return R;
+}
+// Rows of the near head, in head units from the neck to the crown: close
+// through the mouth and the nose, where the relief is finest, and few over
+// the skull, which the hair covers.
+const NPC_HEAD_ROWS=[-.05,.005,.02,.03,.04,.048,.055,.061,.066,.07,.074,.078,.082,.087,.093,.099,.105,.11,.115,.12,.127,.135,.143,.151,.159,.166,
+  .173,.181,.19,.2,.21,.225,.245,.268,.295,.315,.322];
+// The head as one surface: sampled densely toward the face (the angles round
+// the head bunch at the front) and carrying the relief there. The far
+// version is the rings alone, smooth.
+function npcHeadSurface(m,hs,F,paint,detail){
+  const H=hs.H, rings=hs.rings, hi=detail>.6, n=rings.length, relief=detail>.3;
+  // each row's place between the rings (near enough: the curve's heights
+  // run almost evenly between them, and the relief is taken at the height
+  // the row lands on)
+  const S=hi?NPC_HEAD_ROWS.map(y=>{ let k=0; while(k<n-2&&rings[k+1][0]<y*H)k++; const a=rings[k][0],b=rings[k+1][0];
+    return (k+Math.min(1,Math.max(0,(y*H-a)/((b-a)||1))))/(n-1); }):rings.map((r,i)=>i/(n-1));
+  const nu=hi?24:8, nv=S.length-1, col=[];
+  // each column's angle (sine, the cosine toward the front, and how much of
+  // the relief it carries), the same for every row
+  for(let j=0;j<=nu;j++){ const sg=2*j/nu-1, th=Math.PI+Math.PI*Math.sign(sg)*Math.pow(Math.abs(sg),hi?1.8:1), cs=-Math.cos(th);
+    col.push([Math.sin(th),cs,relief?Math.max(0,Math.min(1,(cs-.15)/.5)):0]); }
+  let rowS=-1, R=null, row=null;
+  m.surf(nu,nv,true,(t,s)=>{
+    if(s!==rowS){ rowS=s; R=npcHeadRing(rings,S[Math.round(s*nv)]); row=relief?npcFaceRow(R[0]/H,F):null; }
+    const c=col[Math.round(t*nu)], y=R[0], x=R[1]*c[0], z=R[5]+(c[1]>=0?R[2]:R[3])*c[1];
+    return [x,y,z+(c[2]?c[2]*row(x/H)*H:0)];
+  },paint,{uv:(t,s,q)=>{
     const front=q[2]>-.004*H, u=front?.5+q[0]/(.21*H):(q[0]>0?.985:.015), v=(q[1]-.015*H)/(.29*H);
     return [Math.min(.985,Math.max(.015,u)),Math.min(.985,Math.max(.015,v))];
   }});
+}
+// The eyes: an eyeball in each socket, turned a little outward, its iris on a
+// tile of its own; an upper lid and a lower lid over it, meeting at the
+// corners in an almond; a lash line along the upper lid, heavier and flicked
+// out at the corner for a woman.
+function npcBuildEyes(m,hs,F,spec,detail){
+  const H=hs.H, hi=detail>.6, re=F.re*H;
+  const white=npcPaint(0xe6e0d6,spec.eye,NPC_TILE.iris,1), lid=npcPaint(npcDarken(spec.skin,.05),spec.skin), lash=npcPaint(F.lash,F.lash);
+  for(const s of[-1,1]){
+    const ey=F.eyeY*H, ex=s*F.ex*H, r=hs.at(ey), z0=r[5]+r[2]*Math.sqrt(Math.max(0,1-(ex/(r[1]||1))**2));
+    const c=[ex,ey,z0-.012*H-re*.6], yaw=s*.22;
+    const P=(h,v,R)=>{ const a=h+yaw; return [c[0]+R*Math.cos(v)*Math.sin(a),c[1]+R*Math.sin(v),c[2]+R*Math.cos(v)*Math.cos(a)]; };
+    // the eyeball's front, the iris facing out of the socket. (Across goes
+    // left to right and up goes up, so the grid's normal faces in: flipped.)
+    const cl=x=>Math.min(.985,Math.max(.015,x));
+    // Only what the lids can open on is built.
+    m.surf(hi?10:6,hi?5:4,false,(t,v)=>P(-1.15+2.3*t,-.75+1.5*v,re),white,{flip:true,uv:(t,v)=>{ const h=-1.15+2.3*t, w=-.75+1.5*v;
+      return [cl(.5+.5*Math.sin(h)*Math.cos(w)/Math.sin(1.4)),cl(.5+.5*Math.sin(w)/Math.sin(1.15))]; }});
+    // the lids' edges: open in the middle, closed at the corners, tilted
+    // (the tilt turns the whole almond, so the lids meet on one line past the corners)
+    const up=h=>{ const q=Math.max(0,1-h*h); return F.open*.44*Math.sqrt(q)+F.tilt*h*s; }, dn=h=>{ const q=Math.max(0,1-h*h); return -F.open*.3*Math.sqrt(q)+F.tilt*h*s; };
+    const hh=1.3;
+    m.surf(hi?10:6,hi?3:2,false,(t,v)=>{ const h=-hh+2*hh*t, e=up(h); return P(h,e+(1.3-e)*v,re*1.07); },lid,{flip:true});
+    m.surf(hi?10:6,hi?2:1,false,(t,v)=>{ const h=-hh+2*hh*t, e=dn(h); return P(h,-1.15+(e+1.15)*v,re*1.05); },lid,{flip:true});
+    if(detail>.3){
+      const pts=[], rad=[], n=hi?8:5;
+      for(let k=0;k<=n;k++){ const h=-1.02+2.04*k/n; pts.push(P(h,up(h)+.03,re*1.09)); rad.push(k===0||k===n?0:.0026*H*(F.fem?1.5:1)*(.6+.4*Math.sin(Math.PI*k/n))); }
+      if(F.fem){ const h=1.02*s, e=up(h); pts.splice(s>0?n+1:0,0,P(h+.18*s,e+.16,re*1.12)); rad.splice(s>0?n+1:0,0,0); if(s>0)rad[n]=.002*H; else rad[1]=.002*H; }
+      m.tube(pts,rad,3,lash,{ref:[0,1,0]});
+    }
+  }
+}
+function npcBuildHead(m,spec,detail){
+  const hs=npcHeadShape(spec), H=hs.H, F=npcFaceForm(spec);
+  // (r169) The skin's paint is colour only: the brows in the hair's colour
+  // (the paint's second), soft shade and age. The features are the surface's.
+  const brow=npcDarken((spec.hair&&spec.hair.c)||0x5a4a3a,.25);
+  npcHeadSurface(m,hs,F,npcPaint(spec.skin,brow,NPC_TILE.face0+spec.face),detail);
+  // where the sculpted face stands at (x, y), for whatever sits on it
+  hs.F=F; hs.face=(x,y)=>{ const r=hs.at(y), cs=Math.sqrt(Math.max(0,1-(x/(r[1]||1))**2)), front=Math.max(0,Math.min(1,(cs-.15)/.5));
+    return r[5]+r[2]*cs+(detail>.3?front*npcFaceRow(y/H,F)(x/H)*H:0); };
   const plain=npcPaint(spec.skin,spec.skin);
-  const fz=y=>{ const r=hs.at(y); return r[5]+r[2]; };
-  // the nose (not on the far version)
-  const nb=spec.nose||1;
-  // (r166) Smaller and softer: it starts between the eyes and ends in a round
-  // tip; the painted shadow under it does the rest. It was a tube standing
-  // off the face, its top above the eyes.
-  if(detail>.3)m.tube([[0,.16*H,fz(.16*H)-.006*H],[0,.145*H,fz(.145*H)],[0,.128*H,fz(.128*H)+.006*H*nb],[0,.118*H,fz(.118*H)+.004*H*nb],[0,.112*H,fz(.112*H)-.002*H]],
-    [[.004*H,.003*H],[.007*H*nb,.005*H],[.01*H*nb,.008*H*nb],[.009*H*nb,.006*H],[0,0]],npcSeg(detail,6,4),plain,{cap:'round'});
   // ears
   for(const s of[-1,1]){
     const r=hs.at(.17*H), ex=s*(r[1]-.004*H);
@@ -41913,9 +42025,10 @@ function npcBuildHead(m,spec,detail){
       m.tube([[ex,.172*H,-.008*H],[ex+s*.012*H,.172*H,-.012*H],[ex+s*.016*H,.165*H,-.016*H]],[[.022*H,.007*H],[.024*H,.007*H],[0,0]],npcSeg(detail,6,4),plain,{ref:[s,0,0],cap:'round'});
   }
   if(spec.brow){                                         // the stonekin's ridge over the eyes
-    const y=.21*H, pts=[]; for(let k=0;k<=6;k++){ const th=Math.PI+(k/6-.5)*1.5; const p=hs.point(th,y,.006*H); pts.push([p[0],p[1],p[2]]); }
+    const y=.2*H, pts=[]; for(let k=0;k<=6;k++){ const th=Math.PI+(k/6-.5)*1.5; const p=hs.point(th,y,.006*H); pts.push([p[0],p[1],p[2]]); }
     m.tube(pts,pts.map(()=>[.016*H,.012*H]),5,npcPaint(spec.brow,spec.brow,NPC_TILE.scale,.15),{ref:[0,1,0]});
   }
+  if(detail>.3)npcBuildEyes(m,hs,F,spec,detail);
   return hs;
 }
 // ---- hair -----------------------------------------------------------------------
@@ -41958,14 +42071,15 @@ function npcLock(m,hs,L,paint,seg){
 function npcHairLocks(style,hs,spec){
   // Locks for a style, from a seeded jitter so no two heads lie the same way.
   const R=spec.rand, H=hs.H, L=[], j=a=>(R()-.5)*a;
-  const side=(th,y,yEnd,out,w=.05,b=.03)=>{ const p=hs.point(th,yEnd*H,out*H); L.push({th,y,e:[p[0]/H,yEnd,p[2]/H],b,w,t:.026}); };
+  // (r169) ending a little further out, clear of the cheeks the face now has
+  const side=(th,y,yEnd,out,w=.05,b=.03)=>{ const p=hs.point(th,yEnd*H,(out+.012)*H); L.push({th,y,e:[p[0]/H,yEnd,p[2]/H],b,w,t:.026}); };
   const bangs=(n,yEnd,spread=1.3,sweep=0,len=1)=>{ for(let k=0;k<n;k++){ const th=Math.PI+(k/(n-1)-.5)*spread+j(.08), p=hs.point(th+sweep,(yEnd+j(.012))*H,.026*H);
     L.push({th,y:.29+j(.01),e:[p[0]/H,yEnd*len+j(.01),p[2]/H+.012],b:.035,w:.055+j(.012),t:.024}); } };
   const back=(n,yEnd,spread=2.2,out=.03,w=.07)=>{ for(let k=0;k<n;k++){ const th=(k/(n-1)-.5)*spread+j(.1), p=hs.point(th,Math.max(-.04,yEnd)*H,out*H);
     L.push({th,y:.29+j(.012),e:[p[0]/H+(yEnd<-.04?Math.sin(th)*.04:0),yEnd+j(.02),p[2]/H-(yEnd<-.04?.03:0)],b:.04,w:w+j(.015),t:.03}); } };
   if(style==='short'){ bangs(6,.205); for(const s of[-1,1]){ side(Math.PI/2+s*.25+(s<0?Math.PI:0),.27,.15,.03); side(Math.PI/2+s*.6+(s<0?Math.PI:0),.27,.13,.03); } back(6,.1,2.6,.025,.06);
     for(let k=0;k<4;k++)L.push({th:Math.PI*(.6+k*.25)+j(.2),y:.31,e:[j(.12),.34+j(.02),-.05+j(.08)],b:.02,w:.05,t:.025}); }
-  else if(style==='bob'){ bangs(7,.2,1.35); for(const s of[-1,1])for(const a of[.15,.45,.8]){ const th=s>0?Math.PI/2+a:Math.PI*1.5-a; side(th,.26,.015+j(.02),.03,.065); } back(7,.02,2.6,.03,.075); }
+  else if(style==='bob'){ bangs(7,.2,1.35); for(const s of[-1,1])for(const a of[.15,.42,.66]){ const th=s>0?Math.PI/2+a:Math.PI*1.5-a; side(th,.26,.015+j(.02),.03,.065); } back(7,.02,2.6,.03,.075); }
   else if(style==='long'||style==='wild'){ bangs(style==='wild'?5:6,.21,1.2,style==='wild'?.15:0);
     for(const s of[-1,1])for(const a of[.2,.55]){ const th=s>0?Math.PI/2+a:Math.PI*1.5-a; const p=hs.point(th,.05*H,.03*H); L.push({th,y:.26,e:[p[0]/H+s*.02,-.24+j(.05),p[2]/H+.02],b:.05,w:.07,t:.03}); }
     for(let k=0;k<8;k++){ const th=(k/7-.5)*2.6+j(.1); L.push({th,y:.29,e:[Math.sin(th)*.1,-.36+j(.06)+(style==='wild'?j(.1):0),-.1-Math.abs(Math.cos(th))*.02],b:.06,w:.08,t:.032}); } }
@@ -41998,8 +42112,9 @@ function npcBuildBeard(m,hs,spec,detail){
     // a shell over the jaw and chin, below the mouth
     m.surf(npcSeg(detail,12,6),3,false,(t,s)=>{ const th=Math.PI+(t-.5)*2.6, y=(.085-.13*s)*H; const p=hs.point(th,Math.max(.0,y),.012*H+s*.012*H); return [p[0],y,p[2]]; },paint,{uRep:3,vRep:1,flip:true});
   }
-  const fz=hs.at(.12*H); const mz=fz[5]+fz[2];
-  for(const s of[-1,1])m.tube([[s*.004*H,.118*H,mz+.004*H],[s*.03*H,.112*H,mz-.002*H],[s*.05*H,.09*H,mz-.016*H]],[[.012*H,.008*H],[.012*H,.008*H],[0,0]],npcSeg(detail,5,3),paint,{ref:[0,1,0]});
+  const fz=hs.at(.12*H); const mz=fz[5]+fz[2], on=(x,y,o)=>[x*H,y*H,hs.face(x*H,y*H)+o*H];
+  // (r169) under the sculpted nose and over the lip, following the face
+  for(const s of[-1,1])m.tube([on(s*.004,.1,.007),on(s*.028,.094,.006),on(s*.048,.074,.002)],[[.011*H,.007*H],[.011*H,.007*H],[0,0]],npcSeg(detail,5,3),paint,{ref:[0,1,0]});
   if(bd.style==='long'||bd.style==='full'){
     const n=bd.style==='long'?7:5, len=bd.style==='long'?.42:.14;
     for(let k=0;k<n;k++){ const th=Math.PI+(k/(n-1)-.5)*1.6, p=hs.point(th,.02*H,.02*H);
@@ -42052,13 +42167,14 @@ function npcBuildHat(m,hs,spec,detail){
 }
 function npcBuildGlasses(m,hs,spec,detail){
   if(!spec.glasses||detail<=.3)return;
-  const H=hs.H, paint=npcPaint(spec.glasses.c||0x1a1a22,spec.glasses.c||0x1a1a22), y=.18*H, f=hs.at(y), z=f[5]+f[2]+.012*H, seg=npcSeg(detail,12,6);
+  // (r169) on the sculpted eyes, standing clear of the brow and the bridge
+  const H=hs.H, paint=npcPaint(spec.glasses.c||0x1a1a22,spec.glasses.c||0x1a1a22), y=hs.F.eyeY*H+.002*H, ex=hs.F.ex*H, z=hs.face(0,y)+.012*H, seg=npcSeg(detail,12,6);
   for(const s of[-1,1]){
-    const pts=[]; for(let i=0;i<=seg;i++){ const a=i/seg*Math.PI*2; pts.push([s*.034*H+Math.cos(a)*.024*H,y+Math.sin(a)*.021*H,z]); }
+    const pts=[]; for(let i=0;i<=seg;i++){ const a=i/seg*Math.PI*2; pts.push([s*ex+Math.cos(a)*.027*H,y+Math.sin(a)*.023*H,z]); }
     m.tube(pts,pts.map(()=>.0035*H),4,paint);
-    m.tube([[s*.058*H,y+.004*H,z-.004*H],[s*.086*H,y+.006*H,z-.04*H],[s*.09*H,y,-.03*H]],[.003*H,.003*H,.003*H],3,paint);
+    m.tube([[s*(ex+.027*H),y+.004*H,z-.004*H],[s*.086*H,y+.006*H,z-.04*H],[s*.09*H,y,-.03*H]],[.003*H,.003*H,.003*H],3,paint);
   }
-  m.tube([[-.011*H,y+.004*H,z],[0,y+.008*H,z+.003*H],[.011*H,y+.004*H,z]],[.003*H,.003*H,.003*H],3,paint);
+  m.tube([[-(ex-.027*H),y+.004*H,z],[0,y+.008*H,z+.003*H],[ex-.027*H,y+.004*H,z]],[.003*H,.003*H,.003*H],3,paint);
 }
 // ---- the body ---------------------------------------------------------------------
 // Heights in the figure's own units before its people's stature scales it: the
@@ -42807,9 +42923,10 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
     prop.add(bookLeft,bookRight,pageLeft,pageRight);prop.position.set(-.06,.1,.1);prop.rotation.x=-.08;prop.rotation.z=.14;propArm=leftArm;
   }
   if(smokes){
-    // A clay pipe at the corner of the mouth, bowl forward and up.
+    // A clay pipe at the corner of the mouth, bowl forward and up. (r169) The
+    // mouth is in the face's form now, at 0.074 of the head and a little forward.
     const pipe=new THREE.Group(),stem=new THREE.Mesh(new THREE.CylinderGeometry(.007,.009,.13,5),leather),bowl=new THREE.Mesh(new THREE.CylinderGeometry(.022,.016,.036,6),npcMaterial(0x2a1c14));
-    stem.rotation.x=Math.PI*.5;stem.position.z=.065;bowl.position.set(0,.014,.13);pipe.add(stem,bowl);pipe.position.set(.026*H,.1*H,.09*H);pipe.rotation.set(.22,-.18,0);headPivot.add(pipe);
+    stem.rotation.x=Math.PI*.5;stem.position.z=.065;bowl.position.set(0,.014,.13);pipe.add(stem,bowl);pipe.position.set(.022*H,.075*H,.094*H);pipe.rotation.set(.22,-.18,0);headPivot.add(pipe);
   }
   const attachHeld=(item,pivot)=>{const grip=pivot?.userData.grip;if(grip)grip.add(item);else g.add(item);};
   if(prop)attachHeld(prop,propArm);if(offhand)attachHeld(offhand,offhandArm);
@@ -42819,7 +42936,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
   const lodHide=g.children.slice(), lodMesh=npcKitLod(spec); g.add(lodMesh);
   const stature=NPC_STATURE[species]*(spec.child?.82:1);g.position.set(x,0,z);g.scale.setScalar(stature);g.rotation.y=rand(0,6.28);g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;}});scene.add(g);
   const held={left:propArm===leftArm||offhandArm===leftArm,right:propArm===rightArm||offhandArm===rightArm};
-  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null,gaitSpeed=[1.14,1,.98,.84,.92][species]*build.pace; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082)*gaitSpeed,routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg,leftKnee,rightKnee},kitHip:rig.dims.hip,kitHat:!!spec.hat,kitPipeY:rig.dims.neckY+.1*H,held,variant,outfit:NPC_OUTFITS[variant],bodyType:build.name,species,people:NPC_PEOPLES[species],smokes,styleTags,visualCanonPose:null});
+  let routeProgress=0;if(patrol.length>1){let closest=Infinity;patrol.forEach((point,index)=>{const dx=x-point[0],dz=z-point[1],distance=dx*dx+dz*dz;if(distance<closest){closest=distance;routeProgress=index;}});}const phase=rand(0,patrol.length||6.28),routeLoop=patrol.map(point=>[point[0],point[1]]),activity=INTERIOR_HOST_ACTIVITY[name]||null,gaitSpeed=[1.14,1,.98,.84,.92][species]*build.pace; villagers.push({name,g,homeX:x,homeZ:z,line,route:patrol,district,phase,walkSpeed:rand(.052,.082)*gaitSpeed,routeLoop,routeProgress,goalIndex:0,errandIndex:0,atStop:true,path:null,pathIndex:0,navPending:false,pauseLeft:rand(.2,2.5),lastX:x,lastZ:z,activityAnchor:activity?{x:activity.x,z:activity.z}:null,activityLabel:activity?.doing||'',parts:{headPivot,leftArm,rightArm,leftLeg,rightLeg,leftKnee,rightKnee},kitHip:rig.dims.hip,kitHat:!!spec.hat,kitPipeY:rig.dims.neckY+.075*H,held,variant,outfit:NPC_OUTFITS[variant],bodyType:build.name,species,people:NPC_PEOPLES[species],smokes,styleTags,visualCanonPose:null});
   // One errand per stop on their round, so every waypoint is somewhere they
   // are going *for* a reason rather than an anonymous coordinate.
   const created=villagers[villagers.length-1];
@@ -46764,7 +46881,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r168',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r169',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47118,7 +47235,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Heatline — variant layer over base r168 -->
+<!-- Emberwatch — Heatline — variant layer over base r169 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — HEATLINE                                       variant layer

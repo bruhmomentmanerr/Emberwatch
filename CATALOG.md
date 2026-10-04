@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.68.0 / build r168 ("Proportions")**,
-2026-10-02. Archived, audited and runtime-checked. The release workflow
+Current sealed source: **1.69.0 / build r169 ("Faces in the form")**,
+2026-10-04. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (156 revisions, r04 to r168). r143 to r158 were
+executables (157 revisions, r04 to r169). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r168'
+                      the strain-archive lookups work. BUILD_REVISION = 'r169'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r168-proportions.html
+                      emberwatch_3_r169-faces-in-the-form.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r168, minus the revisions
+                    Phase 5 currently contains r70-r169, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r168-proportions.html
+                    emberwatch_3_r169-faces-in-the-form.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,15 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 4      r169       Faces in the form. The faces had been outlines
+                          painted on a tile over a smooth head, with a tube
+                          for a nose: decals, the owner said, "like
+                          stickers". Now sculpted into the head's surface
+                          (sockets, brow, nose, lips, cheeks, chin), with
+                          eyeballs under lids and a lash line, and the paint
+                          only colour. People take about 0.16 s longer to
+                          build. Verified: studio and in-game face shots
+                          r168 against r169, audits, variants 6/6, smoke.
     Oct 3      r168       Proportions. The residents measured over 120 of
                           them in head heights: 5.4 heads tall with hips at
                           2.5, big heads on short legs. Heads a fifth

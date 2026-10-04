@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-04 · r169 "Faces in the form"
+
+**What was wrong.** "Like a JPEG on top of the shape … the eyes … are like
+stickers." They were: eyes, brows and mouth drawn in outline on a tile
+over a smooth head, and a tube for a nose.
+
+**What changed.** The face is sculpted into the head's surface (sockets,
+brow ridge, nose, cheeks, lips, chin); eyeballs sit in the sockets under
+an upper and a lower lid with a lash line; the paint is colour only.
+Glasses, moustaches, pipes and side locks follow the new face. PROJECT.md
+§0.
+
+**What proved it.** Studio faces front and three-quarter, r168 against
+r169, at each pass; the in-game faces by the market hearth; normals checked
+in Node; audits, variants 6/6, smoke. The cost, measured: a near head 531
+to 1,375 vertices, the residents' boot stage 2.20/2.14/2.30 s to
+2.36/2.43/2.32 s.
+
+---
+
 ## 2026-10-03 · r168 "Proportions"
 
 **What was wrong.** "Still stocky and skinny." Measured over 120 residents
