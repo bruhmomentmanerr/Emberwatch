@@ -6,6 +6,26 @@ estimated.
 
 ---
 
+## 2026-10-05 · r171 "The lower town"
+
+**What was wrong.** "Start the vista": of the named vistas, the lower-town
+overlook was furthest from its reference frame (a hooded archer above a
+packed lower town). Lowmere was ten cottages round a green, a dark field
+from the bluff.
+
+**What changed.** Lowmere is a town of 80 houses. Rows on the valley floor
+and six walled terraces climb to the tower's hill, with stair-streets,
+smoking chimneys and warm light on the lanes. Half the houses are turned
+gable-end to the bluff so their roofs catch the moon behind the town. The
+capture is reframed. PROJECT.md §0.
+
+**What proved it.** The vista captures before and after; a player's walk
+from the track up every terrace and on up the bluff (18/20, the two
+refusals meant); diagnostics clean; boot within the runs' spread; audits,
+variants 6/6, smoke.
+
+---
+
 ## 2026-10-04 · r170 "Cloth in folds"
 
 **What was wrong.** The clothes were smooth tubes and cones where the

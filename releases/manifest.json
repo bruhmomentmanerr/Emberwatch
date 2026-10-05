@@ -2052,5 +2052,18 @@
   },
   "asset": "emberwatch-r170-cloth-in-folds.html",
   "notes": "releases/notes/r170.md"
+ },
+ {
+  "tag": "r171",
+  "rev": 171,
+  "title": "the lower town",
+  "version": "1.71.0",
+  "date": "2026-10-05T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r171-the-lower-town.html"
+  },
+  "asset": "emberwatch-r171-the-lower-town.html",
+  "notes": "releases/notes/r171.md"
  }
 ]

@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r170 Cloth in folds</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r171 The lower town</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4935,7 +4935,8 @@ MATS.foliage.color.setHex(0x2d8c48);MATS.foliage.emissive.setHex(0x0b2d1a);MATS.
 // ground in front of each lit ground-floor window, each hall window and each
 // door lantern, and under each festoon on the avenues: additive, one merged
 // mesh, one draw call, no light.
-const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?, wash?, y?}: filled by the builders, laid by streetLightPools
+const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?, wash?, y?, gy?}: filled by the builders, laid by streetLightPools
+// (gy, r171: the ground's height under a pool off the city's flat ground)
 function streetLightPools(){
   // Two pools side by side on one texture: one thrown out from a wall (left;
   // a CanvasTexture is flipped, so the wall's edge is the canvas's bottom row)
@@ -4960,7 +4961,7 @@ function streetLightPools(){
         pos.push(p.x+lx*co+.06*si,p.y+ly,p.z-lx*si+.06*co);
       uv.push(.5,0,1,0,1,1,.5,1); }
     else { for(const [lx,lz] of[[-p.along/2,z0],[p.along/2,z0],[p.along/2,z1],[-p.along/2,z1]])
-        pos.push(p.x+lx*co+lz*si,.135,p.z-lx*si+lz*co);
+        pos.push(p.x+lx*co+lz*si,(p.gy||0)+.135,p.z-lx*si+lz*co);
       uv.push(u0,0,u1,0,u1,1,u0,1); } for(let i=0;i<4;i++)col.push(p.k,p.k,p.k);
     idx.push(base,base+2,base+1,base,base+3,base+2);
   }
@@ -8670,13 +8671,14 @@ function addOverlookCanon(){
   // place now — Lowmere, the Watcher's Bluff above it, the tower beyond.
   placeLowmere();
   const P=LOW;
-  // Near the prow's lip, a step behind Corvin's shoulder: the lit hamlet
-  // twenty metres below, the tower's fire on the skyline and the moon over it.
-  // Tilted down eleven degrees, about as far as the frame can go and still
-  // hold the moon, 22 degrees up. Any further back and the prow's own top
-  // hides the hamlet; the hooded watcher stands behind, out of the frame (at
-  // two metres he was a black wall across its left third).
-  { const [x,z]=P.at(.6,-.9),[tx,tz]=P.at(40,1); canonSetCapture('vista-lower-town-overlook',x,z,tx,tz,-.2,0); }
+  // (r171) At the prow's lip, left of Corvin and ahead of the hooded watcher:
+  // the town's nearest roofs straight below, its rows and terraces climbing
+  // to the tower's hill, the tower's fire on the skyline and the moon over
+  // it. Turned a little left, so the terraces fill the frame and the tower
+  // and moon sit right of centre; tilted down twelve and a half degrees,
+  // about as far as the frame can go and still hold the moon, 22 degrees up.
+  // Any further back and the prow's own top hides the near rows.
+  { const [x,z]=P.at(1.2,-1.8),[tx,tz]=P.at(45,-10); canonSetCapture('vista-lower-town-overlook',x,z,tx,tz,-.22,0); }
   VISUAL_CANON.sites.push({id:'vista-lower-town-overlook',x:P.cx,z:P.cz});
 }
 function addBridgeCastleCanon(){
@@ -39154,7 +39156,11 @@ const OATHFIELD={len:19,half:14,top:.45,gate:-19,rows:[-15,-12,-9,-6,-3,0,3],col
 // hangs over the hamlet and the tower. s runs from the prow (s=0) out over
 // the hamlet; t across it, +t toward the track, which a sunken lane joins.
 const LOW=(()=>{ const m=Math.hypot(MOON_DIR.x,MOON_DIR.z); return axisFrame(-468,-178,MOON_DIR.x/m,MOON_DIR.z/m); })();
-const LOWMERE={floor:1,top:22,stairT:22,stairS0:24,stairS1:-12,stairSteps:56,stairHalf:1.6,landS:-14,landT:18.5,tower:[116,12],crag:14};
+const LOWMERE={floor:1,top:22,stairT:22,stairS0:24,stairS1:-12,stairSteps:56,stairHalf:1.6,landS:-14,landT:18.5,tower:[114,10],crag:19,
+  // (r171) the town: a main street across the valley floor at s=24, and six
+  // walled terraces up the far slope, each 9.5 m deep and 2.4 m above the
+  // last, narrowing toward the tower's hill; each span is [t from, t to]
+  street:24, terraces:[[-46,44],[-44,42],[-41,39],[-37,35],[-32,30],[-26,24]].map((span,k)=>({k,span,s0:44+9.5*k,top:1+2.4*(k+1)}))};
 // The Foxglove crossing (r143): the bridge stands over the brook itself, a
 // fifth of the way up from the pond, where the brook has widened to seven
 // metres; a gate tower stands at its far end. s runs across the brook along
@@ -39225,24 +39231,28 @@ function planAuthoredLandforms(){
   for(const [s,t,r] of[[0,0,26],[-24,0,6],[30,0,12],[43,0,10]]){ const [cx,cz]=O.at(s,t); CANON_SITE_CLEARINGS.push({id:'oathfield',x:cx,z:cz,r}); }
   // Lowmere. Order matters: a later landform wins where two meet. First a
   // broad shoulder so the bluff's back and sides fall gently into the hills;
-  // then the hamlet's valley floor, which cuts the shoulder's front away; then
-  // the bluff itself, whose 4.5 m edge drops to that floor — behind the rock
-  // model's face, so the steep ground is never in front of it; then the ramp
-  // under the stair up its side, the landing at the stair's head, the crag
-  // the tower stands on, and the sunken lane in from the track.
+  // then the town's valley floor, which cuts the shoulder's front away, and
+  // (r171) the slope its terraces climb, a ramp a little under each terrace's
+  // paving; then the bluff itself, whose 4.5 m edge drops to that floor —
+  // behind the rock model's face, so the steep ground is never in front of
+  // it; then the ramp under the stair up its side, the landing at the stair's
+  // head, the hill the tower stands on, and the sunken lane in from the track.
   { const P=LOW, LM=LOWMERE; let x,z;
     [x,z]=P.at(-30,0); landform({id:'watchers-shoulder',kind:'mesa',x,z,ry:P.ry,hw:20,hd:16,round:8,edge:30,top:LM.top-1});
-    [x,z]=P.at(32.5,0); landform({id:'lowmere-floor',kind:'mesa',x,z,ry:P.ry,hw:24,hd:33.5,round:8,edge:10,top:LM.floor,rough:.15});
+    [x,z]=P.at(21.5,-3); landform({id:'lowmere-floor',kind:'mesa',x,z,ry:P.ry,hw:47,hd:22.5,round:8,edge:8,top:LM.floor,rough:.15});
+    [x,z]=P.at(72.5,-2); landform({id:'lowmere-slope',kind:'ramp',x,z,ry:P.ry,hw:48,hd:28.5,edge:10,h0:.7,h1:LM.terraces[5].top-.35});
     [x,z]=P.at(-17,0); landform({id:'watchers-bluff',kind:'mesa',x,z,ry:P.ry,hw:15,hd:12,round:4,edge:4.5,top:LM.top,rough:.3});
     [x,z]=P.at((LM.stairS0+LM.stairS1)/2,LM.stairT); landform({id:'lowmere-stair-ramp',kind:'ramp',x,z,ry:P.ry+Math.PI,hw:2.6,hd:(LM.stairS0-LM.stairS1)/2,edge:3,h0:LM.floor-.4,h1:LM.top-.35});
     [x,z]=P.at(LM.landS,LM.landT); landform({id:'lowmere-stair-head',kind:'mesa',x,z,ry:P.ry,hw:4.5,hd:2.5,edge:2.5,top:LM.top-.35});
-    [x,z]=P.at(LM.tower[0],LM.tower[1]); landform({id:'lowmere-crag',kind:'mesa',x,z,ry:P.ry,hw:9,hd:9,round:6,edge:14,top:LM.crag,rough:1.2});
-    [x,z]=P.at(36,41); landform({id:'lowmere-lane',kind:'ramp',x,z,ry:Math.atan2(-P.tx,-P.tz),hw:3.5,hd:17,edge:8,h0:0,h1:LM.floor});
+    [x,z]=P.at(LM.tower[0],LM.tower[1]-2); landform({id:'lowmere-crag',kind:'mesa',x,z,ry:P.ry,hw:12,hd:11,round:8,edge:18,top:LM.crag,rough:1.2});
+    [x,z]=P.at(LM.street,50); landform({id:'lowmere-lane',kind:'ramp',x,z,ry:Math.atan2(-P.tx,-P.tz),hw:3.5,hd:8,edge:8,h0:0,h1:LM.floor});
     { const [x1,z1]=P.at(LM.stairS0,LM.stairT),[x2,z2]=P.at(LM.stairS1,LM.stairT); addStair('lowmere-stair',x1,z1,x2,z2,LM.stairHalf,LM.floor,LM.top+.05,LM.stairSteps); }
     [x,z]=P.at(LM.landS,LM.landT); addDeck('lowmere-stair-head',x,z,P.ry,4.5,2.5,LM.top+.05);
     // The prow's ledge (the rock model's crown sits at exactly this height).
     [x,z]=P.at(-1.5,0); addDeck('watchers-prow',x,z,P.ry,2.2,3.7,LM.top);
-    for(const [s,t,r] of[[-6,0,10],[34,0,30],[36,30,6],[36,40,6],[36,50,6],[6,LM.stairT,13],[-8,LM.stairT,10],[LM.tower[0],LM.tower[1],12],[80,6,10],[95,9,8]]){ const [cx,cz]=P.at(s,t); CANON_SITE_CLEARINGS.push({id:'lowmere',x:cx,z:cz,r}); }
+    // No wood in the town, on its terraces, on the bluff's stair or round the tower.
+    for(let s=-5;s<=105;s+=20)for(let t=-46;t<=46;t+=20){ const [cx,cz]=P.at(s,t); CANON_SITE_CLEARINGS.push({id:'lowmere',x:cx,z:cz,r:16}); }
+    for(const [s,t,r] of[[-6,0,10],[6,LM.stairT,13],[-8,LM.stairT,10],[LM.tower[0],LM.tower[1],12],[LM.street,54,6]]){ const [cx,cz]=P.at(s,t); CANON_SITE_CLEARINGS.push({id:'lowmere',x:cx,z:cz,r}); }
   }
   // The Foxglove crossing: no wood on the bridge, round the tower, along its
   // paths, or across the view up the brook from the bank.
@@ -39541,9 +39551,10 @@ function placeOathfield(){
 }
 // Lowmere (r143). A cottage: walls sunk into the ground a little, a steep
 // gable roof, a door on its front (local +Z), windows front and back — most
-// lit, a few dark, by a hash of where they are — and a chimney on the back
-// slope. Plain geometry, no roll taken.
-function hamletCottage(x,y,z,w,d,stories,ry,key='wall'){
+// lit, a few dark, by a hash of where they are — and a chimney, the city's
+// since r171: houseChimney's stack, with a crown and smoke. Plain geometry,
+// no roll taken.
+function hamletCottage(x,y,z,w,d,stories,ry,key='wall',seed=0){
   const h=stories*2.7, co=Math.cos(ry), si=Math.sin(ry), front=d*.5+.05, rise=stories>1?3.0:2.5;
   aBox(w,h+.5,d,x,y+h/2-.25,z,key,ry);
   aRoof(w,d,rise,x,y+h,z,'roof',ry,true,.45);
@@ -39551,9 +39562,12 @@ function hamletCottage(x,y,z,w,d,stories,ry,key='wall'){
   const cols=w>6.4?3:2;
   for(let st=0;st<stories;st++)for(let c=0;c<cols;c++)for(const face of[front,-front]){
     const ox=-w*.31+w*.62*c/(cols-1); if(st===0&&face>0&&Math.abs(ox)<.9)continue;
-    const wx=x+ox*co+si*face, wy=y+1.55+st*2.7, wz=z-ox*si+co*face;
-    aBox(.5,.66,.06,wx,wy,wz,terrainHash(Math.round(wx*5)+71,Math.round(wz*5)-13)<.72?'window':'dark',ry); }
-  const cz=-d*.22; aBox(.7,2.6,.7,x+co*w*.3+si*cz,y+h+1.25,z-si*w*.3+co*cz,'brick',ry);
+    const wx=x+ox*co+si*face, wy=y+1.55+st*2.7, wz=z-ox*si+co*face, lit=terrainHash(Math.round(wx*5)+71,Math.round(wz*5)-13)<.72;
+    aBox(.5,.66,.06,wx,wy,wz,lit?'window':'dark',ry);
+    // (r171) a lit ground-floor window throws a warm pool on the ground before it
+    if(lit&&st===0)LIGHT_POOLS.push({x:wx,z:wz,ry:face>0?ry:ry+Math.PI,along:1.5,out:2.6,k:.85,gy:y+.05}); }
+  // (r171) the city's chimney: a stack clear of the roof, its crown, and smoke
+  houseChimney(x,z,w,d,y+h,ry,seed*7+3,rise,.45,true);
   addBoxCollider(x,z,w,d,ry);
 }
 // The posed figures of the canon places (r159): the hooded watcher on the
@@ -39562,15 +39576,73 @@ function hamletCottage(x,y,z,w,d,stories,ry,key='wall'){
 // stands or sits here and placePosedFigures builds them once it exists.
 const NPC_POSED_FIGURES=[];
 function placeLowmere(){
-  const P=LOW, LM=LOWMERE, at=P.at, floor=LM.floor;
+  const P=LOW, LM=LOWMERE, at=P.at, floor=LM.floor, S=LM.street;
   const toward=([x,z],[tx,tz])=>Math.atan2(tx-x,tz-z);
-  // The hamlet: ten roofs round a green with a well, most of them turned to
-  // the bluff so their lit fronts are what the watcher looks down on.
-  const homes=[[26,-8,7,5,1,'bluff'],[27,9,6,5,1,'bluff'],[34,-17,6,5,1,'green'],[45,-14,8,5.5,2,'green'],[48,5,6.5,5,1,'bluff'],
-    [18,13,5.5,5,1,'green'],[56,-4,7,5,1,'bluff'],[59,12,6,5,1,'bluff'],[52,19,5,4.5,1,'green'],[20,-3,5,4,1,'green']];
-  const green=at(41,-1);
-  homes.forEach(([s,t,w,d,stories,face],i)=>{ const p=at(s,t), ry=face==='bluff'?P.ry+Math.PI:toward(p,green);
-    hamletCottage(p[0],floor,p[1],w,d,stories,ry,i===9?'wood':i%3===2?'wall2':'wall'); });
+  // (r171) Lowmere is a town, after the owner's reference frame of a hooded
+  // archer on a crag above a packed lower town: tiled roofs, lit windows, a
+  // tower on a hill beyond. It was ten cottages round a green, which from
+  // the prow read as a dark field with a few lights in it. Now: on the valley
+  // floor a row backing on to the bluff, with one more behind it either side
+  // of the prow, and two facing it across the main street and a back lane;
+  // then the town climbs the far slope on six walled terraces toward the
+  // tower's hill. Every row is turned to the bluff, so the watcher looks down
+  // on roofs and across at lit fronts. A stair-street climbs the middle,
+  // terrace to terrace, and another the left side of the lower four. The
+  // houses' widths, depths, storeys and walls come from a generator of the
+  // town's own, so the world's seeded stream is untouched.
+  let seed=4171; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const walls=['wall','wall','wall2','wood','brick'];
+  let houses=0;
+  // A row of houses along t from t0 to t1, their fronts on the line s=front
+  // facing +s, face 1, or the bluff, face -1; none across a skipped span.
+  const ground=(x,z,w,d,ry)=>{ const co=Math.cos(ry), si=Math.sin(ry); let h=Infinity;
+    for(const [a,b] of[[-1,-1],[1,-1],[1,1],[-1,1]]){ const lx=a*w/2, lz=b*d/2; h=Math.min(h,terrainAt(x+lx*co+lz*si,z-lx*si+lz*co)); } return h; };
+  // Half of them are narrow and deep, gable-end to the bluff: the moon is
+  // behind the town as the watcher sees it, and only a roof slope turned
+  // sideways to it catches its light. No house is deeper than its row's room.
+  const row=(front,face,t0,t1,skip,level,storeys,room)=>{
+    let t=t0+rnd()*1.2;
+    while(t<t1-4.4){
+      const narrow=rnd()<.5, d=narrow?Math.min(room,5.1+rnd()*1.4):Math.min(room,4.6+rnd()*1.1), w=narrow?Math.min(d-.4,4.2+rnd()*.9):5.4+rnd()*2.6;
+      const hit=skip.find(([a,b])=>t<b&&t+w>a); if(hit){ t=hit[1]+.4+rnd()*.6; continue; }
+      if(t+w>t1)break;
+      const [x,z]=at(front-face*d/2,t+w/2), ry=face>0?P.ry:P.ry+Math.PI, st=storeys[Math.floor(rnd()*storeys.length)];
+      hamletCottage(x,level===null?ground(x,z,w,d,ry):level,z,w,d,st,ry,walls[Math.floor(rnd()*walls.length)],houses++);
+      t+=w+.8+rnd()*1.6;
+    }
+  };
+  const left=[-30.2,-25.8], middle=[-2.2,2.2], bluffStair=[18.6,25.4];
+  // the valley floor
+  row(S-3,1,-46,42,[bluffStair],null,[2,2,3],6.5);                    // backing on to the bluff, fronts on the main street
+  row(12.4,1,-46,-16,[],null,[2,3],6); row(12.4,1,26,42,[],null,[2,3],6);   // behind it, either side of the prow
+  row(S+3,-1,-46,42,[left,[-13.2,2.2]],null,[2,2,3],6.4);             // across the street, round the square
+  row(37.6,-1,-46,42,[left,middle],null,[1,2,2],5.9);                  // across the back lane
+  // the terraces: a walled platform each, paved, with a parapet along its
+  // front and sides that opens where a stair comes up, and a row of houses
+  // along its back with a lane in front of them
+  for(const T of LM.terraces){
+    const [tl,tr]=T.span, s0=T.s0, s1=s0+9.5, top=T.top, tc=(tl+tr)/2, [cx,cz]=at(s0+4.75,tc), side=T.k<4;
+    aBox(tr-tl,4,9.5,cx,top-2,cz,'stone',P.ry);
+    aBox(tr-tl,.06,9.5,cx,top+.03,cz,'cobble',P.ry);
+    addDeck('lowmere-terrace-'+T.k,cx,cz,P.ry,(tr-tl)/2,4.75,top);
+    const opens=side?[[-29.8,-26.2],[-1.8,1.8]]:[[-1.8,1.8]], cuts=[tl,...opens.flat(),tr];
+    for(let i=0;i<cuts.length;i+=2){ const a=cuts[i], b=cuts[i+1], [px,pz]=at(s0+.18,(a+b)/2), [x1,z1]=at(s0+.18,a), [x2,z2]=at(s0+.18,b);
+      aBox(b-a,.55,.36,px,top+.27,pz,'stone',P.ry); wallColl(x1,z1,x2,z2,.3); }
+    for(const tt of[tl+.18,tr-.18]){ const [px,pz]=at(s0+4.75,tt), [x1,z1]=at(s0,tt), [x2,z2]=at(s1,tt);
+      aBox(.36,.55,9.5,px,top+.27,pz,'stone',P.ry); wallColl(x1,z1,x2,z2,.3); }
+    row(s0+3.8,-1,tl+.6,tr-.6,side?[left,middle]:[middle],top,[1,2,2],5.5);
+  }
+  // the stair-streets: from the floor between the rows up to the first
+  // terrace, and from each terrace up to the next
+  const flight=(id,t,sa,sb,h0,h1)=>{ const [x1,z1]=at(sa,t),[x2,z2]=at(sb,t), n=Math.max(6,Math.round((h1-h0)/.2));
+    stairFlight(x1,z1,x2,z2,1.4,h0,h1+.05,n); addStair(id,x1,z1,x2,z2,1.4,h0,h1+.05,n); };
+  for(const tt of[0,-28]){ const [x,z]=at(39.8,tt); flight('lowmere-stair-up'+(tt?'-left':''),tt,39.8,44.4,terrainAt(x,z),LM.terraces[0].top); }
+  for(let k=1;k<6;k++){ const T=LM.terraces[k], B=LM.terraces[k-1];
+    flight('lowmere-stair-'+k,0,T.s0-4.6,T.s0+.4,B.top,T.top);
+    if(k<4)flight('lowmere-stair-'+k+'-left',-28,T.s0-4.6,T.s0+.4,B.top,T.top); }
+  // the square, with the old well, by the foot of the middle stair-street
+  const green=at(30.4,-7.7);
+  { const [x,z]=green; aBox(10.6,.08,6.6,x,terrainAt(x,z)+.03,z,'cobble',P.ry); }
   { const [x,z]=green; aCyl(1.0,1.1,.85,10,x,floor+.42,z,'stone'); aCyl(.82,.82,.1,10,x,floor+.86,z,'dark');
     for(const side of[-1,1]){ const px=x+Math.cos(P.ry)*side*.95, pz=z-Math.sin(P.ry)*side*.95; aBox(.14,2.1,.14,px,floor+1.05,pz,'wood'); }
     aRoof(2.4,1.6,.9,x,floor+2.1,z,'roof',P.ry,true,.2); addCollider(x,z,1.3); }
@@ -39579,11 +39651,15 @@ function placeLowmere(){
   const lane=(pts,w)=>{ for(let i=0;i<pts.length-1;i++){ const [x1,z1]=at(...pts[i]),[x2,z2]=at(...pts[i+1]), len=Math.hypot(x2-x1,z2-z1), n=Math.max(1,Math.round(len/2.2));
     for(let k=0;k<n;k++){ const f=(k+.5)/n, x=x1+(x2-x1)*f, z=z1+(z2-z1)*f;
       aBox(w,.08,len/n+.25,x,terrainAt(x,z)+.03,z,'cobble',Math.atan2(x2-x1,z2-z1)); } } };
-  lane([[36,57],[36,24],[38,9],[40,2]],2.6);
-  lane([[38,9],[30,20.5],[25.6,20.8]],1.8);
-  // Lamps at the thresholds: where the lane comes in, on the green, at the
-  // stair's foot and its head.
-  for(const [id,s,t] of[['lowmere-lane-end',33.6,25.5],['lowmere-green',42.6,2.4],['lowmere-stair-foot',25.2,18.6]]){ const [x,z]=at(s,t); placeLamp(id,x,z,terrainAt(x,z)); }
+  lane([[S,58],[S,-46]],6);                       // the main street, in from the track
+  lane([[35.35,42],[35.35,-46]],3.2);             // the back lane
+  for(const tt of[0,-28])lane([[S+3,tt],[39.8,tt]],4.4);   // between the rows to the stairs
+  // Lamps at the thresholds: along the main street, on the square, at the
+  // bluff stair's foot and its head, and at the middle stair's head on three
+  // of the terraces.
+  const lamp=(id,x,z,y)=>{ placeLamp(id,x,z,y); LIGHT_POOLS.push({x,z,ry:0,along:6,out:6,k:.8,round:true,gy:y}); };
+  for(const [id,s,t] of[['lowmere-street-west',S-2.4,-24],['lowmere-street-east',S+2.4,32],['lowmere-square',27.6,-12.4],['lowmere-stair-foot',25.2,18.6]]){ const [x,z]=at(s,t); lamp(id,x,z,terrainAt(x,z)); }
+  for(const k of[1,3,5]){ const T=LM.terraces[k], [x,z]=at(T.s0+1.4,2.6); lamp('lowmere-terrace-'+k,x,z,T.top); }
   { const [x,z]=at(LM.landS-1.4,LM.landT-3.6); placeLamp('lowmere-stair-head',x,z,LM.top+.05); }
   // The stair up the bluff's side, and the slab of its head landing.
   { const [x1,z1]=at(LM.stairS0,LM.stairT),[x2,z2]=at(LM.stairS1,LM.stairT); stairFlight(x1,z1,x2,z2,LM.stairHalf,floor,LM.top+.05,LM.stairSteps);
@@ -39615,7 +39691,8 @@ function placeLowmere(){
     const glow=lampLight(0x6f86ff,.3,8); glow.position.set(x,LM.top+1.3,z); scene.add(glow); lights.push({light:glow,base:.3,phase:2.7,fire:false});
     canonRecord('posed-figure','lower-town-overlook-hooded-watcher',x,z,{purpose:'standing hooded watcher on the prow of the bluff above Lowmere, modelled'}); }
   { const [x,z]=at(-4,-11.5); canonBareTree('lower-town-overlook-branch-frame',x,z,.75,.25); }
-  canonRecord('landmark','lowmere-hamlet',...at(40,0),{purpose:'ten lit cottages round a green and a well on the valley floor below the bluff'});
+  { const [x,z]=at(LM.tower[0]-7,LM.tower[1]-15); canonBareTree('lowmere-hill-tree',x,z,1.15,-.12); }
+  canonRecord('landmark','lowmere-town',...at(60,0),{purpose:'the lower town under the bluff: rows on the valley floor and six walled terraces up toward the tower, every row turned to the bluff',houses,terraces:LM.terraces.length});
   canonRecord('landmark','watchers-bluff',P.cx,P.cz,{purpose:'a 21 m rock prow over Lowmere; a long stair up its side, the watchers on its ledge'});
 }
 // A worn path laid over the ground: a ribbon on the terrain, a quad every
@@ -43207,12 +43284,12 @@ for(const [name,hx,hz,robe,lineIdx,route,district] of OUTER_RESIDENTS_BAKED){
 const WILD_RESIDENTS=(()=>{ const L=(s,t)=>LOW.at(s,t), K=SKY.at(0,0), kr=Math.hypot(K[0],K[1]), knoll=f=>[K[0]*(1-f),K[1]*(1-f)];
   const track=deg=>[Math.cos(deg*Math.PI/180)*441,Math.sin(deg*Math.PI/180)*441];
   return [
-  {name:'Ada Wellwright',at:L(43,4),robe:0x7a5a48,district:'Lowmere',look:{variant:5,species:1,build:1},
-    line:'Lowmere draws its water the old way. The well remembers every bucket, and some nights it answers.',route:[L(41.5,2.5),L(27,5.6),L(47.5,8.2)]},
-  {name:'Pell Lamplighter',at:L(37,20),robe:0x5a4a3a,district:'Lowmere',look:{variant:4,species:0,build:0},
-    line:'I light the lane and the stair foot, and the watchers light the rest. Nobody lights the tower. It lights itself.',route:[L(36,25),L(38,9),L(30,20.5),L(26,19.4)]},
-  {name:'Old Brannoc',at:L(53,-6),robe:0x45503c,district:'Lowmere',look:{variant:1,species:3,build:2},
-    line:'The bluff keeps the wind off us. Corvin keeps the rest off.',route:[L(53,-6),L(58,8),L(46,-9)]},
+  {name:'Ada Wellwright',at:L(29.6,-4.2),robe:0x7a5a48,district:'Lowmere',look:{variant:5,species:1,build:1},
+    line:'Lowmere draws its water the old way. The well remembers every bucket, and some nights it answers.',route:[L(29.6,-4.2),L(24,-10),L(24,8),L(31.5,-11.6)]},
+  {name:'Pell Lamplighter',at:L(24,30),robe:0x5a4a3a,district:'Lowmere',look:{variant:4,species:0,build:0},
+    line:'I light the street and the stair foot, and the watchers light the rest. Nobody lights the tower. It lights itself.',route:[L(24,44),L(24,26),L(24,19.6),L(24,-24)]},
+  {name:'Old Brannoc',at:L(24,-30),robe:0x45503c,district:'Lowmere',look:{variant:1,species:3,build:2},
+    line:'The bluff keeps the wind off us. Corvin keeps the rest off.',route:[L(24,-30),L(24,30),L(28.5,-5)]},
   {name:'Hode of the Toll',at:FOX.at(16.8,-2),robe:0x4b5566,district:'Foxglove Bridge',look:{variant:2,species:3,build:2},
     line:'I keep the arch and the door. The toll is a good word said on the crown of the bridge. Most people pay it.',route:[FOX.at(16.8,-2),FOX.at(18.5,-17),FOX.at(19,-33)]},
   {name:'Sister Amery',at:OATH.at(-6,.2),robe:0x6a6070,district:'The Oathfield',look:{variant:0,species:1,build:0},
@@ -44143,7 +44220,7 @@ const VANETH_LANDMARKS=[
     detail:{stones:'Ten stones past the north-east wall, with a band worn into every one.',graveyard:'Where the old families went, before there was room inside the wall.',ruins:'A broken nave with an ash ring on its floor, and the Veilscar falls behind it.'}[place.id]})),
   // The places built out there in r143.
   {id:'wild-oathfield',name:'The Oathfield',x:OATH.cx,z:OATH.cz,radius:24,detail:'Behind the graveyard: rows of planted blades and an angel with the moon behind her.'},
-  {id:'wild-lowmere',name:'Lowmere',x:LOW.at(40,0)[0],z:LOW.at(40,0)[1],radius:26,detail:'A hamlet under the Watcher\'s Bluff, off the track to the south-west.'},
+  {id:'wild-lowmere',name:'Lowmere',x:LOW.at(24,0)[0],z:LOW.at(24,0)[1],radius:26,detail:'A town under the Watcher\'s Bluff, climbing the far slope in terraces, off the track to the south-west.'},
   {id:'wild-foxglove-bridge',name:'Foxglove Bridge',x:FOX.cx,z:FOX.cz,radius:14,detail:'A humped arch over the brook above the pond, with a gate tower at its far end.'},
   {id:'wild-rain-oath',name:'The Rain Oath',x:RAIN.cx,z:RAIN.cz,radius:22,detail:'A causeway over a mere to a ring of stones and a knight who never gets up.'},
   {id:'wild-skywatch',name:'The Skywatch',x:SKY.cx,z:SKY.cz,radius:16,detail:'A knoll north of the gate with an armillary on its crown.'},
@@ -46996,7 +47073,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r170',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r171',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47350,7 +47427,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Ember Hour — variant layer over base r170 -->
+<!-- Emberwatch — Ember Hour — variant layer over base r171 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBER HOUR                                     variant layer
