@@ -4,12 +4,16 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r172 / 1.72.0**, sealed 2026-10-06 as "The ruin and the falls":
+Current: **r173 / 1.73.0**, sealed 2026-10-06 as "The wizard and the lens":
+hold Z to look through a 45 degree lens, which the vista captures can use
+too, and Orren rebuilt after the reference wizard, long white hair down his
+back, a dark drooping hat, his staff taller and nothing else in his hands;
+the ruin vista reframed through the lens (§0). Before it, **r172 / 1.72.0**, sealed 2026-10-06 as "The ruin and the falls":
 the Veilscar given a broken castle on its cliff, three falls into misted
 pools, conifers, a fill light, and a knoll across the valley where the
 wizard stands, after the reference frame of a wizard watching a ruined
 castle and its waterfalls; and the Peak's connect sequence brought up to
-the clients written against current firmware (§0). Before it, **r171 / 1.71.0**, sealed 2026-10-05 as "The lower town": Lowmere
+the clients written against current firmware (§0a). Before it, **r171 / 1.71.0**, sealed 2026-10-05 as "The lower town": Lowmere
 rebuilt from ten cottages into a town of 80 houses under the Watcher's
 Bluff, rows on the valley floor and six walled terraces climbing to the
 tower's hill, with stair-streets, chimneys that smoke and warm light on its
@@ -307,7 +311,95 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-06, r172)
+## 0. Start here — where the last session left off (2026-10-06, r173)
+
+**State: r173 / 1.73.0, sealed 2026-10-06 ("The wizard and the lens").**
+The owner asked what was holding the ruin vista back from matching the
+reference to a tee, then said "continue". The walkthrough's order: the lens,
+then Orren, then the land's scale. r173 does the first two.
+
+**Next:** the owner's look, and the **Peak test** of r172's connect sequence
+(still owed). For the ruin vista what remains is the land: in the reference
+the cliff towers over the viewer's rock and the valley below is green, with
+a river; ours is a 15 m cliff and a dark valley. A taller cliff means the
+stair, the shelf and the keep go up with it. The castle over the river
+bridge is the last of the three vistas furthest from their frames. Still
+open on the residents: rigid joints, sleeve and trouser wrinkles, a skirt
+that does not drape when its wearer sits.
+
+### What was wrong
+
+- **The lens.** The game sees 75 degrees up and down, 107 across, a very
+  wide lens that shrinks everything in the middle distance. The reference
+  is a phone frame through a narrow one, so its castle is large. Ours was a
+  small castle in a wide night.
+- **Orren.** His hat brim was a wide, pale lavender disc where the
+  reference's is narrow, dark and drooping; his hair was short and grey
+  where the reference's is long and white down his back; he held an open
+  book in his other hand, the book his kind of resident carries; his staff
+  ended at his hat.
+- **Why the brim was pale.** Not its colour: the hat was already near black.
+  The staff's crystal light hung forty centimetres over it. Read off the
+  brim's pixel with each light switched off in turn, the crystal gave it two
+  thirds of its light, the fill most of the rest.
+
+### What r173 does
+
+- **Hold Z to look closer.** A 45 degree lens where the eye sees 75, eased in
+  and out, shown in the controls line. A capture can ask for a lens
+  (`canonSetCapture`'s last argument; `EMBER.lens(fov)` holds one, and the
+  harness applies a shot's `fov`), so a photograph of a place shows what
+  holding Z there shows.
+- **The ruin vista through it.** From three metres behind Orren and a step to
+  his left, both on the knoll's crown (its level top widened from 3 to 5 m
+  so he and the camera stand at one height): Orren large on the left, the
+  castle and the three falls across the middle, the moon over the keep.
+- **Orren.** Long white hair down his back to the shoulder blades, over his
+  shoulders at the sides (a new hair style in the kit, `mane`); the
+  wizard's brim narrower and drooping; his hat near black; nothing in his
+  left hand; his staff taller, its crystal over his hat, and its light a
+  third as strong (the crystal glows by itself). He stands on the crown now,
+  watching the keep.
+
+### Measured
+
+- Hold Z, read off a run: 75 degrees at rest, 52.5 two frames into holding
+  it, 45.0 at twenty; 67.5 two frames after letting go, 75.0 at twenty.
+  `EMBER.lens(45)` gives 45 at once and clearing it gives 75.
+- Walk, as a player: from the valley up the knoll to the crown (13.0 m),
+  round behind Orren, down its front and on to the basin, 6 of 6. The rest
+  of the Veilscar is as r172 walked it.
+- Boot, three runs each, totals r172 7.66, 7.86, 8.26 s against r173 7.72,
+  7.57, 7.51 s. Within the runs' spread (both slower than r172's own runs on
+  an earlier machine).
+- Colliders 13,045, as r172.
+
+### Verified
+
+- `check-parse`, `audit-source` (A 228, B and C 0), `audit-dom`,
+  `audit-dead` (702, 0 dead), `audit-comments`, `test-switch-frames`,
+  `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- The vista through the new lens in four framings; Orren from behind, the
+  side and the front.
+- Diagnostics: no unreachable interactions, nothing in a road, the four
+  gate approaches whole, Orren on the knoll's crown.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r173 in its
+  diagnostics.
+
+### The pale square, seen again
+
+A pale blue square about a hundred pixels across showed once more in a
+harness screenshot, in empty sky in front of Orren. Standing at the same
+place and reading the game's own finished frames six times over, the
+square was not there. Both times it showed, the screenshot came straight
+after the camera jumped; it has never shown in a frame read from the game
+itself, and its colour is that of the moonlit cloud. Likely a stale patch
+of an earlier frame in the software renderer's screenshot, not something
+the game draws. Not confirmed.
+
+---
+
+## 0a. r172 — where the session before that left off (2026-10-06)
 
 **State: r172 / 1.72.0, sealed 2026-10-06 ("The ruin and the falls").**
 Two things. The owner, of the lower town: "thats fire, keep building", and
@@ -4569,9 +4661,16 @@ evaluates a probe file inside the page and prints what it returns:
 app/node_modules/.bin/electron tools/harness <html> <probe.js> <seconds> [shotsDir]
 ```
 
-If the probe returns `{ shots: [{ name, x, z, yaw, pitch, y? }] }` and a
-`shotsDir` is given, it stands the player at each and saves a PNG. That is how
-anything visual gets checked rather than assumed.
+If the probe returns `{ shots: [{ name, x, z, yaw, pitch, y?, fov? }] }` and a
+`shotsDir` is given, it stands the player at each, through the shot's lens if
+it has one (since r173), and saves a PNG. That is how anything visual gets
+checked rather than assumed.
+
+The `<seconds>` argument is a wait **before** the probe runs, not a limit, and
+the harness quits at that wait plus `HARNESS_TIMEOUT` (300 s by default). A
+long probe, a walk say, wants a short wait and a large `HARNESS_TIMEOUT`; a
+long wait starts the probe just before the harness quits, and looks like a
+page that has hung (r172 lost an hour to it).
 
 Four things to know before trusting a number from it:
 
@@ -5117,7 +5216,7 @@ it did something, so Long Night's F-to-strike still works everywhere else.
 
 `window.EMBER` is the only global (besides `THREE`). The list below was
 verified at r110; since then `doors`, `lampLight`, `lampPower`, `LAMP_REACH`,
-`bloom`, `warmShaders`, `addLamp`, `overlayOpen`, `mourners` (r117), `outings` (r118), `frameCost` (r119) and `findPath` (r120) were added:
+`bloom`, `warmShaders`, `addLamp`, `overlayOpen`, `mourners` (r117), `outings` (r118), `frameCost` (r119), `findPath` (r120) and `lens(fov)` (r173) were added:
 
     scene camera renderer CONFIG player villagers colliders
     watch() watches setWatch(id) look(yaw,pitch) loadGLB setPixel(v)

@@ -6,6 +6,24 @@ estimated.
 
 ---
 
+## 2026-10-06 · r173 "The wizard and the lens"
+
+**What was wrong.** The walkthrough of what kept the ruin vista from the
+reference named the lens, Orren and the land's scale, in that order. The
+game's wide lens made the castle small; Orren's brim was a pale disc lit by
+his own crystal, his hair short, a book in his other hand.
+
+**What changed.** Hold Z for a 45 degree lens, which captures can use too;
+the vista reframed through it from behind Orren on the knoll's crown. Orren
+with long white hair down his back, a dark drooping hat, a taller staff and
+a dimmer crystal light, his hands holding only the staff. PROJECT.md §0.
+
+**What proved it.** The zoom's field read off a run; the vista and Orren from
+three sides; a walk over the knoll round Orren (6/6); diagnostics clean;
+boot within the runs' spread; audits, variants 6/6, smoke.
+
+---
+
 ## 2026-10-06 · r172 "The ruin and the falls"
 
 **What was wrong.** "Keep building": the ruin and its waterfalls was the

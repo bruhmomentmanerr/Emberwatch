@@ -17,7 +17,7 @@
   document.head.append(style); document.body.classList.add('cap-clean');
   const only = window.__only || null;
   const caps = E.visualCanon.captures.filter(c => !only || only.some(w => c.id.includes(w)));
-  const shots = caps.map(c => ({ name: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, pitch: c.pitch ?? -.08 }));
+  const shots = caps.map(c => ({ name: c.id, x: c.x, z: c.z, y: c.y, yaw: c.yaw, pitch: c.pitch ?? -.08, fov: c.fov }));
   for (const s of (window.__extra || [])) shots.push({ y: E.terrainAt(s.x, s.z), ...s });
   const d = E.diagnostics();
   return { revision: d.revision, errors: window.__errors || [], landmarks: d.visualCanon.landmarks, shots };

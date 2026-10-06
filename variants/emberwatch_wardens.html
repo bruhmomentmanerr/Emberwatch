@@ -142,7 +142,7 @@
 <div id="app"></div>
 <div id="cross"></div>
 <div id="gameTitle"><span class="t">Emberwatch</span><span class="u">the ledger of the black city</span></div>
-<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact</div>
+<div id="hint">click to look · WASD move · shift sprint · space jump · click cast · M menu · P device · J strains · E interact · Z look closer</div>
 <div id="interactHint"><kbd>E</kbd><span></span><b id="interactAlt" hidden><kbd>F</kbd><span></span></b></div>
 <div id="gameToast" role="status" aria-live="polite"></div>
 <aside id="sessionRamble" aria-hidden="true" aria-label="Shared smoke session">
@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r172 The ruin and the falls</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r173 The wizard and the lens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4590,6 +4590,9 @@ const C=CONFIG.colors;
 const scene=new THREE.Scene(); let lighting='night';
 scene.fog=new THREE.FogExp2(C.nightFog,CONFIG.fogDensity); scene.background=new THREE.Color(C.nightFog);
 const camera=new THREE.PerspectiveCamera(CONFIG.fov,innerWidth/innerHeight,0.1,1100); camera.rotation.order='YXZ';
+// (r173) A lens held for a photograph, set by EMBER.lens; otherwise the
+// eye's, or the longer one while Z is held.
+const LENS={fov:0};
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(1); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFShadowMap;
 // Measured at r90: 37.2ms a frame with the map rebuilding, 18.4ms without it.
@@ -8581,12 +8584,15 @@ function canonPlace(id,name,x,z,kind,purpose,roles=[]){
 function canonRand(seed){ let value=Math.imul((WORLD_SEED^seed)>>>0,0x9e3779b1); return ()=>{ value+=0x6D2B79F5; let t=value; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 function canonMat(color,opts={}){ return new THREE.MeshStandardMaterial({color,roughness:opts.roughness??.92,metalness:opts.metalness??0,flatShading:opts.flat??false,emissive:opts.emissive||0x000000,emissiveIntensity:opts.emissiveIntensity||0,transparent:!!opts.transparent,opacity:opts.opacity??1,depthWrite:opts.depthWrite??true}); }
 function canonGroundY(x,z,raise=0){ return (Math.hypot(x,z)>OUTER_CITY_R-2?terrainAt(x,z):0)+raise; }
-function canonSetCapture(id,x,z,tx,tz,pitch=.05,raise=0){
+function canonSetCapture(id,x,z,tx,tz,pitch=.05,raise=0,fov=0){
   const cap=VISUAL_CANON.captures.find(entry=>entry.id===id); if(!cap)return;
   // A camera stands where a player could: on a stair, a deck, a wall walk or
   // a ledge if there is one (surfaceAt), not on the ground under it.
   cap.x=+x.toFixed(2); cap.z=+z.toFixed(2); cap.y=+(surfaceAt(x,z)+raise).toFixed(2);
   cap.yaw=+Math.atan2(-(tx-x),-(tz-z)).toFixed(3); cap.pitch=pitch;
+  // (r173) and the lens, for a place meant to be looked at closer: the one
+  // holding Z gives
+  if(fov)cap.fov=fov;
 }
 function canonBareTree(id,x,z,scale=1,lean=0){
   const y=canonGroundY(x,z), trunk=new THREE.Group(), mat=canonMat(0x17151f,{roughness:1});
@@ -8647,7 +8653,11 @@ function addRuinsCanon(){
   // dark against the valley, the falls coming down the cliff into the mist,
   // the broken keep on top, and the moon over it. (It looked up the nave from
   // the west door until r172, where the arch was all the frame held.)
-  { const [x,z]=F.at(V.watch[0]-.2,V.watch[1]+2.55),[tx,tz]=F.at(40,-12); canonSetCapture('vista-ruin-waterfall',x,z,tx,tz,0,0); }
+  // (r173) Through the 45 degree lens holding Z gives, from three metres
+  // behind him and a step to his left, both on the knoll's level crown: the
+  // castle and the falls as large as the reference has them, the moon over
+  // the keep, Orren from the waist up and a little above the eye.
+  { const [x,z]=F.at(V.watch[0]-1.29,V.watch[1]+3.35),[tx,tz]=F.at(37.4,11.9); canonSetCapture('vista-ruin-waterfall',x,z,tx,tz,.09,0,45); }
   // Inside, by the ash ring, looking up the nave to the window.
   { const [x,z]=F.at(-9,3.2),[tx,tz]=F.at(10,-1); canonSetCapture('site-ritual-circle',x,z,tx,tz,.06,0); }
   // On the rim beside the wizard, looking down past him to the hall.
@@ -39218,7 +39228,7 @@ const VEIL={face:34,top:15,poolS:28,poolR:6.4,poolLevel:-.3,stairT:-42,stairS0:2
   // into a plunge pool of its own [s, t, r]; the wizard's knoll across the
   // valley [s, t], its crown's height, and where on it he stands, at the
   // edge toward the falls. Far enough round that the hall is not between.
-  falls:[[-13,1.5],[0,2.5],[14,1.9]], pools:[[29.2,-13,4.4],[29.4,14,4.8]], knoll:[0,44], knollTop:13, watch:[2.7,40.4]};
+  falls:[[-13,1.5],[0,2.5],[14,1.9]], pools:[[29.2,-13,4.4],[29.4,14,4.8]], knoll:[0,44], knollTop:13, watch:[1.5,42]};
 function planAuthoredLandforms(){
   const F=FALLEN, V=VEIL; let x,z;
   // The plateau the cliff is the face of. Its edge is 4 m behind the rock
@@ -39237,7 +39247,7 @@ function planAuthoredLandforms(){
   // wizard watches from: a round hill, its flanks easing out over sixteen
   // metres, walkable all round
   for(const [ps,pt,pr] of V.pools){ [x,z]=F.at(ps,pt); landform({id:'veil-pool-'+(pt<0?'south':'north'),kind:'bowl',x,z,r:pr,floor:-1.4,edge:3}); addPool('veil-pool-'+(pt<0?'south':'north'),x,z,pr+.9,V.poolLevel); }
-  [x,z]=F.at(...V.knoll); landform({id:'wizards-knoll',kind:'mesa',x,z,ry:F.ry,hw:3,hd:3,round:3,edge:14,top:V.knollTop,rough:.25});
+  [x,z]=F.at(...V.knoll); landform({id:'wizards-knoll',kind:'mesa',x,z,ry:F.ry,hw:5,hd:5,round:5,edge:14,top:V.knollTop,rough:.25});
   // No trees in the pool, on the face, on the stair or on the shelf; the
   // plateau behind keeps its wood.
   for(const [s,t,r] of[[V.poolS,0,11],[V.face,-22,9],[V.face,-8,9],[V.face,8,9],[V.face,22,9],[34,V.stairT,15],[V.ledgeS+2,V.ledgeT,6],[42,0,9],[-20,0,8],
@@ -42229,7 +42239,7 @@ function npcBuildHead(m,spec,detail){
 // far it bows off the head, its width and thickness at the root.
 function npcHairLine(style){
   return ({short:[.25,.17,.08],bob:[.255,.16,.05],long:[.255,.16,.04],pigtails:[.255,.17,.07],bun:[.265,.18,.08],ponytail:[.265,.18,.08],
-    braids:[.26,.17,.07],spiky:[.25,.17,.09],cropped:[.27,.19,.1],fringe:[.0,.12,.07],wild:[.25,.15,.03],swept:[.255,.17,.07],curly:[.25,.16,.06],
+    braids:[.26,.17,.07],spiky:[.25,.17,.09],cropped:[.27,.19,.1],fringe:[.0,.12,.07],wild:[.25,.15,.03],mane:[.255,.15,.03],swept:[.255,.17,.07],curly:[.25,.16,.06],
     hood:[.29,.0,-.07],beanie:[.22,.16,.1],helm:[.24,.19,.13],kerchief:[.27,.17,.07]})[style]||[.255,.17,.07];
 }
 function npcCap(m,hs,line,off,paint,detail,opt={}){
@@ -42273,6 +42283,13 @@ function npcHairLocks(style,hs,spec){
   else if(style==='long'||style==='wild'){ bangs(style==='wild'?5:6,.21,1.2,style==='wild'?.15:0);
     for(const s of[-1,1])for(const a of[.2,.55]){ const th=s>0?Math.PI/2+a:Math.PI*1.5-a; const p=hs.point(th,.05*H,.03*H); L.push({th,y:.26,e:[p[0]/H+s*.02,-.24+j(.05),p[2]/H+.02],b:.05,w:.07,t:.03}); }
     for(let k=0;k<8;k++){ const th=(k/7-.5)*2.6+j(.1); L.push({th,y:.29,e:[Math.sin(th)*.1,-.36+j(.06)+(style==='wild'?j(.1):0),-.1-Math.abs(Math.cos(th))*.02],b:.06,w:.08,t:.032}); } }
+  else if(style==='mane'){
+    // (r173) An old wizard's, after the owner's reference: thin at the front
+    // under the hat, over the shoulders at the sides, and down the back to the
+    // shoulder blades in long locks bowed out clear of the robe.
+    bangs(4,.22,1,.1);
+    for(const s of[-1,1])for(const a of[.25,.62]){ const th=s>0?Math.PI/2+a:Math.PI*1.5-a, p=hs.point(th,.05*H,.03*H); L.push({th,y:.25,e:[p[0]/H+s*.07,-.72+j(.06),p[2]/H-.1],b:.08,w:.08,t:.032}); }
+    for(let k=0;k<11;k++){ const th=(k/10-.5)*2.9+j(.08); L.push({th,y:.29,e:[Math.sin(th)*.22,-1.45+j(.14),-.46-Math.abs(Math.cos(th))*.04+j(.03)],b:.12,w:.1,t:.036}); } }
   else if(style==='pigtails'){ bangs(6,.205); back(5,.1,2.2,.025,.06);
     for(const s of[-1,1])L.push({th:s>0?Math.PI*.42:Math.PI*1.58,y:.22,e:[s*.2,-.18,-.04],b:.08,w:.1,t:.06}); }
   else if(style==='ponytail'){ bangs(5,.215,1.2); back(5,.1,2.2,.02,.06); L.push({th:0,y:.24,e:[0,-.22,-.16],b:.09,w:.1,t:.06}); }
@@ -42323,7 +42340,9 @@ function npcBuildHat(m,hs,spec,detail){
   if(h.kind==='witch'||h.kind==='wizard'){
     // (r167) a wizard's is taller with a wider brim, as in the owner's reference
     const tall=h.kind==='wizard'?1.6:1;
-    npcBrim(m,.255*H,.09*H,h.kind==='wizard'?.38*H:.3*H,h.kind==='wizard'?.05*H:.035*H,paint,detail,.008*H);
+    // (r173) the wizard's brim narrower again and drooping at its edge: wide
+    // and flat, it faced his own staff's crystal and lit up as a pale disc
+    npcBrim(m,.255*H,.09*H,h.kind==='wizard'?.31*H:.3*H,h.kind==='wizard'?.1*H:.035*H,paint,detail,.008*H);
     m.tube([[0,.24*H,-.012*H],[0,.36*H,-.02*H],[0,(.36+.16*tall)*H,-.045*H],[.015*H,(.42+.2*tall)*H,-.1*H],[.05*H,(.44+.21*tall)*H,-.19*H],[.08*H,(.42+.2*tall)*H,-.25*H]],
       [.118*H,.1*H,.068*H,.04*H,.018*H,0],k?12:6,paint,{uRep:3,vRep:2});
     m.loft([[.255*H,.112*H,.112*H,.112*H,0,-.012*H],[.29*H,.108*H,.108*H,.108*H,0,-.014*H]],k?14:8,band);
@@ -42629,7 +42648,7 @@ const NPC_KIT_LOOKS={
   'Lysa Star-Eyed':{fem:true,species:2,ears:'elf',face:16,eye:0x4a5a8a,skin:0xf4ddd0,hair:{style:'bob',c:0xb5975a,c2:0xe8d8a0},glasses:{c:0x141418},
     top:{kind:'dress',pattern:'linen',c:0xe2e0ea,c2:0xffffff,sleeve:'puff',collar:'frill',len:'knee',frill:0xeceaf0},under:0xe2e0ea,belt:{sash:true,c:0x141418},
     legwear:{kind:'stockings',stripe:[0xe8e4e8,0x16161c]},boots:{kind:'boot',c:0x1c1a20},wings:{c:0xd2d8e8,c2:0xffffff}},
-  'Orren of the Broken Hall':{species:1,ears:'human',face:5,eye:0x6a7480,elder:true,hair:{style:'wild',c:0xb8b4ae,c2:0xe8e6e2},beard:{style:'long'},hat:{kind:'wizard',c:0x2a2440,c2:0x3e365e},
+  'Orren of the Broken Hall':{species:1,ears:'human',face:5,eye:0x6a7480,elder:true,hair:{style:'mane',c:0xd4d2cc,c2:0xf2f0ea},beard:{style:'long'},hat:{kind:'wizard',c:0x0f0d18,c2:0x18142a},
     top:{kind:'robe',pattern:'linen',c:0x2d273f,c2:0x463c66,sleeve:'bell',len:'ankle',hemband:true},belt:{c:0x6a5a3a},legwear:{kind:'trousers',c:0x1e1a28},boots:{kind:'shoe',c:0x2a1e16}},
   'Corvin Cliffwatch':{fem:false,species:1,face:20,hair:{style:'short',c:0x2e1f17},cloak:{c:0x2a3038,c2:0x1c2228,hood:true},top:{kind:'tunic',pattern:'leather',c:0x3a2a1e,c2:0x2a1c14,sleeve:'long',len:'thigh'},
     belt:{c:0x2a1c14,buckle:0x8a7a5a},legwear:{kind:'trousers',c:0x2a2c30},boots:{kind:'tall',c:0x2a1e16},gloves:0x2a1e16},
@@ -43441,8 +43460,16 @@ function addReferenceRoleProp(npc,role){
       // (r167) the wizard's: gnarled, a claw of three prongs round a violet
       // crystal, as in the owner's reference; it was a pole with a ring and a
       // diamond on it
-      const gnarled=npcPropWizardStaff(1.95,role.id.length*97); gnarled.position.y=.36; staff.add(gnarled);
-      const light=lampLight(0xa07cff,.38,7); light.position.set(gnarled.userData.crystalX,.36+gnarled.userData.crystalY,0); staff.add(light); lights.push({light,base:.38,phase:1.3,fire:true,child:true});
+      // (r173) taller, its foot on the ground and its crystal over his hat,
+      // and nothing in his other hand: the reference wizard holds only his
+      // staff, and the book his kind of resident carries went
+      const gnarled=npcPropWizardStaff(2.3,role.id.length*97); gnarled.position.y=.36; staff.add(gnarled);
+      const other=npc.parts.leftArm.userData.grip; if(other)for(const item of[...other.children])other.remove(item);
+      // (r173) dimmer: forty centimetres over his brim it lit the brim to a
+      // pale disc. Read off the brim's pixel with each light switched off in
+      // turn, it gave the brim two thirds of its light. The crystal glows by
+      // itself.
+      const light=lampLight(0xa07cff,.12,7); light.position.set(gnarled.userData.crystalX,.36+gnarled.userData.crystalY,0); staff.add(light); lights.push({light,base:.12,phase:1.3,fire:true,child:true});
     }else{ const shaft=npcPropPole(1.95,.038,.03,0x4a3522,role.id.length*97); shaft.position.y=.36; staff.add(shaft); }   // (r163) the kit's
     staff.rotation.x=-ROLE_STAFF_ARM; staff.userData.upright=true; hold(staff,1);
   }else if(role.prop==='lantern'){
@@ -47185,7 +47212,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r172',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r173',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47389,7 +47416,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // Jump the bell. Used by tools/audit-runtime.js; a watch is nearly three
   // minutes long and waiting one out is not a test.
   setWatch:id=>{const i=WATCHES.findIndex(w=>w.id===id);if(i<0)return false;
-    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,visualCanon:VISUAL_CANON,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,warmShaders,
+    const now=clock.getElapsed();watchOffset=(i*WATCH_SECONDS-now%(WATCH_SECONDS*WATCHES.length))+WATCH_SECONDS*WATCHES.length;return true;},look:(y,p2)=>{yaw=y;pitch=p2===undefined?pitch:p2;},lens:f=>{LENS.fov=f||0;camera.fov=f||CONFIG.fov;camera.updateProjectionMatrix();},loadGLB,colliders,cityPlan:CITY_PLAN,wilderness:outerBuilt,inner:innerBuilt,visualCanon:VISUAL_CANON,audit:auditVanethGeometry,diagnostics:emberDiagnostics,setPixel:v=>{RS=v;resize();},onRoad,roads:ROAD_RECTS,rings:ROAD_RINGS,terrainAt,waterDepthAt,brook:BROOK,clearings:WILD_CLEARINGS,wilds:WILD_SITES,wildMemory:()=>wildMemory,skimStone,cast,interactions:WORLD_INTERACTIONS,shops:SHOPS,doors:interiorDoors,warmShaders,
   // A layer's lamp joins the city's light budget (r115). The layer keeps
   // writing its intensity; the base only decides whether it is lit, and an
   // intensity of 0 never takes a slot.
@@ -47467,6 +47494,12 @@ function loop(){ requestAnimationFrame(loop);
   // Walking downhill used to mean a series of tiny falls. Stay on the slope.
   else if(player.onGround&&player.vy<=0&&player.y-floor<.6){ player.y=floor; player.vy=0; }
   bob+=moving&&player.onGround?dt*9:0;
+  // (r173) Hold Z to look closer: a 45 degree lens where the eye sees 75,
+  // eased in and out. The vista captures use it too, so a photograph of a
+  // place shows what holding Z there shows; the eye's 107 degrees across
+  // shrinks a castle on a cliff to a toy.
+  { const want=LENS.fov||(keys.KeyZ&&!anyOverlayOpen()?CONFIG.fov*.6:CONFIG.fov);
+    if(Math.abs(camera.fov-want)>.01){ camera.fov=LENS.fov?want:camera.fov+(want-camera.fov)*Math.min(1,dt*10); camera.updateProjectionMatrix(); } }
   camera.position.set(player.x,player.y+CONFIG.eyeHeight+(moving?Math.sin(bob)*0.05:0),player.z); camera.rotation.y=yaw; camera.rotation.x=pitch; syncActiveInterior(); updateInteriorLight(dt); const roomsStarted=performance.now(); syncShopRooms(dt); FRAME_COST.rooms=performance.now()-roomsStarted; updateVillagers(t,dt); updateVisualCanon(t,dt); sampleResidentFlow(t); updateWisps(t);updateInteriorDoors(dt);sessionRamble.tick(t);updateWayfinder(t);
   updateCityAtmosphere(t,dt);
   updateSound(t,dt);
@@ -47539,7 +47572,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Wardens — variant layer over base r172 -->
+<!-- Emberwatch — Wardens — variant layer over base r173 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — WARDENS                                        variant layer

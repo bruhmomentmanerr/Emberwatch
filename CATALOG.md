@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.72.0 / build r172 ("The ruin and the falls")**,
+Current sealed source: **1.73.0 / build r173 ("The wizard and the lens")**,
 2026-10-06. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (160 revisions, r04 to r172). r143 to r158 were
+executables (161 revisions, r04 to r173). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r172'
+                      the strain-archive lookups work. BUILD_REVISION = 'r173'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r172-the-ruin-and-the-falls.html
+                      emberwatch_3_r173-the-wizard-and-the-lens.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r172, minus the revisions
+                    Phase 5 currently contains r70-r173, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r172-the-ruin-and-the-falls.html
+                    emberwatch_3_r173-the-wizard-and-the-lens.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,16 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 6      r173       The wizard and the lens. Hold Z to look through a
+                          45 degree lens, which the vista captures use too:
+                          the ruin vista through it, Orren large on the
+                          left, the castle and falls across the middle, the
+                          moon over the keep. Orren after the reference
+                          wizard: long white hair down his back, a dark
+                          drooping hat, a taller staff, nothing else in his
+                          hands. Verified: the zoom read off a run, the
+                          vista and Orren from three sides, a walk over the
+                          knoll, diagnostics, audits, variants 6/6, smoke.
     Oct 6      r172       The ruin and the falls. The Veilscar's vista
                           looked up the hall's nave at one fall through an
                           arch. Now a broken castle stands on the cliff

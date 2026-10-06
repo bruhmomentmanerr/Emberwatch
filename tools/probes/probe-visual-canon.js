@@ -65,6 +65,7 @@
     y: c.y,
     yaw: Number.isFinite(c.yaw) ? c.yaw : face(c.x, c.z, 0, 0),
     pitch: c.pitch ?? -0.08,
+    fov: c.fov,
     target: c.target
   }));
   const authoredByType = {};

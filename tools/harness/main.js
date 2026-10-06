@@ -18,8 +18,10 @@
 //     Nothing here can reach a device.
 //
 // Screenshots. If the probe's result has a `shots` array of
-// { name, x, z, yaw, pitch, y? }, and a shotsDir is given, the harness stands
-// the player at each, waits for a few frames, and saves <shotsDir>/<name>.png.
+// { name, x, z, yaw, pitch, y?, fov? }, and a shotsDir is given, the harness
+// stands the player at each, looks through the shot's lens if it has one
+// (EMBER.lens, since r173; cleared for a shot without), waits for a few frames,
+// and saves <shotsDir>/<name>.png.
 // Shots are taken at full render scale so they are legible.
 //
 // This used to live in a temporary folder from one session. It is part of the
@@ -121,7 +123,7 @@ app.whenReady().then(() => {
         await win.webContents.executeJavaScript(`(()=>{const E=window.EMBER,s=${JSON.stringify(shot)};
           E.player.x=s.x;E.player.z=s.z;E.player.vy=0;E.player.onGround=true;
           E.player.y=s.y!==undefined?s.y:(E.terrainAt?E.terrainAt(s.x,s.z):0);
-          E.look(s.yaw,s.pitch||0);})()`, true);
+          E.look(s.yaw,s.pitch||0);if(E.lens)E.lens(s.fov||0);})()`, true);
         // A fixed wait is not enough under software rendering: the first frame
         // at a new standpoint can compile programs for a new light count and
         // take longer than 1.5 s, so the capture grabbed the previous frame —

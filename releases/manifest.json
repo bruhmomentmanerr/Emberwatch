@@ -2071,12 +2071,25 @@
   "rev": 172,
   "title": "the ruin and the falls",
   "version": "1.72.0",
-  "date": "2026-10-06T16:00:00Z",
+  "date": "2026-10-06T13:40:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r172-the-ruin-and-the-falls.html"
   },
   "asset": "emberwatch-r172-the-ruin-and-the-falls.html",
   "notes": "releases/notes/r172.md"
+ },
+ {
+  "tag": "r173",
+  "rev": 173,
+  "title": "the wizard and the lens",
+  "version": "1.73.0",
+  "date": "2026-10-06T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r173-the-wizard-and-the-lens.html"
+  },
+  "asset": "emberwatch-r173-the-wizard-and-the-lens.html",
+  "notes": "releases/notes/r173.md"
  }
 ]
