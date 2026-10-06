@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r171 The lower town</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r172 The ruin and the falls</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -8091,10 +8091,16 @@ function glbGeometry(b64){
   });
 }
 // spots: {x, z, h, width, ry, foot} for every tree the forest placed.
+// (r172) Trees a place sets where it wants them, not where the forest's
+// scatter puts them: the conifers round the Veilscar's basin and keep. Filled
+// by the places (which are built after the forest is scattered but before its
+// models have loaded), and planted with it; kind 0 a pine, 1 a fir.
+const CANON_TREES=[];
 function plantForest(spots){
   if(!THREE.GLTFLoader||!THREE.BatchedMesh)return;
   spots=spots.concat(forestShrubs());
   Promise.all([TREE_PINE_GLB,TREE_FIR_GLB,TREE_BROADLEAF_GLB,TREE_SNAG_GLB,SHRUB_GLB].map(glbGeometry)).then(geos=>{
+    spots=spots.concat(CANON_TREES);
     const material=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true,emissive:0x0a311c,emissiveIntensity:.55});
     const verts=geos.reduce((n,g)=>n+g.attributes.position.count,0);
     const mesh=new THREE.BatchedMesh(spots.length,verts,verts,material), ids=geos.map(g=>mesh.addGeometry(g));
@@ -8105,7 +8111,7 @@ function plantForest(spots){
     for(const t of spots){
       const a=(Math.atan2(t.z,t.x)+Math.PI*2)%(Math.PI*2), depth=Math.hypot(t.x,t.z)-forestEdgeAt(a);
       const roll=planHash(Math.round(t.x*7)+3001,Math.round(t.z*7)-917), broad=.34-.26*Math.max(0,Math.min(1,depth/90));
-      const kind=t.shrub?4:roll<broad?2:roll<broad+.3?1:planHash(Math.round(t.x*3)-41,Math.round(t.z*3)+613)<.06?3:0; FOREST.kinds[names[kind]]++;
+      const kind=t.kind??(t.shrub?4:roll<broad?2:roll<broad+.3?1:planHash(Math.round(t.x*3)-41,Math.round(t.z*3)+613)<.06?3:0); FOREST.kinds[names[kind]]++;
       t.id=mesh.addInstance(ids[kind]);
       mesh.setMatrixAt(t.id,m.compose(p.set(t.x,t.foot,t.z),q.setFromEuler(e.set(0,t.ry,0)),s.set(t.width,t.h/6,t.width)));
       const k=tints[Math.floor(planHash(Math.round(t.z*5)+77,Math.round(t.x*5)+5)*tints.length)], dim=t.shrub?.6:1;
@@ -8637,14 +8643,16 @@ function addRuinsCanon(){
   const F=FALLEN, V=VEIL;
   const ruinLight=lampLight(0x7482ff,.5,16); ruinLight.position.set(hall.x,2.4,hall.z); scene.add(ruinLight); lights.push({light:ruinLight,base:.5,phase:.8,fire:false});
   addCollider(hall.x,hall.z,2.2); canonRecord('ritual-circle','fallen-hall-ash-ring',hall.x,hall.z,{purpose:'the ring of stones round the ash on the old floor'});
-  // From outside the west door, up the nave: the great window frames the
-  // falls, the wizard on his shelf, and the moon above and to the left.
-  { const [x,z]=F.at(-22,1.5),[tx,tz]=F.at(34,-2); canonSetCapture('vista-ruin-waterfall',x,z,tx,tz,.17,0); }
+  // (r172) From the knoll behind Orren, as in the reference frame: the wizard
+  // dark against the valley, the falls coming down the cliff into the mist,
+  // the broken keep on top, and the moon over it. (It looked up the nave from
+  // the west door until r172, where the arch was all the frame held.)
+  { const [x,z]=F.at(V.watch[0]-.2,V.watch[1]+2.55),[tx,tz]=F.at(40,-12); canonSetCapture('vista-ruin-waterfall',x,z,tx,tz,0,0); }
   // Inside, by the ash ring, looking up the nave to the window.
   { const [x,z]=F.at(-9,3.2),[tx,tz]=F.at(10,-1); canonSetCapture('site-ritual-circle',x,z,tx,tz,.06,0); }
   // On the rim beside the wizard, looking down past him to the hall.
   { const [x,z]=F.at(V.ledgeS+2.6,V.ledgeT-7.5),[tx,tz]=F.at(-22,7);
-    VISUAL_CANON.captures.push({id:'vista-veilscar-ledge',target:'the ruin wizard on his shelf above the falls, the hall below, the city beyond'});
+    VISUAL_CANON.captures.push({id:'vista-veilscar-ledge',target:'from the shelf above the falls: the hall below, the knoll the ruin wizard watches from, the city beyond'});
     canonSetCapture('vista-veilscar-ledge',x,z,tx,tz,-.30,.5); }
   { const [fx,fz]=F.at(V.face,0);
     VISUAL_CANON.sites.push({id:'site-ritual-circle',x:hall.x,z:hall.z},{id:'vista-ruin-waterfall',x:fx,z:fz}); }
@@ -39205,7 +39213,12 @@ const GROVE=(()=>{ const m=Math.hypot(MOON_DIR.x,MOON_DIR.z); return axisFrame(5
 // The Veilscar: a cliff 34 m out from the hall's centre, 15 m high, the falls
 // coming over it on the hall's own axis; the plunge pool at its foot; a stair
 // up its far end (t=-42) to a head landing; the wizard's shelf at t=+9.
-const VEIL={face:34,top:15,poolS:28,poolR:6.4,poolLevel:-.3,stairT:-42,stairS0:22,stairS1:46,stairHalf:1.7,landingS:46,landingT:-38.5,ledgeS:35.2,ledgeT:9};
+const VEIL={face:34,top:15,poolS:28,poolR:6.4,poolLevel:-.3,stairT:-42,stairS0:22,stairS1:46,stairHalf:1.7,landingS:46,landingT:-38.5,ledgeS:35.2,ledgeT:9,
+  // (r172) three falls over the lip [t, half width], the two new ones each
+  // into a plunge pool of its own [s, t, r]; the wizard's knoll across the
+  // valley [s, t], its crown's height, and where on it he stands, at the
+  // edge toward the falls. Far enough round that the hall is not between.
+  falls:[[-13,1.5],[0,2.5],[14,1.9]], pools:[[29.2,-13,4.4],[29.4,14,4.8]], knoll:[0,44], knollTop:13, watch:[2.7,40.4]};
 function planAuthoredLandforms(){
   const F=FALLEN, V=VEIL; let x,z;
   // The plateau the cliff is the face of. Its edge is 4 m behind the rock
@@ -39220,9 +39233,15 @@ function planAuthoredLandforms(){
   { const [x1,z1]=F.at(V.stairS0,V.stairT),[x2,z2]=F.at(V.stairS1,V.stairT); addStair('veil-stair',x1,z1,x2,z2,V.stairHalf,0,V.top+.05,40); }
   [x,z]=F.at(V.landingS,V.landingT); addDeck('veil-stair-head',x,z,F.ry,6,2.2,V.top+.05);
   [x,z]=F.at(V.ledgeS,V.ledgeT); addDeck('veil-wizard-shelf',x,z,F.ry,1.8,2.5,V.top+.25);
+  // (r172) the two new falls' pools, and the knoll across the valley the
+  // wizard watches from: a round hill, its flanks easing out over sixteen
+  // metres, walkable all round
+  for(const [ps,pt,pr] of V.pools){ [x,z]=F.at(ps,pt); landform({id:'veil-pool-'+(pt<0?'south':'north'),kind:'bowl',x,z,r:pr,floor:-1.4,edge:3}); addPool('veil-pool-'+(pt<0?'south':'north'),x,z,pr+.9,V.poolLevel); }
+  [x,z]=F.at(...V.knoll); landform({id:'wizards-knoll',kind:'mesa',x,z,ry:F.ry,hw:3,hd:3,round:3,edge:14,top:V.knollTop,rough:.25});
   // No trees in the pool, on the face, on the stair or on the shelf; the
   // plateau behind keeps its wood.
-  for(const [s,t,r] of[[V.poolS,0,11],[V.face,-22,9],[V.face,-8,9],[V.face,8,9],[V.face,22,9],[34,V.stairT,15],[V.ledgeS+2,V.ledgeT,6],[42,0,9],[-20,0,8]]){ const [cx,cz]=F.at(s,t); CANON_SITE_CLEARINGS.push({id:'veilscar',x:cx,z:cz,r}); }
+  for(const [s,t,r] of[[V.poolS,0,11],[V.face,-22,9],[V.face,-8,9],[V.face,8,9],[V.face,22,9],[34,V.stairT,15],[V.ledgeS+2,V.ledgeT,6],[42,0,9],[-20,0,8],
+    [29,-13,7],[29,14,7],[50,-12,11],[50,6,11],[V.knoll[0],V.knoll[1],12],[14,24,10]]){ const [cx,cz]=F.at(s,t); CANON_SITE_CLEARINGS.push({id:'veilscar',x:cx,z:cz,r}); }
   // The Oathfield: a level terrace a little above the graveyard, cut into
   // whatever hill the seed puts there. No wood in the field, on the way from
   // the graveyard, or on the axis behind the angel, where the moon stands.
@@ -39414,11 +39433,11 @@ void main(){
 function fallMaterial(){ const m=new THREE.ShaderMaterial({uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uTime:{value:0}}]),vertexShader:FALL_VERT,fragmentShader:FALL_FRAG,fog:true,transparent:true,depthWrite:false,side:THREE.DoubleSide}); FALL_MATERIALS.push(m); return m; }
 // Spray and mist: a few soft points drifting up from where water lands.
 const MISTS=[];
-function mistAt(x,y,z,spread,count,rise=1.2){
+function mistAt(x,y,z,spread,count,rise=1.2,size=3.2,opacity=.34){
   const pos=new Float32Array(count*3), seeds=[];
   for(let i=0;i<count;i++){ const a=i*2.399, r=spread*Math.sqrt((i+.5)/count); seeds.push({x:x+Math.cos(a)*r,z:z+Math.sin(a)*r,phase:(i*.37)%1}); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3));
-  const points=new THREE.Points(g,new THREE.PointsMaterial({map:softPointTexture('rgba(220,228,255,.55)','rgba(170,185,255,0)'),color:0xc8d2ff,size:3.2,transparent:true,opacity:.34,depthWrite:false,fog:true}));
+  const points=new THREE.Points(g,new THREE.PointsMaterial({map:softPointTexture('rgba(220,228,255,.55)','rgba(170,185,255,0)'),color:0xc8d2ff,size,transparent:true,opacity,depthWrite:false,fog:true}));
   points.frustumCulled=false; scene.add(points); MISTS.push({points,seeds,y,rise});
 }
 function updateMists(t){
@@ -39467,15 +39486,23 @@ function placeFallenHall(){
     // (the far end breaks where the stair's head landing crosses onto the top)
     foot(V.face-1.4,-34,V.face-1.4,34); foot(V.face,-35.5,V.landingS-2.8,-35.5); foot(V.landingS+2.8,-35.5,58,-35.5); foot(V.face,35.5,58,35.5);
     foot(V.face+3.6,-33,V.face+3.6,V.ledgeT-2.2,.7); foot(V.face+3.6,V.ledgeT+2.2,V.face+3.6,33,.7); }
-  { const rows=18, cols=6, pos=[], uv=[], idx=[], lip=V.top-.55;
-    for(let j=0;j<=rows;j++){ const v=j/rows, y=lip-(lip-V.poolLevel)*v, s=V.face-.1-1.9*Math.pow(v,.7), wide=2.5*(1+.3*v);
-      for(let i=0;i<=cols;i++){ const u=i/cols; const [x,z]=at(s,(u-.5)*2*wide); pos.push(x,y,z); uv.push(u,v); } }
+  // (r172) Three falls now, after the owner's reference frame of a ruined
+  // castle on a cliff with water coming down its face in several places: the
+  // old one in the middle and two narrower either side, each into its own pool.
+  for(const [ft,fw] of V.falls){ const rows=18, cols=6, pos=[], uv=[], idx=[], lip=V.top-.55;
+    for(let j=0;j<=rows;j++){ const v=j/rows, y=lip-(lip-V.poolLevel)*v, s=V.face-.1-1.9*Math.pow(v,.7), wide=fw*(1+.3*v);
+      for(let i=0;i<=cols;i++){ const u=i/cols; const [x,z]=at(s,ft+(u-.5)*2*wide); pos.push(x,y,z); uv.push(u,v); } }
     for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){ const a=j*(cols+1)+i, b=a+1, c=a+cols+1, d=c+1; idx.push(a,c,b,b,c,d); }
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx);
     const falls=new THREE.Mesh(g,fallMaterial()); falls.renderOrder=3; scene.add(falls); }
   { const [px,pz]=at(V.poolS,0);
     const pool=new THREE.Mesh(new THREE.CircleGeometry(V.poolR+1.3,40).rotateX(-Math.PI/2),waterMaterial(.2)); pool.position.set(px,V.poolLevel,pz); pool.renderOrder=2; scene.add(pool);
-    const [mx,mz]=at(V.face-2.8,0); mistAt(mx,V.poolLevel+.2,mz,3.2,26,1.4);
+    const [mx,mz]=at(V.face-2.8,0); mistAt(mx,V.poolLevel+.2,mz,3.2,26,1.4); mistAt(mx,V.poolLevel,mz,4.5,24,.9,6.5,.6);
+    // the new falls' pools and their spray, and a low mist over the whole
+    // basin and the valley floor before it
+    for(const [ps,pt,pr] of V.pools){ const [qx,qz]=at(ps,pt), q=new THREE.Mesh(new THREE.CircleGeometry(pr+1.1,32).rotateX(-Math.PI/2),waterMaterial(.2));
+      q.position.set(qx,V.poolLevel,qz); q.renderOrder=2; scene.add(q); const [sx,sz]=at(V.face-2.6,pt); mistAt(sx,V.poolLevel+.2,sz,2.6,20,1.3); mistAt(sx,V.poolLevel,sz,3.8,18,.9,6,.6); }
+    { const [vx,vz]=at(22,0); mistAt(vx,.2,vz,16,48,.8,8,.5); }
     // The face looks away from the moon, so under the moon alone it was a
     // black wall behind the falls. The spray catches the light and throws a
     // little of it back on the lower rock and the pool's edge.
@@ -39484,8 +39511,60 @@ function placeFallenHall(){
     const [lx,lz]=at(V.landingS,V.landingT); aBox(12,1.2,4.4,lx,V.top+.05-.6,lz,'stone',F.ry);
     let [ax,az]=at(V.stairS0-1.2,V.stairT+2.6); placeLamp('veil-stair-foot',ax,az,terrainAt(ax,az));
     [ax,az]=at(V.landingS,V.stairT-2.9); placeLamp('veil-stair-head',ax,az,V.top+.05); }
+  placeVeilscarKeep();
+  placeWizardsKnoll();
   canonRecord('landmark','fallen-hall-modelled',F.cx,F.cz,{purpose:'the hall itself, broken: nave, lancet windows, the great east window framing the falls'});
-  { const [x,z]=at(V.face,0); canonRecord('landmark','veilscar-cliff-and-falls',x,z,{purpose:'15 m cliff the falls come over into a plunge pool; stair up its far end; the wizard\'s shelf'}); }
+  { const [x,z]=at(V.face,0); canonRecord('landmark','veilscar-cliff-and-falls',x,z,{purpose:'15 m cliff three falls come over into their plunge pools, mist over the basin; stair up its far end; the shelf above the falls',falls:V.falls.length}); }
+}
+// The Veilscar keep (r172). The castle the Fallen Hall was the chapel of,
+// broken on the cliff above the falls, after the owner's reference frame of a
+// wizard on a rock watching a ruined castle on a cliff, water coming down its
+// face into a misted valley. Until r172 the cliff's top was bare: the falls
+// came over an edge with nothing above it. A square keep with its top fallen
+// in to ragged corners, a round tower whole to its crenels, another gutted to
+// half its height with one shard of wall standing above it, and a curtain
+// wall along the lip, breached twice, its merlons gone in places. Stone
+// primitives in the stone batch; colliders where you can walk among them,
+// up the stair at the cliff's far end.
+function placeVeilscarKeep(){
+  const F=FALLEN, V=VEIL, at=F.at, y0=V.top, R=F.ry, hash=(a,b)=>oathHash(a+701,b+37);
+  const box=(w,h,d,s,tt,y,k='stone')=>{ const [x,z]=at(s,tt); aBox(w,h,d,x,y+h/2,z,k,R); };
+  // the keep, its top fallen in: four ragged corners and the stumps of its parapet
+  const K=[51,-4], kw=9, kh=15;
+  box(kw,kh+.6,kw,K[0],K[1],y0-.6);
+  [[-1,-1,5.2],[1,-1,2.6],[1,1,4.4],[-1,1,1.2]].forEach(([a,b,h])=>box(1.7,h,1.7,K[0]+b*(kw/2-.85),K[1]+a*(kw/2-.85),y0+kh));
+  for(let i=0;i<5;i++){ if(hash(i,1)<.35)continue; box(1,.9+hash(i,2)*1.2,.9,K[0]-kw/2+.45,K[1]-3+i*1.5,y0+kh); }
+  // its front, toward the falls: dark slits, and one high window with something lit behind it
+  for(const [tt,h,k] of[[-6.2,4.5,'dark'],[-1.8,4.5,'dark'],[-6.2,9,'dark'],[-1.8,9,'dark'],[-4,12.6,'arcane']]){ const [x,z]=at(K[0]-kw/2-.04,K[1]+tt+4); aBox(.55,k==='arcane'?1.5:1.7,.1,x,y0+h,z,k,R); }
+  { const [x,z]=at(...K); addBoxCollider(x,z,kw,kw,R); }
+  // the round tower, whole to its crenels
+  { const [x,z]=at(45,12); aCyl(3,3.3,12,12,x,y0+6,z,'stone'); aCyl(3.4,3.2,.7,12,x,y0+12.3,z,'stone');
+    for(let i=0;i<12;i++){ if(hash(i,7)<.2)continue; const a=i/12*Math.PI*2; aBox(.7,.95,.5,x+Math.cos(a)*3.15,y0+13.1,z+Math.sin(a)*3.15,'stone',Math.PI/2-a); } addCollider(x,z,3.5); }
+  // the gutted tower: half its height, one shard standing on
+  { const [x,z]=at(46,-19); aCyl(2.6,2.9,7,12,x,y0+3.5,z,'stone'); box(2.2,4.2,1,46.4,-21.2,y0+7); addCollider(x,z,3.1); }
+  // the curtain wall along the lip, breached twice, merlons along what stands
+  for(const [a,b,h] of[[-17.2,-9.4,6.5],[-6.2,3.4,6.8],[6.4,9.4,5.4]]){
+    box(b-a,h,1.6,42.6,(a+b)/2,y0-.4); const [x1,z1]=at(42.6,a),[x2,z2]=at(42.6,b); wallColl(x1,z1,x2,z2,.9);
+    for(let m=a+.5;m<b-.4;m+=1.7){ if(hash(Math.round(m*10),3)<.3)continue; box(.85,.9,1.6,42.6,m+.4,y0-.4+h); } }
+  // the side walls, lower and more broken, back from the lip
+  for(const [s1,t1,s2,t2,h] of[[42.6,9.4,55.5,13.5,4.2],[42.6,-17.2,55,-20.5,3.4],[55.5,13.5,57,2,2.6]]){
+    const [x1,z1]=at(s1,t1),[x2,z2]=at(s2,t2), len=Math.hypot(x2-x1,z2-z1); aBox(1.3,h,len,(x1+x2)/2,y0+h/2-.3,(z1+z2)/2,'stone',Math.atan2(x2-x1,z2-z1)); wallColl(x1,z1,x2,z2,.8); }
+  // conifers round the ruin and the basin, set where the frame wants them
+  for(const [s,tt,h,kind] of[[24,-26,13,0],[21,-31,10,1],[27,-35,12,0],[26,28,12,1],[19,33,15,0],[13,-18,11,1],[6,24,10,0],[-8,56,13,1],[-16,40,12,0],
+    [44,-28,14,1],[52,22,13,0],[59,18,16,1],[60,-27,12,0],[58,-12,15,1],[41,29,12,1],[47,32,14,0]]){
+    const [x,z]=at(s,tt); CANON_TREES.push({x,z,h,width:h/6*.95,ry:hash(Math.round(x),Math.round(z))*6.28,foot:terrainAt(x,z)-.2,kind}); addCollider(x,z,.5); }
+  canonRecord('landmark','veilscar-keep',...at(...K),{purpose:'the broken castle on the cliff above the falls: a keep with its top fallen in, a round tower whole, another gutted, a curtain wall breached along the lip'});
+}
+// The wizard's knoll (r172): the rise across the valley Orren watches the
+// ruin from, as the wizard of the reference frame does from his rock. A pair
+// of boulders on its crown to stand by; a lamp at its foot on the side the
+// hall is, where a path comes up.
+function placeWizardsKnoll(){
+  const F=FALLEN, V=VEIL, at=F.at, [ks,kt]=V.knoll;
+  { const pts=[[ks+.2,kt-4.2,1.6,.6],[ks-3,kt+3,1,2.2]].map(([s,tt,k,ry])=>{ const [x,z]=at(s,tt); addCollider(x,z,1.1*k); return {x,y:terrainAt(x,z)-.25,z,ry,s:k}; });
+    placeLandmark('wizards-knoll-stones',GROVE_STONE_GLB,pts,{tex:'rock',tile:1.2}); }
+  { const [x,z]=at(ks+4,kt-16); placeLamp('wizards-knoll-foot',x,z,terrainAt(x,z)); }
+  canonRecord('landmark','wizards-knoll',...at(ks,kt),{purpose:'the rise across the valley from the Veilscar, where the ruin wizard stands watching the keep and the falls'});
 }
 // The Oathfield (r143): an oath-field, not a second graveyard. Every blade
 // planted here is a vow, in rows either side of a flagged way that runs from
@@ -43324,7 +43403,7 @@ const REFERENCE_BUILD_NPC_ROLES=[
   {id:'npc-old-graveyard-caretaker',place:'place-old-graveyard-oathfield',role:'caretaker',pose:'tend-blades',name:'Keeper Voss',x:OATH.at(-4.6,6.95)[0],z:OATH.at(-4.6,6.95)[1],robe:0x53624d,line:'A sword left alone becomes a warning. A sword tended becomes a promise.',face:OATH.at(-3,5.7),district:'The Oathfield',prop:'staff',look:{variant:1,species:4,build:2},tags:['memorial','caretaker']},
   {id:'npc-oathfield-pilgrim',place:'place-old-graveyard-oathfield',role:'pilgrim',pose:'look-up',name:'Hesk of the Long Road',x:OATH.at(5.6,1.6)[0],z:OATH.at(5.6,1.6)[1],robe:0x5d6a8a,line:'They say she bowed her head the night the first vow broke. Nobody living has seen her face.',face:OATH.at(OATHFIELD.angel,0),district:'The Oathfield',prop:'lantern',look:{variant:0,species:2,build:1},tags:['memorial','pilgrim','moon']},
   // On his shelf above the falls, looking back over the hall toward the city.
-  {id:'npc-fallen-hall-ruin-wizard',place:'place-fallen-hall-ruin',role:'ruin-wizard',pose:'staff-watch',name:'Orren of the Broken Hall',x:FALLEN.at(VEIL.ledgeS-.6,VEIL.ledgeT)[0],z:FALLEN.at(VEIL.ledgeS-.6,VEIL.ledgeT)[1],robe:0x2d273f,line:'The ruin does not sleep. It only waits for someone patient enough to hear it.',face:FALLEN.at(-30,-2),district:'Fallen Hall Ruin',prop:'staff-glow',look:{variant:7,species:2,build:0},hat:'wizard',tags:['wizard','ruin','moon']},
+  {id:'npc-fallen-hall-ruin-wizard',place:'place-fallen-hall-ruin',role:'ruin-wizard',pose:'staff-watch',name:'Orren of the Broken Hall',x:FALLEN.at(...VEIL.watch)[0],z:FALLEN.at(...VEIL.watch)[1],robe:0x2d273f,line:'The ruin does not sleep. It only waits for someone patient enough to hear it.',face:FALLEN.at(51,-4),district:'Fallen Hall Ruin',prop:'staff-glow',look:{variant:7,species:2,build:0},hat:'wizard',tags:['wizard','ruin','moon']},
   {id:'npc-rain-oath-pilgrim',place:'place-rain-oath',role:'rain-pilgrim',pose:'bow-rain',name:'Mira Rainbound',x:RAIN.at(-6.1,.75)[0],z:RAIN.at(-6.1,.75)[1],robe:0x586b86,line:'Rain makes every vow public. The city hears it hit the stone.',face:RAIN.at(0,0),district:'Rain Oath Causeway',prop:'none',look:{variant:0,species:3,build:1},tags:['rain','oath','kneel']},
   {id:'npc-skywatch-lookout',place:'place-north-skywatch',role:'skywatch-companion',pose:'look-up',name:'Lysa Star-Eyed',x:SKY.at(7.6,4.9)[0],z:SKY.at(7.6,4.9)[1],robe:0x6b5276,line:'Do not stare at the sky like it is empty. It hates being underestimated.',face:SKY.at(40,4),district:'The Skywatch Knoll',prop:'spyglass',look:{variant:7,species:2,build:1},tags:['skywatch','companion','moon']},
   {id:'npc-collapse-runner-witness',place:'place-citadel-ascent',role:'runner-witness',pose:'run-warn',name:'Nell Red-Sock',x:-3.2,z:-226,robe:0x76527a,line:'If the towers groan, run downhill and shout before you breathe.',face:CIT.at(-6,-24),district:'The High Step',prop:'none',look:{variant:1,species:1,build:0},tags:['runner','warning','event-witness']},
@@ -47073,7 +47152,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r171',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r172',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -47427,7 +47506,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Heatline — variant layer over base r171 -->
+<!-- Emberwatch — Heatline — variant layer over base r172 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — HEATLINE                                       variant layer
