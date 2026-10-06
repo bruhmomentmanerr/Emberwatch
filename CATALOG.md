@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.71.0 / build r171 ("The lower town")**,
-2026-10-05. Archived, audited and runtime-checked. The release workflow
+Current sealed source: **1.72.0 / build r172 ("The ruin and the falls")**,
+2026-10-06. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (159 revisions, r04 to r171). r143 to r158 were
+executables (160 revisions, r04 to r172). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r171'
+                      the strain-archive lookups work. BUILD_REVISION = 'r172'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 5.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r171-the-lower-town.html
+                      emberwatch_3_r172-the-ruin-and-the-falls.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r171, minus the revisions
+                    Phase 5 currently contains r70-r172, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r171-the-lower-town.html
+                    emberwatch_3_r172-the-ruin-and-the-falls.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,22 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Oct 6      r172       The ruin and the falls. The Veilscar's vista
+                          looked up the hall's nave at one fall through an
+                          arch. Now a broken castle stands on the cliff
+                          (keep, round tower, gutted tower, curtain wall),
+                          three falls come down into misted pools, conifers
+                          stand round the basin, a fill light shows the
+                          face the moon leaves dark, and Orren watches from
+                          a knoll across the valley, the capture behind his
+                          shoulder. The Peak's connect sequence follows the
+                          clients written against current firmware: both
+                          notification channels before any command, no
+                          sticky prune. Verified: the vista before and
+                          after, a player's walk over the knoll, up the
+                          stair and through the ruin (every leg once the second breach was widened; both refusals held), a mock
+                          Peak, diagnostics, audits, variants 6/6, smoke.
+                          Not verified: a real Peak.
     Oct 5      r171       The lower town. Lowmere, ten cottages round a
                           green that read from the Watcher's Bluff as a
                           dark field, rebuilt as a town of 80 houses: rows

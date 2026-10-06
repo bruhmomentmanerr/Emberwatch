@@ -39513,6 +39513,14 @@ function placeFallenHall(){
     [ax,az]=at(V.landingS,V.stairT-2.9); placeLamp('veil-stair-head',ax,az,V.top+.05); }
   placeVeilscarKeep();
   placeWizardsKnoll();
+  // (r172) The moon is behind the Veilscar as the knoll sees it, so all of
+  // its face toward the knoll was shadow, and the physical lighting draws
+  // shadow nearly black: the cliff, the keep and the falls were one dark
+  // mass with the moon over it. The reference frame is lit from the front.
+  // One cool fill, high over the valley on the knoll's side, does it; the
+  // value was chosen from three photographed at the capture, and brightening
+  // the grade instead did next to nothing, there being no light to brighten.
+  { const [x,z]=at(-4,30), fill=lampLight(0x9aa6ff,2,55); fill.position.set(x,34,z); scene.add(fill); lights.push({light:fill,base:2,phase:0,fire:true}); }
   canonRecord('landmark','fallen-hall-modelled',F.cx,F.cz,{purpose:'the hall itself, broken: nave, lancet windows, the great east window framing the falls'});
   { const [x,z]=at(V.face,0); canonRecord('landmark','veilscar-cliff-and-falls',x,z,{purpose:'15 m cliff three falls come over into their plunge pools, mist over the basin; stair up its far end; the shelf above the falls',falls:V.falls.length}); }
 }
@@ -39542,8 +39550,10 @@ function placeVeilscarKeep(){
     for(let i=0;i<12;i++){ if(hash(i,7)<.2)continue; const a=i/12*Math.PI*2; aBox(.7,.95,.5,x+Math.cos(a)*3.15,y0+13.1,z+Math.sin(a)*3.15,'stone',Math.PI/2-a); } addCollider(x,z,3.5); }
   // the gutted tower: half its height, one shard standing on
   { const [x,z]=at(46,-19); aCyl(2.6,2.9,7,12,x,y0+3.5,z,'stone'); box(2.2,4.2,1,46.4,-21.2,y0+7); addCollider(x,z,3.1); }
-  // the curtain wall along the lip, breached twice, merlons along what stands
-  for(const [a,b,h] of[[-17.2,-9.4,6.5],[-6.2,3.4,6.8],[6.4,9.4,5.4]]){
+  // the curtain wall along the lip, breached twice, merlons along what stands;
+  // each breach about 3.5 m, wide enough to walk through between the wall's
+  // end colliders
+  for(const [a,b,h] of[[-17.2,-9.4,6.5],[-6.2,3,6.8],[6.8,9.4,5.4]]){
     box(b-a,h,1.6,42.6,(a+b)/2,y0-.4); const [x1,z1]=at(42.6,a),[x2,z2]=at(42.6,b); wallColl(x1,z1,x2,z2,.9);
     for(let m=a+.5;m<b-.4;m+=1.7){ if(hash(Math.round(m*10),3)<.3)continue; box(.85,.9,1.6,42.6,m+.4,y0-.4+h); } }
   // the side walls, lower and more broken, back from the lip
@@ -45711,14 +45721,26 @@ const PUFF=(function(){
     // A single short retry covers the device's post-connect transition without
     // repeatedly poking a Peak that has already rejected the unlock.
     for(let attempt=0;attempt<2;attempt++){ try {
-      const seed=await loraxCommand(0x00,new Uint8Array(),16,'access-seed request'), input=cat(base64(LORAX.key),seed);
+      const seed=await loraxCommand(0x00,new Uint8Array(),16,'access-seed request');
       // Lorax unlock is the first 16 bytes of SHA-256(key || seed), not the
       // complete 32-byte digest. Sending all 32 bytes is rejected as code 22.
-      const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',input)); await loraxCommand(0x01,hash.slice(0,16),0,'access unlock'); return;
+      const token=async key=>new Uint8Array(await crypto.subtle.digest('SHA-256',cat(key,seed))).slice(0,16);
+      try{ await loraxCommand(0x01,await token(base64(LORAX.key)),0,'access unlock'); return; }
+      catch(error){
+        // (r172) The Puffco app's bundle carries a second form of the unlock,
+        // the seed after sixteen zero bytes, which home-assistant-puffco tries
+        // when the first is refused. Here too: once, only on a refusal with a
+        // Lorax code, never on silence, and never again after it.
+        if(!/Lorax code/.test(String(error?.message||error))||!device?.gatt?.connected)throw error;
+        logStep('unlock refused: '+String(error?.message||error).replace(/\.+$/,'')+'; trying the second form once');
+        await loraxCommand(0x01,await token(new Uint8Array(16)),0,'access unlock, second form'); logStep('unlocked with the second form'); return;
+      }
     } catch(error){ lastError=error; if(!device?.gatt?.connected||/rejected|Lorax code|access unlock/i.test(String(error?.message||error))) throw error; if(attempt===0)await delay(220); } }
     throw lastError;
   }
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  // Firmware letters as Puffco and puff.social write them: 1 is A, 26 Z, 27 AA.
+  function firmwareName(n){ let s=''; while(n-->0){ s=String.fromCharCode(65+n%26)+s; n=Math.floor(n/26); } return s||'A'; }
   async function discoverServices(server){
     const services=await server.getPrimaryServices(), found=new Map();
     for(const service of services){ const characteristics=await service.getCharacteristics(); found.set(service.uuid.toLowerCase(),{service,characteristics}); }
@@ -45813,12 +45835,22 @@ const PUFF=(function(){
       const pick=uuid=>lorax.characteristics.find(ch=>ch.uuid.toLowerCase()===uuid);
       loraxChars={version:pick(LORAX.version),command:pick(LORAX.command),reply:pick(LORAX.reply),event:pick(LORAX.event)};
       assertChar(loraxChars.version,'Lorax version'); assertChar(loraxChars.command,'Lorax command'); assertChar(loraxChars.reply,'Lorax reply');
+      // (r172) Both notification channels first, then a moment, then the
+      // version and the first command. Current firmware sends no reply to a
+      // command that arrives before the reply and event subscriptions are both
+      // live (home-assistant-puffco 1.1.22, after the reference client
+      // PuffcoPC; QuickPuff subscribes both and waits 350 ms). Until r172 the
+      // event channel was subscribed after the limits request: the limits went
+      // unanswered, and so did everything after them, which is what the
+      // owner's Plasma did. A Peak with no event channel still connects.
+      await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
+      let events=false; if(loraxChars.event)try{await loraxChars.event.startNotifications(); events=true;}catch(error){if(!device?.gatt?.connected)throw error;}
+      logStep(events?'listening for replies and events':'listening for replies; no event channel');
+      await delay(350);
       const versionValue=await loraxChars.version.readValue();
       if(versionValue.byteLength!==2) throw new Error('Unexpected Lorax version response.');
       const loraxVersion=versionValue.getUint16(0,true); if(loraxVersion>255) throw new Error('Unsupported Lorax version '+loraxVersion+'.');
       logStep('Lorax version '+loraxVersion);
-      await loraxChars.reply.startNotifications(); loraxChars.reply.addEventListener('characteristicvaluechanged',replyHandler);
-      logStep('listening for replies');
       // (r161) Limits before the seed, as puff.social and the Puffco app do. A
       // Peak that will not answer this will not answer the seed either, so its
       // timeout is the clearer place to stop.
@@ -45832,19 +45864,20 @@ const PUFF=(function(){
             :'Windows did not finish pairing with the Peak, so it will not take commands: '+bondError.replace(/\.+$/,'')+'. Hold its button until the light flashes blue, press Connect, and answer Pair if Windows asks. If that keeps failing, pair it once in Windows: Settings, Bluetooth & devices, Add device.');
         if(!device?.gatt?.connected||/did not answer/.test(String(error?.message||error))) throw error;
       }
-      // Emberwatch currently consumes only request/reply packets. Do not reject
-      // a compatible Peak merely because its unused event stream is unavailable.
-      if(loraxChars.event)try{await loraxChars.event.startNotifications();}catch(error){if(!device?.gatt?.connected)throw error;}
-      // Puffco.app attempts this setup for Lorax v1+, but older firmware may
-      // reject it as an unsupported value. It is optional, so continue unless
-      // the device actually disconnected.
-      if(loraxVersion!==0) try { await loraxCommand(0x27,Uint8Array.of(1,0xc0,0x03),0); } catch(error) {
-        if(!device?.gatt?.connected) throw error;
-      }
+      // (r172) No sticky prune any more. Opcode 0x27 is the Puffco app's
+      // PRUNE_FILE_HANDLES, a timer for open file handles, and it went here,
+      // before the unlock. Emberwatch opens no handles, all its reads being
+      // short reads; current firmware leaves it unanswered before the unlock
+      // (home-assistant-puffco dropped it for a 15 s stall), and neither
+      // PuffcoPC nor QuickPuff sends it. One less write to the Peak.
       // PUP is an update service; it is read once above only to start the
       // bond, never written.
       if(!device.gatt.connected) throw new Error('The Peak disconnected during control setup. Put it in blue pairing mode and retry once.');
-      await authenticateLorax(); logStep('unlocked'); protocol='Lorax'; return {name:device.name||'unnamed device',protocol};
+      await authenticateLorax(); logStep('unlocked'); protocol='Lorax';
+      // (r172) The firmware's letters, for the status report: AW and later
+      // is newer than any firmware puff.social knows. A read, nothing more.
+      try{ const fw=await loraxRead('/p/sys/fw/ver',125); if(fw.length)logStep('firmware '+firmwareName(fw[0]+5)); }catch(error){ logStep('firmware not read: '+String(error?.message||error).split('.')[0]); }
+      return {name:device.name||'unnamed device',protocol};
     } catch(loraxError) {
       if(services.has(LORAX.service)) throw new Error('Lorax control setup failed: '+loraxError.message);
       // Older Peak Pros use the original Puff.social (Pikachu) service.

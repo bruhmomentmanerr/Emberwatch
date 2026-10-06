@@ -6,6 +6,28 @@ estimated.
 
 ---
 
+## 2026-10-06 · r172 "The ruin and the falls"
+
+**What was wrong.** "Keep building": the ruin and its waterfalls was the
+next vista furthest from its frame. The capture looked up the hall's nave
+at one fall through an arch, with nothing on the cliff, and everything it
+saw was in the moon's shadow. Separately, "reexamine the original sources
+for puffco connectivity": the connect sequence predated the firmware
+Puffco's app now installs.
+
+**What changed.** A broken castle on the cliff, three falls into misted
+pools, conifers set by hand (`CANON_TREES`), a fill light, and a knoll
+where Orren stands, the capture behind his shoulder. The Peak subscribes
+both notification channels before any command and no longer sends the
+sticky prune; the status report names the firmware. PROJECT.md §0 and §5.
+
+**What proved it.** The vista before and after; a player's walk over the
+knoll, up the stair and through the ruin (every leg once the second breach was widened; both refusals held); a mock Peak to the
+2026 clients' description; diagnostics clean; boot within the runs' spread; audits,
+variants 6/6, smoke. Not proved: a real Peak.
+
+---
+
 ## 2026-10-05 · r171 "The lower town"
 
 **What was wrong.** "Start the vista": of the named vistas, the lower-town
