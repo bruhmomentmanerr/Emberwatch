@@ -55,6 +55,7 @@ node tools/test-bluetooth-pairing.js # desktop pairing, no device writes
 
 Stamp → archive → variants (build 6/6, then `node tools/check-variants.js`
 6/6) → smoke → dist → docs → release notes (`node releases/build-notes.js`,
-then push; a workflow publishes the tag and the GitHub release). Full detail in
+then push the branch and fast-forward `main` to it; a workflow publishes the
+tag and the GitHub release). Every revision is its own release. Full detail in
 PROJECT.md §3. **Update PROJECT.md as part of shipping** — it is meant to read
 as living patch notes, not a snapshot.

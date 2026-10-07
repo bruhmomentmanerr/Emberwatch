@@ -4704,7 +4704,7 @@ line for the chooser handshake.
 
 ### Shipping a revision
 
-Seven steps, in order. Skipping any of them has cost a revision before.
+Eight steps, in order. Skipping any of them has cost a revision before.
 
 1. **Stamp** — `app/main.js` `BUILD_REVISION`, `index.html` panel header +
    `diagnostics().revision`, `app/package.json` and package-lock root versions,
@@ -4726,6 +4726,13 @@ Seven steps, in order. Skipping any of them has cost a revision before.
    `.github/workflows/publish-revisions.yml` then makes its dated commit, its
    tag and its GitHub release with the game file attached, and brings any
    release whose notes changed up to date. It keeps what is already published.
+   **Every revision is its own release** (the owner, 2026-10-07): check that
+   the release for the new tag is there, with its file.
+8. **Main** (since r173) — fast-forward `main` to the branch:
+   `git push origin origin/<branch>:refs/heads/main`, no force. `main` has no
+   protection and needs no pull request (the owner, 2026-10-07: "do it
+   yourself"). It was fast-forwarded from r160 to r173 that day; the
+   workflow ran again on `main`, kept all 161 releases and built nothing new.
 
 ### Editing the file — the one hard rule
 
