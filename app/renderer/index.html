@@ -8899,7 +8899,12 @@ function updateVisualCanon(t,dt){
         p.leftArm.rotation.z=.18; npc.visualCanonPose='point-sky';
       }else if(reaction<.58){
         p.leftArm.rotation.x=-.56+breath*.05; p.rightArm.rotation.x=-.50-breath*.05;
-        p.leftLeg.rotation.x*=.55; p.rightLeg.rotation.x*=.55; if(p.leftKnee){p.leftKnee.rotation.x=.3;p.rightKnee.rotation.x=.3;} npc.visualCanonPose='brace';
+        // Kneeling and seated reference figures hold their ground: bracing the
+        // legs would half-stand them mid-oath or mid-vigil. Arms and head still
+        // react; the reference pose re-seats the legs every frame anyway.
+        const grounded=npc.referenceBuild&&/^(sit|sit-watch|tend|kneel-mourn|kneel-oath)$/.test(npc.referencePose||'');
+        if(!grounded){ p.leftLeg.rotation.x*=.55; p.rightLeg.rotation.x*=.55; if(p.leftKnee){p.leftKnee.rotation.x=.3;p.rightKnee.rotation.x=.3;} }
+        npc.visualCanonPose='brace';
       }else{
         p.leftArm.rotation.x=-.18+breath*.04; p.rightArm.rotation.x=-.14-breath*.04;
         npc.visualCanonPose='watch-sky';
