@@ -43431,10 +43431,19 @@ const REFERENCE_BUILD_NPC_ROLES=[
   {id:'npc-old-graveyard-mourner',place:'place-old-graveyard-oathfield',role:'mourner',pose:'kneel-mourn',name:'Elen of the Twenty-Sixth Blade',x:OATH.at(-10.25,-3.2)[0],z:OATH.at(-10.25,-3.2)[1],robe:0x786d8c,line:'Some names are too heavy for stone, so we planted steel instead.',face:OATH.at(-9,-3.2),district:'The Oathfield',prop:'flower',look:{variant:5,species:1,build:0},tags:['memorial','kneel','oath']},
   {id:'npc-old-graveyard-caretaker',place:'place-old-graveyard-oathfield',role:'caretaker',pose:'tend-blades',name:'Keeper Voss',x:OATH.at(-4.6,6.95)[0],z:OATH.at(-4.6,6.95)[1],robe:0x53624d,line:'A sword left alone becomes a warning. A sword tended becomes a promise.',face:OATH.at(-3,5.7),district:'The Oathfield',prop:'staff',look:{variant:1,species:4,build:2},tags:['memorial','caretaker']},
   {id:'npc-oathfield-pilgrim',place:'place-old-graveyard-oathfield',role:'pilgrim',pose:'look-up',name:'Hesk of the Long Road',x:OATH.at(5.6,1.6)[0],z:OATH.at(5.6,1.6)[1],robe:0x5d6a8a,line:'They say she bowed her head the night the first vow broke. Nobody living has seen her face.',face:OATH.at(OATHFIELD.angel,0),district:'The Oathfield',prop:'lantern',look:{variant:0,species:2,build:1},tags:['memorial','pilgrim','moon']},
+  // Between the blade rows: the ritualist keeps a slow rite, lantern steady,
+  // walking the steel in place so it knows it is still watched.
+  {id:'npc-oathfield-ritualist',place:'place-old-graveyard-oathfield',role:'ritualist',pose:'ritual-walk',name:'Brother Fenwick',x:OATH.at(-7.5,7.0)[0],z:OATH.at(-7.5,7.0)[1],robe:0x3d4a5a,line:'I walk the rows so the steel knows it is still watched. That is the whole of the rite.',face:OATH.at(8,7.0),district:'The Oathfield',prop:'lantern',look:{variant:1,species:1,build:0},tags:['memorial','ritual','oath']},
   // On his shelf above the falls, looking back over the hall toward the city.
   {id:'npc-fallen-hall-ruin-wizard',place:'place-fallen-hall-ruin',role:'ruin-wizard',pose:'staff-watch',name:'Orren of the Broken Hall',x:FALLEN.at(...VEIL.watch)[0],z:FALLEN.at(...VEIL.watch)[1],robe:0x2d273f,line:'The ruin does not sleep. It only waits for someone patient enough to hear it.',face:FALLEN.at(51,-4),district:'Fallen Hall Ruin',prop:'staff-glow',look:{variant:7,species:2,build:0},hat:'wizard',tags:['wizard','ruin','moon']},
   {id:'npc-rain-oath-pilgrim',place:'place-rain-oath',role:'rain-pilgrim',pose:'bow-rain',name:'Mira Rainbound',x:RAIN.at(-6.1,.75)[0],z:RAIN.at(-6.1,.75)[1],robe:0x586b86,line:'Rain makes every vow public. The city hears it hit the stone.',face:RAIN.at(0,0),district:'Rain Oath Causeway',prop:'none',look:{variant:0,species:3,build:1},tags:['rain','oath','kneel']},
+  // At the ring's edge: the oath-taker kneels facing the stones the way the
+  // stone knight does, head raised to the vow instead of bowed to grief.
+  {id:'npc-rain-oath-taker',place:'place-rain-oath',role:'oath-taker',pose:'kneel-oath',name:'Sarella of the Ninth Vow',x:RAIN.at(-3.2,-2.4)[0],z:RAIN.at(-3.2,-2.4)[1],robe:0x4a3f5e,line:'The knight has kept his knee for a hundred years. Mine only has to last the night.',face:RAIN.at(0,0),district:'Rain Oath Causeway',prop:'none',look:{variant:5,species:2,build:1},tags:['rain','oath','kneel']},
   {id:'npc-skywatch-lookout',place:'place-north-skywatch',role:'skywatch-companion',pose:'look-up',name:'Lysa Star-Eyed',x:SKY.at(7.6,4.9)[0],z:SKY.at(7.6,4.9)[1],robe:0x6b5276,line:'Do not stare at the sky like it is empty. It hates being underestimated.',face:SKY.at(40,4),district:'The Skywatch Knoll',prop:'spyglass',look:{variant:7,species:2,build:1},tags:['skywatch','companion','moon']},
+  // The second companion: seated on the crown's edge, keeping the near watch
+  // while Lysa keeps the far one. The canon asked for two.
+  {id:'npc-skywatch-seated-companion',place:'place-north-skywatch',role:'skywatch-companion',pose:'sit-watch',name:'Bram Starling',x:SKY.at(3.0,-6.0)[0],z:SKY.at(3.0,-6.0)[1],robe:0x4a4460,line:'Lysa counts the falling ones. I count the ones that stay. Between us we have never lost a star.',face:SKY.at(40,-6),district:'The Skywatch Knoll',prop:'none',look:{variant:0,species:1,build:1},tags:['skywatch','companion','moon']},
   {id:'npc-collapse-runner-witness',place:'place-citadel-ascent',role:'runner-witness',pose:'run-warn',name:'Nell Red-Sock',x:-3.2,z:-226,robe:0x76527a,line:'If the towers groan, run downhill and shout before you breathe.',face:CIT.at(-6,-24),district:'The High Step',prop:'none',look:{variant:1,species:1,build:0},tags:['runner','warning','event-witness']},
   // In the Cathedral of Hours (r144): the verger at the altar lighting the
   // candles, someone kneeling before the dais, a pilgrim looking up the nave.
@@ -44989,6 +44998,27 @@ function applyReferenceBuildNpcPose(npc,t,movingNpc){
     if(p.leftKnee){ p.leftKnee.rotation.x=1.57; p.rightKnee.rotation.x=1.45; }
     p.leftArm.rotation.x=-.70+breath; p.rightArm.rotation.x=-.66-breath;
     p.headPivot.rotation.x=pose==='bow-rain'?.46:.36; p.headPivot.rotation.y=0;
+  }else if(pose==='kneel-oath'){
+    // The oath-taker's kneel (canon acting): one knee on the ground like
+    // kneel-mourn, but the head raised to the oath — the stones, the blade,
+    // the moon — and the hands lifted toward it instead of held low.
+    // Mourning bows; oath-taking looks up.
+    drop(.495);
+    p.leftLeg.rotation.x=-1.62; p.rightLeg.rotation.x=.15;
+    if(p.leftKnee){ p.leftKnee.rotation.x=1.57; p.rightKnee.rotation.x=1.45; }
+    p.leftArm.rotation.x=-1.04+breath*.5; p.rightArm.rotation.x=-1.00-breath*.5;
+    p.headPivot.rotation.x=-.30; p.headPivot.rotation.y=Math.sin(t*.4+npc.phase)*.06;
+  }else if(pose==='ritual-walk'){
+    // Slow ritual in place (canon acting): the weight sways side to side on
+    // a long breath, the held light stays level, the head bows and rises.
+    // For the blade rows and shrine watches that never hurry.
+    const sway=Math.sin(t*.55+npc.phase);
+    drop(.06);
+    p.leftLeg.rotation.x=-.06; p.rightLeg.rotation.x=.06;
+    if(p.leftKnee){ p.leftKnee.rotation.x=.12+sway*.04; p.rightKnee.rotation.x=.12-sway*.04; }
+    p.leftArm.rotation.x=-.78+breath*.15; p.rightArm.rotation.x=-.74-breath*.15;
+    p.headPivot.rotation.x=.16+sway*.14; p.headPivot.rotation.y=Math.sin(t*.3+npc.phase)*.10;
+    npc.g.rotation.z=sway*.028;
   }else if(pose==='tend-blades'){
     // Crouched at a blade, reaching to it: one foot flat, the other knee low.
     drop(.436);
