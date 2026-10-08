@@ -43216,7 +43216,8 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
     shieldFace.position.set(-.1,.2,.06);shieldFace.rotation.set(0,.12,Math.PI/2);shield.add(shieldFace);offhand=shield;offhandArm=leftArm;
     prop=npcPropSpear(1.62,signature);prop.position.set(.06,.06,.06);prop.rotation.z=-.08;propArm=rightArm;
   }else if(variant===3){
-    prop=npcPropMallet(signature);prop.position.set(.01,.04,.01);prop.rotation.z=-.14;propArm=rightArm;
+    // (r177) Head-down below the fist: head-up put the mallet's head through the forearm.
+    prop=npcPropMallet(signature);prop.position.set(.01,-.30,.01);prop.rotation.z=-.14;propArm=rightArm;
   }else if(variant===4){
     offhand=new THREE.Mesh(new THREE.BoxGeometry(.18,.24,.18),MATS.amber);offhand.position.set(0,-.18,.02);offhandArm=rightArm;
     prop=npcPropStaff(1.45,.042,.032,signature);prop.position.set(0,.06,.01);prop.rotation.z=.14;propArm=leftArm;
@@ -43224,7 +43225,8 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
     prop=npcPropBasket(signature);prop.position.set(0,-.22,.03);prop.rotation.z=-.10;propArm=rightArm;   // (r163) held by its handle
   }else if(variant===6){
     prop=new THREE.Group();const hammerShaft=npcPropHammerShaft(signature),hammerHead=npcPropHammerHead();
-    hammerShaft.position.y=-.34;hammerHead.position.y=-.74;prop.add(hammerShaft,hammerHead);prop.position.set(.012,-.06,.028);prop.rotation.z=-.24;propArm=rightArm;
+    // (r177) Choked up: the long hang put the hammer's head through the boot.
+    hammerShaft.position.y=-.13;hammerHead.position.y=-.52;prop.add(hammerShaft,hammerHead);prop.position.set(.012,-.06,.028);prop.rotation.z=-.24;propArm=rightArm;
   }else if(variant===7){
     prop=new THREE.Group();const bookLeather=npcMaterial(0x80553a),bookPage=npcMaterial(0xd4c18c),bookLeft=new THREE.Mesh(new THREE.BoxGeometry(.115,.245,.035),bookLeather),bookRight=bookLeft.clone(),pageLeft=new THREE.Mesh(new THREE.BoxGeometry(.087,.205,.012),bookPage),pageRight=pageLeft.clone();
     bookLeft.position.x=-.065;bookRight.position.x=.065;bookLeft.rotation.y=-.24;bookRight.rotation.y=.24;pageLeft.position.set(-.065,0,.025);pageRight.position.set(.065,0,.025);pageLeft.rotation.y=-.24;pageRight.rotation.y=.24;
@@ -43501,7 +43503,8 @@ function addReferenceRoleProp(npc,role){
     const glass=new THREE.Mesh(new THREE.BoxGeometry(.13,.17,.13),new THREE.MeshStandardMaterial({color:0xffb25c,emissive:0xff8a2a,emissiveIntensity:1.25,roughness:.75})); glass.position.y=-.25; lantern.add(glass);
     const base=new THREE.Mesh(new THREE.BoxGeometry(.15,.03,.15),npcMaterial(0x1d1a22)); base.position.y=-.35; lantern.add(base);
     const light=lampLight(0xff9d45,.34,7); light.position.set(0,-.25,0); lantern.add(light); lights.push({light,base:.34,phase:role.id.length*.11,fire:true,child:true});
-    hold(lantern,-1);
+    // (r177) A touch outward: hanging straight it grazed the robe's flare.
+    lantern.rotation.z=-.10; hold(lantern,-1);
   }else if(role.prop==='spyglass'){
     const glass=new THREE.Group(), brass=npcMaterial(0x9a7a45);
     const tube=new THREE.Mesh(new THREE.CylinderGeometry(.03,.042,.44,7),brass); tube.rotation.x=Math.PI*.5; tube.position.set(0,.02,.16); glass.add(tube);
@@ -43511,7 +43514,8 @@ function addReferenceRoleProp(npc,role){
     const posy=new THREE.Group();
     for(let i=0;i<3;i++){ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.009,.012,.30,4),npcMaterial(0x46703f)); stem.position.set((i-1)*.025,.10,.03); stem.rotation.z=(i-1)*.22; posy.add(stem);
       const bloom=new THREE.Mesh(new THREE.SphereGeometry(.038,6,5),npcMaterial(i===1?0xd8d0ff:0xa998f0)); bloom.position.set((i-1)*.06,.26,.03); posy.add(bloom); }
-    hold(posy,-1);
+    // (r177) Out and forward of the fist: the upright bouquet stood through the forearm.
+    posy.position.x=-.05; posy.rotation.x=.3; hold(posy,-1);
   }else if(role.prop==='bow'){
     // Slung across the back, string outward, not hovering at the hip.
     const bow=npcPropBow(.42,Math.PI*1.1);   // (r163) the kit's
