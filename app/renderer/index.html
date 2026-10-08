@@ -42501,8 +42501,10 @@ function npcBuildWings(m,spec,d,detail){
 // shoulder and the biceps, the elbow sits a little back and the forearm comes
 // forward to the wrist, so an arm at rest is not a straight tube.
 function npcSleeveRings(s,W){
-  return [[0,.08*W,.084*W,.084*W,0,0],[-.07,.08*W,.084*W,.086*W,s*.008,-.004],[-.15,.068*W,.07*W,.072*W,s*.016,-.01],[-.26,.054*W,.056*W,.062*W,s*.026,-.012],
-    [-.3,.056*W,.06*W,.062*W,s*.029,-.002],[-.4,.052*W,.056*W,.054*W,s*.034,.026],[-.48,.038*W,.035*W,.035*W,s*.037,.05]];
+  // (r175) Slimmer and harder-tapering: the old sleeve was a near-uniform
+  // tube, most of the toy read. PS2-era arms narrow hard past the elbow.
+  return [[0,.064*W,.067*W,.067*W,0,0],[-.07,.064*W,.067*W,.069*W,s*.008,-.004],[-.15,.054*W,.056*W,.058*W,s*.016,-.01],[-.26,.043*W,.045*W,.05*W,s*.026,-.012],
+    [-.3,.045*W,.048*W,.05*W,s*.029,-.002],[-.4,.041*W,.044*W,.043*W,s*.034,.026],[-.48,.029*W,.027*W,.027*W,s*.037,.05]];
 }
 function npcBuildArm(m,spec,d,s,detail){
   const seg=npcSeg(detail,10,6), sub=detail>.6?2:1, A=npcSleeveRings(s,d.W), top=spec.top, skin=npcPaint(spec.skin,spec.skin), sl=top.sleeve||'long';
@@ -42535,16 +42537,17 @@ function npcBuildArm(m,spec,d,s,detail){
   // round shoulder; a cap on it made a second ball.
   if(sl!=='puff')m.loft([[-.004,c0[1],c0[2],c0[3],0,0],[.016,c0[1]*.9,c0[2]*.92,c0[3]*.92,s*.006,0],[.03,c0[1]*.56,c0[2]*.6,c0[3]*.6,s*.013,-.002],[.036,0,0,0,s*.018,-.004]],seg,capPaint,{sub,uv:(t,s2,q)=>[q[0]/capPaint.s,q[2]/capPaint.s]});
   // the hand: a mitten and a thumb, palm toward the thigh, held a little
-  // forward with the forearm and fuller than it was
+  // forward with the forearm. (r175) Slimmer: the old mitten was a blob,
+  // the single most Roblox thing left on the figure.
   const hp=spec.gloves||skin, x=s*.037, hz=.024;
-  m.tube([[x,-.475,.026+hz],[x,-.522,.032+hz],[x*.92,-.57,.035+hz],[x*.85,-.612,.033+hz],[x*.8,-.648,.03+hz]],[[.036,.024],[.051,.029],[.052,.029],[.044,.025],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0],cap:'round'});
-  if(detail>.3)m.tube([[x-s*.006,-.498,.05+hz],[x-s*.012,-.528,.066+hz],[x-s*.012,-.552,.07+hz],[x-s*.011,-.57,.069+hz]],[.016,.014,.012,0],npcSeg(detail,6,4),hp,{cap:'round'});
+  m.tube([[x,-.475,.026+hz],[x,-.522,.032+hz],[x*.92,-.57,.035+hz],[x*.85,-.612,.033+hz],[x*.8,-.648,.03+hz]],[[.029,.019],[.041,.023],[.042,.023],[.035,.02],[0,0]],npcSeg(detail,8,5),hp,{ref:[1,0,0],cap:'round'});
+  if(detail>.3)m.tube([[x-s*.006,-.498,.05+hz],[x-s*.012,-.528,.066+hz],[x-s*.012,-.552,.07+hz],[x-s*.011,-.57,.069+hz]],[.013,.011,.01,0],npcSeg(detail,6,4),hp,{cap:'round'});
   return [x,-.56,.045+hz];
 }
 // A thigh's rings from the hip pivot down, and a shin's from the knee: [y, rx,
 // rf, rb]. (r170) Shared with npcLegReach, which a skirt is built clear of.
-function npcThighRings(W,t){ return [[.04,.06*W,.074*W,.076*W],[-.04,.074*W,.092*W,.098*W],[-.25*t,.088*W,.098*W,.106*W],[-.6*t,.076*W,.084*W,.084*W],[-.95*t,.061*W,.065*W,.059*W],[-t-.01,.059*W,.062*W,.056*W]]; }
-function npcShinRings(W,h){ return [[.02,.054*W,.056*W,.052*W],[-.1*h,.064*W,.063*W,.074*W],[-.33*h,.068*W,.064*W,.084*W],[-.7*h,.051*W,.051*W,.054*W],[-.92*h,.042*W,.042*W,.044*W],[-h,.04*W,.04*W,.04*W]]; }
+function npcThighRings(W,t){ return [[.04,.051*W,.063*W,.065*W],[-.04,.063*W,.078*W,.083*W],[-.25*t,.075*W,.083*W,.09*W],[-.6*t,.065*W,.071*W,.071*W],[-.95*t,.052*W,.055*W,.05*W],[-t-.01,.05*W,.053*W,.048*W]]; }
+function npcShinRings(W,h){ return [[.02,.046*W,.048*W,.044*W],[-.1*h,.054*W,.054*W,.063*W],[-.33*h,.058*W,.054*W,.071*W],[-.7*h,.043*W,.043*W,.046*W],[-.92*h,.036*W,.036*W,.037*W],[-h,.034*W,.034*W,.034*W]]; }
 // (r170) How far a standing leg reaches at a height y of the figure: its side,
 // front and back from its own middle, with trousers, stockings and boots.
 function npcLegReach(spec,d,y){
@@ -45338,6 +45341,10 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
       // Haulers instead hold both arms back toward their cart's shafts.
       if(npc.cart){parts.leftArm.rotation.x=.52+gait*.10;parts.rightArm.rotation.x=.48-gait*.08;}
       else {const leftSwing=npc.held?.left ? .32 : 1,rightSwing=npc.held?.right ? .32 : 1;parts.leftArm.rotation.x=gait*armLean*leftSwing;parts.rightArm.rotation.x=-gait*.86*armLean*rightSwing;}
+      // (r175) At rest the arms hang a touch out from the body, never glued
+      // straight down the seam: the perfectly cylindrical hang was the toy read.
+      const restOut=(movingNpc||npc.cart)?0:.08;
+      parts.leftArm.rotation.z=-restOut; parts.rightArm.rotation.z=restOut;
       // (r170) Someone in a long skirt or coat takes shorter steps (kitStride:
       // 0.4 in a robe to the ankle, 1 in trousers), and the skirt is fitted
       // to that stride, so the legs no longer come through the cloth.
