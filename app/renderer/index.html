@@ -43203,6 +43203,10 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
   const rig=npcKitRig(spec),g=rig.g,{headPivot,leftArm,rightArm,leftLeg,rightLeg,leftKnee,rightKnee}=rig,H=spec.head;
   // Props sit below a wrist grip, never in torso space.
   let prop=null,propArm=null,offhand=null,offhandArm=null;
+  // (r176) A reference role's own prop (or 'none') replaces the kit's generic
+  // variant prop, so the kneeling oath-taker holds no basket and the seated
+  // stargazer leans on no staff.
+  if(look?.prop===undefined){
   if(variant===0){
     prop=npcPropStaff(1.28,.044,.034,signature);prop.position.set(.02,.05,.01);prop.rotation.z=-.16;propArm=rightArm;
   }else if(variant===2){
@@ -43225,6 +43229,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
     prop=new THREE.Group();const bookLeather=npcMaterial(0x80553a),bookPage=npcMaterial(0xd4c18c),bookLeft=new THREE.Mesh(new THREE.BoxGeometry(.115,.245,.035),bookLeather),bookRight=bookLeft.clone(),pageLeft=new THREE.Mesh(new THREE.BoxGeometry(.087,.205,.012),bookPage),pageRight=pageLeft.clone();
     bookLeft.position.x=-.065;bookRight.position.x=.065;bookLeft.rotation.y=-.24;bookRight.rotation.y=.24;pageLeft.position.set(-.065,0,.025);pageRight.position.set(.065,0,.025);pageLeft.rotation.y=-.24;pageRight.rotation.y=.24;
     prop.add(bookLeft,bookRight,pageLeft,pageRight);prop.position.set(-.06,.1,.1);prop.rotation.x=-.08;prop.rotation.z=.14;propArm=leftArm;
+  }
   }
   if(smokes){
     // A clay pipe at the corner of the mouth, bowl forward and up. (r169) The
@@ -43525,7 +43530,9 @@ function addReferenceRoleProp(npc,role){
 function addReferenceBuildNpcRoles(){
   for(const role of REFERENCE_BUILD_NPC_ROLES){
     const before=villagers.length;
-    villager(role.name,role.x,role.z,role.robe,role.line,[],role.district,role.look);
+    // (r176) the role's prop rides through the look: a role's own prop (or
+    // 'none') replaces the kit's generic variant prop
+    villager(role.name,role.x,role.z,role.robe,role.line,[],role.district,{...role.look,prop:role.prop});
     const npc=villagers[villagers.length-1]; if(!npc||villagers.length===before)continue;
     npc.referenceBuild=true; npc.referenceRole=role.role; npc.referencePlaceId=role.place; npc.referencePose=role.pose; npc.referenceTags=role.tags||[];
     npc.activityAnchor={x:role.face[0],z:role.face[1]}; npc.route=[]; npc.routeLoop=[]; npc.goalIndex=0; npc.errandIndex=0; npc.pauseLeft=9999; npc.visualCanonPose=role.pose;
