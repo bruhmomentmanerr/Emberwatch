@@ -4865,12 +4865,14 @@ function makeTex(base,opt={}){const S=opt.size||128,cvs=document.createElement('
   // These are painted material patterns, not random noise fields. Their broad
   // blocks survive a close camera and trilinear filtering as readable handmade
   // low-poly surfaces rather than dissolving into a soft coloured wash.
-  const course=(rowH,brickW,accent=10)=>{for(let y=0,row=0;y<S;y+=rowH,row++){const shift=(row&1)*brickW*.5;for(let px=-shift-brickW;px<S+brickW;px+=brickW){const w=brickW-3,h=rowH-3;x.fillStyle=shade(base,rand(-8,accent));x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,accent+8);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-34);x.fillRect(px+2,y+rowH-2,w,1);}}};
+  const bsalt=(((base>>>0)^((pattern||'x').length*97)^0x51ed)>>>0);
+  const stain=(a,b)=>npcHash(a|0,b|0,bsalt)<.07?-26:0;
+  const course=(rowH,brickW,accent=10)=>{for(let y=0,row=0;y<S;y+=rowH,row++){const shift=(row&1)*brickW*.5;for(let px=-shift-brickW;px<S+brickW;px+=brickW){const w=brickW-3,h=rowH-3;const st=stain(px,row);x.fillStyle=shade(base,rand(-14,accent+6)+st);x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,rand(8,22)+st);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-34);x.fillRect(px+2,y+rowH-2,w,1);}}};
   if(pattern==='brick')course(18,38,16);
   else if(pattern==='stone')course(23,46,9);
-  else if(pattern==='cobble'){for(let y=0,row=0;y<S;y+=17,row++){const step=row%3===0?29:34,shift=(row%2)*step*.45;for(let px=-shift-step;px<S+step;px+=step){const w=step-3,h=14;x.fillStyle=shade(base,rand(-10,11));x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,18);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-29);x.fillRect(px+2,y+15,w,1);}}}
-  else if(pattern==='slate'||pattern==='roof'){const shingle=pattern==='roof'?35:29,rowH=17;for(let y=0,row=0;y<S;y+=rowH,row++){const shift=(row&1)*shingle*.5;for(let px=-shift-shingle;px<S+shingle;px+=shingle){const w=shingle-3,h=rowH-3;x.fillStyle=shade(base,rand(-7,12));x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,17);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-32);x.fillRect(px+2,y+rowH-2,w,2);}}}
-  else if(pattern==='wood'){for(let px=0;px<S;px+=15){x.fillStyle=shade(base,rand(-10,12));x.fillRect(px+2,0,12,S);x.fillStyle=shade(base,18);x.fillRect(px+3,0,1,S);x.fillStyle=shade(base,-32);x.fillRect(px,0,2,S);for(let y=9+(worldRandom()*17|0);y<S;y+=28+(worldRandom()*13|0)){x.fillStyle=shade(base,-20);x.fillRect(px+7,y,3,2);}}}
+  else if(pattern==='cobble'){for(let y=0,row=0;y<S;y+=17,row++){const step=row%3===0?29:34,shift=(row%2)*step*.45;for(let px=-shift-step;px<S+step;px+=step){const w=step-3,h=14;const st=stain(px,row);x.fillStyle=shade(base,rand(-16,14)+st);x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,rand(6,22)+st);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-29);x.fillRect(px+2,y+15,w,1);}}}
+  else if(pattern==='slate'||pattern==='roof'){const shingle=pattern==='roof'?35:29,rowH=17;for(let y=0,row=0;y<S;y+=rowH,row++){const shift=(row&1)*shingle*.5;for(let px=-shift-shingle;px<S+shingle;px+=shingle){const w=shingle-3,h=rowH-3;const st=stain(px,row);x.fillStyle=shade(base,rand(-11,15)+st);x.fillRect(px+2,y+2,w,h);x.fillStyle=shade(base,rand(8,22)+st);x.fillRect(px+3,y+3,w-2,1);x.fillStyle=shade(base,-32);x.fillRect(px+2,y+rowH-2,w,2);}}}
+  else if(pattern==='wood'){for(let px=0;px<S;px+=15){const st=stain(px,3);x.fillStyle=shade(base,rand(-13,14)+st);x.fillRect(px+2,0,12,S);x.fillStyle=shade(base,18+st);x.fillRect(px+3,0,1,S);x.fillStyle=shade(base,-32);x.fillRect(px,0,2,S);for(let y=9+(worldRandom()*17|0);y<S;y+=28+(worldRandom()*13|0)){x.fillStyle=shade(base,-20);x.fillRect(px+7,y,3,2);}}}
   else if(pattern==='ground'){for(let i=0;i<240;i++){const px=rand(0,S),py=rand(0,S);x.fillStyle=shade(base,rand(-12,18));x.fillRect(px,py,rand(1,4),rand(1,2));}for(let i=0;i<22;i++){x.fillStyle=shade(base,rand(16,34));x.fillRect(rand(0,S),rand(0,S),rand(2,5),1);}}
   else if(pattern==='cloth'){for(let i=0;i<S;i+=4){x.fillStyle=shade(base,i%8?8:-12);x.fillRect(0,i,S,1);}}
   // Natural rock (r143): uneven strata with broken dark seams and a few
@@ -4878,6 +4880,11 @@ function makeTex(base,opt={}){const S=opt.size||128,cvs=document.createElement('
   // on a cliff face.
   else if(pattern==='rock'){let y=0;while(y<S){const h=5+(worldRandom()*15|0);x.fillStyle=shade(base,rand(-15,13));x.fillRect(0,y,S,h);x.fillStyle=shade(base,-32);for(let px=0;px<S;px+=2)if(worldRandom()<.5)x.fillRect(px,y+h-1,2,1);y+=h;}
     for(let i=0;i<9;i++){let cx=rand(0,S),cy=rand(0,S);x.fillStyle=shade(base,-42);for(let k=0;k<20;k++){x.fillRect(cx|0,cy|0,1,2);cx+=rand(-1.6,1.6);cy+=rand(.6,2.2);}}}
+  // Weathering: broad tileable blotches of dirt and damp over the pattern, so
+  // no wall or street repeats perfectly clean. Deliberately broad and
+  // low-contrast — the old per-pixel grit was removed for reading as blur at
+  // the new resolution; this reads as weathering, not noise.
+  grimeTex(x,S,base,pattern,opt);
   for(let i=0;i<S*S*(opt.density||.08);i++){x.fillStyle=shade(base,(worldRandom()*2-1)*(opt.jitter||13));const s=worldRandom()<.12?2:1;x.fillRect((worldRandom()*S)|0,(worldRandom()*S)|0,s,s);}
   /* Linear, not Nearest: clean low-poly surfaces need texture detail to settle
      at a distance rather than breaking into hard pixels. Trilinear mipmaps
@@ -4894,6 +4901,41 @@ function makeTex(base,opt={}){const S=opt.size||128,cvs=document.createElement('
 // Construction still comes from low-side-count geometry and hard silhouette
 // choices; smooth normals simply stop each cylindrical post, barrel and lamp
 // from looking accidentally faceted under the cleaner moonlight.
+function grimeTex(x,S,base,pattern,opt){
+  const damp=opt.damp??.45, dirt=opt.dirt??.5, moss=opt.moss??.25;
+  if(!(damp>0||dirt>0||moss>0))return;
+  // Salted off the seeded stream: the world's stream order is untouched, and
+  // the weathering is identical every load.
+  const salt=(((base>>>0)^((pattern||'x').length*2654435761)^0x9e3779b9)>>>0);
+  const img=x.getImageData(0,0,S,S), d=img.data;
+  const sstep=(e0,e1,v)=>{ const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0))); return t*t*(3-2*t); };
+  const fr=k=>k-Math.floor(k);
+  for(let py=0;py<S;py++){
+    const v=py/S;
+    for(let px=0;px<S;px++){
+      const u=px/S, i=(py*S+px)*4;
+      // broad dirt blotches plus medium mottling; npcNoise repeats every 1,
+      // so the weathering tiles with the texture
+      const blotch=sstep(.55,.88,npcNoise(u,v,4,salt)*.68+npcNoise(u,v,8,salt+11)*.32);
+      // vertical damp streaks, slow along their length
+      const streak=sstep(.6,.95,npcNoise(fr(u*16),v,1,salt+31))*.6+npcNoise(u,v,2,salt+47)*.4;
+      const amt=Math.min(1,blotch*dirt+sstep(.55,.9,streak)*damp*.8);
+      if(amt<=.004)continue;
+      let r=d[i],g=d[i+1],b=d[i+2];
+      const lum=r*.35+g*.5+b*.15, dk=amt*30;
+      // pull toward a dirt tone and darken; green channel falls least, which
+      // keeps it earthen rather than grey
+      r=r-(r-lum*.72)*amt*.35-dk;
+      g=g-(g-lum*.85)*amt*.35-dk*.92;
+      b=b-(b-lum*.6)*amt*.35-dk*.8;
+      // moss colonises the dampest blotches
+      const m=sstep(.72,.95,blotch)*moss;
+      r-=m*18; g+=m*6; b-=m*20;
+      d[i]=r<0?0:r>255?255:r; d[i+1]=g<0?0:g>255?255:g; d[i+2]=b<0?0:b>255?255:b;
+    }
+  }
+  x.putImageData(img,0,0);
+}
 function sm(tex){ return new THREE.MeshStandardMaterial({map:tex,flatShading:false,roughness:.94,metalness:0}); }
 // LAMP_GLOW: under real light a full-strength window reads as a white card; at
 // seven tenths it keeps its amber.
@@ -4903,12 +4945,12 @@ useWorldStream('textures');
 // Keep the clear low-poly construction marks, but suppress the old layer of
 // per-pixel grit. It was useful when the render buffer was deliberately tiny;
 // at the new resolution it read as blur rather than material.
-const TX={ground:makeTex(0x202d24,{pattern:'ground',density:.032,jitter:6,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15]}),
-  wall:makeTex(0x756a5d,{pattern:'stone',density:.004,jitter:4}),wall2:makeTex(0x4b5266,{pattern:'stone',density:.004,jitter:4}),
-  brick:makeTex(0x70413b,{pattern:'brick',density:.004,jitter:4}),roof:makeTex(0x742f42,{pattern:'roof',density:.003,jitter:4}),
-  slate:makeTex(0x2f3c54,{pattern:'slate',density:.003,jitter:4}),stone:makeTex(0x605b6c,{pattern:'stone',density:.004,jitter:4}),
-  cobble:makeTex(0x454052,{pattern:'cobble',density:.003,jitter:4}),city:makeTex(0x202333,{pattern:'cobble',density:.003,jitter:4}),
-  dirt:makeTex(0x3a3428,{pattern:'ground',density:.024,jitter:6,repeat:[26,26]}),wood:makeTex(0x513620,{pattern:'wood',density:.004,jitter:4}),cloth:makeTex(0x69384f,{pattern:'cloth',density:.006,jitter:4}),dark:makeTex(0x151927,{density:.006,jitter:4}),
+const TX={ground:makeTex(0x202d24,{pattern:'ground',density:.032,jitter:6,repeat:[CONFIG.mapSize/15,CONFIG.mapSize/15],dirt:.65,moss:.35,damp:.3}),
+  wall:makeTex(0x756a5d,{pattern:'stone',density:.004,jitter:4,damp:.6,dirt:.45,moss:0}),wall2:makeTex(0x4b5266,{pattern:'stone',density:.004,jitter:4,damp:.55,dirt:.4,moss:0}),
+  brick:makeTex(0x70413b,{pattern:'brick',density:.004,jitter:4,damp:.6,dirt:.45,moss:0}),roof:makeTex(0x742f42,{pattern:'roof',density:.003,jitter:4,damp:.5,dirt:.4,moss:.3}),
+  slate:makeTex(0x2f3c54,{pattern:'slate',density:.003,jitter:4,damp:.5,dirt:.35}),stone:makeTex(0x605b6c,{pattern:'stone',density:.004,jitter:4,damp:.55,dirt:.45,moss:.3}),
+  cobble:makeTex(0x454052,{pattern:'cobble',density:.003,jitter:4,damp:.4,dirt:.6,moss:.35}),city:makeTex(0x202333,{pattern:'cobble',density:.003,jitter:4,damp:.4,dirt:.55,moss:.3}),
+  dirt:makeTex(0x3a3428,{pattern:'ground',density:.024,jitter:6,repeat:[26,26],dirt:.7,moss:.4}),wood:makeTex(0x513620,{pattern:'wood',density:.004,jitter:4,dirt:.35,damp:.3}),cloth:makeTex(0x69384f,{pattern:'cloth',density:.006,jitter:4,dirt:.15,damp:0,moss:0}),dark:makeTex(0x151927,{density:.006,jitter:4,dirt:.2,damp:0,moss:0}),
   // Last in the list on purpose: every texture draws from the one seeded
   // stream, so a new one anywhere earlier would repaint all that follow it.
   rock:makeTex(0x6a687c,{pattern:'rock',density:.008,jitter:7})};
