@@ -42678,7 +42678,14 @@ const NPC_KIT_LOOKS={
     under:0x1a1a22,legwear:{kind:'trousers',c:0x2a2c34},boots:{kind:'boot',c:0x2a1e16}},
   'the hooded watcher':{species:1,ears:'human',face:20,elder:false,hair:{style:'short',c:0x2e1f17},beard:{style:'full'},glasses:false,
     cloak:{c:0x2a2838,c2:0x1a1824,hood:true},top:{kind:'tunic',pattern:'leather',c:0x3a2a1e,c2:0x2a1c14,sleeve:'long',len:'thigh'},
-    belt:{c:0x2a1c14,buckle:0x8a7a5a},legwear:{kind:'trousers',c:0x23262e},boots:{kind:'tall',c:0x2a1e16},gloves:0x2a1e16}
+    belt:{c:0x2a1c14,buckle:0x8a7a5a},legwear:{kind:'trousers',c:0x23262e},boots:{kind:'tall',c:0x2a1e16},gloves:0x2a1e16},
+  // The pipe-smoker of Foxglove Bridge, after the reference gnome: a red
+  // floppy cap, a long white beard, a red tunic, the clay pipe at his mouth.
+  'Pip Cinderpipe':{fem:false,species:0,ears:'gnome',face:4,eye:0x3a3020,skin:0xe8b088,elder:true,
+    hair:{style:'short',c:0xd8d4cc,c2:0xf2f0ea},beard:{style:'long'},
+    hat:{kind:'witch',c:0x8a2020,c2:0x5a1414,t:NPC_TILE.knit},
+    top:{kind:'tunic',pattern:'linen',c:0x7a2620,c2:0x4a1614,sleeve:'long',len:'hip',collar:'turtle'},
+    belt:{c:0x2a1c14,buckle:0x8a7a5a},legwear:{kind:'trousers',c:0x2a2c30},boots:{kind:'boot',c:0x2a1e16}}
 };
 function npcKitLook(name,o){
   // o: {signature, species, variant, bodyType, robe, look}
@@ -43184,7 +43191,7 @@ function villager(name,x,z,robe,line,route=[],districtOverride,look=null){
   // — about half of residents were getting the Three.js default white instead
   // of their trim/skin/hair tone). Use unsigned >>> throughout so the shifted
   // value stays non-negative like signature itself.
-  const species=Number.isInteger(look?.species)?look.species:(signature>>>19)%NPC_STATURE.length,build=NPC_BUILD[bodyType],leather=npcMaterial(0x382519),smokeRoll=(signature>>>16)%7,smokes=species===0?smokeRoll<5:smokeRoll<2;
+  const species=Number.isInteger(look?.species)?look.species:(signature>>>19)%NPC_STATURE.length,build=NPC_BUILD[bodyType],leather=npcMaterial(0x382519),smokeRoll=(signature>>>16)%7,smokes=look?.smoke??(species===0?smokeRoll<5:smokeRoll<2);
   const canonStyle={
     glasses:((signature>>>12)%8===0)||(variant===7&&((signature>>>6)%4===0)),
     hairLocks:((signature>>>21)%5===0)||variant===5,
@@ -43441,6 +43448,10 @@ const REFERENCE_BUILD_NPC_ROLES=[
   {id:'npc-citadel-stair-guard',place:'place-citadel-ascent',role:'citadel-guard',pose:'guard-watch',name:'Maer of the High Step',x:CIT.at(4.6,-8.2)[0],z:CIT.at(4.6,-8.2)[1],robe:0x52677f,line:'The climb is part of the oath. No one reaches the gate unchanged.',face:CIT.at(40,-9),district:'The High Step',prop:'none',look:{variant:2,species:3,build:2},tags:['gate','parapet','lamp']},
   {id:'npc-citadel-pilgrim-climber',place:'place-citadel-ascent',role:'pilgrim-climber',pose:'look-up',name:'Sova Moonstep',x:CIT.at(-.9,6.4)[0],z:CIT.at(-.9,6.4)[1],robe:0x85735e,line:'I count each landing when the moon is bright. It keeps fear from catching up.',face:CIT.at(3,-8),district:'The High Step',prop:'lantern',look:{variant:0,species:2,build:1},tags:['ascent','pilgrim']},
   {id:'npc-foxglove-bridge-resident',place:'place-foxglove-bridge',role:'bridge-resident',pose:'lean-watch',name:'Tallow of Foxglove Bank',x:FOX.at(-.6,-1.05)[0],z:FOX.at(-.6,-1.05)[1],robe:0x445f74,line:'Water remembers every light. Even the ones people swear were never lit.',face:FOX.at(-2,-30),district:'Foxglove Bridge',prop:'none',look:{variant:4,species:0,build:1},tags:['bridge','river','reflection']},
+  // Down the bridge's far parapet: the gnome with his pipe, after the
+  // reference gnome on his forest path — red cap, white beard, smoke on the
+  // wind, watching the river the way the reference watches the trees.
+  {id:'npc-foxglove-pipe-smoker',place:'place-foxglove-bridge',role:'pipe-smoker',pose:'pipe-smoke',name:'Pip Cinderpipe',x:FOX.at(.9,-1.05)[0],z:FOX.at(.9,-1.05)[1],robe:0x7a2620,line:'A pipe is just a small chimney with better stories. Lean in and I will tell you one.',face:FOX.at(1.6,-30),district:'Foxglove Bridge',prop:'none',look:{variant:4,species:0,build:1,smoke:true},tags:['bridge','river','pipe','smoke']},
   // In the Oathfield's rows (r143): the mourner kneels at her blade by the
   // way, the keeper stands among the rows, a pilgrim looks up at the angel.
   {id:'npc-old-graveyard-mourner',place:'place-old-graveyard-oathfield',role:'mourner',pose:'kneel-mourn',name:'Elen of the Twenty-Sixth Blade',x:OATH.at(-10.25,-3.2)[0],z:OATH.at(-10.25,-3.2)[1],robe:0x786d8c,line:'Some names are too heavy for stone, so we planted steel instead.',face:OATH.at(-9,-3.2),district:'The Oathfield',prop:'flower',look:{variant:5,species:1,build:0},tags:['memorial','kneel','oath']},
@@ -45051,6 +45062,16 @@ function applyReferenceBuildNpcPose(npc,t,movingNpc){
     p.leftLeg.rotation.x=-.06; p.rightLeg.rotation.x=.05;
     p.leftArm.rotation.x=-.12; p.rightArm.rotation.x=ROLE_STAFF_ARM+breath*.1;
     p.headPivot.rotation.x=-.14; p.headPivot.rotation.y=Math.sin(t*.35+npc.phase)*.05;
+  }else if(pose==='pipe-smoke'){
+    // The pipe-smoker's rest (canon acting): the clay pipe sits at the corner
+    // of the mouth, so one hand comes up loosely beneath it while the other
+    // hangs easy. The head tips a little toward the bowl, watching the ember,
+    // and the figure rocks faintly on the breath that feeds it.
+    p.leftLeg.rotation.x=-.02; p.rightLeg.rotation.x=.02;
+    p.leftArm.rotation.x=-.18+breath*.3;
+    p.rightArm.rotation.x=-1.90+breath*.6; p.rightArm.rotation.z=-.25;
+    p.headPivot.rotation.x=.12+breath*.4; p.headPivot.rotation.y=Math.sin(t*.42+npc.phase)*.09;
+    npc.g.rotation.z=Math.sin(t*.55+npc.phase)*.012;
   }else if(pose==='run-warn'){
     const sprint=Math.sin(t*8.5+npc.phase);
     p.leftLeg.rotation.x=-sprint*.95; p.rightLeg.rotation.x=sprint*.95;
