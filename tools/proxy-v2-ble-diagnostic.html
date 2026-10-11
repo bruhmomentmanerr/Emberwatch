@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proxy V2 BLE Diagnostic</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;max-width:880px;margin:24px auto;padding:0 16px;background:#101418;color:#dfe6ee}
+  h1{font-size:20px} h2{font-size:15px;margin-top:22px;color:#9fd0ff}
+  ol li{margin:6px 0} code{background:#1c232c;padding:2px 6px;border-radius:4px;font-size:13px}
+  button{font-size:15px;padding:10px 18px;margin:6px 8px 6px 0;border-radius:8px;border:0;background:#2f7fe0;color:#fff;cursor:pointer}
+  button:disabled{background:#3a4552;color:#8a95a3;cursor:default}
+  button.ghost{background:#232c36}
+  #log{background:#0a0d11;border:1px solid #2a3440;border-radius:8px;padding:12px;white-space:pre-wrap;font:12.5px/1.55 ui-monospace,monospace;min-height:220px;max-height:560px;overflow:auto}
+  .ok{color:#7ee2a8}.err{color:#ff9a9a}.dim{color:#8a95a3}.hl{color:#ffd479}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  th,td{border:1px solid #2a3440;padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#1a2129} td.hex{font-family:ui-monospace,monospace;font-size:11.5px;word-break:break-all}
+  label{font-size:14px}
+</style>
+</head>
+<body>
+<h1>Puffco New Proxy (2025) — BLE Diagnostic</h1>
+<ol>
+  <li>Wake the Proxy (press its button so the light is on) and keep it next to this computer.</li>
+  <li>Serve this file over <code>http://localhost</code> — Web Bluetooth refuses <code>file://</code>. In this folder run<br>
+      <code>python3 -m http.server 8000</code><br>then open <code>http://localhost:8000/proxy-v2-ble-diagnostic.html</code> in <b>Chrome or Edge</b> (desktop).</li>
+  <li>Click <b>1 · Scan &amp; connect</b>, pick the Proxy in the chooser. On Windows, accept the system pairing dialog if one appears.</li>
+  <li>Click <b>2 · Run diagnostic</b>. Everything below is <b>read-only</b> — it never writes to the device.</li>
+  <li>Click <b>3 · Copy report</b> and paste the text back to Muse.</li>
+</ol>
+<p><label><input type="checkbox" id="showAll"> Show every Bluetooth device (if the Proxy doesn't appear in the filtered list)</label></p>
+<p>
+  <button id="btnScan">1 · Scan &amp; connect</button>
+  <button id="btnRun" disabled>2 · Run diagnostic</button>
+  <button id="btnCopy" class="ghost" disabled>3 · Copy report</button>
+  <button id="btnClear" class="ghost">Clear log</button>
+</p>
+<h2>Log</h2>
+<div id="log"></div>
+<h2>Probe results</h2>
+<div id="results"><p class="dim">No probes run yet.</p></div>
+
+<script>
+'use strict';
+/* Lorax constants, mirrored from Emberwatch's own Lorax client. */
+const LORAX = {
+  service: 'e276967f-ea8a-478a-a92e-d78f5dd15dd5',
+  version: '05434bca-cc7f-4ef6-bbb3-b1c520b9800c',
+  command: '60133d5c-5727-4f2c-9697-d842c5292a3c',
+  reply:   '8dc5ec05-8f7d-45ad-99db-3fbde65dbd9c',
+  event:   '43312cd1-7d34-46ce-a7d3-0a98fd9b4cb8',
+  key: 'ZMZFYlbyb1scoSc3pd1x+w=='
+};
+const LEGACY_SERVICES = ['06caf9c0-74d3-454f-9be9-e30cd999c17a','f9a98c15-c651-4f34-b656-d100bf580000'];
+const BOND_SERVICES = ['420b9b40-457d-4abe-a3bf-71609d79581b','1d14d6ee-fd63-4fa1-bfa4-8f47b42119f0'];
+
+/* Read-only probe list. `decode` names a decoder; speculative paths are marked. */
+const PROBES = [
+  {path:'/p/sys/fw/ver',  size:125, decode:'fw',    note:'firmware version'},
+  {path:'/p/sys/model',   size:125, decode:'text',  note:'model id (speculative)'},
+  {path:'/p/sys/name',    size:125, decode:'text',  note:'device name (speculative)'},
+  {path:'/p/sys/hw/ver',  size:125, decode:'text',  note:'hardware rev (speculative)'},
+  {path:'/p/app/hcs',     size:1,   decode:'i8',    note:'active profile slot'},
+  {path:'/u/app/hc/0/temp', size:4, decode:'f32c',  note:'profile 0 temp'},
+  {path:'/u/app/hc/1/temp', size:4, decode:'f32c',  note:'profile 1 temp'},
+  {path:'/u/app/hc/2/temp', size:4, decode:'f32c',  note:'profile 2 temp'},
+  {path:'/u/app/hc/3/temp', size:4, decode:'f32c',  note:'profile 3 temp'},
+  {path:'/p/app/thc/time', size:125, decode:'raw',  note:'session time'},
+  {path:'/p/app/thc/temp', size:125, decode:'raw',  note:'thc temp'},
+  {path:'/p/app/thc/colr', size:125, decode:'raw',  note:'light color'},
+  {path:'/p/app/stat/id', size:1,   decode:'u8',    note:'operating state'},
+  {path:'/p/bat/soc',     size:125, decode:'raw',   note:'battery state of charge'},
+  {path:'/p/htr/temp',    size:4,   decode:'f32c',  note:'heater temp'},
+  {path:'/p/app/mc',      size:1,   decode:'u8',    note:'mode command register'},
+  {path:'/p/app/ui/prfl', size:125, decode:'raw',   note:'alt profile tree (speculative, puffco-py convention)'},
+  {path:'/p/app/prfl/0/temp', size:4, decode:'f32c', note:'alt profile temp (speculative)'},
+];
+
+const logEl = document.getElementById('log');
+const resultsEl = document.getElementById('results');
+function log(msg, cls){ const d=document.createElement('div'); if(cls)d.className=cls; d.textContent=msg; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; }
+const hex = b => [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(' ');
+const bytes = s => new TextEncoder().encode(s);
+const u16 = n => { const b=new Uint8Array(2); new DataView(b.buffer).setUint16(0,n,true); return b; };
+const cat = (...a)=>{ const n=a.reduce((s,b)=>s+b.length,0), out=new Uint8Array(n); let i=0; a.forEach(b=>{out.set(b,i);i+=b.length;}); return out; };
+const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+const delay = ms => new Promise(r=>setTimeout(r,ms));
+
+let device=null, server=null, chars={}, seq=1, epoch=0;
+const pending=new Map();
+let commandQueue=Promise.resolve();
+let report={ deviceName:'?', services:[], auth:'not attempted', probes:[], versionChar:'?' };
+
+function fwLetter(n){ let s=''; while(n-->0){ s=String.fromCharCode(65+n%26)+s; n=Math.floor(n/26); } return s||'A'; }
+function decodePayload(kind, payload){
+  try{
+    const dv=new DataView(payload.buffer,payload.byteOffset,payload.byteLength);
+    if(kind==='fw'&&payload.length>=1) return 'byte0='+payload[0]+' → firmware "'+fwLetter(payload[0]+5)+'"';
+    if(kind==='f32c'&&payload.length===4){ const c=dv.getFloat32(0,true); return c.toFixed(1)+' °C = '+(c*9/5+32).toFixed(0)+' °F'; }
+    if(kind==='i8'&&payload.length>=1) return 'int8 '+dv.getInt8(0);
+    if(kind==='u8'&&payload.length>=1) return 'uint8 '+dv.getUint8(0);
+    if(kind==='text'){ const t=new TextDecoder().decode(payload).replace(/\0+$/,''); return JSON.stringify(t.slice(0,80)); }
+  }catch(e){ return 'decode error: '+e.message; }
+  return '';
+}
+
+function replyHandler(ev){
+  const v=ev?.target?.value; if(!v||v.byteLength<3) return;
+  const id=v.getUint16(0,true), req=pending.get(id); if(!req) return;
+  pending.delete(id); clearTimeout(req.timer);
+  const status=v.getUint8(2), payload=new Uint8Array(v.buffer.slice(v.byteOffset+3, v.byteOffset+v.byteLength));
+  if(status) req.reject(new Error('rejected (Lorax code '+status+')'));
+  else req.resolve(payload);
+}
+async function writeChar(ch,data){
+  if(ch.writeValueWithoutResponse) return ch.writeValueWithoutResponse(data);
+  if(ch.writeValueWithResponse) return ch.writeValueWithResponse(data);
+  return ch.writeValue(data);
+}
+function loraxCommand(opcode, body=new Uint8Array(), label='cmd 0x'+opcode.toString(16), timeoutMs=5000){
+  const myEpoch=epoch;
+  const job=async()=>{
+    if(myEpoch!==epoch) throw new Error('connection changed');
+    if(!device?.gatt?.connected||!chars.command) throw new Error('not connected');
+    const id=seq++&0xffff, packet=cat(u16(id),Uint8Array.of(opcode),body);
+    const reply=new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{pending.delete(id);reject(new Error('timeout after '+timeoutMs+'ms'));},timeoutMs);
+      pending.set(id,{resolve,reject,timer});
+    });
+    try{ await writeChar(chars.command,packet); return await reply; }
+    catch(e){ const p=pending.get(id); if(p){clearTimeout(p.timer);pending.delete(id);} throw e; }
+  };
+  const r=commandQueue.then(job,job); commandQueue=r.catch(()=>{}); return r;
+}
+const loraxRead=(path,size)=>loraxCommand(0x10,cat(u16(0),u16(size),bytes(path)),'read '+path,2500);
+
+async function authenticate(){
+  const seed=await loraxCommand(0x00,new Uint8Array(),'access-seed request');
+  log('seed received ('+seed.length+' bytes)','dim');
+  const token=async key=>new Uint8Array(await crypto.subtle.digest('SHA-256',cat(key,seed))).slice(0,16);
+  try{ await loraxCommand(0x01,await token(b64(LORAX.key)),'access unlock'); log('unlocked with primary key form','ok'); report.auth='ok (primary form)'; }
+  catch(e){
+    if(!/Lorax code/.test(String(e?.message||''))) throw e;
+    log('primary unlock refused: '+e.message+'; trying second form (seed after 16 zero bytes)','hl');
+    await loraxCommand(0x01,await token(new Uint8Array(16)),'access unlock, second form');
+    log('unlocked with second form','ok'); report.auth='ok (second form)';
+  }
+}
+
+document.getElementById('btnClear').onclick=()=>{logEl.innerHTML='';};
+document.getElementById('btnScan').onclick=async()=>{
+  logEl.innerHTML='';
+  try{
+    if(!navigator.bluetooth) throw new Error('Web Bluetooth unsupported — use desktop Chrome or Edge.');
+    if(!window.isSecureContext) throw new Error('Not a secure context — serve from http://localhost, do not open the file directly.');
+    const requested=[LORAX.service,...LEGACY_SERVICES,...BOND_SERVICES];
+    const showAll=document.getElementById('showAll').checked;
+    const filters=[{services:[LORAX.service]},...LEGACY_SERVICES.map(s=>({services:[s]})),
+      {manufacturerData:[{companyIdentifier:3075}]},
+      ...['Peak','PEAK','Puffco','PUFFCO','Puff','Proxy','PROXY'].map(p=>({namePrefix:p}))];
+    log('opening device chooser…','dim');
+    device=await navigator.bluetooth.requestDevice(showAll?{acceptAllDevices:true,optionalServices:requested}:{filters,optionalServices:requested});
+    report.deviceName=device.name||'(unnamed)';
+    log('selected: '+report.deviceName,'hl');
+    device.addEventListener('gattserverdisconnected',()=>{ epoch++; log('GATT disconnected.','err'); document.getElementById('btnRun').disabled=true; });
+    log('connecting GATT…','dim');
+    server=await device.gatt.connect();
+    const services=await server.getPrimaryServices();
+    for(const s of services){
+      const chs=await s.getCharacteristics();
+      const entry={uuid:s.uuid, chars:chs.map(c=>c.uuid)};
+      report.services.push(entry);
+      log('service '+s.uuid,'dim');
+      chs.forEach(c=>log('   char '+c.uuid,'dim'));
+    }
+    const loraxSvc=services.find(s=>s.uuid.toLowerCase()===LORAX.service);
+    if(!loraxSvc) throw new Error('Lorax service '+LORAX.service+' not found on this device.');
+    const pick=u=>loraxSvc.getCharacteristics().then(cs=>cs.find(c=>c.uuid.toLowerCase()===u));
+    const allChars=await loraxSvc.getCharacteristics();
+    const byId=u=>allChars.find(c=>c.uuid.toLowerCase()===u);
+    chars.command=byId(LORAX.command); chars.reply=byId(LORAX.reply); chars.event=byId(LORAX.event);
+    if(!chars.command||!chars.reply) throw new Error('Lorax command/reply characteristics missing.');
+    log('command char: '+chars.command.uuid,'ok');
+    log('reply char:   '+chars.reply.uuid,'ok');
+    if(chars.event) log('event char:   '+chars.event.uuid,'ok');
+    await chars.reply.startNotifications();
+    chars.reply.addEventListener('characteristicvaluechanged',replyHandler);
+    log('reply notifications on','dim');
+    try{
+      const verSvc=services.find(s=>s.uuid.toLowerCase()===LORAX.service);
+      const vc=(await verSvc.getCharacteristics()).find(c=>c.uuid.toLowerCase()===LORAX.version);
+      if(vc){ const v=await vc.readValue(); report.versionChar=hex(v.buffer); log('version char: '+report.versionChar,'dim'); }
+    }catch(e){ log('version char unreadable: '+e.message,'dim'); }
+    log('authenticating…','dim');
+    await authenticate();
+    log('ready — click "2 · Run diagnostic".','ok');
+    document.getElementById('btnRun').disabled=false;
+  }catch(e){
+    log('FAILED: '+(e?.name?e.name+': ':'')+e.message,'err');
+    report.auth='failed: '+e.message;
+  }
+};
+
+document.getElementById('btnRun').onclick=async()=>{
+  document.getElementById('btnRun').disabled=true;
+  report.probes=[];
+  for(const p of PROBES){
+    const row={path:p.path, note:p.note, status:'', decoded:'', hex:''};
+    try{
+      const payload=await loraxRead(p.path,p.size);
+      row.status='OK ('+payload.length+' bytes)';
+      row.decoded=decodePayload(p.decode,payload);
+      row.hex=hex(payload).slice(0,120);
+      log('OK   '+p.path+' → '+row.decoded,'ok');
+    }catch(e){ row.status='FAIL: '+e.message; log('FAIL '+p.path+' — '+e.message,'err'); }
+    report.probes.push(row);
+  }
+  let h='<table><tr><th>Path</th><th>Result</th><th>Decoded</th><th>Hex</th></tr>';
+  for(const r of report.probes){
+    const cls=r.status.startsWith('OK')?'ok':'err';
+    h+='<tr><td><code>'+r.path+'</code><br><span class="dim">'+r.note+'</span></td><td class="'+cls+'">'+r.status+'</td><td>'+(r.decoded||'—')+'</td><td class="hex">'+(r.hex||'—')+'</td></tr>';
+  }
+  resultsEl.innerHTML=h+'</table>';
+  document.getElementById('btnCopy').disabled=false;
+  log('diagnostic complete — copy the report with button 3.','hl');
+};
+
+document.getElementById('btnCopy').onclick=async()=>{
+  let t='PROXY V2 BLE DIAGNOSTIC — '+new Date().toISOString()+'\n';
+  t+='device: '+report.deviceName+'\n';
+  t+='auth: '+report.auth+'\n';
+  t+='version char: '+report.versionChar+'\n';
+  t+='services:\n';
+  for(const s of report.services){ t+='  '+s.uuid+'\n'; for(const c of s.chars) t+='    '+c+'\n'; }
+  t+='probes:\n';
+  for(const r of report.probes) t+='  '+r.path+' ['+r.note+'] → '+r.status+(r.decoded?' | '+r.decoded:'')+(r.hex?' | hex: '+r.hex:'')+'\n';
+  try{ await navigator.clipboard.writeText(t); log('report copied to clipboard ('+t.length+' chars).','ok'); }
+  catch(e){ log('clipboard blocked — select the log above manually.','err'); console.log(t); }
+};
+log('Diagnostic loaded. Follow steps 1–5 above.','dim');
+</script>
+</body>
+</html>
