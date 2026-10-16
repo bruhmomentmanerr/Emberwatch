@@ -42735,7 +42735,14 @@ const NPC_KIT_LOOKS={
     hair:{style:'mane',c:0xc8d4e8,c2:0xf0f6ff},beard:{style:'long'},
     cloak:{c:0x141033,c2:0x0a0820,hood:true},
     top:{kind:'robe',pattern:'linen',c:0x1c1440,c2:0x2e2066,sleeve:'bell',len:'ankle',hemband:true},
-    belt:{c:0x0e0a1e},legwear:{kind:'trousers',c:0x14102a},boots:{kind:'shoe',c:0x1a1428}}
+    belt:{c:0x0e0a1e},legwear:{kind:'trousers',c:0x14102a},boots:{kind:'shoe',c:0x1a1428}},
+  // The chandler of Lowmere: a merchant woman in an artisan's apron over an
+  // amber dress, hair in a practical bun, wax on her apron and tapers in hand.
+  'Dunna Wex':{fem:true,species:1,ears:'human',face:9,eye:0x4a3826,skin:0xe6b896,
+    hair:{style:'bun',c:0x3a2412,c2:0x5a3a20},
+    top:{kind:'dress',pattern:'linen',c:0x8f5e2e,c2:0x6e4520,sleeve:'long',len:'calf',collar:'round'},
+    apron:{len:'knee',c:0xc9b896},belt:{c:0x5a3a20},
+    legwear:{kind:'stockings',c:0x9e8578},boots:{kind:'shoe',c:0x33241a}}
 };
 function npcKitLook(name,o){
   // o: {signature, species, variant, bodyType, robe, look}
@@ -43530,7 +43537,11 @@ const REFERENCE_BUILD_NPC_ROLES=[
   // candles, someone kneeling before the dais, a pilgrim looking up the nave.
   {id:'npc-cathedral-verger',place:'place-cathedral-of-hours',role:'caretaker',pose:'tend-blades',name:'Brother Aske',x:CATHEDRAL.x+2.4,z:CATHEDRAL.z-10.4,robe:0x2f2a3a,line:'The bells above us turn the watches. Down here we only keep the hours they ring.',face:[CATHEDRAL.x,CATHEDRAL.z-10.9],district:'The Cathedral of Hours',prop:'none',look:{variant:7,species:0,build:1},tags:['cathedral','candles']},
   {id:'npc-cathedral-kneeler',place:'place-cathedral-of-hours',role:'mourner',pose:'kneel-mourn',name:'Idony Vale',x:CATHEDRAL.x+.5,z:CATHEDRAL.z-6.9,robe:0x5a4a6e,line:'I come in when the Still Hours ring. It is the only time the city is quiet enough to ask anything.',face:[CATHEDRAL.x,CATHEDRAL.z-10.6],district:'The Cathedral of Hours',prop:'none',look:{variant:5,species:1,build:0},tags:['cathedral','kneel']},
-  {id:'npc-cathedral-pilgrim',place:'place-cathedral-of-hours',role:'pilgrim',pose:'look-up',name:'Coll of the Far Road',x:CATHEDRAL.x+3,z:CATHEDRAL.z+10.4,robe:0x6a5a44,line:'I walked from the coast to see the east windows lit. Nobody told me they are lit every night.',face:[CATHEDRAL.x,CATHEDRAL.z-14],district:'The Cathedral of Hours',prop:'lantern',look:{variant:0,species:2,build:1},tags:['cathedral','pilgrim']}
+  {id:'npc-cathedral-pilgrim',place:'place-cathedral-of-hours',role:'pilgrim',pose:'look-up',name:'Coll of the Far Road',x:CATHEDRAL.x+3,z:CATHEDRAL.z+10.4,robe:0x6a5a44,line:'I walked from the coast to see the east windows lit. Nobody told me they are lit every night.',face:[CATHEDRAL.x,CATHEDRAL.z-14],district:'The Cathedral of Hours',prop:'lantern',look:{variant:0,species:2,build:1},tags:['cathedral','pilgrim']},
+  // On Lowmere's main street: the chandler at her stall, tapers in hand —
+  // the lower town's merchant, and the closest thing Vaneth has to a
+  // shopkeeper who remembers what you bought.
+  {id:'npc-lowmere-chandler',place:'place-lower-town-overlook',role:'chandler',pose:'tend-wares',name:'Dunna Wex',x:LOW.at(27,6)[0],z:LOW.at(27,6)[1],robe:0x8f5e2e,line:'Tapers, rushlights, and the good beeswax for vows. The Watch buys by the dozen — but you look like a one-at-a-time customer.',face:LOW.at(24,6),district:'Lowmere',prop:'tapers',look:{variant:3,species:1,build:1},tags:['lowmere','merchant','chandler','shop']}
 ];
 // A role's own things sit where the body holds them (r143): a staff or a
 // lantern in the palm's grip, a bow across the back, a hat on the head pivot.
@@ -43588,6 +43599,21 @@ function addReferenceRoleProp(npc,role){
     // Slung across the back, string outward, not hovering at the hip.
     const bow=npcPropBow(.42,Math.PI*1.1);   // (r163) the kit's
     bow.position.set(0,1.02,-.30); bow.rotation.set(0,0,Math.PI*.5+.35); bow.name='reference-role-prop-'+role.id; npc.g.add(bow); npc.lodHide?.push(bow);
+  }else if(role.prop==='tapers'){
+    // The chandler's bundle: five tapers bound with twine at the middle,
+    // held upright in the fist — her trade, carried the way a guard carries
+    // a spear. Role-specific, not the kit's generic prop.
+    const bundle=new THREE.Group();
+    const taperCols=[0xe8d9b0,0xd8a850,0xe8d9b0,0xa83a20,0xd8a850];
+    for(let i=0;i<5;i++){
+      const taper=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.34,6),npcMaterial(taperCols[i]));
+      taper.position.set((i-2)*.028,.20,(i%2)*.024-.012);
+      taper.rotation.z=(i-2)*.04; taper.rotation.x=(i%2?.06:-.05);
+      taper.name='reference-role-prop-'+role.id+'-taper'+i; bundle.add(taper);
+    }
+    const twine=new THREE.Mesh(new THREE.TorusGeometry(.045,.008,4,8),npcMaterial(0x6a4a2a));
+    twine.rotation.x=Math.PI/2; twine.position.y=.20; bundle.add(twine);
+    hold(bundle,1);
   }
   if(role.hat==='wizard'&&!npc.kitHat){
     // A tall hat is most of a wizard's silhouette against the sky. (r159: a
@@ -45140,6 +45166,17 @@ function applyReferenceBuildNpcPose(npc,t,movingNpc){
     p.rightArm.rotation.x=ROLE_STAFF_ARM+breath*.1;
     p.headPivot.rotation.x=.16+breath*.3; p.headPivot.rotation.y=Math.sin(t*.4+npc.phase)*.07;
     npc.g.rotation.z=Math.sin(t*.5+npc.phase)*.015;
+  }else if(pose==='tend-wares'){
+    // The chandler's work (canon acting): leaning into her stall, both hands
+    // forward at counter height — the right holding the taper bundle, the
+    // left arranging the wares. The head moves between the work and whoever
+    // has stopped at the counter.
+    drop(.04);
+    p.leftLeg.rotation.x=-.03; p.rightLeg.rotation.x=.03;
+    p.leftArm.rotation.x=-.95+breath*.4; p.leftArm.rotation.z=.12;
+    p.rightArm.rotation.x=-.88-breath*.4; p.rightArm.rotation.z=-.10;
+    p.headPivot.rotation.x=.22+breath*.5; p.headPivot.rotation.y=Math.sin(t*.5+npc.phase)*.14;
+    npc.g.rotation.x=.06;
   }else if(pose==='run-warn'){
     const sprint=Math.sin(t*8.5+npc.phase);
     p.leftLeg.rotation.x=-sprint*.95; p.rightLeg.rotation.x=sprint*.95;
