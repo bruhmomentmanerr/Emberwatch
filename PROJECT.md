@@ -4,11 +4,14 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r173 / 1.73.0**, sealed 2026-10-06 as "The wizard and the lens":
+Current: **r174 / 1.74.0**, sealed 2026-10-20 as "The chandler and the monk":
+Muse's new residents released with their fixes: Brother Fenwick a hooded
+monk, Bram, Sarella and Tallow given looks of their own, Dunna Wex a
+Blender-modelled chandler's stall with its candles lit (§0). Before it, **r173 / 1.73.0**, sealed 2026-10-06 as "The wizard and the lens":
 hold Z to look through a 45 degree lens, which the vista captures can use
 too, and Orren rebuilt after the reference wizard, long white hair down his
 back, a dark drooping hat, his staff taller and nothing else in his hands;
-the ruin vista reframed through the lens (§0). Before it, **r172 / 1.72.0**, sealed 2026-10-06 as "The ruin and the falls":
+the ruin vista reframed through the lens (§0a). Before it, **r172 / 1.72.0**, sealed 2026-10-06 as "The ruin and the falls":
 the Veilscar given a broken castle on its cliff, three falls into misted
 pools, conifers, a fill light, and a knoll across the valley where the
 wizard stands, after the reference frame of a wizard watching a ruined
@@ -311,7 +314,89 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-10-06, r173)
+## 0. Start here — where the last session left off (2026-10-20, r174)
+
+**State: r174 / 1.74.0, sealed 2026-10-20 ("The chandler and the monk").**
+Between r173 and this session ten commits by Muse landed on `main`,
+unreleased: new resident roles and poses, slimmer limbs, props that no
+longer clip the hands, a weathering pass over the environment tiles, and a
+read-only Bluetooth diagnostic page for the 2025 Proxy. The owner asked what
+was wrong with them, then: "fix them and ship it as r174, use blender
+workflow where applicable. make it look nice and polished." r174 is Muse's
+work and the fixes to it, released together.
+
+**Next:** the owner's look, and the **Peak test** of r172's connect sequence
+(still owed). Then the ruin vista's land (r173's §0a). Seen in this
+session's shots and not fixed: a hood's inner edge shows as a pale
+sawtooth on the kit's hooded figures; Dunna wears glasses she was not
+given (her look leaves them to chance).
+
+### What was wrong with the new residents
+
+- **Brother Fenwick, Bram Starling, Sarella of the Ninth Vow and Tallow of
+  Foxglove Bank had no look of their own.** The kit dressed them at random
+  from their variant: Fenwick, the Oathfield's lantern-carrying ritualist,
+  came out a spiky-haired lad in a short tunic and striped stockings;
+  Tallow had a sky-marked resident's wings and a wide hat.
+- **Dunna Wex leaned over a counter that was not there.** Her pose, "tend
+  wares", is the chandler at her stall; she stood in the middle of a lane.
+- **The figure "sunk to the hips" beside Pip** was Tallow, whole and on the
+  bridge deck, cut off by the parapet in a low camera. Not a bug in the
+  game; the earlier camera stood below the deck.
+- **"Bram renders standing"** was the same: a low camera in front of him.
+  Shot from the side he sits, one knee up, one leg out.
+- **Muse's comments were dated r175 to r178**, revisions that do not exist.
+  They are r174 now.
+
+### What r174 does
+
+- **Looks for the four.** Fenwick a monk: a brown habit to the ankle, its
+  hood up, a pale cord at the waist, clean-shaven. Bram a stargazer in a
+  long midnight coat, bareheaded, a short beard. Sarella a long-eared woman
+  in a plum rain cloak, hood up, over a violet dress. Tallow a gnome in a
+  river-blue coat and a wide rain hat, a ginger beard. A look can now say
+  `wings:false`, which keeps the canon's sky-marked wings off too.
+- **Dunna's stall, modelled in Blender** (`tools/assets/chandler-stall.py`,
+  bpy 4.5 as a Python module): a trestle counter with an amber cloth, a
+  candle tree with five lit tapers, two lit pillar candles, bundles of
+  tapers, beeswax and a basket of rushlights; a drying frame of tapers hung
+  in pairs at her left; the dipping pot on its tripod over embers behind.
+  2,710 triangles, 36 KB packed. It stands where she does, facing her way,
+  with a warm candle light over the counter and colliders for the counter,
+  the frame and the pot. The lane round it was mapped first (house wall on
+  her right, clear on her left).
+- **Sarella's oath.** Her hands came straight out in front of her; they
+  come in now, resting on the raised knee.
+
+### Measured
+
+- The arm's turn about z, read off a run in the figure's own frame: a
+  positive turn takes the left hand in and the right hand out. Dunna's
+  hands at rest, Pip's pipe hand and Sarella's kneel all agree with it
+  (Muse's signs were right; one attempt of mine to flip them was wrong and
+  is undone).
+- Boot, three runs each on this machine: r173 10.6, 10.8, 10.7 s against
+  r174 10.6, 11.1, 11.0 s.
+- Colliders 13,048: r173's 13,045 and the stall's three.
+
+### Verified
+
+- `check-parse`, `audit-source` (A 229, as in r173's run: the stall's
+  asset marker adds a name, a comment Muse reworded drops one; B and C 0), `audit-dom`, `audit-dead` (704, 0 dead), `audit-comments`,
+  `test-switch-frames`, `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- Every new resident shot from the front, both sides and behind: Pip,
+  Tallow, Dunna at her stall, Fenwick, Sarella, Bram, Lysa, Morwen, Orren.
+- Diagnostics: doors clear, no blocked anchors, the four gate approaches
+  whole, the stall in the canon record.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r174 in its
+  diagnostics.
+- The Proxy diagnostic page (`tools/proxy-v2-ble-diagnostic.html`) sends
+  only Lorax's seed request, unlock and read commands (0x00, 0x01, 0x10):
+  nothing that writes device state. It is not part of the game.
+
+---
+
+## 0a. r173 — where the session before that left off (2026-10-06)
 
 **State: r173 / 1.73.0, sealed 2026-10-06 ("The wizard and the lens").**
 The owner asked what was holding the ruin vista back from matching the

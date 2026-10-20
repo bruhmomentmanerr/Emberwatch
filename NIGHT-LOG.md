@@ -6,6 +6,23 @@ estimated.
 
 ---
 
+## 2026-10-20 · r174 "The chandler and the monk"
+
+**What was wrong.** Muse's new residents on `main`, unreleased: four had no
+look of their own, so the kit dressed them at random (Fenwick, a monk, came
+out a lad in striped stockings); Dunna Wex leaned over a stall that was not
+there. The "sunken" figure and the "standing" sitter were low cameras.
+
+**What changed.** Looks for Fenwick, Bram, Sarella and Tallow; Dunna's stall
+modelled in Blender and placed where she stands; Sarella's kneeling hands
+brought in. PROJECT.md §0.
+
+**What proved it.** Every new resident shot from four sides; the arm's turn
+measured in the figure's frame; diagnostics clean; audits, variants 6/6,
+smoke.
+
+---
+
 ## 2026-10-06 · r173 "The wizard and the lens"
 
 **What was wrong.** The walkthrough of what kept the ruin vista from the

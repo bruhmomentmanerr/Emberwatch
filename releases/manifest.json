@@ -2091,5 +2091,18 @@
   },
   "asset": "emberwatch-r173-the-wizard-and-the-lens.html",
   "notes": "releases/notes/r173.md"
+ },
+ {
+  "tag": "r174",
+  "rev": 174,
+  "title": "the chandler and the monk",
+  "version": "1.74.0",
+  "date": "2026-10-20T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r174-the-chandler-and-the-monk.html"
+  },
+  "asset": "emberwatch-r174-the-chandler-and-the-monk.html",
+  "notes": "releases/notes/r174.md"
  }
 ]
