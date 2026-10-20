@@ -1,99 +1,93 @@
-**r173 — the wizard and the lens** · 1.73.0 · 2026-10-06 · phase 5, world depth
+**r174 — the chandler and the monk** · 1.74.0 · 2026-10-20 · phase 5, world depth
 
 ### Summary
 
-The wizard and the lens. Hold Z to look through a 45 degree lens, which the vista captures use too: the ruin vista through it, Orren large on the left, the castle and falls across the middle, the moon over the keep. Orren after the reference wizard: long white hair down his back, a dark drooping hat, a taller staff, nothing else in his hands. Verified: the zoom read off a run, the vista and Orren from three sides, a walk over the knoll, diagnostics, audits, variants 6/6, smoke.
+The chandler and the monk. Muse's new residents and poses released with their fixes: Brother Fenwick a hooded monk in a brown habit; Bram, Sarella and Tallow given looks of their own; Dunna Wex's stall modelled in Blender, a trestle counter of lit candles and tapers, a drying frame and a dipping pot. Verified: every new resident from four sides, diagnostics, audits, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r173 / 1.73.0, sealed 2026-10-06 ("The wizard and the lens").**
-The owner asked what was holding the ruin vista back from matching the
-reference to a tee, then said "continue". The walkthrough's order: the lens,
-then Orren, then the land's scale. r173 does the first two.
+**State: r174 / 1.74.0, sealed 2026-10-20 ("The chandler and the monk").**
+Between r173 and this session ten commits by Muse landed on `main`,
+unreleased: new resident roles and poses, slimmer limbs, props that no
+longer clip the hands, a weathering pass over the environment tiles, and a
+read-only Bluetooth diagnostic page for the 2025 Proxy. The owner asked what
+was wrong with them, then: "fix them and ship it as r174, use blender
+workflow where applicable. make it look nice and polished." r174 is Muse's
+work and the fixes to it, released together.
 
 **Next:** the owner's look, and the **Peak test** of r172's connect sequence
-(still owed). For the ruin vista what remains is the land: in the reference
-the cliff towers over the viewer's rock and the valley below is green, with
-a river; ours is a 15 m cliff and a dark valley. A taller cliff means the
-stair, the shelf and the keep go up with it. The castle over the river
-bridge is the last of the three vistas furthest from their frames. Still
-open on the residents: rigid joints, sleeve and trouser wrinkles, a skirt
-that does not drape when its wearer sits.
+(still owed). Then the ruin vista's land (r173's §0a). Seen in this
+session's shots and not fixed: a hood's inner edge shows as a pale
+sawtooth on the kit's hooded figures; Dunna wears glasses she was not
+given (her look leaves them to chance).
 
-### What was wrong
+### What was wrong with the new residents
 
-- **The lens.** The game sees 75 degrees up and down, 107 across, a very
-  wide lens that shrinks everything in the middle distance. The reference
-  is a phone frame through a narrow one, so its castle is large. Ours was a
-  small castle in a wide night.
-- **Orren.** His hat brim was a wide, pale lavender disc where the
-  reference's is narrow, dark and drooping; his hair was short and grey
-  where the reference's is long and white down his back; he held an open
-  book in his other hand, the book his kind of resident carries; his staff
-  ended at his hat.
-- **Why the brim was pale.** Not its colour: the hat was already near black.
-  The staff's crystal light hung forty centimetres over it. Read off the
-  brim's pixel with each light switched off in turn, the crystal gave it two
-  thirds of its light, the fill most of the rest.
+- **Brother Fenwick, Bram Starling, Sarella of the Ninth Vow and Tallow of
+  Foxglove Bank had no look of their own.** The kit dressed them at random
+  from their variant: Fenwick, the Oathfield's lantern-carrying ritualist,
+  came out a spiky-haired lad in a short tunic and striped stockings;
+  Tallow had a sky-marked resident's wings and a wide hat.
+- **Dunna Wex leaned over a counter that was not there.** Her pose, "tend
+  wares", is the chandler at her stall; she stood in the middle of a lane.
+- **The figure "sunk to the hips" beside Pip** was Tallow, whole and on the
+  bridge deck, cut off by the parapet in a low camera. Not a bug in the
+  game; the earlier camera stood below the deck.
+- **"Bram renders standing"** was the same: a low camera in front of him.
+  Shot from the side he sits, one knee up, one leg out.
+- **Muse's comments were dated r175 to r178**, revisions that do not exist.
+  They are r174 now.
 
-### What r173 does
+### What r174 does
 
-- **Hold Z to look closer.** A 45 degree lens where the eye sees 75, eased in
-  and out, shown in the controls line. A capture can ask for a lens
-  (`canonSetCapture`'s last argument; `EMBER.lens(fov)` holds one, and the
-  harness applies a shot's `fov`), so a photograph of a place shows what
-  holding Z there shows.
-- **The ruin vista through it.** From three metres behind Orren and a step to
-  his left, both on the knoll's crown (its level top widened from 3 to 5 m
-  so he and the camera stand at one height): Orren large on the left, the
-  castle and the three falls across the middle, the moon over the keep.
-- **Orren.** Long white hair down his back to the shoulder blades, over his
-  shoulders at the sides (a new hair style in the kit, `mane`); the
-  wizard's brim narrower and drooping; his hat near black; nothing in his
-  left hand; his staff taller, its crystal over his hat, and its light a
-  third as strong (the crystal glows by itself). He stands on the crown now,
-  watching the keep.
+- **Looks for the four.** Fenwick a monk: a brown habit to the ankle, its
+  hood up, a pale cord at the waist, clean-shaven. Bram a stargazer in a
+  long midnight coat, bareheaded, a short beard. Sarella a long-eared woman
+  in a plum rain cloak, hood up, over a violet dress. Tallow a gnome in a
+  river-blue coat and a wide rain hat, a ginger beard. A look can now say
+  `wings:false`, which keeps the canon's sky-marked wings off too.
+- **Dunna's stall, modelled in Blender** (`tools/assets/chandler-stall.py`,
+  bpy 4.5 as a Python module): a trestle counter with an amber cloth, a
+  candle tree with five lit tapers, two lit pillar candles, bundles of
+  tapers, beeswax and a basket of rushlights; a drying frame of tapers hung
+  in pairs at her left; the dipping pot on its tripod over embers behind.
+  2,710 triangles, 36 KB packed. It stands where she does, facing her way,
+  with a warm candle light over the counter and colliders for the counter,
+  the frame and the pot. The lane round it was mapped first (house wall on
+  her right, clear on her left).
+- **Sarella's oath.** Her hands came straight out in front of her; they
+  come in now, resting on the raised knee.
 
 ### Measured
 
-- Hold Z, read off a run: 75 degrees at rest, 52.5 two frames into holding
-  it, 45.0 at twenty; 67.5 two frames after letting go, 75.0 at twenty.
-  `EMBER.lens(45)` gives 45 at once and clearing it gives 75.
-- Walk, as a player: from the valley up the knoll to the crown (13.0 m),
-  round behind Orren, down its front and on to the basin, 6 of 6. The rest
-  of the Veilscar is as r172 walked it.
-- Boot, three runs each, totals r172 7.66, 7.86, 8.26 s against r173 7.72,
-  7.57, 7.51 s. Within the runs' spread (both slower than r172's own runs on
-  an earlier machine).
-- Colliders 13,045, as r172.
+- The arm's turn about z, read off a run in the figure's own frame: a
+  positive turn takes the left hand in and the right hand out. Dunna's
+  hands at rest, Pip's pipe hand and Sarella's kneel all agree with it
+  (Muse's signs were right; one attempt of mine to flip them was wrong and
+  is undone).
+- Boot, three runs each on this machine: r173 10.6, 10.8, 10.7 s against
+  r174 10.6, 11.1, 11.0 s.
+- Colliders 13,048: r173's 13,045 and the stall's three.
 
 ### Verified
 
-- `check-parse`, `audit-source` (A 228, B and C 0), `audit-dom`,
-  `audit-dead` (702, 0 dead), `audit-comments`, `test-switch-frames`,
-  `test-switch-b9`, `test-bluetooth-pairing`: clean.
-- The vista through the new lens in four framings; Orren from behind, the
-  side and the front.
-- Diagnostics: no unreachable interactions, nothing in a road, the four
-  gate approaches whole, Orren on the knoll's crown.
-- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r173 in its
+- `check-parse`, `audit-source` (A 229, as in r173's run: the stall's
+  asset marker adds a name, a comment Muse reworded drops one; B and C 0), `audit-dom`, `audit-dead` (704, 0 dead), `audit-comments`,
+  `test-switch-frames`, `test-switch-b9`, `test-bluetooth-pairing`: clean.
+- Every new resident shot from the front, both sides and behind: Pip,
+  Tallow, Dunna at her stall, Fenwick, Sarella, Bram, Lysa, Morwen, Orren.
+- Diagnostics: doors clear, no blocked anchors, the four gate approaches
+  whole, the stall in the canon record.
+- Variants 6/6 built, 6/6 booted. Bluetooth smoke passed, r174 in its
   diagnostics.
-
-### The pale square, seen again
-
-A pale blue square about a hundred pixels across showed once more in a
-harness screenshot, in empty sky in front of Orren. Standing at the same
-place and reading the game's own finished frames six times over, the
-square was not there. Both times it showed, the screenshot came straight
-after the camera jumped; it has never shown in a frame read from the game
-itself, and its colour is that of the moonlit cloud. Likely a stale patch
-of an earlier frame in the software renderer's screenshot, not something
-the game draws. Not confirmed.
+- The Proxy diagnostic page (`tools/proxy-v2-ble-diagnostic.html`) sends
+  only Lorax's seed request, unlock and read commands (0x00, 0x01, 0x10):
+  nothing that writes device state. It is not part of the game.
 
 ### In the code
 
-- 5.01 MB (+2,564 bytes on r172).
-- No functions added or removed.
+- 5.08 MB (+71,035 bytes on r173).
+- 2 functions added: `chandlerStall`, `grimeTex`.
 
 ### Play it
 
