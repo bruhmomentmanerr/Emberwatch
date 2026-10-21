@@ -20,6 +20,11 @@
 # Cycles, so the folds and armpits carry their own shading. The stall,
 # tapers and wax stains stay kit-built — furniture never needed sculpting.
 #
+# (r179) The script also exports the game figure on its own —
+# assets/dunna-wex-body.glb: the sculpted body joined with the wax stains
+# and the taper bundle she holds, without the stall. That is the export the
+# game packs and inlines (DUNNA_WEX_GLB) and stands in her role in Lowmere.
+#
 #   ~/workspace/blender/blender-4.5.14-linux-x64/blender --background \
 #     --python tools/assets/dunna-wex.py
 import sys, os, math
@@ -179,7 +184,7 @@ pol.iterations = 2
 bpy.ops.object.modifier_apply(modifier=pol.name)
 print('HYBRID sculpted tris=%d' % tris_of(body))
 
-# ---- the stall, the tapers, the stains: kit-built, as before ------------------
+# ---- the tapers and stains (hers), then the stall: kit-built, as before -------
 p = Asset('dunna-props', seed=SEED)
 # wax stains sit proud of the (now slightly moved) apron face
 p.box(.10, .15, .008, .07, .72, .232, WAX, rx=-.07)
@@ -191,24 +196,29 @@ for k, (dx, dz, col, tilt) in enumerate([
         (-.014, -.024, AMBER, .04)]):
     p.cyl(.011, .013, .34, .185 + dx, 1.20, .52 + dz, col,
           sides=6, rx=tilt, rz=tilt * .7)
-# her stall counter
-p.box(1.30, .07, .55, 0, .865, .78, TIMBER)                       # counter top
+fig = p.build()
+fig.name = 'dw-figprops'
+# her stall counter (its own build, so the figure export above can leave the
+# furniture behind; the stall's jitter stream restarts, which no eye can see)
+q = Asset('dunna-stall', seed=SEED)
+q.box(1.30, .07, .55, 0, .865, .78, TIMBER)                       # counter top
 for sx in (-1, 1):
     for sz in (0, 1):
-        p.box(.08, .83, .08, sx * .58, .415, .55 + sz * .46, TIMBER_D)
-p.box(1.16, .05, .44, 0, .18, .78, TIMBER_D)                      # low shelf
+        q.box(.08, .83, .08, sx * .58, .415, .55 + sz * .46, TIMBER_D)
+q.box(1.16, .05, .44, 0, .18, .78, TIMBER_D)                      # low shelf
 # a rack of finished tapers on the counter
-p.box(.34, .05, .12, -.38, .925, .72, TIMBER_D)
+q.box(.34, .05, .12, -.38, .925, .72, TIMBER_D)
 for k, col in enumerate([CREAM, AMBER, CREAM, MADDER, AMBER, CREAM]):
-    p.cyl(.011, .013, .30, -.50 + k * .048, 1.10, .72, col, sides=6,
+    q.cyl(.011, .013, .30, -.50 + k * .048, 1.10, .72, col, sides=6,
           rx=.05 * (1 if k % 2 else -1))
 # a crate of tallow blocks under the counter
-p.box(.34, .26, .30, .42, .31, .78, TIMBER_D)
-p.box(.30, .05, .26, .42, .465, .78, WAX)
-props = p.build()
-props.name = 'dw-props'
-prop_tris = tris_of(props)
-print('HYBRID props tris=%d' % prop_tris)
+q.box(.34, .26, .30, .42, .31, .78, TIMBER_D)
+q.box(.30, .05, .26, .42, .465, .78, WAX)
+stall = q.build()
+stall.name = 'dw-stall'
+prop_tris = tris_of(fig) + tris_of(stall)
+print('HYBRID props tris=%d (figure %d, stall %d)' % (
+    prop_tris, tris_of(fig), tris_of(stall)))
 
 # ---- decimate the sculpted body to the period budget ---------------------------
 body_tris = tris_of(body)
@@ -248,10 +258,35 @@ me.color_attributes.active_color = base
 print('HYBRID AO baked: min=%.3f max=%.3f' % (
     min(d.color[0] for d in base.data), max(d.color[0] for d in base.data)))
 
+# ---- the game figure: body + what is hers, exported on its own ----------------
+# (r179) Join the figure props (wax stains, the tapers in her hand) into the
+# body and export that alone for the game; the full join below then adds the
+# stall for the design preview, exactly as before.
+bpy.ops.object.select_all(action='DESELECT')
+body.select_set(True)
+fig.select_set(True)
+bpy.context.view_layer.objects.active = body
+bpy.ops.object.join()
+body.name = 'dunna-wex-body'
+bpy.ops.object.select_all(action='DESELECT')
+body.select_set(True)
+bpy.context.view_layer.objects.active = body
+fig_out = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), '..', '..',
+    'assets', 'dunna-wex-body.glb'))
+fkw = dict(filepath=fig_out, export_format='GLB', use_selection=True,
+           export_apply=True, export_materials='NONE', export_normals=False)
+try:
+    bpy.ops.export_scene.gltf(**fkw, export_vertex_color='ACTIVE')
+except TypeError:
+    bpy.ops.export_scene.gltf(**fkw, export_colors=True)
+print('FIGURE_OK name=dunna-wex-body triangles=%d bytes=%d out=%s' % (
+    tris_of(body), os.path.getsize(fig_out), fig_out))
+
 # ---- join body + stall, then preview + export exactly as _kit.finish does -----
 bpy.ops.object.select_all(action='DESELECT')
 body.select_set(True)
-props.select_set(True)
+stall.select_set(True)
 bpy.context.view_layer.objects.active = body
 bpy.ops.object.join()
 obj = bpy.context.view_layer.objects.active
