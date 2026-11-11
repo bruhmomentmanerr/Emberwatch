@@ -49,6 +49,7 @@ node tools/audit-comments.js  # comments that swallowed a call; must be none
 node tools/test-switch-frames.js
 node tools/test-switch-b9.js
 node tools/test-bluetooth-pairing.js # desktop pairing, no device writes
+node tools/test-lorax-connection.js # simulated GATT, no physical device
 ```
 
 ## When you ship

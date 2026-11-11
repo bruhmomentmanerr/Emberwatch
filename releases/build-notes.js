@@ -20,7 +20,9 @@ const { execFileSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 const rel = p => path.relative(root, p).split(path.sep).join('/');
-const read = p => fs.readFileSync(path.join(root, p), 'utf8');
+// Git stores these text sources with LF. Windows checkout line endings must
+// not rewrite the byte counts and notes of every historical release.
+const read = p => fs.readFileSync(path.join(root, p), 'utf8').replace(/\r\n/g, '\n');
 
 // ---- the archive -------------------------------------------------------------
 const PHASES = {

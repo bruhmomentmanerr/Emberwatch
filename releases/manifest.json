@@ -2104,5 +2104,18 @@
   },
   "asset": "emberwatch-r174-the-chandler-and-the-monk.html",
   "notes": "releases/notes/r174.md"
+ },
+ {
+  "tag": "r175",
+  "rev": 175,
+  "title": "fez and the connection deadline",
+  "version": "1.75.0",
+  "date": "2026-11-10T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r175-fez-and-the-connection-deadline.html"
+  },
+  "asset": "emberwatch-r175-fez-and-the-connection-deadline.html",
+  "notes": "releases/notes/r175.md"
  }
 ]
