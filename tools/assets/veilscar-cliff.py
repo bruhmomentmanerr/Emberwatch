@@ -8,13 +8,17 @@
 # round the notch, moss on the ledges, talus at the foot, and end caps
 # wrapping the plateau's sides.
 #
+# (r175) 28 m now, not 15: moved back a hundred metres from the wizard's
+# crag so the castle and falls sit in the frame as the owner's reference has
+# them, the falls are tall threads and the face had to rise with them.
+#
 # The first cut was clean boxes on an even grid and read as a masonry wall;
 # every block is now a jittered box (_kit.jbox) and no two ribs break their
 # strata at the same heights.
 #
 # Local frame (game axes): the face runs along X from -34 to +34, facing -Z
 # (toward the hall); the rock body goes back into +Z; y=0 is the ground at
-# the foot. The falls come over the notch at x=0, lip at 14.2 m.
+# the foot. The falls come over the notch at x=0, lip at TOP - .8.
 #
 #   python tools/assets/veilscar-cliff.py
 import sys, os, math
@@ -29,7 +33,7 @@ MOSS = (0.44, 0.60, 0.42)
 
 a = Asset('veilscar-cliff', seed=31415)
 r = a.rng
-TOP = 15.0
+TOP = 28.0
 HALF = 34.0
 
 
@@ -85,9 +89,9 @@ for side in (-1, 1):
     while zc < 27:
         w = r.uniform(2.6, 4.6)
         # On the +X end the stair's head landing crosses the cap at z 9.5-14.5
-        # (placed in the game at 15.05 m): hold the rock under it, no crown.
+        # (placed in the game at TOP + .05): hold the rock under it, no crown.
         saddle = side > 0 and zc + w > 8.5 and zc < 15.0
-        h = (13.6 if saddle else TOP - max(0.0, zc - 6) * .28 + r.uniform(-.8, .8))
+        h = (TOP - 1.4 if saddle else TOP - max(0.0, zc - 6) * .28 + r.uniform(-.8, .8))
         a.jbox(7.0, h + 1.2, w * 1.08, side * (HALF + 1.4 + r.uniform(-.8, .8)), h / 2 - .6, zc + w / 2,
                (ROCK, ROCK2, ROCK3)[int(zc) % 3], jit=.11, ry=r.uniform(-.1, .1), taper=r.uniform(.8, .95), top_color=MOSS)
         if not saddle:
@@ -108,5 +112,5 @@ for k in range(8):
     s = r.uniform(.8, 1.6)
     a.rock(s * 1.4, s, s * 1.2, math.cos(ang) * 6.8, s * .25, -4.0 - math.sin(ang) * 3.2, WET, jag=.25, ry=r.uniform(0, 3))
 
-a.finish(cam_at=(10.0, 6.0, -42.0), cam_look=(0.0, 8.0, 0.0), res=(1000, 600), lens=24,
-         extra_views=[('end', (52.0, 10.0, -16.0), (26.0, 8.0, 8.0))])
+a.finish(cam_at=(10.0, 10.0, -70.0), cam_look=(0.0, 14.0, 0.0), res=(1000, 600), lens=24,
+         extra_views=[('end', (60.0, 18.0, -22.0), (26.0, 14.0, 8.0))])
