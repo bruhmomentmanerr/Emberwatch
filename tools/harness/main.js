@@ -18,7 +18,7 @@
 //     Nothing here can reach a device.
 //
 // Screenshots. If the probe's result has a `shots` array of
-// { name, x, z, yaw, pitch, y?, fov?, size? }, and a shotsDir is given, the harness
+// { name, x, z, yaw, pitch, y?, fov?, size?, before? }, and a shotsDir is given, the harness
 // stands the player at each, looks through the shot's lens if it has one
 // (EMBER.lens, since r173; cleared for a shot without), waits for a few frames,
 // and saves <shotsDir>/<name>.png.
@@ -125,6 +125,9 @@ app.whenReady().then(() => {
         // one. The window keeps that size for the shots after it. The X
         // screen must be tall enough to hold it (xvfb-run -s "-screen 0 ...").
         if (Array.isArray(shot.size)) { win.setContentSize(shot.size[0], shot.size[1]); await new Promise(r => setTimeout(r, 400)); }
+        // (r176) before: a script run in the page ahead of the shot, so one run
+        // can photograph several settings of the same place.
+        if (shot.before) await win.webContents.executeJavaScript(shot.before, true);
         await win.webContents.executeJavaScript(`(()=>{const E=window.EMBER,s=${JSON.stringify(shot)};
           E.player.x=s.x;E.player.z=s.z;E.player.vy=0;E.player.onGround=true;
           E.player.y=s.y!==undefined?s.y:(E.terrainAt?E.terrainAt(s.x,s.z):0);

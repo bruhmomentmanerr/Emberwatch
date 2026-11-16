@@ -4654,13 +4654,23 @@ const BLOOM={on:true,threshold:.93,knee:.07,strength:.48,radius:.16};
 // little extra saturation and a lens-like edge falloff. This is deliberately
 // a look layer rather than a fake texture, so actual material colours remain
 // meaningful to the game and the effect costs one full-screen draw.
-const CINEMATIC_LOOK={contrast:1.06,saturation:1.10,shadowTeal:new THREE.Color(0x0e1848),vignette:.09,violet:0};
-// (r175) A place can have a mood of its own, which fades in as you come
-// near: {x, z, r, fade, violet, zenith, horizon, fog}. The Veilscar's is the
-// reference's: a violet grade over everything, the sky violet to its zenith,
-// the clouds lit violet, the haze violet-grey. Read every frame (placeMood).
+const CINEMATIC_LOOK={contrast:1.06,saturation:1.10,shadowTeal:new THREE.Color(0x0e1848),vignette:.09,violet:0,transfer:0,curves:null};
+// (r176) A place can have a mood of its own, which fades in as you come
+// near: {x, z, r, fade, violet, zenith, horizon, fog, haze, exposure,
+// ground, moon, drama, moonR, curves, transfer}. The Veilscar's is the
+// owner's reference: the sky violet to its zenith and lit violet toward the
+// moon, the air clearer, the moon smaller, and a colour transfer fitted to
+// the reference (curves: tools/fit-transfer.py, base64 of 768 bytes, the
+// lightness curve then the two colour axes'). Read every frame (placeMood).
 const PLACE_MOODS=[];
 const PLACE_MOOD_COLOR={a:new THREE.Color(), b:new THREE.Color(), w:0, m:null, ready:false};
+function moodCurves(m){
+  if(!m.curves)return null;
+  if(!m.curvesTex){ const raw=Uint8Array.from(atob(m.curves),c=>c.charCodeAt(0)), data=new Uint8Array(256*4);
+    for(let i=0;i<256;i++){ data[i*4]=raw[i]; data[i*4+1]=raw[256+i]; data[i*4+2]=raw[512+i]; data[i*4+3]=255; }
+    const tex=new THREE.DataTexture(data,256,1,THREE.RGBAFormat); tex.magFilter=tex.minFilter=THREE.LinearFilter; tex.needsUpdate=true; m.curvesTex=tex; }
+  return m.curvesTex;
+}
 function placeMood(){
   if(!PLACE_MOOD_COLOR.ready)return;
   let w=0, m=null;
@@ -4668,7 +4678,7 @@ function placeMood(){
   if(lighting!=='night')w=0;
   // Away from every mood, leave the sky and the haze to whatever set them
   // (the watch, the rain), having put them back once on the way out.
-  if(!w&&!PLACE_MOOD_COLOR.w){ CINEMATIC_LOOK.violet=0; return; }
+  if(!w&&!PLACE_MOOD_COLOR.w){ CINEMATIC_LOOK.violet=0; CINEMATIC_LOOK.transfer=0; return; }
   // the haze's density and the exposure as the look left them, kept while
   // inside a mood
   if(!PLACE_MOOD_COLOR.w){ PLACE_MOOD_COLOR.density=scene.fog.density; PLACE_MOOD_COLOR.exposure=renderer.toneMappingExposure; }
@@ -4676,10 +4686,12 @@ function placeMood(){
   scene.fog.density=PLACE_MOOD_COLOR.density*(1-w*(1-(m.haze??1)));
   renderer.toneMappingExposure=PLACE_MOOD_COLOR.exposure*(1+w*((m.exposure??1)-1));
   CINEMATIC_LOOK.violet=w*m.violet;
+  CINEMATIC_LOOK.curves=moodCurves(m); CINEMATIC_LOOK.transfer=CINEMATIC_LOOK.curves?w*(m.transfer??1):0;
   const sky=SKY_MODES[lighting]||SKY_MODES.night, mode=LIGHTING[lighting]||LIGHTING.night, A=PLACE_MOOD_COLOR.a, B=PLACE_MOOD_COLOR.b;
   const lerp=(uniform,base,to)=>{ A.setHex(base,THREE.LinearSRGBColorSpace).lerp(B.setHex(to,THREE.LinearSRGBColorSpace),w); uniform.copy(A); };
   lerp(auroraUniforms.uZenith.value,sky.zenith,m.zenith); lerp(auroraUniforms.uHorizon.value,sky.horizon,m.horizon);
   auroraUniforms.uDrama.value=w*(m.drama??0);
+  auroraUniforms.uMoonR.value=.054+w*((m.moonR??.054)-.054);
   scene.fog.color.setHex(mode.fog).lerp(B.setHex(m.fog),w); scene.background.copy(scene.fog.color);
   // the ground's own colour and the moon's: the night's are lavender and
   // blue, under which green grass comes out grey
@@ -4710,14 +4722,32 @@ const bloom=(()=>{
       gl_FragColor=vec4(min(c*uStrength,vec3(1.0)),1.0); }`,
     {tMip0:{value:null},tMip1:{value:null},tMip2:{value:null},tMip3:{value:null},tMip4:{value:null},uWeight:{value:[1,1,1,1,1]},uStrength:{value:1}},
     {blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneMinusSrcColorFactor,transparent:true});
-  const grade=shader(`uniform sampler2D tFrame; uniform float uContrast; uniform float uSaturation; uniform vec3 uShadowTeal; uniform float uVignette; uniform float uViolet; varying vec2 vUv;
+  // (r176) and last, a place's colour transfer (uTransfer, tCurves): three
+  // curves, one each for CIELAB lightness and its two colour axes, that remap
+  // the frame's colours onto a reference image's. tools/fit-transfer.py fits
+  // them by matching the two images' histograms; PLACE_MOODS carries them.
+  // The frame here is display-encoded sRGB, as the screenshot they were
+  // fitted on is.
+  const grade=shader(`uniform sampler2D tFrame; uniform sampler2D tCurves; uniform float uContrast; uniform float uSaturation; uniform vec3 uShadowTeal; uniform float uVignette; uniform float uViolet; uniform float uTransfer; varying vec2 vUv;
+    vec3 toLinear(vec3 c){ return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(.04045,c)); }
+    vec3 toDisplay(vec3 c){ return mix(c*12.92,1.055*pow(c,vec3(1.0/2.4))-.055,step(.0031308,c)); }
+    vec3 rgbToLab(vec3 c){ vec3 xyz=mat3(.4124,.2126,.0193,.3576,.7152,.1192,.1805,.0722,.9505)*toLinear(c)/vec3(.95047,1.0,1.08883);
+      vec3 f=mix(7.787*xyz+16.0/116.0,pow(max(xyz,vec3(0.0)),vec3(1.0/3.0)),step(.008856,xyz));
+      return vec3(116.0*f.y-16.0,500.0*(f.x-f.y),200.0*(f.y-f.z)); }
+    vec3 labToRgb(vec3 lab){ float fy=(lab.x+16.0)/116.0; vec3 f=vec3(fy+lab.y/500.0,fy,fy-lab.z/200.0);
+      vec3 xyz=mix((f-16.0/116.0)/7.787,f*f*f,step(.206893,f))*vec3(.95047,1.0,1.08883);
+      return toDisplay(clamp(mat3(3.2406,-.9689,.0557,-1.5372,1.8758,-.2040,-.4986,.0415,1.0570)*xyz,0.0,1.0)); }
     void main(){ vec3 c=texture2D(tFrame,vUv).rgb; float l=dot(c,vec3(.2126,.7152,.0722));
       c=mix(vec3(l),c,uSaturation+uViolet*.18); c=(c-.5)*(uContrast+uViolet*.08)+.5;
       c=mix(c,vec3(c.r*1.04+c.b*.13,c.g*.96,c.b*1.12+c.r*.03),uViolet);
       c+=uShadowTeal*(1.0-smoothstep(.10,.62,l))*0.18;
       vec2 q=vUv-.5; float edge=dot(q,q)*2.15; c*=1.0-uVignette*smoothstep(.12,.55,edge);
+      if(uTransfer>0.0){ vec3 lab=rgbToLab(clamp(c,0.0,1.0));
+        vec3 u=clamp(vec3(lab.x/100.0,(lab.y+128.0)/255.0,(lab.z+128.0)/255.0),0.0,1.0)*(255.0/256.0)+.5/256.0;
+        vec3 m=vec3(texture2D(tCurves,vec2(u.x,.5)).r,texture2D(tCurves,vec2(u.y,.5)).g,texture2D(tCurves,vec2(u.z,.5)).b);
+        c=mix(c,labToRgb(vec3(m.x*100.0,m.y*255.0-128.0,m.z*255.0-128.0)),uTransfer); }
       gl_FragColor=vec4(clamp(c,0.0,1.0),1.0); }`,
-    {tFrame:{value:null},uContrast:{value:1},uSaturation:{value:1},uShadowTeal:{value:new THREE.Color()},uVignette:{value:0},uViolet:{value:0}},
+    {tFrame:{value:null},tCurves:{value:null},uContrast:{value:1},uSaturation:{value:1},uShadowTeal:{value:new THREE.Color()},uVignette:{value:0},uViolet:{value:0},uTransfer:{value:0}},
     {blending:THREE.NoBlending});
   // FXAA is a final, edge-aware polish pass. It only blends a pixel where its
   // immediate luma neighbourhood proves there is an aliasing edge, rather than
@@ -4779,7 +4809,8 @@ const bloom=(()=>{
     renderer.copyFramebufferToTexture(gradedFrame);
     grade.uniforms.tFrame.value=gradedFrame; grade.uniforms.uContrast.value=CINEMATIC_LOOK.contrast;
     grade.uniforms.uSaturation.value=CINEMATIC_LOOK.saturation; grade.uniforms.uShadowTeal.value.copy(CINEMATIC_LOOK.shadowTeal);
-    grade.uniforms.uVignette.value=CINEMATIC_LOOK.vignette; grade.uniforms.uViolet.value=CINEMATIC_LOOK.violet; pass(grade,null);
+    grade.uniforms.uVignette.value=CINEMATIC_LOOK.vignette; grade.uniforms.uViolet.value=CINEMATIC_LOOK.violet;
+    grade.uniforms.uTransfer.value=CINEMATIC_LOOK.curves?CINEMATIC_LOOK.transfer:0; grade.uniforms.tCurves.value=CINEMATIC_LOOK.curves; pass(grade,null);
     renderer.copyFramebufferToTexture(antiAliasedFrame);
     antiAlias.uniforms.tFrame.value=antiAliasedFrame; antiAlias.uniforms.uTexel.value.set(1/size.x,1/size.y); pass(antiAlias,null);
     renderer.info.render.frame=frameCount;
@@ -5485,7 +5516,7 @@ const BROOK=[]; let BROOK_READY=false, BROOK_BOX=null;
 // Frames follow aBox: rotateY(ry) sends local +X to (cos ry, -sin ry) and
 // local +Z to (sin ry, cos ry). hw/hd are the half extents along local X/Z.
 const LANDFORMS=[], POOLS=[], SURFACES=[];
-// (r175) Patches of ground coloured apart from the rest, {x, z, r, fade, c}:
+// (r176) Patches of ground coloured apart from the rest, {x, z, r, fade, c}:
 // within r the vertex colour is multiplied by c, fading to none over fade.
 // The Veilscar's valley is green, as the reference's is; elsewhere the night
 // ground keeps its colour.
@@ -8739,11 +8770,11 @@ function addRuinsCanon(){
   // behind him and a step to his left, both on the knoll's level crown: the
   // castle and the falls as large as the reference has them, the moon over
   // the keep, Orren from the waist up and a little above the eye.
-  // (r175) From the crag: 2.6 m behind him and 0.7 m to his right, at his
+  // (r176) From the crag: 2.6 m behind him and 0.7 m to his right, at his
   // shoulders' height, turned off the keep's bearing so the keep stands right
   // of the middle and he left of it, as in the reference; through a 60
-  // degree lens (both matched by eye against the reference in a 540 x 960
-  // frame, the shape its phone took it in).
+  // degree lens, both matched by eye against the reference in a 540 x 960
+  // frame, the shape its phone took it in.
   { const [ox,oz]=VEIL.watchXZ,[kx,kz]=VEIL_AT(51,-4), d=Math.hypot(kx-ox,kz-oz), fx=(kx-ox)/d, fz=(kz-oz)/d,
       x=ox-fx*2.6-fz*.7, z=oz-fz*2.6+fx*.7, yaw=Math.atan2(-(kx-x),-(kz-z))+.16;
     canonSetCapture('vista-ruin-waterfall',x,z,x-Math.sin(yaw)*50,z-Math.cos(yaw)*50,-.02,.2,60); }
@@ -43228,8 +43259,8 @@ const GROVE=(()=>{ const m=Math.hypot(MOON_DIR.x,MOON_DIR.z); return axisFrame(5
 // The Veilscar: a cliff 34 m out from the hall's centre, 15 m high, the falls
 // coming over it on the hall's own axis; the plunge pool at its foot; a stair
 // up its far end (t=-42) to a head landing; the wizard's shelf at t=+9.
-// (r175) Moved back: everything of the Veilscar (cliff, falls, pools, stair,
-// keep) now stands `back` metres further out than these numbers say, which
+// (r176) Moved back: everything of the Veilscar, cliff, falls, pools, stair,
+// keep, now stands `back` metres further out than these numbers say, which
 // are kept as they were and read in its own frame, VEIL_AT. At 34 m the
 // falls were 55 m from Orren's knoll and the castle filled the frame; the
 // owner's reference has them three times as far, small, high on their
@@ -43240,13 +43271,13 @@ const VEIL={back:109,face:34,top:28,poolS:28,poolR:6.4,poolLevel:-.3,stairT:-42,
   // into a plunge pool of its own [s, t, r]; the wizard's knoll across the
   // valley [s, t], its crown's height, and where on it he stands, at the
   // edge toward the falls. Far enough round that the hall is not between.
-  // (r175) the falls narrower, threads down the taller face; the knoll a
+  // (r176) the falls narrower, threads down the taller face; the knoll a
   // crag 20 m up, high over the valley as the reference's rock is
   falls:[[-13,1.0],[0,1.5],[14,1.2]], pools:[[29.2,-13,4.4],[29.4,14,4.8]], knoll:[0,44], knollTop:14, crag:6.5,
   // the peaks left of the castle as the knoll sees it [s, t] in VEIL_AT
   peaks:[100,-108]};
 const VEIL_AT=(s,t)=>FALLEN.at(s+VEIL.back,t);
-// (r175) The wizard's crag (tools/assets/wizards-crag.py) on the knoll's
+// (r176) The wizard's crag, tools/assets/wizards-crag.py, on the knoll's
 // crown, its sheer front toward the falls; at(lx,lz) in its own frame, +Z
 // toward the falls. Its top is a deck crag metres over the crown; Orren
 // stands a step back from the lip.
@@ -43271,16 +43302,16 @@ function planAuthoredLandforms(){
   // wizard watches from: a round hill, its flanks easing out over sixteen
   // metres, walkable all round
   for(const [ps,pt,pr] of V.pools){ [x,z]=VEIL_AT(ps,pt); landform({id:'veil-pool-'+(pt<0?'south':'north'),kind:'bowl',x,z,r:pr,floor:-1.4,edge:3}); addPool('veil-pool-'+(pt<0?'south':'north'),x,z,pr+.9,V.poolLevel); }
-  [x,z]=F.at(...V.knoll); landform({id:'wizards-knoll',kind:'mesa',x,z,ry:F.ry,hw:12,hd:12,round:8,edge:20,top:V.knollTop,rough:.25});   // (r175) the crown wide enough that the crag's steps start on it
-  // (r175) the crag's top, all of it inside its edge walls, and the slabs
+  [x,z]=F.at(...V.knoll); landform({id:'wizards-knoll',kind:'mesa',x,z,ry:F.ry,hw:12,hd:12,round:8,edge:20,top:V.knollTop,rough:.25});   // (r176) the crown wide enough that the crag's steps start on it
+  // (r176) the crag's top, all of it inside its edge walls, and the slabs
   // down its back
   { const C=VEIL_CRAG; [x,z]=C.at(0,.65); addDeck('wizards-crag-top',x,z,C.ry,3.1,2.65,C.top);
     const [x1,z1]=C.at(0,-10),[x2,z2]=C.at(0,-2.2); addStair('wizards-crag-steps',x1,z1,x2,z2,1.4,V.knollTop,C.top,7); }
-  // (r175) no wood in the peaks; the valley floor greened (TERRAIN_TINTS)
+  // (r176) no wood in the peaks; the valley floor greened, TERRAIN_TINTS
   { const [cx,cz]=VEIL_AT(...V.peaks); CANON_SITE_CLEARINGS.push({id:'veilscar',x:cx,z:cz,r:44}); }
   { const [cx,cz]=VEIL_AT(-30,10); TERRAIN_TINTS.push({x:cx,z:cz,r:80,fade:45,c:[.55,3.0,.5]}); }
   // No trees in the pool, on the face, on the stair or on the shelf; the
-  // plateau behind keeps its wood. (r175) Nor on the knoll, nor close under
+  // plateau behind keeps its wood. (r176) Nor on the knoll, nor close under
   // it on the line to the falls, where the nearest crowns would stand in the
   // view; the valley floor beyond keeps its wood, as the reference's does.
   for(const [s,t,r] of[[V.poolS,0,11],[V.face,-22,9],[V.face,-8,9],[V.face,8,9],[V.face,22,9],[(V.stairS0+V.stairS1)/2,V.stairT,10],[V.stairS0+8,V.stairT,10],[V.stairS1-8,V.stairT,10],[V.ledgeS+2,V.ledgeT,6],[42,0,9],
@@ -43523,7 +43554,7 @@ function placeFallenHall(){
   // The processional way: from the cairn on the track to the west door.
   { const [x1,z1]=at(-23.5,0),[x2,z2]=at(-16.8,0), len=Math.hypot(x2-x1,z2-z1); aBox(3.4,.08,len,(x1+x2)/2,.05,(z1+z2)/2,'cobble',F.ry); }
   // The Veilscar: its rock face, the falls, the pool, the mist, the stair,
-  // in its own frame since r175 (VEIL_AT).
+  // in its own frame since r176, VEIL_AT.
   { const at=VEIL_AT;
   { const [x,z]=at(V.face,0); placeLandmark('veilscar-cliff',VEILSCAR_CLIFF_GLB,[{x,y:0,z,ry:F.ry}],{tex:'rock',tile:5}); }
   // Nobody climbs the face; the stair is the way up. A line along its foot,
@@ -43544,7 +43575,7 @@ function placeFallenHall(){
   { const [px,pz]=at(V.poolS,0);
     const pool=new THREE.Mesh(new THREE.CircleGeometry(V.poolR+1.3,40).rotateX(-Math.PI/2),waterMaterial(.2)); pool.position.set(px,V.poolLevel,pz); pool.renderOrder=2; scene.add(pool);
     const [mx,mz]=at(V.face-2.8,0); mistAt(mx,V.poolLevel+.2,mz,3.2,26,1.4); mistAt(mx,V.poolLevel,mz,4.5,24,.9,6.5,.6);
-    // (r175) seen from 150 m the spray was lost: a broad bank of it along the
+    // (r176) seen from 150 m the spray was lost: a broad bank of it along the
     // foot of the face, as the reference has
     { const [bx,bz]=at(V.face-6,0); mistAt(bx,1.2,bz,22,70,1.6,14,.55); }
     // the new falls' pools and their spray, and a low mist over the whole
@@ -43563,18 +43594,28 @@ function placeFallenHall(){
   }
   placeVeilscarKeep();
   placeWizardsKnoll();
-  // (r175) the Veilscar's mood: full over the valley, the knoll and the
-  // cliff, gone by the hall's far door
-  { const [x,z]=VEIL_AT(-20,10); PLACE_MOODS.push({id:'veilscar',x,z,r:95,fade:60,violet:.7,zenith:0x07041a,horizon:0x3a2a86,fog:0x120d26,
+  // (r176) the Veilscar's mood: full over the valley, the knoll and the
+  // cliff, gone by the hall's far door. Each value was chosen by scoring
+  // photographs of the vista against the owner's reference with
+  // tools/match-score.py, the sky's clock held so the clouds stood still
+  // (EMBER.sky.hold): from 29 to 39 of 100. The reference's violet is in its
+  // sky; its rock, its valley and its wizard are near neutral, so the grade
+  // over the whole frame is light and the sky carries the colour.
+  { const [x,z]=VEIL_AT(-20,10); PLACE_MOODS.push({id:'veilscar',x,z,r:95,fade:60,violet:0,zenith:0x050312,horizon:0x221a5c,fog:0x120d26,
     // clearer air: at 150 m the haze took half the castle; the reference's
     // castle stands clear across its valley
     haze:.55,
     // and brighter: the reference's valley is lit green under its moon
-    exposure:1.4,
-    // moonlight near white and the ground neutral, so the valley is green
-    ground:0xa4b894, moon:0xe4e6ff,
-    // and its sky: cloud to the zenith, lit violet toward the moon
-    drama:1}); }
+    exposure:1.2,
+    // moonlight near white and the ground green, so the valley is green
+    ground:0xa8c890, moon:0xf0f0ff,
+    // and its sky: cloud to the zenith, lit violet toward the moon; the moon
+    // smaller, half the game's, as the reference's is in a frame this wide
+    drama:.7, moonR:.03,
+    // the colour transfer, fitted (tools/fit-transfer.py, tone mode) on the
+    // vista photographed without it: the reference's tones and the centre
+    // and spread of its colour, in place of the hand-set violet grade
+    curves:'CAsNDxARERISExMUFBUVFhcYGRobHB0dHh8fICEiIyMkJSUmJygpKiorLCwtLS4uLy8wMDEyMjMzNDU1NjY3ODg5Ojs8PT4/QEFCQ0RGRkdISUpLS0xNTU5PUFFSUlNUVFVWVldYWVpbW1xdXV5fX2BhYmJjZGVlZmdoaWpqa2xtbm9wcXFyc3R0dXZ3d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2OkJGSk5SVlpeYmZqbnJ6foKKjpKWmp6ipqqusra6wsbO1t7m7vsHEyMvNz9HS09TV1tfY2drb3N3f4OLj5OXm5+jo6err7O3u7/Dw8fLy8/P09fX29vf3+Pr8/QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAgMEBQcICQoLDQ4PEBETFBUWFxkaGxwdHyAhIiMlJicoKSssLS4vMTIzNDU3ODk6Oz0+P0BBQ0RFRkdJSktMTU9QUVJTVVZXWFlbXF1eX2FiY2RlZmhpamtsbm9wcXJ0dXZ3eHp7fH1+gIGCg4SGh4iJioyNjo+QkpOUlZaYmZqbnJ6foKGipKWmp6iqq6ytrrCxsrO0tre4ubq8vb6/wMLDxMXGyMnKy8zOz9DR0tTV1tfY2tvc3d7g4eLj5Obn6Onq7O3u7/Dy8/T19vj5+vv8/v////////////////////8AAAAAAAAAAAAAAQIDBAYHCAkKDA0ODxASExQVFhgZGhscHh8gISIkJSYnKCorLC0uMDEyMzQ2Nzg5Ojw9Pj9AQUNERUZHSUpLTE1PUFFSU1VWV1hZW1xdXl9hYmNkZWdoaWprbW5vcHFzdHV2d3l6e3x9f4CBgoOFhoeIiYuMjY6PkZKTlJWXmJmam52en6Cho6Slpqepqqusra+wsbKztba3uLm7vL2+v8HCw8TFx8jJysvNzs/Q0dPU1dbX2drb3N3f4OHi4+Xm5+jp6+zt7u/x8vP09ff4+fr7/f7/////////////////////////////////////////////'}); }
   // (r172) The moon is behind the Veilscar as the knoll sees it, so all of
   // its face toward the knoll was shadow, and the physical lighting draws
   // shadow nearly black: the cliff, the keep and the falls were one dark
@@ -43582,7 +43623,7 @@ function placeFallenHall(){
   // One cool fill, high over the valley on the knoll's side, does it; the
   // value was chosen from three photographed at the capture, and brightening
   // the grade instead did next to nothing, there being no light to brighten.
-  // (r175) With the cliff moved back it stands over the valley in front of
+  // (r176) With the cliff moved back it stands over the valley in front of
   // the face, not over the knoll.
   { const [x,z]=VEIL_AT(-24,18), fill=lampLight(0x9aa6ff,2.4,80); fill.position.set(x,46,z); scene.add(fill); lights.push({light:fill,base:2.4,phase:0,fire:true}); }
   canonRecord('landmark','fallen-hall-modelled',F.cx,F.cz,{purpose:'the hall itself, broken: nave, lancet windows, the great east window framing the falls'});
@@ -43635,23 +43676,27 @@ function placeVeilscarKeep(){
 // hall is, where a path comes up.
 function placeWizardsKnoll(){
   const F=FALLEN, V=VEIL, at=F.at, [ks,kt]=V.knoll, C=VEIL_CRAG;
-  // (r175) The crag (tools/assets/wizards-crag.py) where the two stones
+  // (r176) The crag, tools/assets/wizards-crag.py, where the two stones
   // were: walls round its edge but where its steps come down, and along the
   // steps' sides, so nobody walks into the rock or off its top.
   // Its stone pale, as the reference's rock is: the rock texture is dark, and
   // under the crag's own pale colours it came out a dull blue. A material of
   // its own on the same texture, brightened, rather than a new texture (every
   // texture draws from the world's seeded stream, and one more would shift
-  // everything generated after it).
-  { const material=new THREE.MeshStandardMaterial({map:TX.rock,vertexColors:true,roughness:.9,flatShading:true,color:new THREE.Color(2.1,2.05,2.2)}); MATS['landmark-wizards-crag']=material;
+  // everything generated after it). Warm of blue and less bright than first
+  // tried: scored against the reference, its rock is grey, not lavender.
+  { const material=new THREE.MeshStandardMaterial({map:TX.rock,vertexColors:true,roughness:.9,flatShading:true,color:new THREE.Color(1.7,1.7,1.6)}); MATS['landmark-wizards-crag']=material;
     placeLandmark('wizards-crag',WIZARDS_CRAG_GLB,[{x:C.x,y:V.knollTop,z:C.z,ry:C.ry}],{tex:'rock',tile:1.6,material}); }
   { const wall=(a,b,r=.45)=>{ const [x1,z1]=C.at(...a),[x2,z2]=C.at(...b); wallColl(x1,z1,x2,z2,r); };
     wall([-1.5,-2.1],[-3.3,-2.1]); wall([-3.3,-2.1],[-3.3,3.4]); wall([-3.3,3.4],[3.3,3.4]); wall([3.3,3.4],[3.3,-2.1]); wall([3.3,-2.1],[1.5,-2.1]);
     wall([-1.6,-2.1],[-1.6,-9.6]); wall([1.6,-2.1],[1.6,-9.6]); }
-  // (r175) The peaks left of the castle (tools/assets/veilscar-peaks.py),
+  // (r176) The peaks left of the castle, tools/assets/veilscar-peaks.py,
   // their face to the knoll; a collider round each spire's foot.
+  // Their rock pale too: the reference's mountains stand lit grey against
+  // the sky, where on the dark rock texture alone they were silhouettes.
   { const [x,z]=VEIL_AT(...V.peaks), ry=Math.atan2(x-C.x,z-C.z);
-    placeLandmark('veilscar-peaks',VEILSCAR_PEAKS_GLB,[{x,y:terrainAt(x,z)-1,z,ry}],{tex:'rock',tile:6});
+    const material=new THREE.MeshStandardMaterial({map:TX.rock,vertexColors:true,roughness:.95,flatShading:true,color:new THREE.Color(2.0,2.0,1.95)}); MATS['landmark-veilscar-peaks']=material;
+    placeLandmark('veilscar-peaks',VEILSCAR_PEAKS_GLB,[{x,y:terrainAt(x,z)-1,z,ry}],{tex:'rock',tile:6,material});
     const co=Math.cos(ry), si=Math.sin(ry);
     for(const [lx,lz,r] of[[-30,6,10],[-18,-2,15],[-6,8,12],[6,-4,13],[18,6,9],[30,-2,8],[-38,-10,6],[38,10,6]])addCollider(x+lx*co+lz*si,z-lx*si+lz*co,r);
     canonRecord('landmark','veilscar-peaks',x,z,{purpose:'grey rock spires to the left of the castle as the wizard sees it, as in the reference frame'}); }
@@ -47606,7 +47651,7 @@ const REFERENCE_BUILD_NPC_ROLES=[
 // `upright` counter-rotates a held staff against the arm's pose so it stands
 // straight while the arm holds it forward.
 const ROLE_STAFF_ARM=-.34;
-// (r175) A resident drawn by a sculpted model (tools/assets/orren.py) instead
+// (r176) A resident drawn by a sculpted model (tools/assets/orren.py) instead
 // of the kit: the model hangs on the resident's group, in metres whatever the
 // group's scale, and the kit's parts (which the resident batch draws) are
 // shrunk to nothing, not hidden: lodVillagers sets their visibility every
@@ -47657,7 +47702,7 @@ function addReferenceRoleProp(npc,role){
       const light=lampLight(glow,.12,7); light.position.set(gnarled.userData.crystalX,.36+gnarled.userData.crystalY,0); staff.add(light); lights.push({light,base:.12,phase:1.3,fire:true,child:true});
     }else{ const shaft=npcPropPole(1.95,.038,.03,0x4a3522,role.id.length*97); shaft.position.y=.36; staff.add(shaft); }   // (r163) the kit's
     staff.rotation.x=-ROLE_STAFF_ARM; staff.userData.upright=true; hold(staff,1);
-    // (r175) The reference's wizard is lit violet down his back and his hair
+    // (r176) The reference's wizard is lit violet down his back and his hair
     // by his crystal; ours, seen from behind, was dark. A small violet light
     // behind his right shoulder does it, reaching no further than him.
     if(role.role==='ruin-wizard')attachSculpt(npc,ORREN_GLB,{name:'orren',glow:0xb080ff,crystal:[-.47,2.33,.36]});
@@ -47806,6 +47851,7 @@ scene.add(starField);
 //  - low cloud banks that drift across it, dark, their edges catching the moon;
 //  - the aurora kept, as faint cobalt-to-violet veils, so the identity of the
 //    place survives without washing the frame.
+const SKY_HOLD={t:undefined};   // (r176) EMBER.sky.hold
 const auroraUniforms={
   uTime:{value:0},
   uFog:{value:new THREE.Color().setHex(C.nightFog,THREE.LinearSRGBColorSpace)},
@@ -47814,6 +47860,7 @@ const auroraUniforms={
   uIntensity:{value:1},
   uCloud:{value:1},
   uDrama:{value:0},
+  uMoonR:{value:.054},   // (r176) the great moon's radius, radians; a place's mood can shrink it
   uMoonLit:{value:1},
   uMoonDir:{value:MOON_DIR.clone()},
   uMoon2Dir:{value:MOON2_DIR.clone()}
@@ -47824,7 +47871,7 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
   fragmentShader:`
     precision highp float;
     varying vec3 vDir;
-    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
+    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama,uMoonR; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
     float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y); }
@@ -47872,7 +47919,7 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
       sky+=tint*max(glow,0.0)*uIntensity*0.34;
       // The moons, drawn into the dome so they always sit at infinity. The
       // great moon is pale and carries darker seas; the ember moon is small.
-      vec3 m=skyDisc(d,uMoonDir,0.054);
+      vec3 m=skyDisc(d,uMoonDir,uMoonR);
       if(m.z<1.0){
         float limb=sqrt(max(0.0,1.0-m.z*m.z));
         float seas=smoothstep(0.44,0.62,fbm(m.xy*2.2+vec2(3.1,7.7)));
@@ -47896,7 +47943,7 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
       vec3 cloud=mix(uZenith,uHorizon,0.62)*0.92;
       sky=mix(sky,cloud,body*0.9*uCloud);
       sky+=moonAir*rim*(0.05+0.75*pow(md,9.0))*uCloud*uMoonLit;
-      // (r175) A place's mood can raise a sky of its own (uDrama, 0 to 1): the
+      // (r176) A place's mood can raise a sky of its own, uDrama from 0 to 1: the
       // owner's reference for the Veilscar has cloud to the zenith, lit
       // violet and bright toward the moon, black between, stars in the gaps.
       if(uDrama>0.0){
@@ -51545,7 +51592,7 @@ function setLighting(name){ const next=LIGHTING[name]||LIGHTING.night; lighting=
   starField.material.opacity=lighting==='night'?.8:.35;
   document.querySelectorAll('[data-light]').forEach(button=>button.classList.toggle('active',button.dataset.light===lighting)); }
 document.querySelectorAll('[data-light]').forEach(button=>button.onclick=()=>setLighting(button.dataset.light)); setLighting(savedGameState?.lighting||'night');
-PLACE_MOOD_COLOR.ready=true;   // (r175) the sky and the watches exist from here on
+PLACE_MOOD_COLOR.ready=true;   // (r176) the sky and the watches exist from here on
 const pxSteps=[.98,.86,.68],pxNames=['clear','balanced','performance']; let pxi=0;function updateGraphicsButton(){document.getElementById('pxBtn').textContent='▦ graphics · '+pxNames[pxi];}if(Number.isFinite(savedGameState?.renderScale)){let savedIndex=pxSteps.indexOf(savedGameState.renderScale);if(savedIndex<0)savedIndex=savedGameState.renderScale<=.74?2:savedGameState.renderScale<=.92?1:0;pxi=savedIndex;RS=pxSteps[pxi];resize();}updateGraphicsButton();document.getElementById('pxBtn').onclick=()=>{ pxi=(pxi+1)%pxSteps.length; RS=pxSteps[pxi]; resize(); updateGraphicsButton();saveGameState(); };
 function updateBloomButton(){document.getElementById('bloomBtn').textContent='✦ bloom · '+(BLOOM.on?'on':'off');}
 if(savedGameState?.bloom===false)BLOOM.on=false; updateBloomButton();
@@ -51780,10 +51827,16 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // seven minutes for a shower. undefined hands a control back to the clock.
   sky:{rain:v=>{if(VISUAL_CANON.rain)VISUAL_CANON.rain.forced=v;},omen:v=>{if(VISUAL_CANON.omen)VISUAL_CANON.omen.forced=v;},
     shower:()=>{const e=VISUAL_CANON.events;e.nextShowerAt=clock.getElapsed();e.showerAt=-1;},moonDir:MOON_DIR,
+    // (r176) the sky's clock held at t seconds, so a run of shots scored
+    // against a reference sees the same clouds in each; undefined lets go
+    hold:v=>{SKY_HOLD.t=v;},
     bells:hold=>{ BELLS.held=!!hold; ringBells(clock.getElapsed()); return {rung:BELLS.rung,movers:LANDMARK_MOVERS.filter(m=>m.swing).length,doves:DOVES.birds.length}; }},
   sound:{report:soundReport,renderBell:soundRenderBell},
   batches:()=>({...MERGE_REPORT}),
   // (r154) What a probe standing at x, z would touch, within reach of it.
+  // (r176) the places' moods and the look, live: a probe tunes them and a
+  // shot reads the result (tools/match-score.py scores it)
+  moods:PLACE_MOODS, cinematic:CINEMATIC_LOOK,
   collidersAt:(x,z,reach=1)=>collidersNearPoint(x,z).filter(c=>Math.hypot(c.x-x,c.z-z)<c.r+reach).map(c=>({x:+c.x.toFixed(2),z:+c.z.toFixed(2),r:+c.r.toFixed(2),box:c.box?[+(c.hw*2).toFixed(2),+(c.hd*2).toFixed(2)]:null,wall:!!c.wall,blocks:colliderContains(c,x,z)})),
   forest:()=>({loaded:!!FOREST.mesh,trees:FOREST.spots?FOREST.spots.length:0,kinds:{...FOREST.kinds},visible:FOREST.visible,cut:Math.round(FOREST.cut),fireflies:{seated:FIREFLIES.fly.filter(f=>f.home).length,lit:FIREFLIES.lit,level:+FIREFLIES.level.toFixed(2)}}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
@@ -51872,7 +51925,7 @@ function loop(){ requestAnimationFrame(loop);
   }
   // Sky and stars ride with the camera so the dome never goes off-centre and
   // the starfield keeps a constant apparent distance across the larger map.
-  auroraUniforms.uTime.value=t;
+  auroraUniforms.uTime.value=SKY_HOLD.t??t;
   skyDome.position.copy(camera.position); starField.position.set(camera.position.x,0,camera.position.z);
   if(!webglContextLost)renderFrame();
   syncResidentBatch();
