@@ -2117,5 +2117,18 @@
   },
   "asset": "emberwatch-r175-fez-and-the-connection-deadline.html",
   "notes": "releases/notes/r175.md"
+ },
+ {
+  "tag": "r176",
+  "rev": 176,
+  "title": "the wizard remade",
+  "version": "1.76.0",
+  "date": "2026-11-17T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r176-the-wizard-remade.html"
+  },
+  "asset": "emberwatch-r176-the-wizard-remade.html",
+  "notes": "releases/notes/r176.md"
  }
 ]
