@@ -2123,7 +2123,7 @@
   "rev": 176,
   "title": "the wizard remade",
   "version": "1.76.0",
-  "date": "2026-11-17T13:40:00Z",
+  "date": "2026-11-17T12:30:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r176-the-wizard-remade.html"
@@ -2136,12 +2136,25 @@
   "rev": 177,
   "title": "the wizards glow",
   "version": "1.77.0",
-  "date": "2026-11-17T18:20:00Z",
+  "date": "2026-11-17T16:00:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r177-the-wizards-glow.html"
   },
   "asset": "emberwatch-r177-the-wizards-glow.html",
   "notes": "releases/notes/r177.md"
+ },
+ {
+  "tag": "r178",
+  "rev": 178,
+  "title": "the ruin on the cliff",
+  "version": "1.78.0",
+  "date": "2026-11-17T19:30:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r178-the-ruin-on-the-cliff.html"
+  },
+  "asset": "emberwatch-r178-the-ruin-on-the-cliff.html",
+  "notes": "releases/notes/r178.md"
  }
 ]
