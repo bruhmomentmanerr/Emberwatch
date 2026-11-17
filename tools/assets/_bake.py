@@ -138,7 +138,85 @@ def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6, 
     return mat
 
 
-STYLES = {'rock': rock_material}
+def masonry_material(block=(1.2, .6), mortar=.03, moss=(0.22, 0.30, 0.18), moss_cover=(0.50, 0.62), streaks=0.7):
+    """(r178) Dressed stone, weathered: courses of blocks (width, height in
+    metres) laid along each face, whichever way the wall runs (the face's
+    normal picks the pattern's axes), the face colours varied block by block,
+    dark mortar, a broad mottling, rain streaks down, moss on what faces up.
+    For the castle: at the vista's distance the joints are a texture, not
+    geometry, which would cost a box a stone."""
+    mat = bpy.data.materials.new('bake-masonry')
+    mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = nt.nodes.get('Principled BSDF')
+    col = nt.nodes.new('ShaderNodeVertexColor'); col.layer_name = 'Col'
+    tc = nt.nodes.new('ShaderNodeTexCoord')
+    geo = nt.nodes.new('ShaderNodeNewGeometry')
+    # the pattern's axes: along the face and up it (blender z is up)
+    p = nt.nodes.new('ShaderNodeSeparateXYZ'); nt.links.new(tc.outputs['Object'], p.inputs['Vector'])
+    n = nt.nodes.new('ShaderNodeSeparateXYZ'); nt.links.new(geo.outputs['Normal'], n.inputs['Vector'])
+    ax = nt.nodes.new('ShaderNodeMath'); ax.operation = 'ABSOLUTE'; nt.links.new(n.outputs['X'], ax.inputs[0])
+    ay = nt.nodes.new('ShaderNodeMath'); ay.operation = 'ABSOLUTE'; nt.links.new(n.outputs['Y'], ay.inputs[0])
+    gt = nt.nodes.new('ShaderNodeMath'); gt.operation = 'GREATER_THAN'
+    nt.links.new(ax.outputs[0], gt.inputs[0]); nt.links.new(ay.outputs[0], gt.inputs[1])
+    along = nt.nodes.new('ShaderNodeMix'); along.data_type = 'FLOAT'
+    nt.links.new(gt.outputs[0], along.inputs[0])
+    nt.links.new(p.outputs['X'], along.inputs[2]); nt.links.new(p.outputs['Y'], along.inputs[3])
+    uv = nt.nodes.new('ShaderNodeCombineXYZ')
+    nt.links.new(along.outputs[0], uv.inputs['X']); nt.links.new(p.outputs['Z'], uv.inputs['Y'])
+    br = nt.nodes.new('ShaderNodeTexBrick')
+    br.inputs['Scale'].default_value = 1.0
+    br.inputs['Brick Width'].default_value = block[0]
+    br.inputs['Row Height'].default_value = block[1]
+    br.inputs['Mortar Size'].default_value = mortar
+    br.inputs['Mortar Smooth'].default_value = .3
+    br.inputs['Bias'].default_value = 0.0
+    br.inputs['Color1'].default_value = (1.0, 1.0, 1.0, 1)
+    br.inputs['Color2'].default_value = (.72, .72, .74, 1)
+    br.inputs['Mortar'].default_value = (.22, .22, .24, 1)
+    br.offset_frequency = 2
+    br.squash_frequency = 1
+    nt.links.new(uv.outputs['Vector'], br.inputs['Vector'])
+    c = _mix(nt, (0, 0), col.outputs['Color'], br.outputs['Color'], _node(nt, 'ShaderNodeValue', (0, 0)).outputs[0], 'MULTIPLY')
+    nt.nodes[-2].outputs[0].default_value = 1.0
+    # broad mottling
+    n1 = _node(nt, 'ShaderNodeTexNoise', (0, 0), Scale=.35, Detail=6.0, Roughness=.6)
+    nt.links.new(tc.outputs['Object'], n1.inputs['Vector'])
+    mott = _ramp(nt, (0, 0), n1.outputs['Fac'], [(0.40, 0.62), (0.60, 1.18)])
+    c = _mix(nt, (0, 0), c, mott, _node(nt, 'ShaderNodeValue', (0, 0)).outputs[0], 'MULTIPLY')
+    nt.nodes[-2].outputs[0].default_value = 1.0
+    # rain streaks down the faces
+    m2 = nt.nodes.new('ShaderNodeMapping'); m2.inputs['Scale'].default_value = (6, 6, .35)
+    nt.links.new(tc.outputs['Object'], m2.inputs['Vector'])
+    n2 = _node(nt, 'ShaderNodeTexNoise', (0, 0), Scale=1.6, Detail=4.0, Roughness=.5)
+    nt.links.new(m2.outputs['Vector'], n2.inputs['Vector'])
+    streak = _ramp(nt, (0, 0), n2.outputs['Fac'], [(0.38, 1.0 - .4 * streaks), (0.62, 1.0)])
+    c = _mix(nt, (0, 0), c, streak, _node(nt, 'ShaderNodeValue', (0, 0)).outputs[0], 'MULTIPLY')
+    nt.nodes[-2].outputs[0].default_value = 1.0
+    # moss on what faces up, and creeping up from the foot
+    mz = nt.nodes.new('ShaderNodeMapRange')
+    mz.inputs['From Min'].default_value, mz.inputs['From Max'].default_value = .5, .9
+    nt.links.new(n.outputs['Z'], mz.inputs['Value'])
+    foot = nt.nodes.new('ShaderNodeMapRange')
+    foot.inputs['From Min'].default_value, foot.inputs['From Max'].default_value = 2.5, 0.0
+    nt.links.new(p.outputs['Z'], foot.inputs['Value'])
+    up = nt.nodes.new('ShaderNodeMath'); up.operation = 'MAXIMUM'
+    nt.links.new(mz.outputs['Result'], up.inputs[0]); nt.links.new(foot.outputs['Result'], up.inputs[1])
+    n4 = _node(nt, 'ShaderNodeTexNoise', (0, 0), Scale=1.8, Detail=6.0, Roughness=.6)
+    nt.links.new(tc.outputs['Object'], n4.inputs['Vector'])
+    mn = nt.nodes.new('ShaderNodeMapRange')
+    mn.inputs['From Min'].default_value, mn.inputs['From Max'].default_value = moss_cover
+    nt.links.new(n4.outputs['Fac'], mn.inputs['Value'])
+    mul = nt.nodes.new('ShaderNodeMath'); mul.operation = 'MULTIPLY'
+    nt.links.new(up.outputs[0], mul.inputs[0]); nt.links.new(mn.outputs['Result'], mul.inputs[1])
+    mosscol = nt.nodes.new('ShaderNodeRGB'); mosscol.outputs[0].default_value = (moss[0], moss[1], moss[2], 1)
+    c = _mix(nt, (0, 0), c, mosscol.outputs[0], mul.outputs[0], 'MIX')
+    nt.links.new(c, bsdf.inputs['Base Color'])
+    bsdf.inputs['Roughness'].default_value = 0.9
+    return mat
+
+
+STYLES = {'rock': rock_material, 'masonry': masonry_material}
 
 
 def sculpt_rock(obj, voxel=.09, smooth=(.5, 3), rough=(.10, .7), tris=9000, calm=None):

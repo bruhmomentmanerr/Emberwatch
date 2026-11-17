@@ -21,15 +21,22 @@
 # the foot. The falls come over the notch at x=0, lip at TOP - .8.
 #
 #   python tools/assets/veilscar-cliff.py
+#
+# (r178) Baked, as the crag is: the ribs fused into one face, worn and
+# roughened, and painted dark grey, streaked and mossed, the paint baked into
+# its own texture. Flat-shaded under the tiled rock texture, the ribs' strata
+# read as courses of blue brick, a wall across the valley; the reference's
+# cliff is dark rock with moss down it.
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _kit import Asset
+from _bake import finish_baked
 
-ROCK = (0.74, 0.74, 0.84)
-ROCK2 = (0.60, 0.60, 0.72)
-ROCK3 = (0.52, 0.53, 0.66)
-WET = (0.32, 0.36, 0.50)
-MOSS = (0.44, 0.60, 0.42)
+ROCK = (0.50, 0.51, 0.52)
+ROCK2 = (0.42, 0.43, 0.45)
+ROCK3 = (0.36, 0.37, 0.39)
+WET = (0.20, 0.22, 0.26)
+MOSS = (0.24, 0.34, 0.20)
 
 a = Asset('veilscar-cliff', seed=31415)
 r = a.rng
@@ -112,5 +119,12 @@ for k in range(8):
     s = r.uniform(.8, 1.6)
     a.rock(s * 1.4, s, s * 1.2, math.cos(ang) * 6.8, s * .25, -4.0 - math.sin(ang) * 3.2, WET, jag=.25, ry=r.uniform(0, 3))
 
-a.finish(cam_at=(10.0, 10.0, -70.0), cam_look=(0.0, 14.0, 0.0), res=(1000, 600), lens=24,
-         extra_views=[('end', (60.0, 18.0, -22.0), (26.0, 14.0, 8.0))])
+# (the voxels coarser than the crag's, for a face six times the size; the
+# shelf and the stair's landing calmed, to stand on)
+finish_baked(a, cam_at=(10.0, 10.0, -70.0), cam_look=(0.0, 14.0, 0.0), res=(1000, 600), lens=24,
+             extra_views=[('end', (60.0, 18.0, -22.0), (26.0, 14.0, 8.0))],
+             size=1024, style='rock', jpeg_quality=72,
+             style_args=dict(moss=(.20, .30, .16), speckle=.6, streaks=.9, mottle=(.45, 1.30), patches=(1.2, .65, 1.25),
+                             moss_cover=(.46, .58), spread=.10),
+             shape=dict(voxel=.22, smooth=(.6, 8), rough=(.7, 3.2), tris=11000, calm=(LEDGE_X - 1.8, LEDGE_X + 1.8, -1.5, 3.8, TOP - 1.0)),
+             normals=True)
