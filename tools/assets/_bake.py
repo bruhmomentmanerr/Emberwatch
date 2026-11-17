@@ -58,8 +58,17 @@ def _ramp(nt, loc, src, stops):
     return r.outputs[0]
 
 
-def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6):
-    """The face colours, grained and weathered: what a PS2-era painted rock is."""
+def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6, mottle=(0.62, 1.22), patches=None,
+                  moss_cover=(0.45, 0.62), spread=0.2):
+    """The face colours, grained and weathered: what a PS2-era painted rock is.
+    (r177) mottle: the large mottling's darkest and palest factors; patches:
+    (scale, low, high), a second, middling mottling over it; moss_cover: the
+    noise range over which moss comes in (higher, less moss); spread: half
+    the band of noise values the mottlings' ramps run across, about the
+    middle (Blender's noise keeps mostly within 0.4 to 0.6, so a narrower band
+    reaches further toward both ends). Measured in the game, the reference's
+    rock varies three times as much as the first bake did, light against
+    dark."""
     mat = bpy.data.materials.new('bake-rock')
     mat.use_nodes = True
     nt = mat.node_tree
@@ -76,9 +85,15 @@ def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6):
     # large mottling, light to dark
     n1 = _node(nt, 'ShaderNodeTexNoise', (-1400, 0), Scale=0.9, Detail=8.0, Roughness=0.62)
     nt.links.new(coords(1, 1, 1, (-1600, 0)), n1.inputs['Vector'])
-    mott = _ramp(nt, (-1200, 0), n1.outputs['Fac'], [(0.30, 0.62), (0.70, 1.22)])
+    mott = _ramp(nt, (-1200, 0), n1.outputs['Fac'], [(0.5 - spread, mottle[0]), (0.5 + spread, mottle[1])])
     c = _mix(nt, (-1000, 200), col.outputs['Color'], mott, _node(nt, 'ShaderNodeValue', (-1200, 200)).outputs[0], 'MULTIPLY')
     nt.nodes[-2].outputs[0].default_value = 1.0
+    if patches:
+        n5 = _node(nt, 'ShaderNodeTexNoise', (-1400, 150), Scale=patches[0], Detail=6.0, Roughness=0.65)
+        nt.links.new(coords(1, 1, 1, (-1600, 150)), n5.inputs['Vector'])
+        pat = _ramp(nt, (-1200, 150), n5.outputs['Fac'], [(0.5 - spread, patches[1]), (0.5 + spread, patches[2])])
+        c = _mix(nt, (-900, 250), c, pat, _node(nt, 'ShaderNodeValue', (-1100, 300)).outputs[0], 'MULTIPLY')
+        nt.nodes[-2].outputs[0].default_value = 1.0
     # strata: soft bands with height, warped (blender z is game height)
     wv = nt.nodes.new('ShaderNodeTexWave'); wv.location = (-1400, -200)
     wv.bands_direction = 'Z'
@@ -111,7 +126,7 @@ def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6):
     mz.inputs['From Min'].default_value, mz.inputs['From Max'].default_value = 0.55, 0.92
     nt.links.new(up.outputs['Z'], mz.inputs['Value'])
     mn = nt.nodes.new('ShaderNodeMapRange'); mn.location = (-1200, -950)
-    mn.inputs['From Min'].default_value, mn.inputs['From Max'].default_value = 0.45, 0.62
+    mn.inputs['From Min'].default_value, mn.inputs['From Max'].default_value = moss_cover
     nt.links.new(n4.outputs['Fac'], mn.inputs['Value'])
     mul = nt.nodes.new('ShaderNodeMath'); mul.operation = 'MULTIPLY'; mul.location = (-1000, -850)
     nt.links.new(mz.outputs['Result'], mul.inputs[0]); nt.links.new(mn.outputs['Result'], mul.inputs[1])
@@ -126,10 +141,68 @@ def rock_material(scale=1.0, moss=(0.30, 0.42, 0.25), speckle=0.5, streaks=0.6):
 STYLES = {'rock': rock_material}
 
 
+def sculpt_rock(obj, voxel=.09, smooth=(.5, 3), rough=(.10, .7), tris=9000, calm=None):
+    """(r177) The kit's blocks made one weathered rock. The blocks are fused
+    into a single surface by a voxel remesh, which keeps the face colours.
+    Its edges are worn by smoothing, and it is roughened along its normals by
+    a cloud noise (strength, size in metres). Then it is thinned to a budget
+    of triangles and shaded smooth. calm is (x0, x1, z0, z1, y0) in game
+    axes: a box where the roughening is a quarter as strong, a deck to stand
+    on. The kit's flat-faced blocks, flat-shaded in the game, read as stacked
+    paving; the references' rock is one mass, worn round."""
+    import bpy as _b
+    _b.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    _b.context.view_layer.objects.active = obj
+    me = obj.data
+    me.remesh_voxel_size = voxel
+    me.use_remesh_preserve_attributes = True
+    _b.ops.object.voxel_remesh()
+    if smooth:
+        sm = obj.modifiers.new('wear', 'SMOOTH')
+        sm.factor, sm.iterations = smooth
+        _b.ops.object.modifier_apply(modifier=sm.name)
+    if rough:
+        tex = _b.data.textures.new('rough', 'CLOUDS')
+        tex.noise_scale = rough[1]
+        tex.noise_depth = 3
+        vg = obj.vertex_groups.new(name='rough')
+        full, calmed = [], []
+        for v in me.vertices:
+            x, gy, gz = v.co.x, v.co.z, -v.co.y
+            if calm and calm[0] <= x <= calm[1] and calm[2] <= gz <= calm[3] and gy >= calm[4]:
+                calmed.append(v.index)
+            else:
+                full.append(v.index)
+        vg.add(full, 1.0, 'REPLACE')
+        if calmed:
+            vg.add(calmed, .25, 'REPLACE')
+        d = obj.modifiers.new('rough', 'DISPLACE')
+        d.texture = tex
+        d.strength = rough[0]
+        d.mid_level = .5
+        d.vertex_group = 'rough'
+        _b.ops.object.modifier_apply(modifier=d.name)
+    n = sum(len(p.vertices) - 2 for p in me.polygons)
+    if tris and n > tris:
+        dec = obj.modifiers.new('thin', 'DECIMATE')
+        dec.ratio = tris / n
+        _b.ops.object.modifier_apply(modifier=dec.name)
+    for p in me.polygons:
+        p.use_smooth = True
+    print('SCULPT %s: %d triangles from %d' % (obj.name, sum(len(p.vertices) - 2 for p in me.polygons), n))
+    return obj
+
+
 def finish_baked(asset, cam_at, cam_look, res=(900, 600), lens=35, sun=(40, 0, -55), extra_views=(),
-                 size=1024, style='rock', style_args=None, ao_power=0.8, jpeg_quality=88):
+                 size=1024, style='rock', style_args=None, ao_power=0.8, jpeg_quality=88, shape=None, normals=False):
+    """shape: (r177) sculpt_rock's arguments, to fuse and wear the model
+    before it is baked; normals: export its (smooth) normals, for a model the
+    game draws as it comes (placeBakedLandmark) rather than flat."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     obj = asset.build()
+    if shape is not None:
+        sculpt_rock(obj, **shape)
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
     scene.cycles.device = 'CPU'
@@ -166,13 +239,16 @@ def finish_baked(asset, cam_at, cam_look, res=(900, 600), lens=35, sun=(40, 0, -
     a = np.array(colour.pixels[:]).reshape(size, size, 4)
     o = np.array(occl.pixels[:]).reshape(size, size, 4)[..., :1]
     a[..., :3] = np.clip(a[..., :3] * (o ** ao_power), 0, 1)
-    final = bpy.data.images.new('bake-' + asset.name, size, size, alpha=False)
-    final.pixels[:] = a.ravel()
+    # (r177) written by PIL at jpeg_quality, then loaded as the texture: saved
+    # by Blender the setting never reached the file, and the exporter embeds
+    # a JPEG's own bytes as they are
     jpg = os.path.join(HERE, '_bake-' + asset.name + '.jpg')
-    final.filepath_raw = jpg
-    final.file_format = 'JPEG'
-    scene.render.image_settings.quality = jpeg_quality
-    final.save()
+    from PIL import Image
+    lin = a[..., :3]
+    srgb = np.where(lin > .0031308, 1.055 * lin ** (1 / 2.4) - .055, lin * 12.92)
+    Image.fromarray((srgb[::-1] * 255 + .5).astype(np.uint8)).save(jpg, quality=jpeg_quality)
+    final = bpy.data.images.load(jpg)
+    final.name = 'bake-' + asset.name
     # 4. the model with only its texture
     obj.data.materials.clear()
     mat = bpy.data.materials.new('baked-' + asset.name)
@@ -211,7 +287,7 @@ def finish_baked(asset, cam_at, cam_look, res=(900, 600), lens=35, sun=(40, 0, -
     bpy.context.view_layer.objects.active = obj
     out = os.path.join(ROOT, 'assets', asset.name + '.glb')
     bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, export_apply=True,
-                              export_materials='EXPORT', export_normals=False, export_texcoords=True,
+                              export_materials='EXPORT', export_normals=normals, export_texcoords=True,
                               export_vertex_color='NONE', export_image_format='JPEG', export_jpeg_quality=jpeg_quality)
     tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
     print('ASSET_OK name=%s triangles=%d bytes=%d texture=%d out=%s previews=%s' % (

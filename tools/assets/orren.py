@@ -27,6 +27,13 @@
 # feet. Writes assets/orren.glb (two materials: the atlas, and the crystal's
 # emission), tools/assets/_bake-orren.jpg and the previews.
 #
+# (r177) After the reference again, close up: the hair a part of its own on
+# the same atlas, each lock fading out over its lower half by its vertices'
+# alpha (its points had ended in a row of teeth), and whiter; the staff's
+# fork a thick knotted branch round the crystal, not two thin horns; the
+# crystal deeper violet and glowing a third as hard. Three materials now:
+# the atlas, the hair (the atlas, blended), the crystal.
+#
 #   python tools/assets/orren.py            the whole build
 #   ORREN_FAST=1 python tools/assets/orren.py   previews of the forms only (no bake, no export)
 import sys, os, math, random
@@ -49,7 +56,8 @@ def M(name):
 
 class Buf:
     def __init__(self):
-        self.V, self.F, self.FM, self.N = [], [], [], {}
+        # A: (r177) an alpha for a vertex, where it is not 1 (the hair's tips)
+        self.V, self.F, self.FM, self.N, self.A = [], [], [], {}, {}
 
 
 main, head = Buf(), Buf()
@@ -359,7 +367,7 @@ def hair_at(y):
     return tuple(float(np.interp(y, ys, [r[k] for r in HAIR])) for k in (1, 2, 3, 4))
 
 
-def hair_lock(f0, wf, y_top, y_tip, offset, seed, ncol=4, nrow=18):
+def hair_lock(f0, wf, y_top, y_tip, offset, seed, ncol=4, nrow=18, fade_from=.45):
     """One lock lying on the hair's shell: f0 is where it hangs, from -1 (his
     right) to 1 (his left), a fraction of how far round the shell reaches at
     each height, so locks that start round the sides of the head close in
@@ -386,9 +394,16 @@ def hair_lock(f0, wf, y_top, y_tip, offset, seed, ncol=4, nrow=18):
         grid.append(row)
     phi0 = math.radians(hair_at((y_top + y_tip) / 2)[3]) * f0
     base = loft([[p for p, _ in row] for row in grid], 'hair', closed=False, face=(math.sin(phi0), 0, -math.cos(phi0)))
+    # (r177) and it fades out over its lower half, so the locks' points do
+    # not end in a row of teeth: lit by the glow on his back they read as
+    # icicles. The reference's hair thins into wisps.
     for i, row in enumerate(grid):
+        s = i / (nrow - 1)
+        a = 1 - smoothstep(fade_from, 1.0, s)
         for j, (_, nrm) in enumerate(row):
             cur.N[base + i * ncol + j] = nrm
+            if a < 1:
+                cur.A[base + i * ncol + j] = a
 
 
 def hair_layer(n, offset, tip_mid, tip_side, jitter, width, seed, shift=0.0):
@@ -469,20 +484,31 @@ def build_staff():
         return 1 + .075 * math.sin(3 * th + i * 1.3) + .045 * math.sin(5 * th - i * .7)
     tube(resample(STAFF, 2), [r[0] for r in resample([(r,) for r in STAFF_R], 2)], n=9, mat='wood', mod=gnarl)
     # the fork: the main limb leans away to his left, then hooks back over the
-    # crystal to a point; a shorter prong comes up under it from the other side
-    hook = [(-.488, 2.00, .330), (-.456, 2.10, .326), (-.430, 2.20, .322), (-.424, 2.30, .320), (-.446, 2.40, .322), (-.490, 2.475, .326), (-.540, 2.525, .330)]
-    tube(resample(hook, 2), [r[0] for r in resample([(.036,), (.031,), (.027,), (.024,), (.020,), (.013,), (.004,)], 2)], n=8, mat='wood', mod=gnarl)
-    prong = [(-.494, 1.975, .332), (-.534, 2.055, .336), (-.578, 2.120, .340), (-.606, 2.190, .342), (-.612, 2.245, .343)]
-    tube(resample(prong, 2), [r[0] for r in resample([(.026,), (.022,), (.017,), (.010,), (.003,)], 2)], n=7, mat='wood', mod=gnarl)
+    # crystal; a shorter prong comes up under it from the other side
+    # (r177) Both thick to the end and knotted, as the reference's are: a
+    # branch, not two horns. Thin and tapering to points they drew a smooth
+    # crescent round the crystal, and its light caught their inner faces pink.
+    def knotty(i, th, P, T, U, W):
+        return 1 + .12 * math.sin(3 * th + i * 1.3) + .07 * math.sin(5 * th - i * .7) + .05 * math.sin(2 * th + i * 2.1)
+    hook = [(-.488, 1.99, .330), (-.462, 2.09, .328), (-.444, 2.19, .326), (-.440, 2.29, .326), (-.452, 2.38, .328),
+            (-.478, 2.47, .330), (-.512, 2.525, .332), (-.548, 2.540, .334)]
+    tube(resample(hook, 2), [r[0] for r in resample([(.041,), (.039,), (.036,), (.034,), (.031,), (.027,), (.021,), (.013,)], 2)], n=9, mat='wood', mod=knotty)
+    for (t, d, s) in ((1.4, (.024, .006, 0), 1.0), (3.6, (.022, 0, .010), .9), (5.2, (.010, .018, 0), .8)):    # its knots
+        p = Vector(catmull(hook, t)) + Vector(d)
+        ellipsoid(p, (.024 * s, .030 * s, .024 * s), 'wood', n=8, m=6)
+    prong = [(-.500, 1.990, .332), (-.530, 2.060, .334), (-.560, 2.120, .336), (-.578, 2.170, .337)]
+    tube(resample(prong, 2), [r[0] for r in resample([(.031,), (.027,), (.020,), (.011,)], 2)], n=8, mat='wood', mod=knotty)
     for (t, s) in ((.9, 1.5), (2.3, 1.4), (4.6, 1.6), (6.4, 1.5), (7.7, 1.45)):          # knots
         p = Vector(catmull(STAFF, t))
         a = rng.uniform(0, math.tau)
         ellipsoid(p + Vector((math.cos(a) * .018, 0, math.sin(a) * .018)), (.026 * s / 1.5, .034, .026 * s / 1.5), 'wood', n=8, m=6)
     # The crystal: a long six-sided point, its facets flat.
+    # (r177) Its upper point longer than its lower, as the reference's is,
+    # and a touch wider.
     c = CRYSTAL
-    top, bot = c + Vector((.006, .135, 0)), c + Vector((-.006, -.125, 0))
-    ra = [c + Vector((.030 * math.cos(k / 6 * math.tau), -.045, .030 * math.sin(k / 6 * math.tau))) for k in range(6)]
-    rb = [c + Vector((.034 * math.cos(k / 6 * math.tau + .2), .030, .034 * math.sin(k / 6 * math.tau + .2))) for k in range(6)]
+    top, bot = c + Vector((.008, .150, 0)), c + Vector((-.008, -.120, 0))
+    ra = [c + Vector((.032 * math.cos(k / 6 * math.tau), -.050, .032 * math.sin(k / 6 * math.tau))) for k in range(6)]
+    rb = [c + Vector((.036 * math.cos(k / 6 * math.tau + .2), .040, .036 * math.sin(k / 6 * math.tau + .2))) for k in range(6)]
     for k in range(6):
         kk = (k + 1) % 6
         flat_face([ra[k], ra[kk], bot], 'crystal', c)
@@ -620,8 +646,11 @@ def paints():
         'hat': paint('hat', [(.32, (.008, .008, .024)), (.52, (.020, .020, .054)), (.74, (.046, .044, .108))],
                      9.0, (1, 1, 1), detail=6.0, rough=.6, fine=(90.0, (1, 1, 1), .86, 1.12)),
         # white hair in fine strands, a lavender shade in it
-        'hair': paint('hair', [(.30, (.32, .32, .40)), (.50, (.62, .62, .68)), (.70, (.90, .90, .92))],
-                      1.0, (70, 70, 1.3), detail=3.0, rough=.5, fine=(1.0, (190, 190, 2.5), .72, 1.10), fade=(1.0, 1.48, .38)),
+        # (r177) whiter: in the game under the night grade it came out
+        # lavender and dim, where the reference's is silver-white; and darkened
+        # less toward its ends, which fade out now instead
+        'hair': paint('hair', [(.30, (.50, .50, .57)), (.50, (.76, .76, .81)), (.70, (.95, .95, .96))],
+                      1.0, (70, 70, 1.3), detail=3.0, rough=.5, fine=(1.0, (190, 190, 2.5), .78, 1.08), fade=(1.0, 1.48, .62)),
         'skin': paint('skin', [(.35, (.40, .23, .16)), (.65, (.58, .36, .26))], 14.0, (1, 1, 1), detail=4.0, rough=.5),
         # bark, grained along the staff
         'wood': paint('wood', [(.30, (.016, .010, .006)), (.50, (.042, .026, .015)), (.72, (.098, .062, .036))],
@@ -630,7 +659,10 @@ def paints():
         'shoe': paint('shoe', [(.35, (.012, .008, .006)), (.65, (.032, .021, .014))], 20.0, (1, 1, 1)),
         'eye': paint('eye', [(.0, (.70, .70, .72)), (1.0, (.78, .78, .80))], 5.0, (1, 1, 1)),
         'iris': paint('iris', [(.0, (.02, .05, .10)), (1.0, (.03, .07, .14))], 5.0, (1, 1, 1)),
-        'crystal': paint('crystal', [(.0, (.52, .30, 1.0)), (1.0, (.80, .62, 1.0))], 5.0, (1, 1, 1), emission=((.62, .36, 1.0), 6.0)),
+        # (r177) a deeper violet, and a glow a third as strong: at 6 it burned
+        # white in the game, a blank lens; the reference's crystal is violet
+        # glass with a bright core, its facets showing
+        'crystal': paint('crystal', [(.0, (.36, .16, .92)), (1.0, (.62, .40, 1.0))], 5.0, (1, 1, 1), emission=((.56, .28, 1.0), 2.0)),
     }
 
 
@@ -695,6 +727,12 @@ def bake():
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003)
     bpy.ops.object.mode_set(mode='OBJECT')
+    # (r177) ORREN_REUSE_BAKE=1: keep the last atlas, for a change that does
+    # not touch the geometry or the paint (the unwrap of the same mesh is the
+    # same, so the old atlas still fits). It saves the Cycles bakes.
+    if os.environ.get('ORREN_REUSE_BAKE') and os.path.exists(os.path.join(HERE, '_bake-orren.jpg')):
+        print('ORREN reusing the last bake')
+        return os.path.join(HERE, '_bake-orren.jpg')
 
     def target(name):
         img = bpy.data.images.new(name, SIZE, SIZE, alpha=False, float_buffer=True)
@@ -739,29 +777,82 @@ def bake():
     return path
 
 
-def baked_material(path):
-    m = bpy.data.materials.new('orren-baked')
+def baked_material(path, name='orren-baked', alpha=False):
+    m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
     tex = nt.nodes.new('ShaderNodeTexImage')
-    tex.image = bpy.data.images.load(path)
-    nt.links.new(tex.outputs['Color'], nt.nodes['Principled BSDF'].inputs['Base Color'])
-    nt.nodes['Principled BSDF'].inputs['Roughness'].default_value = .86
+    tex.image = bpy.data.images.load(path, check_existing=True)
+    bsdf = nt.nodes['Principled BSDF']
+    nt.links.new(tex.outputs['Color'], bsdf.inputs['Base Color'])
+    bsdf.inputs['Roughness'].default_value = .86
+    if alpha:
+        # the colours multiply the atlas (they are white) as well as giving
+        # the alpha: so the exporter writes them once, as COLOR_0, which the
+        # game reads. Used for the alpha alone they went out as COLOR_1, with
+        # an all-white COLOR_0 in front of them.
+        vc = nt.nodes.new('ShaderNodeVertexColor')
+        vc.layer_name = 'Col'
+        mx = nt.nodes.new('ShaderNodeMix')
+        mx.data_type = 'RGBA'
+        mx.blend_type = 'MULTIPLY'
+        mx.inputs[0].default_value = 1.0
+        nt.links.new(tex.outputs['Color'], mx.inputs[6])
+        nt.links.new(vc.outputs['Color'], mx.inputs[7])
+        nt.links.new(mx.outputs[2], bsdf.inputs['Base Color'])
+        nt.links.new(vc.outputs['Alpha'], bsdf.inputs['Alpha'])
+        m.surface_render_method = 'BLENDED'
     return m
 
 
+hair_slot = M('hair')
 atlas = None
+hair = None
 if not FAST:
     atlas = bake()
     flat = baked_material(atlas)
+    # (r177) The hair on a material of its own over the same atlas, blended
+    # by its vertices' alpha: its locks fade out toward their points.
+    strands = baked_material(atlas, 'orren-strands', alpha=True)
     glow = mats['crystal']
-    glow.node_tree.nodes.remove(glow.node_tree.nodes['bake-target'])
-    is_crystal = [p.material_index == crystal_slot for p in me.polygons]
+    if glow.node_tree.nodes.get('bake-target'):          # (none when the last bake is reused)
+        glow.node_tree.nodes.remove(glow.node_tree.nodes['bake-target'])
+    kind = [2 if p.material_index == hair_slot else 1 if p.material_index == crystal_slot else 0 for p in me.polygons]
     me.materials.clear()
-    me.materials.append(flat)
-    me.materials.append(glow)
-    for p, c in zip(me.polygons, is_crystal):
-        p.material_index = 1 if c else 0
+    for m in (flat, glow, strands):
+        me.materials.append(m)
+    for p, k in zip(me.polygons, kind):
+        p.material_index = k
+    # The alpha by vertex: white, and the hair's tips toward clear. The main
+    # buffer's vertices come first in the joined mesh, so its indices hold.
+    col = me.color_attributes.new('Col', 'FLOAT_COLOR', 'POINT')
+    rgba = np.ones(len(me.vertices) * 4, dtype=np.float32)
+    for i, a in main.A.items():
+        rgba[i * 4 + 3] = a
+    col.data.foreach_set('color', rgba)
+    me.color_attributes.active_color = col
+    # And the hair its own object, so that only it carries the colours.
+    only(obj)
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='DESELECT')
+    obj.active_material_index = 2
+    bpy.ops.object.material_slot_select()
+    bpy.ops.mesh.separate(type='SELECTED')
+    bpy.ops.object.mode_set(mode='OBJECT')
+    hair = next(o for o in bpy.context.selected_objects if o is not obj)
+    hair.name = 'orren-hair'
+    # Only the hair's alpha, and only on the hair. Something else in the
+    # joined mesh is a colour attribute too (all white); exported first as
+    # COLOR_0 it was the one the game read, and the hair never faded.
+    for o in (obj, hair):
+        cas = o.data.color_attributes
+        for name in [c.name for c in cas]:
+            if o is obj or name != 'Col':
+                cas.remove(cas[name])
+    hair.data.color_attributes.active_color = hair.data.color_attributes['Col']
+    hair.data.color_attributes.render_color_index = 0
+    print('ORREN colours: body %s, hair %s' % ([c.name for c in obj.data.color_attributes], [(c.name, c.data_type, c.domain) for c in hair.data.color_attributes]))
+    print('ORREN hair tris=%d faded verts=%d' % (tris_of(hair), len(main.A)))
 
 
 # ---- previews ------------------------------------------------------------------------------------------
@@ -839,9 +930,12 @@ if FAST:
 # ---- export ---------------------------------------------------------------------------------------------
 bpy.data.objects.remove(ground, do_unlink=True)
 only(obj)
+hair.select_set(True)
 out = os.path.join(ROOT, 'assets', 'orren.glb')
+# (r177) the colours a material reads go out: the hair's alpha, once (as the
+# active colour as well it went out twice)
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', use_selection=True, export_apply=True,
                           export_materials='EXPORT', export_normals=True, export_texcoords=True,
-                          export_vertex_color='NONE', export_image_format='AUTO')
+                          export_vertex_color='MATERIAL', export_image_format='AUTO')
 print('ASSET_OK name=orren triangles=%d bytes=%d texture=%d out=%s previews=%s' % (
-    tris_of(obj), os.path.getsize(out), os.path.getsize(atlas), out, ','.join(previews)))
+    tris_of(obj) + tris_of(hair), os.path.getsize(out), os.path.getsize(atlas), out, ','.join(previews)))

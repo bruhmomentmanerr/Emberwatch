@@ -13,14 +13,22 @@
 # puts a stair there). Everything stands inside x -6..6, z -11..5.
 #
 #   python tools/assets/wizards-crag.py
+#
+# (r177) Baked, as Orren is: the blocks below are fused into one rock and
+# worn round (_bake.sculpt_rock), then painted (grained, streaked, speckled,
+# moss on what faces up) and the paint and its occlusion baked into one
+# texture. Flat-shaded with the tiled rock texture, the blocks had read as
+# stacked lavender paving under him; the reference's rock is one pale grey
+# mass, mottled dark. Its colours grey for the same reason.
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _kit import Asset
+from _bake import finish_baked
 
-PALE = (0.76, 0.74, 0.88)
-PALE2 = (0.64, 0.62, 0.78)
-DARK = (0.42, 0.40, 0.56)
-MOSS = (0.36, 0.52, 0.34)
+PALE = (0.80, 0.80, 0.82)
+PALE2 = (0.68, 0.68, 0.71)
+DARK = (0.44, 0.43, 0.47)
+MOSS = (0.38, 0.50, 0.32)
 
 TOP = 6.5
 
@@ -51,10 +59,13 @@ for k in range(7):
 # higher at its lip, worn pale; jagged stones round the lip.
 a.jbox(4.8, .6, 2.2, 0, TOP - .3, .95, PALE, jit=.03, top_color=PALE)
 a.jbox(4.4, .6, 2.0, .1, TOP - .32, -1.0, PALE2, jit=.03, top_color=PALE2)
+# (r177) no stones along the front lip now: from behind him they stood
+# between the vista and the drop, a row of blobs. The reference's rock ends
+# at its edge, the valley below it. (The stream of random numbers still
+# turns over as it did, so everything after is where it was.)
 for k in range(6):
-    x = -2.3 + k * .92
-    a.rock(r.uniform(.6, 1.0), r.uniform(.35, .8), r.uniform(.5, .8), x, TOP + .1, 2.25 + r.uniform(-.1, .15), (PALE, DARK)[k % 2],
-           jag=.35, ry=r.uniform(0, 3))
+    for _ in range(5 + 72):          # its five arguments' draws, and the 72 rock() makes for its facets
+        r.random()
 for side in (-1, 1):
     for k in range(3):
         a.rock(r.uniform(.6, 1.0), r.uniform(.5, 1.1), r.uniform(.6, 1.0), side * 2.55, TOP + .15, 1.4 - k * 1.2, PALE2,
@@ -84,5 +95,14 @@ for k in range(14):
     a.rock(s * 1.3, s, s * 1.1, x, s * .3, z, (PALE2, DARK)[k % 2], jag=.3, ry=r.uniform(0, 3),
            top_color=MOSS if k % 3 == 0 else None)
 
-a.finish(cam_at=(7.0, 6.0, 12.0), cam_look=(0, 3.4, 0), res=(800, 600), lens=30, sun=(50, 0, 30),
-         extra_views=[('back', (-7.0, 7.0, -14.0), (0, 3.0, -4.0))])
+# (the deck calmed: roughened a quarter as much where he and the player stand)
+finish_baked(a, cam_at=(7.0, 6.0, 12.0), cam_look=(0, 3.4, 0), res=(800, 600), lens=30, sun=(50, 0, 30),
+             extra_views=[('back', (-7.0, 7.0, -14.0), (0, 3.0, -4.0)), ('deck', (1.2, TOP + 2.0, -3.4), (0, TOP, 1.6))],
+             size=1024, style='rock', jpeg_quality=80,
+             # light against dark three times as strongly as the paint first had (measured in the game against
+             # the reference's rock, which also carries next to no green)
+             # and its dark patches are stains, brown-green, on its top
+             style_args=dict(moss=(.11, .12, .08), speckle=.9, streaks=.5, mottle=(.30, 1.45), patches=(4.0, .50, 1.30),
+                             moss_cover=(.50, .60), spread=.09),
+             shape=dict(voxel=.08, smooth=(.5, 3), rough=(.12, .6), tris=10000, calm=(-2.3, 2.3, -1.7, 2.1, TOP - .45)),
+             normals=True)
