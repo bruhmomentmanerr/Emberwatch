@@ -15,11 +15,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const [glbPath, targetPath, name] = process.argv.slice(2);
-if (!glbPath || !targetPath || !name) { console.error('usage: inline-glb.js <file.glb> <target.js> <NAME>'); process.exit(2); }
+// (r176) A fourth argument raises the limit, in KB, for one asset that has
+// earned it: a textured hero model (Orren carries his own 1024 px texture).
+const [glbPath, targetPath, name, limitKB] = process.argv.slice(2);
+if (!glbPath || !targetPath || !name) { console.error('usage: inline-glb.js <file.glb> <target.js> <NAME> [limit KB]'); process.exit(2); }
 
 const glb = fs.readFileSync(glbPath);
-const LIMIT = 200 * 1024;
+const LIMIT = (Number(limitKB) || 200) * 1024;
 if (glb.length > LIMIT) { console.error('refusing: ' + glbPath + ' is ' + Math.round(glb.length / 1024) + ' KB, over the ' + (LIMIT / 1024) + ' KB inline limit'); process.exit(1); }
 
 const open = '// >>> ASSET ' + name, close = '// <<< ASSET ' + name;
