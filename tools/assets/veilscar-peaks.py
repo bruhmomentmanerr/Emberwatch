@@ -9,14 +9,21 @@
 # inside x -45..45, z -30..30.
 #
 #   python tools/assets/veilscar-peaks.py
+#
+# (r179) Baked, as the crag and the cliff are: the stacked rocks fused into
+# one range, worn and roughened, painted pale grey with dark mottling and
+# baked into its own texture. Flat-shaded under the tiled rock texture they
+# stood as dark faceted cones behind the wizard's hat; the reference's left
+# mountain is lit grey rock, streaked. Its colours grey for the same reason.
 import sys, os, math
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _kit import Asset
+from _bake import finish_baked
 
-PALE = (0.74, 0.72, 0.84)
-PALE2 = (0.60, 0.58, 0.72)
-DARK = (0.40, 0.39, 0.52)
-GREEN = (0.34, 0.50, 0.32)
+PALE = (0.82, 0.82, 0.84)
+PALE2 = (0.70, 0.70, 0.73)
+DARK = (0.50, 0.50, 0.54)
+GREEN = (0.34, 0.46, 0.30)
 
 a = Asset('veilscar-peaks', seed=1751)
 r = a.rng
@@ -49,4 +56,9 @@ for k in range(10):
     a.rock(r.uniform(14, 20), r.uniform(6, 11), r.uniform(14, 22), x, 2.5, r.uniform(-6, 10), GREEN, jag=.2, sides=7,
            ry=r.uniform(0, 3), top_color=GREEN)
 
-a.finish(cam_at=(0, 30, -150), cam_look=(0, 30, 0), res=(1000, 600), lens=35, sun=(40, 0, -30))
+finish_baked(a, cam_at=(0, 30, -150), cam_look=(0, 30, 0), res=(1000, 600), lens=35, sun=(40, 0, -30),
+             size=1024, style='rock', jpeg_quality=72,
+             style_args=dict(moss=(.26, .36, .22), speckle=.8, streaks=.9, mottle=(.32, 1.40), patches=(.35, .55, 1.30),
+                             moss_cover=(.50, .62), spread=.09, scale=.25),
+             shape=dict(voxel=.5, smooth=(.5, 4), rough=(1.6, 7.0), tris=9000),
+             normals=True)
