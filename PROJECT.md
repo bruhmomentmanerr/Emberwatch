@@ -4,10 +4,13 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r178 / 1.78.0**, sealed 2026-11-17 as "The ruin on the cliff":
+Current: **r179 / 1.79.0**, sealed 2026-11-20 as "The mountain at his
+shoulder": the Veilscar peaks baked like the crag and moved in to stand at
+the vista's left edge behind the wizard, as the reference's lit mountain
+does (§0). Before it, **r178 / 1.78.0**, sealed 2026-11-17 as "The ruin on the cliff":
 the Veilscar castle remodelled in Blender as a ruin (a gutted keep, broken
 towers, the curtain wall fallen to stumps), its cliff baked like the crag,
-and the falls wider over a bank of mist (§0). Before it, **r177 / 1.77.0**,
+and the falls wider over a bank of mist (§0a). Before it, **r177 / 1.77.0**,
 sealed 2026-11-17 as "The wizard's glow": Orren
 closer to the reference. His hair fades into wisps, a violet glow sits on his
 back, and the staff's fork is a thick knotted branch round a violet crystal.
@@ -328,7 +331,93 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-11-17, r178)
+## 0. Start here — where the last session left off (2026-11-20, r179)
+
+**State: r179 / 1.79.0, "The mountain at his shoulder".** Built on r178.
+The owner came back to say the work was not finished, so this picks up the
+list r178 left. The first item done is the left of the frame: the
+reference (`tools/video-frames/reference/wizard-vista.jpg`) has a lit grey
+mountain rising behind the wizard's hat, where ours had small dark spires.
+
+### What changed
+
+- **The peaks are baked**, as the crag, the cliff and the castle are
+  (`tools/assets/veilscar-peaks.py` through `_bake.finish_baked`). Their
+  stacked rocks are fused into one range, worn and roughened, and painted
+  pale grey with dark mottling and moss at their feet. Flat-shaded under the
+  tiled rock texture, they had stood as dark faceted cones.
+- **They moved.** At the Veilscar's s 100, t -108 they stood far behind
+  the wizard's hat, small and dark. They now stand on a bearing 0.28 rad
+  left of the vista's middle, 110 m out, at seven tenths of their size, and
+  rise at the frame's left edge. The place was chosen from four tried at
+  runtime, by score and by what was near:
+
+  | Placing (bearing, distance, scale) | Score | Colliders within 40 m |
+  |---|---|---|
+  | 0.24, 130 m, 0.8 | 59.0 | 17 |
+  | 0.28, 110 m, 0.7 (chosen) | 59.4 | 8 |
+  | 0.22, 160 m, 1.0 | 59.4 | 67 |
+  | 0.30, 140 m, 0.85 | 59.3 | 17 |
+
+  Their colliders moved and scaled with them, and so did the tree clearing
+  that was under them. No resident's route runs within 30 m of their foot;
+  the nearest is 67.5 m off. From the valley floor they read as a rock
+  outcrop beside the cliff.
+- **One camera, two users.** The vista camera is a function now,
+  `veilVistaCamera()`. The capture uses it, and so does `veilPeaksAt()`,
+  because the peaks stand where that frame wants its mountain.
+  `placeBakedLandmark` takes a scale (`s`).
+
+### The match score
+
+Clouds held, a warm-up shot thrown away, the same mask: r178's 55.9; peaks
+baked where they were, 56.4; moved, 59.6. It is the biggest single step since
+the camera was reframed in r177: the mountain fills a large, bright part of
+the reference's frame.
+
+### Not done, and next
+
+- **The castle's place.** The reference's castle stands on the cliff's
+  edge, with masonry down the face; ours stands back on the plateau.
+- **The cliff's shape** is one straight band; the reference's is a tall mass
+  under the castle.
+- **The valley.** The reference has a misty lake and round trees; ours has
+  grass and dark conifers.
+- **The peaks' shape.** They are spires; the reference's mountain is a
+  broad lit slope. A broader, lower range would match it better.
+- **The cliff close up** is soft (one 1024 texture over 70 m).
+- **The generator question** stands (see the r176 section).
+
+### Validation
+
+- **Source audits.** Every script block parses. Sections B and C are 0, and
+  markup and script agree. All 711 functions are reachable (two new:
+  `veilVistaCamera` and `veilPeaksAt`), none dead, and no comment holds a
+  call. Section A is 239, as in r178.
+- **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax 6/6.
+- **Diagnostics against r178**, same profile:
+
+  | | r179 | r178 |
+  |---|---|---|
+  | Doors (blocked) | 201 (0) | 201 (0) |
+  | Anchors (blocked) | 98 (0) | 98 (0) |
+  | Gate approaches | 4, none broken | 4, none broken |
+  | Colliders | 13,071 | 13,071 |
+  | Render calls | 484 | 484 |
+  | Triangles drawn | 2,362,978 | 2,357,507 |
+
+- **Boot time**, three runs each, from the game's own load report:
+  - r178: 8.0, 7.1 and 7.6 s
+  - r179: 8.4, 7.4 and 7.7 s, a few tenths slower in each pair: the
+    file is 0.57 MB larger, the peaks' texture and smooth geometry inlined.
+- **Variants** 6/6 built, and 6/6 boot and report r179.
+- **Smoke check** clean: the game boots at r179, the Bluetooth chooser
+  selects and cancels, pairing is confirmed and the WebGL context holds.
+- The live source and its archive are byte-identical.
+
+---
+
+## 0a. r178 — where the session before that left off (2026-11-17)
 
 **State: r178 / 1.78.0, "The ruin on the cliff".** Built on r177, the same
 day, in the same session. The wizard came first, as the owner asked (r176,

@@ -2156,5 +2156,18 @@
   },
   "asset": "emberwatch-r178-the-ruin-on-the-cliff.html",
   "notes": "releases/notes/r178.md"
+ },
+ {
+  "tag": "r179",
+  "rev": 179,
+  "title": "the mountain at his shoulder",
+  "version": "1.79.0",
+  "date": "2026-11-20T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r179-the-mountain-at-his-shoulder.html"
+  },
+  "asset": "emberwatch-r179-the-mountain-at-his-shoulder.html",
+  "notes": "releases/notes/r179.md"
  }
 ]
