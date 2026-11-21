@@ -12,7 +12,9 @@
 // frames up several times. A stall is under 0.25 m of progress in 25 frames.
 (async () => {
   const wait = ms => new Promise(r => setTimeout(r, ms));
-  for (let i = 0; i < 80 && !window.EMBER; i++) await wait(100);
+  // (r180) up to 90 s, as the other probes wait: the game now takes about 8 s
+  // to load, and an 8 s wait sometimes started the walk before it existed
+  for (let i = 0; i < 900 && !(window.EMBER && window.__walk); i++) await wait(100);
   const E = window.EMBER, P = E.player, spec = window.__walk;
   if (!spec) return { error: 'no __walk' };
   if (E.sky) { E.sky.rain(0); E.sky.omen(0); }

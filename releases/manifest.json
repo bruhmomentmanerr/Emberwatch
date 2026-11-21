@@ -2169,5 +2169,18 @@
   },
   "asset": "emberwatch-r179-the-mountain-at-his-shoulder.html",
   "notes": "releases/notes/r179.md"
+ },
+ {
+  "tag": "r180",
+  "rev": 180,
+  "title": "the valley in mist",
+  "version": "1.80.0",
+  "date": "2026-11-21T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r180-the-valley-in-mist.html"
+  },
+  "asset": "emberwatch-r180-the-valley-in-mist.html",
+  "notes": "releases/notes/r180.md"
  }
 ]

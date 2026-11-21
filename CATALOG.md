@@ -12,10 +12,10 @@ in-game device panel has a stable secure origin with fetch/CORS support
 and desktop discovery/pairing prompts. Chrome can also use Web Bluetooth
 from a local HTML file on supported systems.
 
-Current sealed source: **1.79.0 / build r179 ("The mountain at his shoulder")**,
-2026-11-20. Archived, audited and runtime-checked. The release workflow
+Current sealed source: **1.80.0 / build r180 ("The valley in mist")**,
+2026-11-21. Archived, audited and runtime-checked. The release workflow
 publishes the tag, notes and HTML, then builds the Windows setup and portable
-executables (167 revisions, r04 to r179). r143 to r158 were
+executables (168 revisions, r04 to r180). r143 to r158 were
 never packaged; before r159 the latest packaged pair was 1.42.0 (r142). r121 was never packaged; r122
 carries it. 1.31.0 was never issued — r131 shipped without a version
 stamp, so the version skips from 1.30.0 to 1.32.0. **r136-r139 ("reference
@@ -33,12 +33,12 @@ guessed at.
     app/            The live Electron project — this is the thing you work in
       main.js         Electron main process. Registers a custom app:// scheme
                       (standard + secure + fetch/CORS) so Web Bluetooth and
-                      the strain-archive lookups work. BUILD_REVISION = 'r179'
+                      the strain-archive lookups work. BUILD_REVISION = 'r180'
       preload.js      Bridge for the Bluetooth device chooser
       renderer/
         index.html    THE GAME. About 8.2 MB. Byte-identical to
                       revisions/phase 5 - world depth (r70-)/
-                      emberwatch_3_r179-the-mountain-at-his-shoulder.html
+                      emberwatch_3_r180-the-valley-in-mist.html
       package.json    electron ^43.4.1, electron-builder ^26.15.3
       package-lock.json
       node_modules/   224 packages — DO NOT BACK UP, `npm install` rebuilds it
@@ -63,12 +63,12 @@ guessed at.
                       phase 4 - streets, crowds, inner city (r53-r69)  15 files
                       phase 5 - world depth (r70-)                       active
                       test plans/   EMBERWATCH_R51 and R52 test plans
-                    Phase 5 currently contains r70-r179, minus the revisions
+                    Phase 5 currently contains r70-r180, minus the revisions
                     that lived under an hour, were never played, and were folded
                     into their successor rather than left as links nobody can
                     reach (r87, r89-r92, r102), and r136-r139, which were never
                     archived (see above). The live build:
-                    emberwatch_3_r179-the-mountain-at-his-shoulder.html
+                    emberwatch_3_r180-the-valley-in-mist.html
 
     variants/       Six alternate editions built on the current base, each a complete
                     standalone HTML file. Not forks — each is the live build
@@ -1331,6 +1331,15 @@ guessed at.
                           the title, road obstructions 0). The runtime audit
                           and the captures were stopped unfinished, at the
                           owner's word to push.
+    Nov 21     r180       The valley in mist. The vista audited region by
+                          region (tools/region-audit.py); the sky darkened and
+                          hard-edged by three new mood controls (its ΔE 21 to
+                          9); the valley greyed, planted with dark broadleaves
+                          and misted (13.7 to 5.2); the peaks moved off the
+                          walk to the Veilscar stair. Verified: audits, unit
+                          tests, diagnostics against r179, the walk's route
+                          against every collider, boot time, variants 6/6,
+                          smoke.
     Nov 20     r179       The mountain at his shoulder. The Veilscar peaks
                           baked, pale and mottled, and moved in to rise at
                           the vista's left edge behind the wizard, as the
