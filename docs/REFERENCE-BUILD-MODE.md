@@ -1,5 +1,10 @@
 # Emberwatch Reference Build Mode
 
+> (2026-11-22) The method, asset pipeline and traps learned matching the
+> Veilscar to the wizard reference (r176-r180) are in
+> [STYLE-PLAYBOOK.md](STYLE-PLAYBOOK.md); the short procedure is the
+> `style-match` skill in `.claude/skills/`. Read those before visual work.
+
 Date: 2026-09-25  
 Status: active direction for map, NPC, lighting, world-event, and screenshot-proof work.
 

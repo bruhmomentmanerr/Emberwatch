@@ -38,6 +38,13 @@ file is only the part that must never be missed.
    PROJECT.md §3). It takes screenshots, so look at visual changes instead of
    assuming them. Never write a number into a doc that was not read off a run.
 
+## Visual work against a reference
+
+Read `docs/STYLE-PLAYBOOK.md` (or load the `style-match` skill) first. Measure
+with `tools/match-score.py` and `tools/region-audit.py`; bake assets through
+`tools/assets/_bake.py`; place them with `placeBakedLandmark`; check moved
+colliders against the walk's route.
+
 ## Before and after any change
 
 ```bash

@@ -6074,6 +6074,10 @@ deleted. Tree Flip (2026-09-13) was the first.
 |---|---|
 | `harness/` | the Electron runtime harness — probes and screenshots (§3) |
 | `check-variants.js` | boots every built variant and calls `diagnostics()` |
+| `match-score.py` | (r176) scores a render against a reference image, 0-100: colour, regions, light, shapes |
+| `region-audit.py` | (r180) the frame by named region, reference against render: colour, spread, detail, ΔE; worst first |
+| `fit-transfer.py` | (r176) fits a place mood's colour-transfer curves to a reference |
+| `assets/_bake.py` | (r176-r178) Blender: fuse and wear kit blocks (`sculpt_rock`), paint (`rock`, `masonry`), bake colour and occlusion; the method is `docs/STYLE-PLAYBOOK.md` |
 | `check-parse.js` | every `<script>` block parses; names the real HTML line |
 | `audit-source.js` | called-never-defined / defined-never-called / dead bindings |
 | `audit-dom.js` | markup ids vs script lookups; learns `$`-style aliases |
