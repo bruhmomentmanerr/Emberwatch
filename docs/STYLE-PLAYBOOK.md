@@ -253,6 +253,8 @@ quality 72-80, 300-500 KB quantised.
 | `check-variants` reports "no result" for every variant | Electron's sandbox under xvfb | `ELECTRON_DISABLE_SANDBOX=1` with `HARNESS_SWIFTSHADER=1` |
 | Render calls climb with each new colour of a thing | A material key a colour is a draw call each wherever it is in view | One material, the colour per vertex; patch the shader so the glow is multiplied by it too (three.js tints only the diffuse) |
 | A building stands inside a hall | Lots are placed by collider tests, and a hall's colliders run only along its walls | Test the footprint itself (`innerInfill`'s `inHall`) |
+| A bright patch on a low ceiling is the brightest thing in a room | A point lamp a hand's breadth under it (inverse square) | Hang it at the room's middle height, clear of every surface |
+| A shot of a shop shows an empty room | Shop rooms are built a few per 0.4 s tick as you near them | Shoot it twice: a warm-up, then again after a short `before` wait |
 | A window lands on a buttress outside | Placed by eye from inside | Put windows in the bays between the buttresses (`HALL_DRESS` bays) |
 
 ---
@@ -338,7 +340,7 @@ for the surfaces). The kit, for any room:
 
 ## 8. Where the numbers are
 
-PROJECT.md's §0 sections for r176 to r182 hold every measurement behind this
+PROJECT.md's §0 sections for r176 to r183 hold every measurement behind this
 guide: scores per step, the regions' ΔE, the rock's lightness and spread,
 diagnostics and boot times. The published writeup of the run is an artifact
 the owner holds (Veilscar Vista Match).
