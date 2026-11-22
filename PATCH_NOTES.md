@@ -1,117 +1,113 @@
-**r181 — the green glass** · 1.81.0 · 2026-11-22 · phase 5, world depth
+**r182 — glass in every hall** · 1.82.0 · 2026-11-22 · phase 5, world depth
 
 ### Summary
 
-The green glass. The five taverns after the owner's tavern frame, the first step of the city programme's interiors: baked flagstone floors (tools/assets/tavern-textures.py, inlined by the new inline-tex.js), mossy stone walls between timber posts, round green stained-glass windows with a cold lamp that lights only while you are inside, and lower, dimmer warm lamps. Outside unchanged. Verified: audits, unit tests, diagnostics against r180 (no collider added), exteriors, boot time, variants 6/6, smoke.
+Glass in every hall. r181's dress on all fifteen landmark halls, each with its own glass colour (blue, amber, cyan, steel, red, violet, rose; the taverns green), the windows in the bays between the buttresses, and the street shown the same round glass with pools in its colour. One shared tinted glass material keeps the draw calls level. A house that stood inside Ferrier's Yard is gone: lots now skip any hall's footprint. Verified: audits, unit tests, diagnostics against r181, 60 hall shots and street views, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r181 / 1.81.0, "The green glass".** Built on r180. The owner asked
-for the style study to be written up for other agents (done before this
-revision: `docs/STYLE-PLAYBOOK.md` and the `style-match` skill), and then
-for a return to the main game. This is the first revision of that return:
-the city programme (§6) starts with its interiors, and the interiors start
-with the five taverns, styled after the owner's tavern frame
-(`tools/video-frames/reference/hall-02-f00137.png`).
-
-### What was wrong
-
-Shot from each doorway beside the reference, the five taverns (the Cinder
-and Keg, the Southgate Rest, the Gilded Finch, the Wayhouse, the Drovers'
-Rest) were the same plank box. Every wall was one even orange, lit from two
-lamps at head height; the floor was a dark square grid; nothing in the room
-was cold. The reference has pale worn flagstones with a dark joint, walls of
-rounded green-lit stone, a round window of green glass in heavy timber, and
-warm lanterns that light only what is near them.
+**State: r182 / 1.82.0, "Glass in every hall".** Built on r181. The owner
+asked for the backlog to be worked through and then a list of what remains.
+This is the first of that run: r181's list said the taverns showed the
+street warm rectangles, and the other ten halls were still plank boxes.
 
 ### What changed
 
-- **Baked surfaces.** A new script, `tools/assets/tavern-textures.py`
-  (numpy and PIL), paints three textures with their light baked in. Each is
-  Voronoi cells, a height field from each cell's distance to its own edge,
-  and that height lit from the upper left, so every slab has its own bevel
-  and shadow. The floor and the wall tile seamlessly.
-  - `tavern-flag.jpg`: pale flagstones (sand, bone, grey, a little rust),
-    cracks in some, a dark joint. 512 px for 3 m.
-  - `tavern-stone.jpg`: rounded rubble in rough courses, mossy green-grey,
-    deep mortar. 512 px for 3 m.
-  - `tavern-glass.jpg`: a round window, green quarries round a pale blue
-    middle, between dark timber bars.
+- **Every landmark hall is dressed** (`HALL_DRESS`, `dressHall`; r181's
+  `dressTavern` generalised). Each takes the flagstone floor, the stone liner
+  between timber posts, round windows with halos and one cold lamp per side,
+  and the lower, dimmer hall lamps. The Great Hall keeps its own stone walls
+  and its own lamps, and takes the floor and violet windows. The glass, one
+  colour a hall, after its trade:
 
-  They are 38, 23 and 20 KB, inlined as base64 by a new tool,
-  `tools/assets/inline-tex.js` (the JPEG twin of `inline-glb.js`), between
-  `// >>> ASSET TAVERN_*` markers.
-- **The floor** is each tavern's own floor slab under a new material key
-  (`flag`), its UVs tiled in world space.
-- **The walls** carry a stone liner one centimetre proud of the plank walls'
-  inner faces, so the outside of each hall is unchanged. Timber stands in
-  front of it: a post in every corner, either side of the door, two on the
-  back wall, posts down the side walls wherever a window is not, and a wall
-  plate along the top. The stone has a faint green self-glow (0.035) so its
-  shadows keep their colour. At 0.2 every course read the same.
-- **The windows.** Two round windows on most side walls (one on the Southgate
-  Rest's right, where the stairs run), placed per tavern clear of the stairs,
-  the stage and the tall pieces (`TAVERN_WINDOWS`). Each has a glass disc
-  (emissive at 0.95), a timber ring, a sill and a keystone, and a soft green
-  halo. One cold green lamp per walled side (power 0.6, range 9.5) hangs 1.5
-  m in front of the windows. It only lights while you are in that room, as a
-  home's hearth does. The halos are shown only then too: twenty sprites
-  drawn from the street had added 19 render calls.
-- **The lamps.** The two hall lamps in a tavern are lower (2.3 m, was 3) and
-  dimmer (power 0.62, was 1.2): pools under them, the walls falling dark
-  away from them. The other halls keep theirs.
+  | Halls | Glass |
+  |---|---|
+  | The five taverns | green (r181's texture) |
+  | The Moon Archive | blue |
+  | The Eastwall Scriptorium | amber |
+  | The Cold Assay | cyan |
+  | The Northwatch Guild, the Westwall Refuge | steel blue |
+  | The Lamplighters' Hall | amber |
+  | Ferrier's Yard | ember red |
+  | The Pilgrim Shrine, the Great Hall | violet |
+  | The New Chapel | rose |
+
+- **Windows stand in the bays.** Outside, each side wall has buttresses at
+  its thirds; r181 had placed the tavern windows by eye inside, where some
+  would have met a buttress. They now go in the bays between (bay −1, 0 or
+  1), so the glass the street sees is the glass the room has. A bay is left
+  out inside where the room stands something tall against the wall (the
+  Moon Archive's bookcases fill its back two bays; the Southgate Rest's
+  stairs take its right side's front two). Every hall also has the two
+  windows beside its door, inside and out.
+- **The street sees it.** A dressed hall's exterior windows (all three bays
+  of each side, the two beside the door, the three at the back) are the
+  round glass in its colour, not the shared warm leaded rectangles, and the
+  light pool under each is thrown in that colour (`LIGHT_POOLS` entries take
+  an optional `tint`). The gable's high window keeps the warm glass.
+- **Two new painted textures**, from the same script
+  (`tools/assets/tavern-textures.py`): `hall-stone.jpg`, the rubble in plain
+  grey with no moss, and `hall-glass.jpg`, the round window in near-white
+  quarries. 19 and 17 KB.
+- **Five materials, not seventeen.** A material key a colour cost a draw
+  call each wherever the halls were in view: render calls at the spawn point
+  went from 488 to 505. The plain glass is now one material whose colour
+  comes per vertex. A shader patch multiplies its glow by that colour as
+  well, since three.js's vertex colour tints only the diffuse. The other
+  halls share one grey stone. Back to 490.
+- **A house inside Ferrier's Yard.** One baked lot, a 3 m two-storey house
+  at (−135.3, −307.8), stood in the yard's west half: walls, a roof and lit
+  windows inside the smithy (it is in r181's shots too). The lot table's
+  exclusions predate the six halls of r158, and a hall's colliders run along
+  its walls, so its floor read as open ground. `innerInfill` now skips a lot
+  whose middle falls inside a hall. A check of all 1,801 baked lots against
+  every hall's footprint found that one and no other. Houses take no random
+  draws, so nothing else moved.
 
 ### Not done, and next
 
-- **The outside still shows warm rectangles.** Each hall's exterior windows
-  are the shared warm leaded glass; from the street the taverns do not show
-  the green rounds they have inside. Next: matching glass in the side walls.
-- **The furniture** is r157's flat-shaded Blender pieces. The reference's is
-  heavy, smooth and grained. A bake pass over `tools/assets/taverns.py`
-  would bring it in line.
-- **The rest of the interiors**: the other ten halls, the homes and the
-  shops still have the plank walls and the dark floor. The same kit
-  (`dressTavern`'s pieces) is the way to bring them over, each room with its
-  own glass colour or none.
+- **Homes and shops** still have the plank walls and the dark floor (r183).
+- **The furniture** in the fitted halls is still flat-shaded (r184).
+- **The Veilscar's moon sky and left mountain**, the region audit's worst
+  (r185).
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
-  markup and script agree. All 715 functions are reachable, none dead, and no
-  comment holds a call. Section A is 241 against r180's 239: the two new
-  asset markers.
+  markup and script agree. All 718 functions are reachable, none dead, and no
+  comment holds a call. Section A is 243 against r181's 241: the
+  `HALL_STONE` marker, and the `TAVERN_GLASS` marker, which r181 counted as a
+  constant's name.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Diagnostics against r180**, both run this session on the same profile.
-  The r180 archive ran this session gives 202 doors and 13,168 colliders,
-  not the 201 and 13,085 r180's notes recorded (the profile's state has moved
-  since); r181 matches it exactly:
+- **Diagnostics against r181**, same session and profile:
 
-  | | r181 | r180 |
+  | | r182 | r181 |
   |---|---|---|
   | Doors (blocked) | 202 (0) | 202 (0) |
   | Anchors (blocked) | 98 (0) | 98 (0) |
-  | Colliders | 13,168 | 13,168 |
-  | Render calls at spawn | 488 | 485 |
+  | Gate approaches | 4, none broken | 4, none broken |
+  | Colliders | 13,167 | 13,168 |
+  | Render calls at spawn | 490 | 488 |
 
-  No collider was added or moved. The three extra calls are the new merged
-  surfaces (flagstone, stone, glass).
-- **Outside, unchanged.** All five halls shot from the street in r180 and
-  r181: identical.
+  The one collider fewer is the house that stood in Ferrier's Yard.
+- **Looked at.** All fifteen halls from the doorway, across to each side
+  wall, and from the street (60 shots), then six halls' side walls from
+  their streets at two distances. The Great Hall, the Moon Archive and
+  Ferrier's Yard were shot in r181 for comparison.
 - **Boot time**, three runs each, alternated, from the game's own load
   report:
-  - r180: 8.1, 7.7 and 7.6 s
-  - r181: 8.6, 7.8 and 7.8 s
-- **Variants** 6/6 built, and 6/6 boot and report r181 (`check-variants`
-  needs `ELECTRON_DISABLE_SANDBOX=1` under xvfb as well as
-  `HARNESS_SWIFTSHADER=1`; without it every variant reports "no result").
-- **Smoke check** clean: the game boots at r181, the Bluetooth chooser
+  - r181: 7.5, 7.5 and 6.9 s
+  - r182: 7.5, 6.7 and 7.2 s
+- **Variants** 6/6 built, and 6/6 boot and report r182.
+- **Smoke check** clean: the game boots at r182, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.28 MB (+124,186 bytes on r180).
-- 4 functions added: `dressTavern`, `tavernLiner`, `tavernMats`, `tavernTex`.
+- 8.34 MB (+58,404 bytes on r181).
+- 7 functions added: `dressHall`, `hallHalo`, `hallLiner`, `hallMats`, `hallRound`, `hallRoundsOutside`, `hallTex`.
+- 4 functions removed: `dressTavern`, `tavernLiner`, `tavernMats`, `tavernTex`.
 
 ### Play it
 
