@@ -1,113 +1,74 @@
-**r182 — glass in every hall** · 1.82.0 · 2026-11-22 · phase 5, world depth
+**r183 — stone in every room** · 1.83.0 · 2026-11-22 · phase 5, world depth
 
 ### Summary
 
-Glass in every hall. r181's dress on all fifteen landmark halls, each with its own glass colour (blue, amber, cyan, steel, red, violet, rose; the taverns green), the windows in the bays between the buttresses, and the street shown the same round glass with pools in its colour. One shared tinted glass material keeps the draw calls level. A house that stood inside Ferrier's Yard is gone: lots now skip any hall's footprint. Verified: audits, unit tests, diagnostics against r181, 60 hall shots and street views, boot time, variants 6/6, smoke.
+Stone in every room. The halls' grey stone, corner posts and wall plate in every walk-in home and shop (dressRoom); shops floored in flagstone; a home's front windows seen from inside as cold night glass; the rooms' fill lamp lowered from 2.35 to 1.75 m, off the ceiling it was burning. Verified: audits, unit tests, diagnostics against r182, homes and shops shot before and after, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r182 / 1.82.0, "Glass in every hall".** Built on r181. The owner
-asked for the backlog to be worked through and then a list of what remains.
-This is the first of that run: r181's list said the taverns showed the
-street warm rectangles, and the other ten halls were still plank boxes.
+**State: r183 / 1.83.0, "Stone in every room".** Built on r182, the second
+of the backlog run. r182's list said the homes and shops still had plank
+walls and the dark floor.
+
+### What was wrong
+
+Shot from their doorways, the walk-in homes and shops were boxes in the
+street's own wall material (plaster, brick or boards) on a board floor, very
+dark. In every shop the brightest thing in the frame was a hot patch on the
+ceiling: the room's cool fill lamp (r113) hung at 2.35 m, 21 cm under a
+2.56 m ceiling, and under physical falloff it burned a spot into it. The
+homes' front windows, lit warm from the street, were plain wall from
+inside.
 
 ### What changed
 
-- **Every landmark hall is dressed** (`HALL_DRESS`, `dressHall`; r181's
-  `dressTavern` generalised). Each takes the flagstone floor, the stone liner
-  between timber posts, round windows with halos and one cold lamp per side,
-  and the lower, dimmer hall lamps. The Great Hall keeps its own stone walls
-  and its own lamps, and takes the floor and violet windows. The glass, one
-  colour a hall, after its trade:
-
-  | Halls | Glass |
-  |---|---|
-  | The five taverns | green (r181's texture) |
-  | The Moon Archive | blue |
-  | The Eastwall Scriptorium | amber |
-  | The Cold Assay | cyan |
-  | The Northwatch Guild, the Westwall Refuge | steel blue |
-  | The Lamplighters' Hall | amber |
-  | Ferrier's Yard | ember red |
-  | The Pilgrim Shrine, the Great Hall | violet |
-  | The New Chapel | rose |
-
-- **Windows stand in the bays.** Outside, each side wall has buttresses at
-  its thirds; r181 had placed the tavern windows by eye inside, where some
-  would have met a buttress. They now go in the bays between (bay −1, 0 or
-  1), so the glass the street sees is the glass the room has. A bay is left
-  out inside where the room stands something tall against the wall (the
-  Moon Archive's bookcases fill its back two bays; the Southgate Rest's
-  stairs take its right side's front two). Every hall also has the two
-  windows beside its door, inside and out.
-- **The street sees it.** A dressed hall's exterior windows (all three bays
-  of each side, the two beside the door, the three at the back) are the
-  round glass in its colour, not the shared warm leaded rectangles, and the
-  light pool under each is thrown in that colour (`LIGHT_POOLS` entries take
-  an optional `tint`). The gable's high window keeps the warm glass.
-- **Two new painted textures**, from the same script
-  (`tools/assets/tavern-textures.py`): `hall-stone.jpg`, the rubble in plain
-  grey with no moss, and `hall-glass.jpg`, the round window in near-white
-  quarries. 19 and 17 KB.
-- **Five materials, not seventeen.** A material key a colour cost a draw
-  call each wherever the halls were in view: render calls at the spawn point
-  went from 488 to 505. The plain glass is now one material whose colour
-  comes per vertex. A shader patch multiplies its glow by that colour as
-  well, since three.js's vertex colour tints only the diffuse. The other
-  halls share one grey stone. Back to 490.
-- **A house inside Ferrier's Yard.** One baked lot, a 3 m two-storey house
-  at (−135.3, −307.8), stood in the yard's west half: walls, a roof and lit
-  windows inside the smithy (it is in r181's shots too). The lot table's
-  exclusions predate the six halls of r158, and a hall's colliders run along
-  its walls, so its floor read as open ground. `innerInfill` now skips a lot
-  whose middle falls inside a hall. A check of all 1,801 baked lots against
-  every hall's footprint found that one and no other. Houses take no random
-  draws, so nothing else moved.
+- **`dressRoom`**, run by `openHomes` for every room it opens: the halls'
+  grey stone liner on the inner faces (turned to the room, `hallLiner`
+  takes a `ry` now), a timber post in each corner and a plate along the
+  top. A shop's goes into its own bins with its furniture, so it is drawn
+  only while you are near the shop, as the rest of its room is.
+- **A shop's floor is flagstone** (`wardHome`, under the `flag` key). A
+  home keeps its boards.
+- **A home's front windows from inside** are the same leaded glass the
+  street sees lit warm, here as the night outside, cold and dim (a new
+  `nightpane` material on the leaded texture), with a sill. They stand
+  where `wardHome` put the ground floor's windows outside.
+- **The fill hangs at 1.75 m**, above the counters and tables and well
+  clear of the ceiling. Every home and shop has one.
 
 ### Not done, and next
 
-- **Homes and shops** still have the plank walls and the dark floor (r183).
 - **The furniture** in the fitted halls is still flat-shaded (r184).
-- **The Veilscar's moon sky and left mountain**, the region audit's worst
-  (r185).
+- **The Veilscar's moon sky and left mountain** (r185).
+- Homes stay dark away from their hearths, as they were. A second warm
+  lamp would cost a light slot in every home.
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
-  markup and script agree. All 718 functions are reachable, none dead, and no
-  comment holds a call. Section A is 243 against r181's 241: the
-  `HALL_STONE` marker, and the `TAVERN_GLASS` marker, which r181 counted as a
-  constant's name.
+  markup and script agree. All 719 functions are reachable, none dead, and no
+  comment holds a call. Section A is 243, as in r182.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Diagnostics against r181**, same session and profile:
-
-  | | r182 | r181 |
-  |---|---|---|
-  | Doors (blocked) | 202 (0) | 202 (0) |
-  | Anchors (blocked) | 98 (0) | 98 (0) |
-  | Gate approaches | 4, none broken | 4, none broken |
-  | Colliders | 13,167 | 13,168 |
-  | Render calls at spawn | 490 | 488 |
-
-  The one collider fewer is the house that stood in Ferrier's Yard.
-- **Looked at.** All fifteen halls from the doorway, across to each side
-  wall, and from the street (60 shots), then six halls' side walls from
-  their streets at two distances. The Great Hall, the Moon Archive and
-  Ferrier's Yard were shot in r181 for comparison.
+- **Diagnostics against r182**, same profile: doors 202 (none blocked),
+  anchors 98 (none blocked), gate approaches 4 with none broken, colliders
+  13,167, all as r182. Render calls at the spawn point 491 against 490: the
+  night panes' material.
+- **Looked at.** Four homes and four shops from their doorways in r182 and
+  r183, and again in r183 after a wait for each shop's room to be built,
+  with each home also shot facing its front wall.
 - **Boot time**, three runs each, alternated, from the game's own load
   report:
-  - r181: 7.5, 7.5 and 6.9 s
-  - r182: 7.5, 6.7 and 7.2 s
-- **Variants** 6/6 built, and 6/6 boot and report r182.
-- **Smoke check** clean: the game boots at r182, the Bluetooth chooser
+  - r182: 6.9, 7.2 and 7.6 s
+  - r183: 6.9, 7.1 and 7.4 s
+- **Variants** 6/6 built, and 6/6 boot and report r183.
+- **Smoke check** clean: the game boots at r183, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.34 MB (+58,404 bytes on r181).
-- 7 functions added: `dressHall`, `hallHalo`, `hallLiner`, `hallMats`, `hallRound`, `hallRoundsOutside`, `hallTex`.
-- 4 functions removed: `dressTavern`, `tavernLiner`, `tavernMats`, `tavernTex`.
+- 8.34 MB (+2,403 bytes on r182).
+- 1 function added: `dressRoom`.
 
 ### Play it
 
