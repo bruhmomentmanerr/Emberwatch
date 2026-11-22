@@ -2188,12 +2188,25 @@
   "rev": 181,
   "title": "the green glass",
   "version": "1.81.0",
-  "date": "2026-11-22T16:00:00Z",
+  "date": "2026-11-22T13:40:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r181-the-green-glass.html"
   },
   "asset": "emberwatch-r181-the-green-glass.html",
   "notes": "releases/notes/r181.md"
+ },
+ {
+  "tag": "r182",
+  "rev": 182,
+  "title": "glass in every hall",
+  "version": "1.82.0",
+  "date": "2026-11-22T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r182-glass-in-every-hall.html"
+  },
+  "asset": "emberwatch-r182-glass-in-every-hall.html",
+  "notes": "releases/notes/r182.md"
  }
 ]

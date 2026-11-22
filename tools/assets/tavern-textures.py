@@ -7,6 +7,10 @@
 #                      mossy green-grey, deep mortar
 #   tavern-glass.jpg   a round window: green quarries of uneven size between
 #                      heavy dark timber bars, a timber ring round it
+#   hall-stone.jpg     (r182) the rubble again in plain grey, no moss: the
+#                      other halls tint it to their own glass
+#   hall-glass.jpg     (r182) the round window in near-white quarries, for
+#                      the game to tint (blue, amber, violet, rose)
 #
 # All three are painted, not photographed: Voronoi cells for the stones and
 # the quarries, a height field from each cell's distance to its own edge, and
@@ -149,7 +153,11 @@ def flagstones(n=512):
     save(col, 'tavern-flag.jpg', 82)
 
 
-def rubble(n=512):
+GREEN_STONE = [(.30, .40, .30), (.26, .34, .28), (.34, .40, .32), (.24, .30, .26), (.32, .36, .30)]
+GREY_STONE = [(.36, .35, .34), (.30, .30, .31), (.40, .38, .35), (.28, .28, .29), (.34, .33, .31)]
+
+
+def rubble(name='tavern-stone.jpg', tones=GREEN_STONE, mossy=True, n=512):
     rng = np.random.default_rng(1812)
     pts = jittered(4, 6, rng, .6, row_shift=True)
     owner, edge = voronoi(n, pts, sx=.62)
@@ -158,20 +166,21 @@ def rubble(n=512):
     lump = value_noise(n, 4, rng, 4)
     h = h * (.8 + .35 * lump)
     shade = lit(h, n, light=(-.4, -.75, .5), strength=2.6)
-    tones = np.array([(.30, .40, .30), (.26, .34, .28), (.34, .40, .32), (.24, .30, .26), (.32, .36, .30)])
+    tones = np.array(tones)
     base = tones[rng.integers(0, len(tones), len(pts))] * rng.uniform(.8, 1.15, (len(pts), 1))
     col = base[owner]
     moss = value_noise(n, 8, rng, 4)
     col = col * (.75 + .45 * value_noise(n, 20, rng, 3)[..., None])
-    col[..., 1] *= .9 + .3 * moss
+    if mossy:
+        col[..., 1] *= .9 + .3 * moss
     col = col * (.28 + 1.0 * np.clip(shade, 0, 1))[..., None]
     col = col * (.3 + .7 * smooth(0, mortar + 18, edge))[..., None]
     joint = edge < mortar
     col[joint] = np.array([.035, .04, .035])
-    save(col, 'tavern-stone.jpg', 80)
+    save(col, name, 80)
 
 
-def glass(n=256):
+def glass(name='tavern-glass.jpg', neutral=False, n=256):
     rng = np.random.default_rng(18101)
     ys, xs = np.mgrid[0:n, 0:n] / n
     r = np.hypot(xs - .5, ys - .5) * 2                 # 0 at the middle, 1 at the rim
@@ -191,6 +200,10 @@ def glass(n=256):
     bar = 4.2
     greens = np.stack([rng.uniform(.30, .52, len(pts)), rng.uniform(.78, .95, len(pts)), rng.uniform(.26, .42, len(pts))], 1)
     greens[0] = (.46, .70, .92)                        # the middle one a cold pale blue, as the reference's inner pane
+    if neutral:                                        # near-white, each quarry its own brightness, the middle brightest
+        v = rng.uniform(.70, .92, len(pts))
+        greens = np.stack([v * rng.uniform(.96, 1.0, len(pts)), v, v * rng.uniform(.94, 1.0, len(pts))], 1)
+        greens[0] = (.98, .98, .98)
     lum = (.62 + .38 * smooth(bar, bar + 22, edge)) * (.85 + .25 * value_noise(n, 6, rng, 3))
     col = greens[owner] * lum[..., None]
     wood = np.array([.22, .13, .07]) * (.6 + .6 * value_noise(n, 24, rng, 3))[..., None]
@@ -198,9 +211,11 @@ def glass(n=256):
     # the ring catches a little light along its top
     ringlit = np.where(r > .86, .8 + .5 * np.clip(.5 - ys, 0, 1), 1.0)
     col = np.where(woodmask[..., None], wood * ringlit[..., None], col)
-    save(col, 'tavern-glass.jpg', 85)
+    save(col, name, 85)
 
 
 flagstones()
 rubble()
 glass()
+rubble('hall-stone.jpg', GREY_STONE, mossy=False)
+glass('hall-glass.jpg', neutral=True)

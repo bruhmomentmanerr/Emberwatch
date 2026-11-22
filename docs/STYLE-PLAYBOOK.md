@@ -251,6 +251,9 @@ quality 72-80, 300-500 KB quantised.
 | A stone wall reads as one even net of mortar | Its self-glow lit every course alike (0.2) | Keep a stone's emissive near 0.03, just enough that its shadows keep their colour; let the lamps and windows make the pools |
 | Render calls jump with a few glows | Each sprite is a draw call wherever it is in view, even behind a wall | Share one material, and show a room's glows only while the player is in that room |
 | `check-variants` reports "no result" for every variant | Electron's sandbox under xvfb | `ELECTRON_DISABLE_SANDBOX=1` with `HARNESS_SWIFTSHADER=1` |
+| Render calls climb with each new colour of a thing | A material key a colour is a draw call each wherever it is in view | One material, the colour per vertex; patch the shader so the glow is multiplied by it too (three.js tints only the diffuse) |
+| A building stands inside a hall | Lots are placed by collider tests, and a hall's colliders run only along its walls | Test the footprint itself (`innerInfill`'s `inHall`) |
+| A window lands on a buttress outside | Placed by eye from inside | Put windows in the bays between the buttresses (`HALL_DRESS` bays) |
 
 ---
 
@@ -310,10 +313,11 @@ What that frame sets for any interior:
 - **Arches and depth:** a doorway or arch framing a farther, darker space.
 - Characters at the tables carry the room's one glow colour on their edges.
 
-Done for the five taverns in r181 (`dressTavern` in the game,
-`tools/assets/tavern-textures.py` for the surfaces). The kit, for any room:
+Done for the five taverns in r181 and for every landmark hall in r182
+(`HALL_DRESS` and `dressHall` in the game, `tools/assets/tavern-textures.py`
+for the surfaces). The kit, for any room:
 - a floor slab under the `flag` key (world-tiled UVs);
-- `tavernLiner` boxes one centimetre proud of the walls' inner faces, so
+- `hallLiner` boxes one centimetre proud of the walls' inner faces, so
   the outside stays as it was;
 - timber posts and a wall plate in front of the stone;
 - round windows: a glass disc, a timber ring, a sill, a keystone, a halo,
@@ -334,7 +338,7 @@ Done for the five taverns in r181 (`dressTavern` in the game,
 
 ## 8. Where the numbers are
 
-PROJECT.md's §0 sections for r176 to r181 hold every measurement behind this
+PROJECT.md's §0 sections for r176 to r182 hold every measurement behind this
 guide: scores per step, the regions' ΔE, the rock's lightness and spread,
 diagnostics and boot times. The published writeup of the run is an artifact
 the owner holds (Veilscar Vista Match).

@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r181 The green glass</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r182 Glass in every hall</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5044,7 +5044,7 @@ MATS.foliage.color.setHex(0x2d8c48);MATS.foliage.emissive.setHex(0x0b2d1a);MATS.
 // ground in front of each lit ground-floor window, each hall window and each
 // door lantern, and under each festoon on the avenues: additive, one merged
 // mesh, one draw call, no light.
-const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?, wash?, y?, gy?}: filled by the builders, laid by streetLightPools
+const LIGHT_POOLS=[];                    // {x, z, ry, along, out, k, round?, wash?, y?, gy?, tint?}: filled by the builders, laid by streetLightPools
 // (gy, r171: the ground's height under a pool off the city's flat ground)
 function streetLightPools(){
   // Two pools side by side on one texture: one thrown out from a wall (left;
@@ -5071,7 +5071,7 @@ function streetLightPools(){
       uv.push(.5,0,1,0,1,1,.5,1); }
     else { for(const [lx,lz] of[[-p.along/2,z0],[p.along/2,z0],[p.along/2,z1],[-p.along/2,z1]])
         pos.push(p.x+lx*co+lz*si,(p.gy||0)+.135,p.z-lx*si+lz*co);
-      uv.push(u0,0,u1,0,u1,1,u0,1); } for(let i=0;i<4;i++)col.push(p.k,p.k,p.k);
+      uv.push(u0,0,u1,0,u1,1,u0,1); } const pt=p.tint||[1,1,1]; for(let i=0;i<4;i++)col.push(p.k*pt[0],p.k*pt[1],p.k*pt[2]);
     idx.push(base,base+2,base+1,base,base+3,base+2);
   }
   const geo=new THREE.BufferGeometry();
@@ -6323,7 +6323,7 @@ function cullLights(t){
   let shown=0;
   for(const row of ranked){ const on=row.useful&&shown<tier; row.entry.light.visible=on; if(on)shown++; }
   padLights.forEach((pad,index)=>{ pad.visible=index<tier-shown; });
-  for(const halo of TAVERN_HALOS)halo.visible=activeInterior===halo.userData.room;   // (r181) the taverns' window glows
+  for(const halo of HALL_HALOS)halo.visible=activeInterior===halo.userData.room;   // (r181, r182) the halls' window glows
 }
 function interiorHearth(x,z,w=3.5){
   aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'dark');
@@ -7258,7 +7258,7 @@ function aTris(tris,k,centre){
 // turret for an archive, a crenellated tower for a guild, a bell-cote for a
 // shrine or chapel. The room inside, its door and its wall colliders are
 // untouched: everything here is outside the walls or above the ceiling.
-function hallExterior(x,z,w,d,h,kind,WK){
+function hallExterior(x,z,w,d,h,kind,WK,dress=null){
   const front=z+d/2, back=z-d/2, rise=Math.min(9,w*.42), over=.55, overZ=.45;
   const drop=over*rise/(w/2), ye=h-drop, yr=h+rise, z0=back-overZ, z1=front+overZ;
   const L=x-w/2-over, R=x+w/2+over;
@@ -7299,9 +7299,13 @@ function hallExterior(x,z,w,d,h,kind,WK){
     aBox(alongX?1.05:.1,hh,alongX?.1:1.05,wx,y0+hh/2,wz,'window');
     aBox(alongX?1.35:.3,.18,alongX?.3:1.35,wx,y0-.09,wz,'stone');
     aBox(alongX?1.35:.3,.22,alongX?.3:1.35,wx,y0+hh+.11,wz,'stone'); };
-  for(const sx of[-1,1])for(let k=0;k<3;k++){ win(x+sx*(w/2+.22),back+d*(k+.5)/3,'x'); LIGHT_POOLS.push({x:x+sx*(w/2+.22),z:back+d*(k+.5)/3,ry:sx*Math.PI/2,along:1.6,out:2.6,k:.9}); }
-  for(const ox of[-1,0,1])win(x+ox*w/3,back-.22,'z');                 // (the back buttresses stand at thirds between)
-  for(const ox of[-1,1]){ win(x+ox*w*.3,front+.22,'z',1.9,3.0); LIGHT_POOLS.push({x:x+ox*w*.3,z:front+.22,ry:0,along:1.6,out:2.8,k:.9}); }
+  // (r182) A dressed hall shows the street the round glass it has inside.
+  if(dress)hallRoundsOutside(x,z,w,d,dress);
+  else{
+    for(const sx of[-1,1])for(let k=0;k<3;k++){ win(x+sx*(w/2+.22),back+d*(k+.5)/3,'x'); LIGHT_POOLS.push({x:x+sx*(w/2+.22),z:back+d*(k+.5)/3,ry:sx*Math.PI/2,along:1.6,out:2.6,k:.9}); }
+    for(const ox of[-1,0,1])win(x+ox*w/3,back-.22,'z');                 // (the back buttresses stand at thirds between)
+    for(const ox of[-1,1]){ win(x+ox*w*.3,front+.22,'z',1.9,3.0); LIGHT_POOLS.push({x:x+ox*w*.3,z:front+.22,ry:0,along:1.6,out:2.8,k:.9}); }
+  }
   win(x,front+.23,'z',h+rise*.22,rise*.3);
   // What the hall is.
   if(kind==='tavern'){
@@ -7593,7 +7597,7 @@ function placeColdAssay(x,z){
   addBoxCollider(x-9.44,z-1.3,.7,2.7,0);                   // the crucible bench
   for(const [lx,ly,lz,c,p] of[[-7.9,.9,-4.2,0xff7a30,.6],[0,4.2,-1,0xa8d8ff,.55]]){ const l=lampLight(c,p,10); l.position.set(x+lx,ly,z+lz); scene.add(l); lights.push({light:l,base:p,phase:lz,fire:c===0xff7a30}); }
 }
-// ---------- the taverns' green glass (r181) ----------
+// ---------- the halls' glass (r181 the taverns, r182 every hall) ----------
 // After the owner's tavern frame (tools/video-frames/reference/hall-02,
 // docs/STYLE-PLAYBOOK.md §7): pale worn flagstones with a dark joint, walls of
 // rounded mossy stone, round windows of green glass in heavy timber lit from
@@ -7606,86 +7610,140 @@ function placeColdAssay(x,z){
 // hall is untouched), and the windows are discs on the side walls with a
 // timber ring, a soft halo, and one cold lamp a side that only lights while
 // you are in the room.
-const TAVERN_LAMP={power:.62,y:2.3};
-const TAVERN_GLASS={glow:.95,lamp:.6,range:9.5,halo:.5,stoneGlow:.035};
-// Where the windows go, along each side wall (z from the room's middle,
-// negative towards the back) — clear of the stairs, the stage and the tall
-// pieces each room stands against those walls.
-const TAVERN_WINDOWS={
-  'The Cinder and Keg':{left:[-1.2,4.2],right:[-.6,3.6]},
-  'The Southgate Rest':{left:[-3.6,1.6],right:[-3.2]},
-  'The Gilded Finch':{left:[-.5,4.4],right:[-2.6,2.6]},
-  'The Wayhouse':{left:[-5.2,1.4],right:[-2,4.2]},
-  "The Drovers' Rest":{left:[-1.6,4.4],right:[-6,2.6]}
+const HALL_LAMP={power:.62,y:2.3};
+const HALL_GLASS={glow:.95,lamp:.6,range:9.5,halo:.5,stoneGlow:.035,R:1.25,y:3.95};
+// (r182) Every landmark hall but the Great Hall's own walls, each with its
+// glass. The taverns keep r181's green; the others take the plain-glass
+// texture tinted to one colour each, after the room's trade: blue for the
+// archives' moonlight, cyan for the cold of the assay, amber where oil and
+// candles are, red over a forge, violet at the shrine and in the keep, rose in
+// the new chapel. A side's windows stand in its bays (bay -1, 0 or 1: the
+// thirds between the buttresses outside, so the glass the street sees is the
+// glass the room has); a bay is left out inside where the room stands
+// something tall against that wall, and the outside keeps it.
+const HALL_DRESS={
+  'The Cinder and Keg':{glass:'green',stone:'green',left:[-1,0,1],right:[0,1]},
+  'The Southgate Rest':{glass:'green',stone:'green',left:[-1,0,1],right:[-1]},
+  'The Gilded Finch':{glass:'green',stone:'green',left:[0,1],right:[-1,0,1]},
+  'The Wayhouse':{glass:'green',stone:'green',left:[-1,0,1],right:[0,1]},
+  "The Drovers' Rest":{glass:'green',stone:'green',left:[-1,0,1],right:[-1,0,1]},
+  'The Moon Archive':{glass:0x7fb0ff,left:[1],right:[1]},                // its bookcases stand the back two bays high
+  'The Eastwall Scriptorium':{glass:0xffb850,left:[-1,0,1],right:[-1,0,1]},
+  'The Cold Assay':{glass:0x70e0e8,left:[-1,0,1],right:[-1,0,1]},
+  'The Northwatch Guild':{glass:0x8fa8e8,left:[-1,0,1],right:[-1,0,1]},
+  'The Westwall Refuge':{glass:0x8fa8e8,left:[-1,0,1],right:[-1,0,1]},
+  "The Lamplighters' Hall":{glass:0xffa040,left:[-1,0,1],right:[-1,0,1]},
+  "Ferrier's Yard":{glass:0xff6a40,left:[-1,0,1],right:[-1,0,1]},
+  'Pilgrim Shrine':{glass:0xb080ff,left:[-1,0,1],right:[-1,0,1]},
+  'The New Chapel':{glass:0xff90b8,left:[-1,0,1],right:[-1,0,1]},
+  'The Great Hall':{glass:0xa78cff,left:[-1,0,1],right:[-1,0,1],keepWalls:true}
 };
-const TAVERN_TEX={};
-function tavernTex(key,b64){
-  if(TAVERN_TEX[key])return TAVERN_TEX[key];
+const HALL_TEX={};
+function hallTex(key,b64){
+  if(HALL_TEX[key])return HALL_TEX[key];
   const tex=new THREE.TextureLoader().load('data:image/jpeg;base64,'+b64);
   tex.colorSpace=THREE.SRGBColorSpace; tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.anisotropy=8;
-  return TAVERN_TEX[key]=tex;
+  return HALL_TEX[key]=tex;
 }
-function tavernMats(){
-  if(MATS.flag)return;
-  MATS.flag=new THREE.MeshStandardMaterial({map:tavernTex('flag',TAVERN_FLAG_JPG),roughness:.8,metalness:0});
-  const stone=tavernTex('stone',TAVERN_STONE_JPG);
-  MATS.tstone=new THREE.MeshStandardMaterial({map:stone,roughness:.92,metalness:0,emissive:0x4fd07a,emissiveMap:stone,emissiveIntensity:TAVERN_GLASS.stoneGlow});
-  const glass=tavernTex('glass',TAVERN_GLASS_JPG); glass.wrapS=glass.wrapT=THREE.ClampToEdgeWrapping;
-  MATS.tglass=new THREE.MeshStandardMaterial({map:glass,emissive:0xffffff,emissiveMap:glass,emissiveIntensity:TAVERN_GLASS.glow,roughness:.35,metalness:0});
+// The glass's own colour: the green texture as it is, or the plain one tinted.
+const hallTint=dress=>dress.glass==='green'?0x62e08a:dress.glass;
+// Material keys for a hall's dress. Five in all, whatever the colours: the
+// floor, the green stone and glass of the taverns, and one plain stone and one
+// plain glass for the rest. The plain glass takes its colour per vertex, and
+// its glow is multiplied by that colour too: a key a colour cost a draw call
+// each wherever the halls were in view (17 more at the spawn point).
+function hallMats(dress){
+  if(!MATS.flag){
+    MATS.flag=new THREE.MeshStandardMaterial({map:hallTex('flag',TAVERN_FLAG_JPG),roughness:.8,metalness:0});
+    const green=hallTex('glass',TAVERN_GLASS_JPG), plain=hallTex('hglass',HALL_GLASS_JPG);
+    green.wrapS=green.wrapT=plain.wrapS=plain.wrapT=THREE.ClampToEdgeWrapping;
+    MATS['hglass-green']=new THREE.MeshStandardMaterial({map:green,emissive:0xffffff,emissiveMap:green,emissiveIntensity:HALL_GLASS.glow,roughness:.35,metalness:0});
+    const tinted=new THREE.MeshStandardMaterial({map:plain,vertexColors:true,emissive:0xffffff,emissiveMap:plain,emissiveIntensity:HALL_GLASS.glow,roughness:.35,metalness:0});
+    tinted.onBeforeCompile=shader=>{ shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n  totalEmissiveRadiance*=vColor.rgb;'); };
+    tinted.customProgramCacheKey=()=>'hall-glass-tint';
+    MATS['hglass-tint']=tinted;
+    const gs=hallTex('stone',TAVERN_STONE_JPG), ps=hallTex('hstone',HALL_STONE_JPG);
+    MATS['hstone-green']=new THREE.MeshStandardMaterial({map:gs,roughness:.92,metalness:0,emissive:0x4fd07a,emissiveMap:gs,emissiveIntensity:HALL_GLASS.stoneGlow});
+    MATS['hstone-grey']=new THREE.MeshStandardMaterial({map:ps,roughness:.92,metalness:0,emissive:0x9aa8c8,emissiveMap:ps,emissiveIntensity:HALL_GLASS.stoneGlow});
+  }
+  const green=dress.glass==='green';
+  return {glassKey:green?'hglass-green':'hglass-tint',stoneKey:dress.stone==='green'?'hstone-green':'hstone-grey',tint:green?null:new THREE.Color(dress.glass)};
 }
 // A thin box whose every face tiles the stone at 3 m, wherever it stands.
-function tavernLiner(w,h,d,x,y,z){
+function hallLiner(w,h,d,x,y,z,key){
   const g=new THREE.BoxGeometry(w,h,d), uv=g.attributes.uv;
   const faces=[[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
   for(let f=0;f<6;f++)for(let i=0;i<4;i++){ const k=(f*4+i)*2; uv.array[k]*=faces[f][0]/3.0; uv.array[k+1]*=faces[f][1]/3.0; }
-  g.translate(x,y,z); collect('tstone',g);
+  g.translate(x,y,z); collect(key,g);
 }
-const TAVERN_HALOS=[];
-let TAVERN_HALO_MAT=null;
-function dressTavern(room,h,doorW,doorH){
-  tavernMats();
-  const {cx:x,cz:z,w,d}=room, ceil=h-.18, T=.012, hw=w/2-.21, hd=d/2-.21, front=z+d/2-.21;
-  // the stone, a skin on the inner faces
-  tavernLiner(w-.44,ceil,T,x,ceil/2,z-hd+T/2);
-  tavernLiner(T,ceil,d-.44,x-hw+T/2,ceil/2,z);
-  tavernLiner(T,ceil,d-.44,x+hw-T/2,ceil/2,z);
-  const side=(hw-doorW/2-.2);
-  for(const s of[-1,1])tavernLiner(side,ceil,T,x+s*(doorW/2+.2+side/2),ceil/2,front-T/2);
-  tavernLiner(doorW+.4,ceil-doorH-.1,T,x,doorH+.1+(ceil-doorH-.1)/2,front-T/2);
+// One round window, its glass facing `ry` (0 faces +z), with its timber ring,
+// a sill and a keystone. Inside and outside both use it.
+function hallRound(wx,wy,wz,ry,glassKey,tint=null){
+  const R=HALL_GLASS.R, nx=Math.sin(ry), nz=Math.cos(ry), alongX=Math.abs(nz)>.5;
+  const disc=new THREE.CircleGeometry(R,32); disc.rotateY(ry); disc.translate(wx,wy,wz);
+  if(tint){ const n=disc.attributes.position.count, c=new Float32Array(n*3); for(let i=0;i<n;i++){ c[i*3]=tint.r; c[i*3+1]=tint.g; c[i*3+2]=tint.b; } disc.setAttribute('color',new THREE.BufferAttribute(c,3)); }
+  collect(glassKey,disc);
+  const ring=new THREE.TorusGeometry(R,.11,6,32); ring.rotateY(ry); ring.translate(wx+nx*.03,wy,wz+nz*.03); collect('wood',ring);
+  aBox(alongX?R*1.3:.26,.12,alongX?.26:R*1.3,wx+nx*.1,wy-R-.08,wz+nz*.1,'wood');
+  aBox(alongX?.26:.18,.34,alongX?.18:.26,wx+nx*.07,wy+R+.08,wz+nz*.07,'wood');
+}
+const HALL_HALOS=[], HALL_HALO_MATS={};
+function hallHalo(room,dress,x,y,z){
+  // One material a colour, and shown only while you are in this room
+  // (cullLights): twenty sprites drawn from the street were twenty draw calls
+  // for glows no one outside can see.
+  const tint=hallTint(dress);
+  if(!HALL_HALO_MATS[tint]){ const c=new THREE.Color(tint), r=Math.round(c.r*255), g=Math.round(c.g*255), b=Math.round(c.b*255);
+    HALL_HALO_MATS[tint]=new THREE.SpriteMaterial({map:softPointTexture('rgba('+r+','+g+','+b+',.9)','rgba('+r+','+g+','+b+',0)'),color:0xffffff,transparent:true,opacity:HALL_GLASS.halo,blending:THREE.AdditiveBlending,depthWrite:false}); }
+  const halo=new THREE.Sprite(HALL_HALO_MATS[tint]);
+  halo.position.set(x,y,z); halo.scale.setScalar(HALL_GLASS.R*3.4); halo.visible=false; halo.userData.room=room; scene.add(halo); HALL_HALOS.push(halo);
+}
+// The outside of a dressed hall's windows, for hallExterior: every bay of both
+// sides, the two beside the door and the three at the back, round and in the
+// hall's glass, the light under each thrown in that colour.
+function hallRoundsOutside(x,z,w,d,dress){
+  const {glassKey,tint:gt}=hallMats(dress), wy=HALL_GLASS.y, c=new THREE.Color(hallTint(dress)), m=Math.max(c.r,c.g,c.b)||1, tint=[c.r/m,c.g/m,c.b/m];
+  for(const s of[-1,1])for(const bay of[-1,0,1]){ const wx=x+s*(w/2+.215), wz=z+bay*d/3;
+    hallRound(wx,wy,wz,s*Math.PI/2,glassKey,gt); LIGHT_POOLS.push({x:x+s*(w/2+.22),z:wz,ry:s*Math.PI/2,along:2.2,out:2.8,k:.9,tint}); }
+  for(const ox of[-1,1]){ const wx=x+ox*w*.3; hallRound(wx,wy,z+d/2+.215,0,glassKey,gt); LIGHT_POOLS.push({x:wx,z:z+d/2+.22,ry:0,along:2.2,out:2.8,k:.9,tint}); }
+  for(const ox of[-1,0,1])hallRound(x+ox*w/3,wy,z-d/2-.215,Math.PI,glassKey,gt);
+}
+function dressHall(room,h,doorW,doorH,dress){
+  const {glassKey,stoneKey,tint:gt}=hallMats(dress);
+  const {cx:x,cz:z,w,d}=room, ceil=h-.18, T=.012, hw=w/2-.21, hd=d/2-.21, front=z+d/2-.21, R=HALL_GLASS.R, wy=HALL_GLASS.y;
+  if(!dress.keepWalls){
+    // the stone, a skin on the inner faces
+    hallLiner(w-.44,ceil,T,x,ceil/2,z-hd+T/2,stoneKey);
+    hallLiner(T,ceil,d-.44,x-hw+T/2,ceil/2,z,stoneKey);
+    hallLiner(T,ceil,d-.44,x+hw-T/2,ceil/2,z,stoneKey);
+    const side=(hw-doorW/2-.2);
+    for(const s of[-1,1])hallLiner(side,ceil,T,x+s*(doorW/2+.2+side/2),ceil/2,front-T/2,stoneKey);
+    hallLiner(doorW+.4,ceil-doorH-.1,T,x,doorH+.1+(ceil-doorH-.1)/2,front-T/2,stoneKey);
+  }
   // the timber the stone is built between: a post in every corner, posts
   // down the side walls wherever a window is not, and a plate along the top
   const post=(px,pz)=>aBox(.34,ceil,.34,px,ceil/2,pz,'wood');
-  for(const sx of[-1,1])for(const sz of[-1,1])post(x+sx*(hw-.15),z+sz*(hd-.15));
-  for(const sx of[-1,1])post(x+sx*(doorW/2+.4),front-.15);
-  for(const ox of[-1,1])post(x+ox*w*.25,z-hd+.15);
-  aBox(w-.5,.36,.26,x,ceil-.18,z-hd+.13,'wood');
-  for(const sx of[-1,1])aBox(.26,.36,d-.5,x+sx*(hw-.13),ceil-.18,z,'wood');
-  // the windows
-  const spec=TAVERN_WINDOWS[room.name]||{left:[-d*.22],right:[d*.18]}, R=1.25, wy=3.95;
+  if(!dress.keepWalls){
+    for(const sx of[-1,1])for(const sz of[-1,1])post(x+sx*(hw-.15),z+sz*(hd-.15));
+    for(const sx of[-1,1])post(x+sx*(doorW/2+.4),front-.15);
+    for(const ox of[-1,1])post(x+ox*w*.25,z-hd+.15);
+    aBox(w-.5,.36,.26,x,ceil-.18,z-hd+.13,'wood');
+    for(const sx of[-1,1])aBox(.26,.36,d-.5,x+sx*(hw-.13),ceil-.18,z,'wood');
+  }
+  // the windows, in the bays
   for(const [key,s] of[['left',-1],['right',1]]){
-    const wx=x+s*(hw-.03), ry=-s*Math.PI/2, zs=spec[key]||[];
-    for(const dz of zs){
-      const wz=z+dz;
-      const disc=new THREE.CircleGeometry(R,32); disc.rotateY(ry); disc.translate(wx,wy,wz); collect('tglass',disc);
-      const ring=new THREE.TorusGeometry(R,.11,6,32); ring.rotateY(Math.PI/2); ring.translate(wx-s*.03,wy,wz); collect('wood',ring);
-      // the sill and a keystone, so the ring sits in the wall and not on it
-      aBox(.26,.12,R*1.3,wx-s*.1,wy-R-.08,wz,'wood');
-      aBox(.18,.34,.26,wx-s*.07,wy+R+.08,wz,'wood');
-      // One material for all of them, and shown only while you are in this
-      // room (cullLights): twenty sprites drawn from the street were twenty
-      // draw calls for glows no one outside can see.
-      if(!TAVERN_HALO_MAT)TAVERN_HALO_MAT=new THREE.SpriteMaterial({map:softPointTexture('rgba(130,255,160,.9)','rgba(80,220,120,0)'),color:0x8cff9c,transparent:true,opacity:TAVERN_GLASS.halo,blending:THREE.AdditiveBlending,depthWrite:false});
-      const halo=new THREE.Sprite(TAVERN_HALO_MAT);
-      halo.position.set(wx-s*.35,wy,wz); halo.scale.setScalar(R*3.4); halo.visible=false; halo.userData.room=room; scene.add(halo); TAVERN_HALOS.push(halo);
-    }
+    const wx=x+s*(hw-.03), zs=(dress[key]||[]).map(bay=>bay*d/3);
+    for(const dz of zs){ hallRound(wx,wy,z+dz,-s*Math.PI/2,glassKey,gt); hallHalo(room,dress,wx-s*.35,wy,z+dz); }
     // posts between and beside the windows, kept a ring's width clear
-    for(let pz=z-hd+3.4;pz<z+hd-2;pz+=3.4){ if(zs.every(dz=>Math.abs(z+dz-pz)>R+.5))post(x+s*(hw-.15),pz); }
+    if(!dress.keepWalls)for(let pz=z-hd+3.4;pz<z+hd-2;pz+=3.4){ if(zs.every(dz=>Math.abs(z+dz-pz)>R+.5))post(x+s*(hw-.15),pz); }
     if(zs.length){
       const mid=zs.reduce((a,b)=>a+b,0)/zs.length;
-      const lamp=lampLight(0x62e08a,TAVERN_GLASS.lamp,TAVERN_GLASS.range); lamp.position.set(x+s*(hw-1.5),wy-.4,z+mid); scene.add(lamp);
-      lights.push({light:lamp,base:TAVERN_GLASS.lamp,phase:0,home:room});
+      const lamp=lampLight(hallTint(dress),HALL_GLASS.lamp,HALL_GLASS.range); lamp.position.set(x+s*(hw-1.5),wy-.4,z+mid); scene.add(lamp);
+      lights.push({light:lamp,base:HALL_GLASS.lamp,phase:0,home:room});
     }
   }
+  // and the two beside the door, from inside, where the street sees them
+  if(!dress.keepWalls)for(const ox of[-1,1]){ hallRound(x+ox*w*.3,wy,front-.03,Math.PI,glassKey,gt); hallHalo(room,dress,x+ox*w*.3,wy,front-.38); }
 }
 function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doorW=3;
   // The royal hall is built against the foot of the keep, so it takes the
@@ -7703,15 +7761,17 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doo
   // tall, so the wall picks up again just above them.
   const DOOR_H=2.5; aBox(doorW,h-DOOR_H,.42,x,DOOR_H+(h-DOOR_H)/2,front,WK);
   // (r156) The floor at the ground, as the furniture and the people in it are.
-  aBox(w-.42,.06,d-.42,x,.03,z,kind==='tavern'?'flag':'cobble'); landmarkDoorstep(x,front); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark');
+  const dress=HALL_DRESS[name]||null;
+  aBox(w-.42,.06,d-.42,x,.03,z,dress?'flag':'cobble'); landmarkDoorstep(x,front); aBox(w-.75,.18,d-.75,x,h-.09,z,'dark');
   // The keep carries its own tower above this storey, so it asks for no roof
   // of its own; every other hall gets its outside from hallExterior (r145).
-  if(capped)hallExterior(x,z,w,d,h,kind,WK);
+  if(capped)hallExterior(x,z,w,d,h,kind,WK,dress);
   wallColl(x-w/2,z-d/2,x+w/2,z-d/2,.7); wallColl(x-w/2,z-d/2,x-w/2,z+d/2,.7); wallColl(x+w/2,z-d/2,x+w/2,z+d/2,.7); wallColl(x-w/2,front,x-doorW/2,front,.7); wallColl(x+doorW/2,front,x+w/2,front,.7);
   const signColor=kind==='royal'?'arcane':'amber'; aBox(doorW+.44,.24,.55,x,2.45,front+.03,'wood'); aBox(.22,2.35,.55,x-doorW/2-.08,1.17,front+.03,'wood'); aBox(.22,2.35,.55,x+doorW/2+.08,1.17,front+.03,'wood'); aBox(2.5,.22,.7,x,2.78,front+.08,signColor); aBox(2.2,.14,.72,x,2.95,front+.1,'dark');
-  // (r181) A tavern's two are lower and dimmer: pools under the lanterns, not
-  // a wash over every wall. The green from its windows is the other light.
-  const hallP=kind==='tavern'?TAVERN_LAMP.power:1.2, hallY=kind==='tavern'?TAVERN_LAMP.y:3;
+  // (r181, r182) A dressed hall's two are lower and dimmer: pools under the
+  // lanterns, not a wash over every wall. Its windows are the other light.
+  // The Great Hall keeps its own, a hall the size of a courtyard.
+  const pooled=dress&&kind!=='royal', hallP=pooled?HALL_LAMP.power:1.2, hallY=pooled?HALL_LAMP.y:3;
   for(let ix=-1;ix<=1;ix+=2){ const lamp=lampLight(kind==='royal'?0xa78cff:0xffb060,hallP,12); lamp.position.set(x+ix*(w*.31),hallY,z); scene.add(lamp); lights.push({light:lamp,base:hallP,phase:rand(0,6)}); }
   if(kind==='tavern'){ if(!FITTED_HALLS.has(name)){ aBox(w*.54,.55,1.2,x,.5,z-1.5,'wood'); for(let i=-1;i<=1;i+=2){ aBox(1.1,.85,.8,x+i*3,.42,z+1.5,'wood'); addCollider(x+i*3,z+1.5,.65); } aCyl(.65,.75,1.3,8,x, .65,z+2.4,'stone'); } }   // (r157) the fitted taverns furnish themselves
   else if(kind==='archive'){ if(!FITTED_HALLS.has(name)){ for(let i=-1;i<=1;i+=2){ aBox(.8,4,d*.58,x+i*(w*.36),2,z,'wood'); } aBox(3,.85,1.5,x,.43,z+1.2,'wood'); addCollider(x,z+1.2,1.1); } }   // (r154, r155) the fitted archives furnish themselves
@@ -7725,7 +7785,7 @@ function interiorHouse(name,x,z,w,d,kind,capped=true){ const h=7,front=z+d/2,doo
   const doorRecord={id:name.toLowerCase().replace(/\W+/g,'-'),name,x,z:front+1.55,outsideX:x,outsideZ:front+1.55,insideX:x,insideZ:front-1.45,cx:x,cz:z,w,d,kind,doorX:x,doorZ:front,purpose:INTERIOR_PURPOSES[name]||'a room with its own small routine'};
   buildInteriorDoorLeaves(doorRecord,doorW,kind);
   interiorDoors.push(doorRecord);
-  if(kind==='tavern')dressTavern(doorRecord,h,doorW,DOOR_H);
+  if(dress)dressHall(doorRecord,h,doorW,DOOR_H,dress);
 }
 // ---------- the Cinder Market (r144) ----------
 // The market was a thirty-one metre paved disc with the avenue running
@@ -60761,6 +60821,503 @@ const TAVERN_GLASS_JPG =
   'CkLUCOKQWe3YigLJ2kIQpwJNHAM4PJdChSwLJ5SgRSSENKTJxTsgwOJR5eKbkKR7ZApZFgQEEKpwMCXFQaQGJBMYNIQ40rNBhQ+S' +
   'Cmmjuob3Ac07AMnCQoUgCkCgwoWUg0AjZwYpwBpRM0Rp/9k=';
 // <<< ASSET TAVERN_GLASS
+// >>> ASSET HALL_STONE (built by tools/assets/tavern-textures.py, inlined by tools/assets/inline-tex.js)
+const HALL_STONE_JPG =
+  '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' +
+  'NOKa2gP/2Q==';
+// <<< ASSET HALL_STONE
+// >>> ASSET HALL_GLASS (built by tools/assets/tavern-textures.py, inlined by tools/assets/inline-tex.js)
+const HALL_GLASS_JPG =
+  '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';
+// <<< ASSET HALL_GLASS
 // >>> ASSET SOUTHGATE_REST (built by tools/assets/taverns.py, packed by tools/assets/pack-glb.js)
 const SOUTHGATE_REST_GLB =
   'Z2xURgIAAADMDwEAUAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
@@ -73008,12 +73565,20 @@ function innerInfill(){
       if(dx*dx+dz*dz<rr*rr)return true; }
     return false;
   };
+  // (r182) And never inside a hall. The table above predates the six halls of
+  // r158, and one baked lot, a 3 m two-storey house, stood in the west half of
+  // Ferrier's Yard: walls, roof and lit windows inside the smithy. A hall's
+  // colliders run along its walls, so its floor reads as open ground to every
+  // test but this one. The halls are all raised before the infill; no other
+  // lot's middle falls inside one. Houses take no random draws, so a skipped
+  // lot moves nothing else.
+  const inHall=(x,z)=>interiorDoors.some(r=>r.w>=17&&Math.abs(x-r.cx)<r.w/2&&Math.abs(z-r.cz)<r.d/2);
   const inBuildableRing=(x,z)=>{
     const r=Math.hypot(x,z);
     return (r>66 && r<CITY_RADIUS-9) || (r>CITY_RADIUS+8 && r<BUILD_EDGE_R-6);
   };
   for(const [x,z,w,depth,ry,baked,key,accent,shopLot,trade] of CITY_LOTS_BUILT){
-    if(excluded(x,z,Math.max(w,depth)*.5)){ skipped++; continue; }
+    if(excluded(x,z,Math.max(w,depth)*.5)||inHall(x,z)){ skipped++; continue; }
     const stories=frontageStoreys(x,z,depth,ry,baked); if(stories>baked)raised++;
     if(shopLot)wardHome(x,z,w,depth,stories,key,ry,accent,true);      // a shop is a room now; see openHomes
     else (homeWanted(x,z,false)?wardHome:wardHouse)(x,z,w,depth,stories,key,ry,accent);
@@ -79657,7 +80222,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r181',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r182',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80023,7 +80588,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch r0 — variant layer over base r181 -->
+<!-- Emberwatch r0 — variant layer over base r182 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — R0 / BAREBONES                                 variant layer
