@@ -4691,7 +4691,7 @@ function placeMood(){
   const lerp=(uniform,base,to)=>{ A.setHex(base,THREE.LinearSRGBColorSpace).lerp(B.setHex(to,THREE.LinearSRGBColorSpace),w); uniform.copy(A); };
   lerp(auroraUniforms.uZenith.value,sky.zenith,m.zenith); lerp(auroraUniforms.uHorizon.value,sky.horizon,m.horizon);
   auroraUniforms.uDrama.value=w*(m.drama??0);
-  auroraUniforms.uDramaLit.value=1+w*((m.dramaLit??1)-1); auroraUniforms.uDramaSharp.value=w*(m.dramaSharp??0); auroraUniforms.uSkyGain.value=1+w*((m.skyGain??1)-1);
+  auroraUniforms.uDramaLit.value=1+w*((m.dramaLit??1)-1); auroraUniforms.uDramaSharp.value=w*(m.dramaSharp??0); auroraUniforms.uSkyGain.value=1+w*((m.skyGain??1)-1); auroraUniforms.uDramaMoon.value=w*(m.dramaMoon??0);
   auroraUniforms.uMoonR.value=.054+w*((m.moonR??.054)-.054);
   scene.fog.color.setHex(mode.fog).lerp(B.setHex(m.fog),w); scene.background.copy(scene.fog.color);
   // the ground's own colour and the moon's: the night's are lavender and
@@ -76494,7 +76494,7 @@ const auroraUniforms={
   uHorizon:{value:new THREE.Color().setHex(0x161c44,THREE.LinearSRGBColorSpace)},
   uIntensity:{value:1},
   uCloud:{value:1},
-  uDrama:{value:0}, uDramaLit:{value:1}, uDramaSharp:{value:0}, uSkyGain:{value:1},
+  uDrama:{value:0}, uDramaLit:{value:1}, uDramaSharp:{value:0}, uSkyGain:{value:1}, uDramaMoon:{value:0},
   uMoonR:{value:.054},   // (r176) the great moon's radius, radians; a place's mood can shrink it
   uMoonLit:{value:1},
   uMoonDir:{value:MOON_DIR.clone()},
@@ -76506,7 +76506,7 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
   fragmentShader:`
     precision highp float;
     varying vec3 vDir;
-    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama,uMoonR,uDramaLit,uDramaSharp,uSkyGain; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
+    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama,uMoonR,uDramaLit,uDramaSharp,uSkyGain,uDramaMoon; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
     float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y); }
@@ -76592,6 +76592,11 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
         vec3 litCol=mix(vec3(0.30,0.20,0.72),vec3(0.66,0.56,1.0),smoothstep(0.62,0.92,n))*(0.55+1.1*pow(md,3.0));
         sky=mix(sky,sky*0.45,gap*cover*uDrama*0.75);
         sky+=litCol*lit*cover*uDrama*uDramaLit*0.6;
+        // (r185) uDramaMoon: a saturated violet round the moon, deepest in the
+        // lit cloud and fainter in the gaps. The reference's sky about its
+        // moon is a deep, full violet; the lit cloud's colour runs to a pale
+        // lilac, so a sky made only of it read washed out there.
+        sky+=vec3(0.36,0.12,0.95)*pow(md,40.0)*(0.35+0.9*lit)*cover*uDramaMoon;
         float star=step(0.9982,hash(floor(h*380.0/(up+0.3))))*gap*cover;
         sky+=vec3(0.9,0.9,1.0)*star*uDrama*0.9;
       }
