@@ -1,74 +1,66 @@
-**r183 — stone in every room** · 1.83.0 · 2026-11-22 · phase 5, world depth
+**r184 — grain in the wood** · 1.84.0 · 2026-11-22 · phase 5, world depth
 
 ### Summary
 
-Stone in every room. The halls' grey stone, corner posts and wall plate in every walk-in home and shop (dressRoom); shops floored in flagstone; a home's front windows seen from inside as cold night glass; the rooms' fill lamp lowered from 2.35 to 1.75 m, off the ceiling it was burning. Verified: audits, unit tests, diagnostics against r182, homes and shops shot before and after, boot time, variants 6/6, smoke.
+Grain in the wood. The fitted halls' sixteen models take a painted grain map (detail-grain.jpg) over their vertex colours, box-projected at 1.3 m, and creased normals, so barrels, round tables and chandeliers shade smooth while boxes keep their edges. Verified: audits, unit tests, diagnostics against r183, halls shot before and after, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r183 / 1.83.0, "Stone in every room".** Built on r182, the second
-of the backlog run. r182's list said the homes and shops still had plank
-walls and the dark floor.
-
-### What was wrong
-
-Shot from their doorways, the walk-in homes and shops were boxes in the
-street's own wall material (plaster, brick or boards) on a board floor, very
-dark. In every shop the brightest thing in the frame was a hot patch on the
-ceiling: the room's cool fill lamp (r113) hung at 2.35 m, 21 cm under a
-2.56 m ceiling, and under physical falloff it burned a spot into it. The
-homes' front windows, lit warm from the street, were plain wall from
-inside.
+**State: r184 / 1.84.0, "Grain in the wood".** Built on r183, the third of
+the backlog run. r181's list said the furniture was r157's flat-shaded
+pieces, where the reference's is heavy, smooth and grained.
 
 ### What changed
 
-- **`dressRoom`**, run by `openHomes` for every room it opens: the halls'
-  grey stone liner on the inner faces (turned to the room, `hallLiner`
-  takes a `ry` now), a timber post in each corner and a plate along the
-  top. A shop's goes into its own bins with its furniture, so it is drawn
-  only while you are near the shop, as the rest of its room is.
-- **A shop's floor is flagstone** (`wardHome`, under the `flag` key). A
-  home keeps its boards.
-- **A home's front windows from inside** are the same leaded glass the
-  street sees lit warm, here as the night outside, cold and dim (a new
-  `nightpane` material on the leaded texture), with a sill. They stand
-  where `wardHome` put the ground floor's windows outside.
-- **The fill hangs at 1.75 m**, above the counters and tables and well
-  clear of the ceiling. Every home and shop has one.
+- **A grain map.** The fitted halls' models (the five taverns, the three
+  archives, the four guild halls, the shrine and the chapel: sixteen
+  pieces in all) were drawn in vertex colour alone. They take a new texture
+  now, `detail-grain.jpg` from `tools/assets/tavern-textures.py`: grey
+  grain near white (mean about 0.88), fine noise smeared along one axis into
+  fibres, a few flecks, tileable, 10 KB. It is multiplied over the vertex
+  colours and box-projected at 1.3 m (`placeLandmark`'s `tile`), so a plank
+  has fibres and a cushion a worn skin. A first strength (±0.045) barely
+  showed; it is twice that.
+- **Creased normals.** The same pieces were flat-shaded. With `grain` set,
+  their normals are creased at 36° (three.js `toCreasedNormals`) and the
+  material is smooth-shaded: a barrel, a round table's rim, a chandelier's
+  ring and a stool's legs shade round, and a box keeps its edges.
+- Opt-in per call (`grain:true` on the sixteen `placeLandmark` calls). The
+  other landmarks keep the kit's flat look.
 
 ### Not done, and next
 
-- **The furniture** in the fitted halls is still flat-shaded (r184).
 - **The Veilscar's moon sky and left mountain** (r185).
-- Homes stay dark away from their hearths, as they were. A second warm
-  lamp would cost a light slot in every home.
+- The pieces' own forms are r157's. A Blender bake of each, like Orren and
+  the rocks, would go further than a shared grain, at a few hundred KB.
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
-  markup and script agree. All 719 functions are reachable, none dead, and no
-  comment holds a call. Section A is 243, as in r182.
+  markup and script agree. All 720 functions are reachable, none dead, and no
+  comment holds a call. Section A is 244 against r183's 243: the new
+  `DETAIL_GRAIN` marker.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Diagnostics against r182**, same profile: doors 202 (none blocked),
-  anchors 98 (none blocked), gate approaches 4 with none broken, colliders
-  13,167, all as r182. Render calls at the spawn point 491 against 490: the
-  night panes' material.
-- **Looked at.** Four homes and four shops from their doorways in r182 and
-  r183, and again in r183 after a wait for each shop's room to be built,
-  with each home also shot facing its front wall.
-- **Boot time**, three runs each, alternated, from the game's own load
-  report:
-  - r182: 6.9, 7.2 and 7.6 s
-  - r183: 6.9, 7.1 and 7.4 s
-- **Variants** 6/6 built, and 6/6 boot and report r183.
-- **Smoke check** clean: the game boots at r183, the Bluetooth chooser
+- **Diagnostics against r183**, same profile: doors 202 (none blocked),
+  anchors 98 (none blocked), colliders 13,167, render calls at the spawn
+  point 491, all as r183.
+- **Looked at.** Four halls from the doorway and across to a side wall in
+  r183 and r184, and the Gilded Finch and the Wayhouse again at the
+  stronger grain.
+- **Boot time**, six runs each, alternated, from the game's own load report.
+  The first three r184 runs were slower, so three more were taken. The world
+  build was 2.1-2.2 s in both, so the creasing costs nothing that shows:
+  - r183: 7.3, 7.4, 7.5, 7.6, 7.0 and 7.1 s
+  - r184: 8.1, 8.0, 7.1, 7.0, 6.8 and 7.5 s
+- **Variants** 6/6 built, and 6/6 boot and report r184.
+- **Smoke check** clean: the game boots at r184, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.34 MB (+2,403 bytes on r182).
-- 1 function added: `dressRoom`.
+- 8.36 MB (+16,600 bytes on r183).
+- 1 function added: `grainTexture`.
 
 ### Play it
 
