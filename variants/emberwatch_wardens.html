@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r184 Grain in the wood</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r185 Violet round the moon</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -4691,7 +4691,7 @@ function placeMood(){
   const lerp=(uniform,base,to)=>{ A.setHex(base,THREE.LinearSRGBColorSpace).lerp(B.setHex(to,THREE.LinearSRGBColorSpace),w); uniform.copy(A); };
   lerp(auroraUniforms.uZenith.value,sky.zenith,m.zenith); lerp(auroraUniforms.uHorizon.value,sky.horizon,m.horizon);
   auroraUniforms.uDrama.value=w*(m.drama??0);
-  auroraUniforms.uDramaLit.value=1+w*((m.dramaLit??1)-1); auroraUniforms.uDramaSharp.value=w*(m.dramaSharp??0); auroraUniforms.uSkyGain.value=1+w*((m.skyGain??1)-1);
+  auroraUniforms.uDramaLit.value=1+w*((m.dramaLit??1)-1); auroraUniforms.uDramaSharp.value=w*(m.dramaSharp??0); auroraUniforms.uSkyGain.value=1+w*((m.skyGain??1)-1); auroraUniforms.uDramaMoon.value=w*(m.dramaMoon??0);
   auroraUniforms.uMoonR.value=.054+w*((m.moonR??.054)-.054);
   scene.fog.color.setHex(mode.fog).lerp(B.setHex(m.fog),w); scene.background.copy(scene.fog.color);
   // the ground's own colour and the moon's: the night's are lavender and
@@ -72200,6 +72200,10 @@ function placeFallenHall(){
     // these its difference fell from 21 to 9 and the castle's, against that
     // sky, from 10 to 2.
     dramaLit:.6, dramaSharp:.8, skyGain:.8,
+    // (r185) and a deep violet round the moon, where the region audit's worst
+    // part was: the moon's sky (difference 18.6 to 8.3). Swept from 0 to 1.2 in
+    // two runs; the first aureole, wider, bled onto the castle: 1.6 to 5.7.
+    dramaMoon:.5,
     // the colour transfer, fitted by tools/fit-transfer.py in tone mode on the
     // vista photographed without it: the reference's tones and the centre
     // and spread of its colour, in place of the hand-set violet grade
@@ -72299,7 +72303,7 @@ function placeWizardsKnoll(){
     // their own pale, mottled paint, where the tiled texture drew them as
     // dark faceted cones; brightened, for at this range the haze takes them
     const {s,sy}=veilPeaksAt();
-    placeBakedLandmark('veilscar-peaks',VEILSCAR_PEAKS_GLB,{x,y:terrainAt(x,z)-2,z,ry,s,sy},{tint:new THREE.Color(1.6,1.6,1.6)});
+    placeBakedLandmark('veilscar-peaks',VEILSCAR_PEAKS_GLB,{x,y:terrainAt(x,z)-2,z,ry,s,sy},{tint:new THREE.Color(2.0,1.65,2.3)});   // (r185) violet and lighter, as the reference's lit mountain: its difference 9.0 to 3.1
     const co=Math.cos(ry), si=Math.sin(ry);
     for(const [lx,lz,r] of[[-30,6,10],[-18,-2,15],[-6,8,12],[6,-4,13],[18,6,9],[30,-2,8],[-38,-10,6],[38,10,6]])addCollider(x+lx*s*co+lz*s*si,z-lx*s*si+lz*s*co,r*s);
     canonRecord('landmark','veilscar-peaks',x,z,{purpose:'grey rock spires to the left of the castle as the wizard sees it, as in the reference frame'}); }
@@ -76494,7 +76498,7 @@ const auroraUniforms={
   uHorizon:{value:new THREE.Color().setHex(0x161c44,THREE.LinearSRGBColorSpace)},
   uIntensity:{value:1},
   uCloud:{value:1},
-  uDrama:{value:0}, uDramaLit:{value:1}, uDramaSharp:{value:0}, uSkyGain:{value:1},
+  uDrama:{value:0}, uDramaLit:{value:1}, uDramaSharp:{value:0}, uSkyGain:{value:1}, uDramaMoon:{value:0},
   uMoonR:{value:.054},   // (r176) the great moon's radius, radians; a place's mood can shrink it
   uMoonLit:{value:1},
   uMoonDir:{value:MOON_DIR.clone()},
@@ -76506,7 +76510,7 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
   fragmentShader:`
     precision highp float;
     varying vec3 vDir;
-    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama,uMoonR,uDramaLit,uDramaSharp,uSkyGain; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
+    uniform float uTime,uIntensity,uCloud,uMoonLit,uDrama,uMoonR,uDramaLit,uDramaSharp,uSkyGain,uDramaMoon; uniform vec3 uFog,uZenith,uHorizon,uMoonDir,uMoon2Dir;
     float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y); }
@@ -76592,6 +76596,11 @@ const skyDome=new THREE.Mesh(new THREE.SphereGeometry(980,96,56),new THREE.Shade
         vec3 litCol=mix(vec3(0.30,0.20,0.72),vec3(0.66,0.56,1.0),smoothstep(0.62,0.92,n))*(0.55+1.1*pow(md,3.0));
         sky=mix(sky,sky*0.45,gap*cover*uDrama*0.75);
         sky+=litCol*lit*cover*uDrama*uDramaLit*0.6;
+        // (r185) uDramaMoon: a saturated violet round the moon, deepest in the
+        // lit cloud and fainter in the gaps. The reference's sky about its
+        // moon is a deep, full violet; the lit cloud's colour runs to a pale
+        // lilac, so a sky made only of it read washed out there.
+        sky+=vec3(0.36,0.12,0.95)*pow(md,90.0)*(0.35+0.9*lit)*cover*uDramaMoon;
         float star=step(0.9982,hash(floor(h*380.0/(up+0.3))))*gap*cover;
         sky+=vec3(0.9,0.9,1.0)*star*uDrama*0.9;
       }
@@ -80243,7 +80252,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r184',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r185',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80609,7 +80618,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Wardens — variant layer over base r184 -->
+<!-- Emberwatch — Wardens — variant layer over base r185 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — WARDENS                                        variant layer

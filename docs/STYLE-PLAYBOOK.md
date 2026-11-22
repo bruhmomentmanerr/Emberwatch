@@ -257,6 +257,8 @@ quality 72-80, 300-500 KB quantised.
 | A shot of a shop shows an empty room | Shop rooms are built a few per 0.4 s tick as you near them | Shoot it twice: a warm-up, then again after a short `before` wait |
 | Kit furniture reads as plastic | Vertex colour on flat faces | `grain:true` on its `placeLandmark` call: a grain map over the colours and creased normals (round things smooth, boxes crisp) |
 | A detail map makes no visible difference | Its range was too narrow under dark vertex colours | Check it on a close crop at 1:1 before and after, then double it if it does not show |
+| A sky's colour near the moon will not deepen | The lit cloud's colour is fixed in the shader and runs pale | `dramaMoon`, a violet aureole; keep it narrow (a high power of the moon dot) or it bleeds onto what stands under the moon |
+| A variant sweep shoots only its first variant | A `before` script declared a `const` at the page's top level, and the second copy threw | Wrap each `before` in a function: `(()=>{ ... return promise; })()` |
 | A window lands on a buttress outside | Placed by eye from inside | Put windows in the bays between the buttresses (`HALL_DRESS` bays) |
 
 ---
@@ -342,7 +344,7 @@ for the surfaces). The kit, for any room:
 
 ## 8. Where the numbers are
 
-PROJECT.md's §0 sections for r176 to r184 hold every measurement behind this
+PROJECT.md's §0 sections for r176 to r185 hold every measurement behind this
 guide: scores per step, the regions' ΔE, the rock's lightness and spread,
 diagnostics and boot times. The published writeup of the run is an artifact
 the owner holds (Veilscar Vista Match).
