@@ -247,6 +247,10 @@ quality 72-80, 300-500 KB quantised.
 | The walk probe hangs | It waited 8 s for the game, which now loads in about 8 s; and at half a frame a second (software rendering in some containers) a frame-counted walk takes hours | It waits 90 s now; when the frame rate is that low, check the route geometrically instead and say so |
 | `EMBER.look is not a function` | A new EMBER key shadowed it | Name new keys apart (`EMBER.cinematic`) |
 | Audit section A grows by one | A comment with a word before `(`, or a new asset marker | Reword the comment; markers are inherent |
+| Doors or colliders differ from the last release's notes with nothing added | The harness profile's state moves between sessions | Run the last release's archive in the same session, same profile, and compare against that |
+| A stone wall reads as one even net of mortar | Its self-glow lit every course alike (0.2) | Keep a stone's emissive near 0.03, just enough that its shadows keep their colour; let the lamps and windows make the pools |
+| Render calls jump with a few glows | Each sprite is a draw call wherever it is in view, even behind a wall | Share one material, and show a room's glows only while the player is in that room |
+| `check-variants` reports "no result" for every variant | Electron's sandbox under xvfb | `ELECTRON_DISABLE_SANDBOX=1` with `HARNESS_SWIFTSHADER=1` |
 
 ---
 
@@ -306,6 +310,17 @@ What that frame sets for any interior:
 - **Arches and depth:** a doorway or arch framing a farther, darker space.
 - Characters at the tables carry the room's one glow colour on their edges.
 
+Done for the five taverns in r181 (`dressTavern` in the game,
+`tools/assets/tavern-textures.py` for the surfaces). The kit, for any room:
+- a floor slab under the `flag` key (world-tiled UVs);
+- `tavernLiner` boxes one centimetre proud of the walls' inner faces, so
+  the outside stays as it was;
+- timber posts and a wall plate in front of the stone;
+- round windows: a glass disc, a timber ring, a sill, a keystone, a halo,
+  and one cold lamp per side with `home:` set to the room's door record, so
+  it lights only while the player is inside;
+- the room's own lamps lower and dimmer.
+
 ### Characters (`hall-01`, `hall-00`, `hall-03`)
 
 - Smooth lofted forms, a baked painted atlas, about 10-15k triangles for a
@@ -319,7 +334,7 @@ What that frame sets for any interior:
 
 ## 8. Where the numbers are
 
-PROJECT.md's §0 sections for r176 to r180 hold every measurement behind this
+PROJECT.md's §0 sections for r176 to r181 hold every measurement behind this
 guide: scores per step, the regions' ΔE, the rock's lightness and spread,
 diagnostics and boot times. The published writeup of the run is an artifact
 the owner holds (Veilscar Vista Match).

@@ -2182,5 +2182,18 @@
   },
   "asset": "emberwatch-r180-the-valley-in-mist.html",
   "notes": "releases/notes/r180.md"
+ },
+ {
+  "tag": "r181",
+  "rev": 181,
+  "title": "the green glass",
+  "version": "1.81.0",
+  "date": "2026-11-22T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r181-the-green-glass.html"
+  },
+  "asset": "emberwatch-r181-the-green-glass.html",
+  "notes": "releases/notes/r181.md"
  }
 ]
