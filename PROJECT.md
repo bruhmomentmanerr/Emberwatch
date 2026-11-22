@@ -4,10 +4,13 @@
 this safely: what it is, how it is built, what the conventions are, what has
 already gone wrong, and how to ship a change.
 
-Current: **r183 / 1.83.0**, sealed 2026-11-22 as "Stone in every room": the
+Current: **r184 / 1.84.0**, sealed 2026-11-22 as "Grain in the wood": the
+fitted halls' furniture given a painted grain and creased normals, so the
+wood has fibres and the round things shade smooth (§0). Before it,
+**r183 / 1.83.0**, sealed 2026-11-22 as "Stone in every room": the
 halls' stone and timber carried into every walk-in home and shop, shops
 floored in flagstone, homes' front windows seen from inside as night glass,
-and the rooms' cool fill lowered off the ceiling it was burning (§0).
+and the rooms' cool fill lowered off the ceiling it was burning (§0a).
 Before it, **r182 / 1.82.0**, sealed 2026-11-22 as "Glass in every hall":
 r181's tavern dress carried to all fifteen landmark halls, each with its own
 glass colour, and the street shown the same round glass the rooms have; a
@@ -345,7 +348,62 @@ be living patch notes, not a snapshot.
 
 ---
 
-## 0. Start here — where the last session left off (2026-11-22, r183)
+## 0. Start here — where the last session left off (2026-11-22, r184)
+
+**State: r184 / 1.84.0, "Grain in the wood".** Built on r183, the third of
+the backlog run. r181's list said the furniture was r157's flat-shaded
+pieces, where the reference's is heavy, smooth and grained.
+
+### What changed
+
+- **A grain map.** The fitted halls' models (the five taverns, the three
+  archives, the four guild halls, the shrine and the chapel: sixteen
+  pieces in all) were drawn in vertex colour alone. They take a new texture
+  now, `detail-grain.jpg` from `tools/assets/tavern-textures.py`: grey
+  grain near white (mean about 0.88), fine noise smeared along one axis into
+  fibres, a few flecks, tileable, 10 KB. It is multiplied over the vertex
+  colours and box-projected at 1.3 m (`placeLandmark`'s `tile`), so a plank
+  has fibres and a cushion a worn skin. A first strength (±0.045) barely
+  showed; it is twice that.
+- **Creased normals.** The same pieces were flat-shaded. With `grain` set,
+  their normals are creased at 36° (three.js `toCreasedNormals`) and the
+  material is smooth-shaded: a barrel, a round table's rim, a chandelier's
+  ring and a stool's legs shade round, and a box keeps its edges.
+- Opt-in per call (`grain:true` on the sixteen `placeLandmark` calls). The
+  other landmarks keep the kit's flat look.
+
+### Not done, and next
+
+- **The Veilscar's moon sky and left mountain** (r185).
+- The pieces' own forms are r157's. A Blender bake of each, like Orren and
+  the rocks, would go further than a shared grain, at a few hundred KB.
+
+### Validation
+
+- **Source audits.** Every script block parses. Sections B and C are 0, and
+  markup and script agree. All 720 functions are reachable, none dead, and no
+  comment holds a call. Section A is 244 against r183's 243: the new
+  `DETAIL_GRAIN` marker.
+- **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
+- **Diagnostics against r183**, same profile: doors 202 (none blocked),
+  anchors 98 (none blocked), colliders 13,167, render calls at the spawn
+  point 491, all as r183.
+- **Looked at.** Four halls from the doorway and across to a side wall in
+  r183 and r184, and the Gilded Finch and the Wayhouse again at the
+  stronger grain.
+- **Boot time**, six runs each, alternated, from the game's own load report.
+  The first three r184 runs were slower, so three more were taken. The world
+  build was 2.1-2.2 s in both, so the creasing costs nothing that shows:
+  - r183: 7.3, 7.4, 7.5, 7.6, 7.0 and 7.1 s
+  - r184: 8.1, 8.0, 7.1, 7.0, 6.8 and 7.5 s
+- **Variants** 6/6 built, and 6/6 boot and report r184.
+- **Smoke check** clean: the game boots at r184, the Bluetooth chooser
+  selects and cancels, pairing is confirmed and the WebGL context holds.
+- The live source and its archive are byte-identical.
+
+---
+
+## 0a. r183 — where the session before that left off (2026-11-22)
 
 **State: r183 / 1.83.0, "Stone in every room".** Built on r182, the second
 of the backlog run. r182's list said the homes and shops still had plank
@@ -6357,7 +6415,7 @@ deleted. Tree Flip (2026-09-13) was the first.
 | `check-variants.js` | boots every built variant and calls `diagnostics()` |
 | `match-score.py` | (r176) scores a render against a reference image, 0-100: colour, regions, light, shapes |
 | `region-audit.py` | (r180) the frame by named region, reference against render: colour, spread, detail, ΔE; worst first |
-| `assets/tavern-textures.py` | (r181, r182) paints the halls' flagstone, rubble stone (green and grey) and round glass (green, and near-white to tint) with baked light (numpy); tileable |
+| `assets/tavern-textures.py` | (r181, r182, r184) paints the halls' flagstone, rubble stone (green and grey), round glass (green, and near-white to tint) and the furniture's grain, with baked light (numpy); tileable |
 | `assets/inline-tex.js` | (r181) folds a baked JPEG into the game as base64 between `// >>> ASSET` markers, as `inline-glb.js` does a model |
 | `fit-transfer.py` | (r176) fits a place mood's colour-transfer curves to a reference |
 | `assets/_bake.py` | (r176-r178) Blender: fuse and wear kit blocks (`sculpt_rock`), paint (`rock`, `masonry`), bake colour and occlusion; the method is `docs/STYLE-PLAYBOOK.md` |

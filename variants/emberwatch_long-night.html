@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r183 Stone in every room</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r184 Grain in the wood</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -7346,8 +7346,8 @@ function hallExterior(x,z,w,d,h,kind,WK,dress=null){
 // reads at (0, -2.5) are left clear.
 function placeMoonArchive(x,z){
   const pt=[{x,y:0,z,ry:0}];
-  placeLandmark('moon-archive',MOON_ARCHIVE_GLB,pt,{tex:'none',name:'moon-archive',rough:.85,glow:0xffb070});
-  placeLandmark('moon-archive-moon',LUNAR_ORRERY_GLB,pt,{tex:'none',name:'moon-archive-moon',rough:.5,metal:.2,glow:0xb4b8ff});
+  placeLandmark('moon-archive',MOON_ARCHIVE_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'moon-archive',rough:.85,glow:0xffb070});
+  placeLandmark('moon-archive-moon',LUNAR_ORRERY_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'moon-archive-moon',rough:.5,metal:.2,glow:0xb4b8ff});
   for(const s of[-1,1]){
     addBoxCollider(x+s*6,z-7.5,7.2,.7,0);                  // the back wall's bookcases, either side of the window
     addBoxCollider(x+s*9.5,z-1.6,.7,9.6,0);                // the side walls'
@@ -7375,7 +7375,7 @@ const FITTED_HALLS=new Set(['The Moon Archive','The Eastwall Scriptorium','The C
   'The Cinder and Keg','The Southgate Rest','The Gilded Finch','The Wayhouse',
   "The Drovers' Rest","The Lamplighters' Hall","Ferrier's Yard",'Pilgrim Shrine','The New Chapel']);
 function placeScriptorium(x,z){
-  placeLandmark('scriptorium',SCRIPTORIUM_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'scriptorium',rough:.85,glow:0xffb070});
+  placeLandmark('scriptorium',SCRIPTORIUM_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'scriptorium',rough:.85,glow:0xffb070});
   for(const s of[-1,1]){
     for(const b of[3.6,6,8.4])addBoxCollider(x+s*b,z-7.5,2.4,.7,0);          // the ledger cases, a box a bay
     for(const dz of[-5.2,-2.8,-.4])addBoxCollider(x+s*9.55,z+dz,.6,2.4,0);   // the pigeonholes down the side
@@ -7395,7 +7395,7 @@ function placeScriptorium(x,z){
 // the script's numbers.
 function hallLight(x,y,z,c,p){ const l=lampLight(c,p,9); l.position.set(x,y,z); scene.add(l); lights.push({light:l,base:p,phase:x+z,fire:true}); }
 function placeNorthwatch(x,z){
-  placeLandmark('northwatch',NORTHWATCH_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'northwatch',rough:.8,metal:.1,glow:0xffb070});
+  placeLandmark('northwatch',NORTHWATCH_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'northwatch',rough:.8,metal:.1,glow:0xffb070});
   addBoxCollider(x,z+.6,4.6,3.75,0);                       // the planning table and its benches
   for(const s of[-1,1])addBoxCollider(x+s*6,z-7.55,2.4,.45,0);   // the spear racks
   addBoxCollider(x,z-7.39,1.4,.55,0);                      // the gear chest
@@ -7408,7 +7408,7 @@ function placeNorthwatch(x,z){
   hallLight(x+8.9,.7,z-1.7,0xff8a40,.35);
 }
 function placeWestwallRefuge(x,z){
-  placeLandmark('westwall-refuge',WESTWALL_REFUGE_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'westwall-refuge',rough:.8,metal:.1,glow:0xffa050});
+  placeLandmark('westwall-refuge',WESTWALL_REFUGE_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'westwall-refuge',rough:.8,metal:.1,glow:0xffa050});
   addBoxCollider(x-3,z-7.19,7,1,0);                        // the workbench
   addBoxCollider(x+4.6,z-7.34,1.6,.7,0);                   // the map chest
   addBoxCollider(x+8.19,z-5.2,.9,.5,0);                    // the anvil
@@ -7438,7 +7438,7 @@ function placeWestwallRefuge(x,z){
 // table with the baker's bread, two long tables, pallets, a rack of cloaks to
 // take, the alms box by the door. Colliders are the script's numbers.
 function placeCinderKeg(x,z){
-  placeLandmark('cinder-keg',CINDER_KEG_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'cinder-keg',rough:.8,metal:.1,glow:0xffb070});
+  placeLandmark('cinder-keg',CINDER_KEG_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'cinder-keg',rough:.8,metal:.1,glow:0xffb070});
   addBoxCollider(x,z-1.9,9.9,.95,0);                        // the bar; Varn stands behind it at (0, -3)
   for(const s of[-1,1])addBoxCollider(x+s*4.45,z-3,.95,1.6,0);   // its returns
   addBoxCollider(x,z-7.64,9,1.3,0);                         // the keg rack
@@ -7456,7 +7456,7 @@ function placeCinderKeg(x,z){
   hallLight(x-7.9,.8,z-7.3,0xff8a40,.6);
 }
 function placeSouthgateRest(x,z){
-  placeLandmark('southgate-rest',SOUTHGATE_REST_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'southgate-rest',rough:.85,metal:.05,glow:0xffa050});
+  placeLandmark('southgate-rest',SOUTHGATE_REST_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'southgate-rest',rough:.85,metal:.05,glow:0xffa050});
   addBoxCollider(x,z-7.215,4.2,1.15,0);                     // the hearth
   for(const s of[-1,1])addBoxCollider(x+s*2.53,z-5,.6,2.46,0);   // the settles
   addBoxCollider(x-9.3,z-.25,1,3.9,0);                      // the bench under the packs, a pack and boots
@@ -7473,7 +7473,7 @@ function placeSouthgateRest(x,z){
   hallLight(x,.8,z-7,0xff8a40,.6);
 }
 function placeGildedFinch(x,z){
-  placeLandmark('gilded-finch',GILDED_FINCH_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'gilded-finch',rough:.6,metal:.15,glow:0xffc070});
+  placeLandmark('gilded-finch',GILDED_FINCH_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'gilded-finch',rough:.6,metal:.15,glow:0xffc070});
   addBoxCollider(x,z-6.64,4.6,2.3,0);                       // the musician's dais
   for(const s of[-1,1])addCollider(x+s*2.65,z-7.19,.22);   // the candle stands
   addBoxCollider(x-8.595,z-3.6,2.39,.16,0);                // the late-night room: its partition,
@@ -7490,7 +7490,7 @@ function placeGildedFinch(x,z){
   hallLight(x-7.7,1,z-5.9,0xff9050,.25);
 }
 function placeWayhouse(x,z){
-  placeLandmark('wayhouse',WAYHOUSE_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'wayhouse',rough:.85,metal:.05,glow:0xffa050});
+  placeLandmark('wayhouse',WAYHOUSE_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'wayhouse',rough:.85,metal:.05,glow:0xffa050});
   addBoxCollider(x,z-7.715,4.4,1.15,0);                     // the hearth
   addBoxCollider(x+3.77,z-7.79,1.4,.95,0);                  // the logs
   addBoxCollider(x-7.1,z-7.79,5.6,.95,0);                   // the serving table
@@ -7517,7 +7517,7 @@ function placeWayhouse(x,z){
 // the scaffolding still up before a half-painted mural. Colliders are the
 // script's numbers.
 function placeDroversRest(x,z){
-  placeLandmark('drovers-rest',DROVERS_REST_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'drovers-rest',rough:.85,metal:.05,glow:0xffa050});
+  placeLandmark('drovers-rest',DROVERS_REST_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'drovers-rest',rough:.85,metal:.05,glow:0xffa050});
   addBoxCollider(x,z-7.715,4.4,1.15,0);                     // the hearth and the spit
   addCollider(x+2.7,z-6.54,.55);                            // the dog on her fleece
   for(const s of[-1,1])addBoxCollider(x+s*3.6,z-.5,2.2,8,0);   // the long tables and their benches
@@ -7530,7 +7530,7 @@ function placeDroversRest(x,z){
   hallLight(x,.8,z-7.4,0xff8a40,.6);
 }
 function placeLamplightersHall(x,z){
-  placeLandmark('lamplighters-hall',LAMPLIGHTERS_HALL_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'lamplighters-hall',rough:.7,metal:.15,glow:0xffb060});
+  placeLandmark('lamplighters-hall',LAMPLIGHTERS_HALL_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'lamplighters-hall',rough:.7,metal:.15,glow:0xffb060});
   addBoxCollider(x-6.1,z-6.85,4.4,1.9,0);                   // the oil casks and the drip tray
   addBoxCollider(x+4.4,z-7.62,5.2,.35,0);                   // the cans
   addBoxCollider(x-9.6,z-2.6,.4,4.7,0);                     // the poles
@@ -7543,7 +7543,7 @@ function placeLamplightersHall(x,z){
   hallLight(x+3.4,1.2,z+1.1,0xffb060,.3);
 }
 function placeFerriersYard(x,z){
-  placeLandmark('ferriers-yard',FERRIERS_YARD_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'ferriers-yard',rough:.8,metal:.2,glow:0xff7a30});
+  placeLandmark('ferriers-yard',FERRIERS_YARD_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'ferriers-yard',rough:.8,metal:.2,glow:0xff7a30});
   addBoxCollider(x-5.4,z-7,2.5,1.6,0);                      // the forge
   addBoxCollider(x-7.3,z-6.5,.8,2,0);                       // the bellows and their lever
   addCollider(x-3.5,z-6.29,.47);                            // the quench tub
@@ -7559,8 +7559,8 @@ function placeFerriersYard(x,z){
 }
 function placePilgrimShrine(x,z){
   const pt=[{x,y:0,z,ry:0}];
-  placeLandmark('pilgrim-shrine',PILGRIM_SHRINE_GLB,pt,{tex:'none',name:'pilgrim-shrine',rough:.8,metal:.1,glow:0xffb060});
-  placeLandmark('pilgrim-shrine-violet',SHRINE_VIOLET_GLB,pt,{tex:'none',name:'pilgrim-shrine-violet',rough:.6,metal:.2,glow:0x9d7bff});
+  placeLandmark('pilgrim-shrine',PILGRIM_SHRINE_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'pilgrim-shrine',rough:.8,metal:.1,glow:0xffb060});
+  placeLandmark('pilgrim-shrine-violet',SHRINE_VIOLET_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'pilgrim-shrine-violet',rough:.6,metal:.2,glow:0x9d7bff});
   addBoxCollider(x,z-6.51,3.6,1.5,0);                       // the offering table on its steps
   for(const s of[-1,1])addBoxCollider(x+s*2.9,z-6.29,1,.45,0);   // the votive racks
   for(const s of[-1,1])for(const dz of[-2.2,-.6,1])addBoxCollider(x+s*2.3,z+dz+.06,2.2,.7,0);   // kneelers; the aisle is Sorell's
@@ -7571,7 +7571,7 @@ function placePilgrimShrine(x,z){
   hallLight(x,3.2,z-4.9,0x9d7bff,.35);
 }
 function placeNewChapel(x,z){
-  placeLandmark('new-chapel',NEW_CHAPEL_GLB,[{x,y:0,z,ry:0}],{tex:'none',name:'new-chapel',rough:.75,metal:.1,glow:0xffb060});
+  placeLandmark('new-chapel',NEW_CHAPEL_GLB,[{x,y:0,z,ry:0}],{tex:'none',grain:true,tile:1.3,name:'new-chapel',rough:.75,metal:.1,glow:0xffb060});
   addBoxCollider(x,z-6.59,6,2.4,0);                         // the altar on its step
   addCollider(x-5.6,z-5.4,.6);                              // the pulpit
   addBoxCollider(x-5.6,z-4.6,.4,.4,0);                      //   its step
@@ -7586,8 +7586,8 @@ function placeNewChapel(x,z){
 }
 function placeColdAssay(x,z){
   const pt=[{x,y:0,z,ry:0}];
-  placeLandmark('cold-assay',COLD_ASSAY_GLB,pt,{tex:'none',name:'cold-assay',rough:.75,metal:.15,glow:0xa8d8ff});
-  placeLandmark('cold-assay-fire',ASSAY_FURNACE_GLB,pt,{tex:'none',name:'cold-assay-fire',rough:.9,glow:0xff7a30});
+  placeLandmark('cold-assay',COLD_ASSAY_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'cold-assay',rough:.75,metal:.15,glow:0xa8d8ff});
+  placeLandmark('cold-assay-fire',ASSAY_FURNACE_GLB,pt,{tex:'none',grain:true,tile:1.3,name:'cold-assay-fire',rough:.9,glow:0xff7a30});
   addBoxCollider(x,z-6.3,4.6,1.25,0);                      // the balance's counter
   addBoxCollider(x+9.49,z-3.8,.66,4.75,0);                 // the drawers
   addBoxCollider(x+9.54,z+1.8,.5,4.6,0);                   // the jars
@@ -61347,6 +61347,152 @@ const HALL_GLASS_JPG =
   'AiXXHVIY0J1RsNEZlKqYheXKgBRsxQA7jHelseh4AjQpbGKEmjY9HxA7UCGx3pgRq+hpkitp3qkxpEyh8d1JTIFqg96sgkSqBS0N' +
   'MY4ryKaE2I2ZMmhgh5J8UhjVIndGw0IUhJpiPpJNADVmKAYgWBqKYbHBUmkA4RQB8QaAPgn60tjP/9k=';
 // <<< ASSET HALL_GLASS
+// >>> ASSET DETAIL_GRAIN (built by tools/assets/tavern-textures.py, inlined by tools/assets/inline-tex.js)
+const DETAIL_GRAIN_JPG =
+  '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' +
+  '620lQ4hSM+INB//Z';
+// <<< ASSET DETAIL_GRAIN
 // >>> ASSET SOUTHGATE_REST (built by tools/assets/taverns.py, packed by tools/assets/pack-glb.js)
 const SOUTHGATE_REST_GLB =
   'Z2xURgIAAADMDwEAUAQAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAiLCJnZW5lcmF0b3IiOiJFbWJlcndhdGNoIHBhY2st' +
@@ -71805,10 +71951,22 @@ function updateLandmarkMovers(dt,t){
 // below 1 (tools/assets/_kit.py) and placeLandmark hands the shader 1 - alpha
 // as `glow`: the Oathfield's blades carry a cobalt line down each fuller and
 // the lychgate its lantern that way, in the one draw call each already costs.
+let GRAIN_TEX=null;
+function grainTexture(){
+  if(GRAIN_TEX)return GRAIN_TEX;
+  GRAIN_TEX=new THREE.TextureLoader().load('data:image/jpeg;base64,'+DETAIL_GRAIN_JPG);
+  GRAIN_TEX.colorSpace=THREE.SRGBColorSpace; GRAIN_TEX.wrapS=GRAIN_TEX.wrapT=THREE.RepeatWrapping; GRAIN_TEX.anisotropy=4;
+  return GRAIN_TEX;
+}
 function landmarkMaterial(key,opts={}){
   const name=opts.name||key, id=name+'|'+key;
   if(!LANDMARK_MATS[id]){
-    const m=new THREE.MeshStandardMaterial({map:TX[key]||null,vertexColors:true,roughness:opts.rough??.93,metalness:opts.metal||0,flatShading:true});
+    // (r184) `grain`: the fitted halls' furniture, r154 to r158, was vertex colour
+    // alone on flat faces, a plastic kit against the painted stone round it. It
+    // takes a grain map now (tools/assets/tavern-textures.py), box-projected at
+    // the furniture's scale, and creased normals (placeLandmark): a barrel, a
+    // round table or a chandelier's ring shades smooth, a box keeps its edges.
+    const m=new THREE.MeshStandardMaterial({map:opts.grain?grainTexture():(TX[key]||null),vertexColors:true,roughness:opts.rough??.93,metalness:opts.metal||0,flatShading:!opts.grain});
     if(opts.glow!==undefined){
       const glow=new THREE.Color(opts.glow);
       m.userData.glow=true;
@@ -71865,7 +72023,8 @@ function placeLandmark(name,b64,points,opts={}){
     const parts=[], m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(0,0,0,'YXZ'), at=new THREE.Vector3(), sc=new THREE.Vector3();
     for(const p of points){ at.set(p.x,p.y||0,p.z); q.setFromEuler(e.set(p.rx||0,p.ry||0,p.rz||0,'YXZ')); sc.set(p.s||1,p.s||1,p.s||1); parts.push(base.clone().applyMatrix4(m.compose(at,q,sc))); }
     base.dispose();
-    const mesh=cellMesh(parts,material,g=>{ g.computeVertexNormals(); boxProjectUV(g,opts.tile||4); });     // (r153) culled by squares
+    const crease=opts.grain&&THREE.BufferGeometryUtils&&THREE.BufferGeometryUtils.toCreasedNormals;
+    const mesh=cellMesh(parts,material,g=>{ if(crease)crease(g,Math.PI/5); else g.computeVertexNormals(); boxProjectUV(g,opts.tile||4); });     // (r153) culled by squares
     if(!mesh)return; mesh.name='landmark-'+name;
     mesh.castShadow=opts.shadow!==false; mesh.receiveShadow=true; scene.add(mesh); LANDMARK_MESHES.push(mesh);
     restampShadows();
@@ -80084,7 +80243,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r183',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r184',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80450,7 +80609,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — The Long Night — variant layer over base r183 -->
+<!-- Emberwatch — The Long Night — variant layer over base r184 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — THE LONG NIGHT                                 variant layer

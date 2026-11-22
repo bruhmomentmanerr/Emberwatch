@@ -11,6 +11,9 @@
 #                      other halls tint it to their own glass
 #   hall-glass.jpg     (r182) the round window in near-white quarries, for
 #                      the game to tint (blue, amber, violet, rose)
+#   detail-grain.jpg   (r184) grey grain, near white, for the halls' furniture:
+#                      multiplied over its vertex colours, box-projected at
+#                      1.3 m, so the wood has fibres and the rest a worn skin
 #
 # All three are painted, not photographed: Voronoi cells for the stones and
 # the quarries, a height field from each cell's distance to its own edge, and
@@ -214,8 +217,25 @@ def glass(name='tavern-glass.jpg', neutral=False, n=256):
     save(col, name, 85)
 
 
+def grain(n=256):
+    rng = np.random.default_rng(1840)
+    fine = value_noise(n, 64, rng, 3)
+    streak = fine.copy()
+    for k in range(1, 24):                             # smear along x: fibres
+        streak += np.roll(fine, k, 1) + np.roll(fine, -k, 1)
+    streak /= 47
+    streak = (streak - streak.mean()) / (streak.std() + 1e-6)
+    low = value_noise(n, 3, rng, 3)
+    v = .88 + .09 * streak + .08 * (low - .5)
+    flecks = value_noise(n, 48, rng, 1) > .93
+    v[flecks] -= .07
+    v = np.clip(v, .66, 1.0)
+    save(np.repeat(v[..., None], 3, 2), 'detail-grain.jpg', 82)
+
+
 flagstones()
 rubble()
 glass()
 rubble('hall-stone.jpg', GREY_STONE, mossy=False)
 glass('hall-glass.jpg', neutral=True)
+grain()

@@ -255,6 +255,8 @@ quality 72-80, 300-500 KB quantised.
 | A building stands inside a hall | Lots are placed by collider tests, and a hall's colliders run only along its walls | Test the footprint itself (`innerInfill`'s `inHall`) |
 | A bright patch on a low ceiling is the brightest thing in a room | A point lamp a hand's breadth under it (inverse square) | Hang it at the room's middle height, clear of every surface |
 | A shot of a shop shows an empty room | Shop rooms are built a few per 0.4 s tick as you near them | Shoot it twice: a warm-up, then again after a short `before` wait |
+| Kit furniture reads as plastic | Vertex colour on flat faces | `grain:true` on its `placeLandmark` call: a grain map over the colours and creased normals (round things smooth, boxes crisp) |
+| A detail map makes no visible difference | Its range was too narrow under dark vertex colours | Check it on a close crop at 1:1 before and after, then double it if it does not show |
 | A window lands on a buttress outside | Placed by eye from inside | Put windows in the bays between the buttresses (`HALL_DRESS` bays) |
 
 ---
@@ -340,7 +342,7 @@ for the surfaces). The kit, for any room:
 
 ## 8. Where the numbers are
 
-PROJECT.md's §0 sections for r176 to r183 hold every measurement behind this
+PROJECT.md's §0 sections for r176 to r184 hold every measurement behind this
 guide: scores per step, the regions' ΔE, the rock's lightness and spread,
 diagnostics and boot times. The published writeup of the run is an artifact
 the owner holds (Veilscar Vista Match).
