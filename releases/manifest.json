@@ -2253,12 +2253,25 @@
   "rev": 186,
   "title": "every door opens",
   "version": "1.86.0",
-  "date": "2026-11-23T16:00:00Z",
+  "date": "2026-11-23T13:40:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r186-every-door-opens.html"
   },
   "asset": "emberwatch-r186-every-door-opens.html",
   "notes": "releases/notes/r186.md"
+ },
+ {
+  "tag": "r187",
+  "rev": 187,
+  "title": "the business of the street",
+  "version": "1.87.0",
+  "date": "2026-11-23T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r187-the-business-of-the-street.html"
+  },
+  "asset": "emberwatch-r187-the-business-of-the-street.html",
+  "notes": "releases/notes/r187.md"
  }
 ]

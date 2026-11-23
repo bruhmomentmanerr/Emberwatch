@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r186 Every door opens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r187 The business of the street</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -7741,6 +7741,78 @@ function dressRoom(home,at){
   for(let c=0;c<cols;c++){ const ox=cols===1?0:-spread+(2*spread)*(c/(cols-1));
     if(Math.abs(ox)<DW/2+.4)continue;
     put(ox,b-.016,.5,.66,.03,1.55,'nightpane'); put(ox,b-.06,.62,.06,.1,1.18,'wood'); }
+}
+// ---------- the working clutter of r187 ----------
+// The city programme's stage 3. Shot from house doorsteps in all four
+// quarters the streets were bare: house fronts straight onto the paving, the
+// lot-yard and road-end dressing placing nothing, finding no lots and no free road ends,
+// and eight carts in the whole city. Clutter reads as life only where work
+// happens, so this hangs it off the house fronts by what the house does: the
+// quarter's trade where the infill gave it one (a woodpile and a coal heap by
+// a smithy's door, sacks and crates at the grain stores, barrels, hay and a
+// trough in the yards, crates and baskets in the shop quarter), and the
+// things a household keeps by its door otherwise: a bench, a water butt, a
+// tub of herbs, a washing line. Each piece stands against the wall, beside
+// the door and never in front of it, clear of the road, of every doorstep and
+// of every resident's anchor, with a small collider. The pieces are boxes and
+// cylinders under the city's own material keys, so they merge into its
+// batches: no draw call is added. Every choice is a hash of the house's
+// position; nothing draws from the world's random stream.
+const WORK_CLUTTER={placed:0,houses:0,kinds:{},skipped:{road:0,blocked:0,door:0,anchor:0,roll:0},spots:[]};
+const CLUTTER_BY_TRADE={
+  forges:['woodpile','coal','trough','barrel'], granary:['sacks','crates','sacks','barrel'],
+  yards:['barrel','hay','trough','crates'], shops:['crates','bench','tub','barrel'],
+  home:['bench','butt','tub','washing','crates','butt']
+};
+function workingClutter(){
+  const lots=CELL_LOTS.map(l=>({...l,home:false})).concat(pendingHomes.filter(h=>!h.shopLot&&!h.shop).map(h=>({x:h.x,z:h.z,w:h.w,d:h.d,ry:h.ry,trade:null,home:true})));
+  const doorPts=interiorDoors.map(r=>[r.outsideX,r.outsideZ]);
+  for(const lot of lots){
+    const co=Math.cos(lot.ry), si=Math.sin(lot.ry);
+    const at=(along,out)=>{ const lz=lot.d/2+out; return [lot.x+along*co+lz*si, lot.z-along*si+lz*co]; };
+    const kinds=CLUTTER_BY_TRADE[lot.trade||'home']||CLUTTER_BY_TRADE.home;
+    let any=false;
+    for(const side of[-1,1]){
+      const roll=terrainHash(Math.round(lot.x*5)+side*313,Math.round(lot.z*5)-71);
+      if(roll>.62){ WORK_CLUTTER.skipped.roll++; continue; }
+      const span=lot.w/2-.45-1.35; if(span<.8){ WORK_CLUTTER.skipped.roll++; continue; }
+      const kind=kinds[Math.floor(terrainHash(Math.round(lot.x*3)-side*97,Math.round(lot.z*3)+53)*kinds.length)%kinds.length];
+      if(placeClutter(kind,lot,side,span,at,doorPts)){ if(!WORK_CLUTTER.spots.some(s=>s.kind===kind)||WORK_CLUTTER.spots.length<24){ const [sx,sz]=at(0,0); WORK_CLUTTER.spots.push({kind,x:+sx.toFixed(2),z:+sz.toFixed(2),ry:+lot.ry.toFixed(3),side}); } WORK_CLUTTER.placed++; WORK_CLUTTER.kinds[kind]=(WORK_CLUTTER.kinds[kind]||0)+1; any=true; }
+    }
+    if(any)WORK_CLUTTER.houses++;
+  }
+  return WORK_CLUTTER;
+}
+// One piece, against the front wall on one side of the door. Its footprint is
+// tested at its middle and both ends before anything is laid.
+function placeClutter(kind,lot,side,span,at,doorPts){
+  const ry=lot.ry;
+  const size={woodpile:[1.6,.34],coal:[1.1,1.0],trough:[1.45,.55],barrel:[.72,.72],sacks:[1.4,.46],crates:[.72,.72],hay:[1.0,.55],bench:[1.4,.38],tub:[.62,.62],butt:[.86,.86],washing:[2.3,.2]}[kind];
+  const [len,dep]=size, out=dep/2+.12, along=side*(1.35+Math.min(span,Math.max(len/2,span*.5)));
+  if(Math.abs(along)+len/2>lot.w/2-.2)return false;
+  const pts=[at(along,out),at(along-len/2*.9,out),at(along+len/2*.9,out)];
+  for(const [px,pz] of pts){
+    if(onRoad(px,pz,.3)){ WORK_CLUTTER.skipped.road++; return false; }
+    if(colliderBlocked(px,pz,.22)){ WORK_CLUTTER.skipped.blocked++; return false; }
+    if(doorPts.some(([dx,dz])=>Math.hypot(px-dx,pz-dz)<2.1)){ WORK_CLUTTER.skipped.door++; return false; }
+    if(CITY_PLAN.anchors.some(a=>Math.hypot(px-a.x,pz-a.z)<2.2)){ WORK_CLUTTER.skipped.anchor++; return false; }
+  }
+  const [px,pz]=pts[0], put=(dAlong,dOut,w,h,d,y,key,turn=0)=>{ const [qx,qz]=at(along+dAlong,out+dOut); aBox(w,h,d,qx,y,qz,key,ry+turn); };
+  const cyl=(dAlong,dOut,r0,r1,h,y,key,s=8)=>{ const [qx,qz]=at(along+dAlong,out+dOut); aCyl(r0,r1,h,s,qx,y,qz,key); };
+  const h=terrainHash(Math.round(px*9)+7,Math.round(pz*9)-3);
+  if(kind==='barrel'){ cyl(0,0,.3,.34,.88,.44,'wood'); cyl(0,0,.35,.35,.05,.62,'dark'); cyl(0,0,.35,.35,.05,.26,'dark'); addCollider(px,pz,.38); }
+  else if(kind==='butt'){ cyl(0,0,.42,.42,1.0,.5,'wood',10); cyl(0,0,.43,.43,.06,1.0,'dark',10); cyl(0,0,.44,.44,.05,.3,'dark',10); addCollider(px,pz,.45); }
+  else if(kind==='crates'){ put(0,0,.62,.62,.62,.31,'wood',h*.4); put(.05,.02,.48,.46,.48,.85,'wood',h*-.6); put(0,0,.66,.04,.66,.02,'dark'); addBoxCollider(px,pz,.72,.72,ry); }
+  else if(kind==='sacks'){ for(let k=-1;k<=1;k++)put(k*.45,0,.44,.6-.06*Math.abs(k),.36,.3,'dirt',k*.15+h*.2); put(.2,.02,.42,.34,.34,.76,'dirt',.6); addBoxCollider(px,pz,1.4,.46,ry); }
+  else if(kind==='woodpile'){ for(let r=0;r<3;r++)for(let k=0;k<2;k++)put(0,(k-.5)*.15,1.5,.17,.15,.09+r*.17,'wood',(r+k)%2?.02:-.02); for(const s of[-1,1])put(s*.78,0,.08,.66,.3,.33,'dark'); put(0,.02,1.64,.05,.4,.56,'roof'); addBoxCollider(px,pz,1.6,.34,ry); }
+  else if(kind==='coal'){ const [qx,qz]=at(along,out); aCone(.52,.5,7,qx,.25,qz,'dark',h); put(.62,.15,.36,.5,.04,.25,'wood',.3); addCollider(px,pz,.55); }
+  else if(kind==='trough'){ put(0,0,1.4,.45,.5,.23,'wood'); put(0,0,1.26,.03,.38,.44,'dark'); for(const s of[-1,1])put(s*.62,0,.12,.5,.56,.25,'dark'); addBoxCollider(px,pz,1.45,.55,ry); }
+  else if(kind==='hay'){ put(0,0,.95,.48,.5,.24,'wall2'); put(.08,.02,.9,.44,.48,.7,'wall2',.12); addBoxCollider(px,pz,1.0,.55,ry); }
+  else if(kind==='bench'){ put(0,0,1.4,.07,.34,.45,'wood'); for(const s of[-1,1])put(s*.58,0,.08,.42,.3,.21,'wood'); put(0,-.12,1.4,.32,.05,.7,'wood'); addBoxCollider(px,pz,1.4,.38,ry); }
+  else if(kind==='tub'){ cyl(0,0,.3,.24,.36,.18,'wood'); const [qx,qz]=at(along,out); aCone(.34,.38,6,qx,.5,qz,'foliage',h); addCollider(px,pz,.32); }
+  else if(kind==='washing'){ for(const s of[-1,1]){ put(s*1.1,0,.08,1.9,.08,.95,'wood'); const [qx,qz]=at(along+s*1.1,out); addCollider(qx,qz,.12); }
+    put(0,0,2.2,.02,.02,1.86,'dark'); for(let k=0;k<3;k++)put(-.72+k*.72+(h-.5)*.2,0,.44,.5+.08*((k+Math.floor(h*3))%2),.02,1.58-.04*k,'cloth'); }
+  return true;
 }
 // ---------- every door opens (r186) ----------
 // The city programme's stage 2 (§6 of PROJECT.md): a shut house front is a
@@ -74207,6 +74279,7 @@ const STREET_POOLS=streetLightPools();          // last: every pool is known by 
 // assembled afterwards and can obstruct a previously safe doorstep. Resolve
 // once more against the complete world before publishing the authoritative
 // audit. Unresolvable facade-only anchors are removed rather than advertised.
+workingClutter();                        // (r187) before the anchors are settled and the cells take their doorsteps
 CITY_PLAN.finalAnchorRepair=repairCityPlanAnchors();
 const CELLS_OPENED=openCells();          // (r186) after everything that could take a doorstep
 CITY_PLAN.audit={...auditCityPlan(),...CITY_PLAN.finalAnchorRepair};
@@ -80393,7 +80466,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r186',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r187',world:{innerBuilt,carts:CARTS.length,clutter:WORK_CLUTTER,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80762,7 +80835,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Emberfall — variant layer over base r186 -->
+<!-- Emberwatch — Emberfall — variant layer over base r187 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBERFALL                                      variant layer
