@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r187 The business of the street</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r188 At home after dark</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -7808,7 +7808,8 @@ function placeClutter(kind,lot,side,span,at,doorPts){
   else if(kind==='coal'){ const [qx,qz]=at(along,out); aCone(.52,.5,7,qx,.25,qz,'dark',h); put(.62,.15,.36,.5,.04,.25,'wood',.3); addCollider(px,pz,.55); }
   else if(kind==='trough'){ put(0,0,1.4,.45,.5,.23,'wood'); put(0,0,1.26,.03,.38,.44,'dark'); for(const s of[-1,1])put(s*.62,0,.12,.5,.56,.25,'dark'); addBoxCollider(px,pz,1.45,.55,ry); }
   else if(kind==='hay'){ put(0,0,.95,.48,.5,.24,'wall2'); put(.08,.02,.9,.44,.48,.7,'wall2',.12); addBoxCollider(px,pz,1.0,.55,ry); }
-  else if(kind==='bench'){ put(0,0,1.4,.07,.34,.45,'wood'); for(const s of[-1,1])put(s*.58,0,.08,.42,.3,.21,'wood'); put(0,-.12,1.4,.32,.05,.7,'wood'); addBoxCollider(px,pz,1.4,.38,ry); }
+  else if(kind==='bench'){ put(0,0,1.4,.07,.34,.45,'wood'); for(const s of[-1,1])put(s*.58,0,.08,.42,.3,.21,'wood'); put(0,-.12,1.4,.32,.05,.7,'wood'); addBoxCollider(px,pz,1.4,.38,ry);
+    BENCH_SEATS.push({x:px,z:pz,y:terrainAt(px,pz)-.08,ry,taken:null,until:0}); }   // (r188) somewhere to sit at the ember watch
   else if(kind==='tub'){ cyl(0,0,.3,.24,.36,.18,'wood'); const [qx,qz]=at(along,out); aCone(.34,.38,6,qx,.5,qz,'foliage',h); addCollider(px,pz,.32); }
   else if(kind==='washing'){ for(const s of[-1,1]){ put(s*1.1,0,.08,1.9,.08,.95,'wood'); const [qx,qz]=at(along+s*1.1,out); addCollider(qx,qz,.12); }
     put(0,0,2.2,.02,.02,1.86,'dark'); for(let k=0;k<3;k++)put(-.72+k*.72+(h-.5)*.2,0,.44,.5+.08*((k+Math.floor(h*3))%2),.02,1.58-.04*k,'cloth'); }
@@ -7895,6 +7896,7 @@ function ensureCell(rec){
   group.position.y=CELL_POCKET.y; group.visible=false; scene.add(group);
   for(let i=lightsBefore;i<lights.length;i++){ const e=lights[i]; e.home=rec; e.light.position.y+=CELL_POCKET.y; }
   addDeck(rec.id,cx,cz,0,a,b,CELL_POCKET.y); SURFACES[SURFACES.length-1].stacked=true;
+  rec.cell.spots=(home.spots||[]).map(s=>[s[0],s[1],s[2],s[3],(s[4]||0)+CELL_POCKET.y]);   // (r188) where its people sit, lie and work
   rec.cellColliders=captured; rec.cell.group=group; rec.cell.built=true; CELL_BUILT.push(rec);
 }
 // What a cell holds. Local frame: the door at +z, the room's middle at cx, cz,
@@ -7904,6 +7906,11 @@ function furnishCell(rec,cx,cz,a,b,home,at){
   const lamp=(x,y,z,color,power,range)=>{ const l=lampLight(color,power,range); l.position.set(x,y,z); scene.add(l); lights.push({light:l,base:power,phase:x+z,fire:true,home:null}); };
   if(!trade){ furnishHome(home,at); return; }
   interiorFill(home,cx,cz);
+  const face=(x,z,tx,tz)=>Math.atan2(tx-x,tz-z);
+  home.spots=trade==='forges'?[[cx,cz-b+1.45,face(cx,cz-b+1.45,cx,cz-b),'tend',.1],[cx+.6,cz+.4,face(cx+.6,cz+.4,cx+.6,cz-.3),null,0],[cx-a+1.5,cz+b*.35,face(cx-a+1.5,cz+b*.35,cx-a,cz+b*.35),null,0]]
+    :trade==='granary'?[[cx+a-.85,cz+.9,face(cx+a-.85,cz+.9,cx+a-.85,cz),null,0],[cx,cz-b+1.0,face(cx,cz-b+1.0,cx,cz-b),'tend',.1]]
+    :trade==='yards'?[[cx-a+1.65,cz+.4,face(cx-a+1.65,cz+.4,cx-a,cz+.4),'sit',-.08],[cx,cz-b+1.45,face(cx,cz-b+1.45,cx,cz-b),'tend',.1]]
+    :[[cx-.6,cz-b+2.05,face(cx-.6,cz-b+2.05,cx-.6,cz-b),'sit',-.08],[cx+.6,cz-b+2.05,face(cx+.6,cz-b+2.05,cx+.6,cz-b),'sit',-.08]];
   if(trade==='forges'){
     interiorSolid(1.7,.9,1.0,cx,.45,cz-b+.55,'stone');
     aBox(1.25,.08,.62,cx,.93,cz-b+.55,'amber');
@@ -7946,6 +7953,65 @@ function leaveCell(rec){
 }
 // Inside a cell, its own colliders; nothing else is up there.
 function cellBlocked(x,z){ const rec=activeInterior; if(!rec||rec.kind!=='cell'||!rec.cellColliders)return false; return rec.cellColliders.some(c=>colliderContains(c,x,z)); }
+// ---------- people in their rooms and on their benches, r188 ----------
+// The city programme's stage 4, on the two things r186 and r187 added.
+//
+// At home after dark. Through the still hours a resident whose door has no
+// walk-in room goes in at it and is simply not drawn, by updateShelter. Since
+// r186 that door opens on a cell, so the household is in it: whoever went in
+// at that door is there when you are, at the room's spots, in bed, at the
+// table, at the forge, and can be talked to as a walk-in home's people can.
+//
+// Doors that answer the hour. In the working, market and ember watches a
+// house's door opens to a hand on the latch, and its people are out at their
+// day. In the still hours it is barred: you knock, and if someone is home they
+// let you in, and if nobody is, nobody answers.
+function cellHousehold(rec){
+  return villagers.filter(n=>n.atHome===rec||(n.indoors&&!n.atHome&&!n.dwelling&&!n.benchSeat&&n.doorway&&Math.hypot(n.doorway[0]-rec.doorX,n.doorway[1]-rec.doorZ)<3));
+}
+function cellBarred(rec){ const w=currentWatch(); return !!(w&&w.id==='still'&&activeInterior!==rec); }
+function tryCell(rec){
+  if(!cellBarred(rec)){ enterCell(rec); return; }
+  const home=cellHousehold(rec);
+  if(!home.length){ showGameToast('You knock. Nobody answers; the door of '+rec.name+' is barred for the night.',4200); return; }
+  showGameToast(home[0].name+' unbars the door and blinks at you: “At this hour? In, then, and keep your voice down.”',4800);
+  enterCell(rec); seatHousehold(rec,home);
+}
+function seatHousehold(rec,home){
+  const spots=rec.cell.spots||[];
+  home.forEach((npc,i)=>{ const spot=spots[i]; if(!spot||npc.atHome===rec)return;
+    const g=npc.g; npc.homeOut=[g.position.x,g.position.y,g.position.z,g.rotation.y]; npc.homeRoute=npc.route;
+    g.position.set(spot[0],spot[4],spot[1]); g.rotation.y=spot[2]; g.visible=true; npc.atHome=rec;
+    poseAtHome(npc,spot[3]); });
+}
+// The benches. When the still hours end, the ember watch begins: the one the
+// city spends visiting, kettles on. A resident who comes out of a door with
+// one of r187's benches beside it sits on it a while before walking on, and
+// can be talked to there.
+const BENCH_SEATS=[];
+function tryBench(npc){
+  if(!npc.doorway)return false;
+  const seat=BENCH_SEATS.find(s=>!s.taken&&Math.hypot(s.x-npc.doorway[0],s.z-npc.doorway[1])<4.5);
+  if(!seat)return false;
+  showResident(npc);
+  const g=npc.g; npc.homeOut=[g.position.x,g.position.y,g.position.z,g.rotation.y];
+  npc.indoors=true; npc.benchSeat=seat; seat.taken=npc;
+  seat.until=performance.now()/1000+40+nameIndex(npc.name,60);
+  g.position.set(seat.x,seat.y,seat.z); g.rotation.y=seat.ry; g.visible=true;
+  poseAtHome(npc,'sit');
+  return true;
+}
+function standFromBench(npc){
+  const seat=npc.benchSeat; poseAtHome(npc,null);
+  const out=npc.homeOut; if(out){ npc.g.position.set(out[0],out[1],out[2]); npc.g.rotation.y=out[3]; npc.lastX=out[0]; npc.lastZ=out[2]; }
+  npc.indoors=false; npc.benchSeat=null; if(seat)seat.taken=null;
+}
+function updateBenchSitters(watch){
+  const now=performance.now()/1000;
+  for(const seat of BENCH_SEATS){ const npc=seat.taken; if(!npc)continue;
+    if(npc.talking)continue;
+    if(now>seat.until||!watch||watch.id!=='ember')standFromBench(npc); }
+}
 function dressHall(room,h,doorW,doorH,dress){
   const {glassKey,stoneKey,tint:gt}=hallMats(dress);
   const {cx:x,cz:z,w,d}=room, ceil=h-.18, T=.012, hw=w/2-.21, hd=d/2-.21, front=z+d/2-.21, R=HALL_GLASS.R, wy=HALL_GLASS.y;
@@ -78344,7 +78410,9 @@ function updateShelter(){
   const watch=currentWatch();
   const still=watch&&watch.id==='still';
   const shopsWork=watch&&(watch.id==='labour'||watch.id==='market');
+  updateBenchSitters(watch);
   for(const npc of villagers){
+    if(npc.benchSeat)continue;                                // (r188) sitting out the ember watch
     const room=npc.shop&&npc.shop.room&&npc.shop.record&&!npc.shop.dead?npc.shop:null;
     if(room){
       if(npc.shopKeeping){
@@ -78362,7 +78430,7 @@ function updateShelter(){
     // Anyone mid-conversation, or one of the named hosts who lives in the room
     // they stand in, is left exactly where they are.
     if(npc.talking||npc.activityAnchor||npc.sessionAnchor){ showResident(npc); continue; }
-    if(!still){ showResident(npc); continue; }
+    if(!still){ if(watch&&watch.id==='ember'&&npc.indoors&&!npc.atHome&&tryBench(npc))continue; showResident(npc); continue; }
     if(npc.indoors||keepsTheDark(npc)||npc.outing)continue;
     // (r157) No house to go into. Out past the wall a resident's home spot is
     // where they keep their post — a ledge over the falls, a lantern grove, a
@@ -78425,7 +78493,7 @@ function updateVillagers(t,dt){ const villagersStarted=performance.now(); FRAME_
   const walkStarted=performance.now(); FRAME_COST.meetings=walkStarted-meetingsStarted; anchorsThisFrame=0;
   for(const npc of villagers){
     // Someone at home can be spoken to by whoever is in the room with them.
-    if(npc.indoors){ if(npc.atHome&&activeInterior===npc.atHome){ const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} } continue; }
+    if(npc.indoors){ if((npc.atHome&&activeInterior===npc.atHome)||(npc.benchSeat&&!activeInterior)){ const dx=player.x-npc.g.position.x,dz=player.z-npc.g.position.z,d=dx*dx+dz*dz; if(d<best){best=d;closest=npc;} } continue; }
     // Buried: standing inside solid geometry with no way out of it.
     // The shove further down is the only escape a stalled resident has, and it
     // pushes away from other *bodies* — so someone stuck on their own waits
@@ -78664,16 +78732,16 @@ function syncActiveInterior(){
   else{activeInterior=null;showGameToast('You step back out into Vaneth.');}
   saveGameState();
 }
-function offerLabel(o){ return o.kind==='door'?(activeInterior===o.target?'leave '+o.target.name:doorLocked(o.target)?'try the shuttered door of '+o.target.name:'enter '+o.target.name):o.kind==='villager'?'talk with '+o.target.name:(typeof o.target.label==='function'?o.target.label():o.target.label); }
-function offerButton(o){ return o.kind==='door'?(activeInterior===o.target?'LEAVE':'ENTER'):o.kind==='villager'?'TALK':'LOOK'; }
+function offerLabel(o){ return o.kind==='door'?(activeInterior===o.target?'leave '+o.target.name:o.target.kind==='cell'&&cellBarred(o.target)?'knock at '+o.target.name:doorLocked(o.target)?'try the shuttered door of '+o.target.name:'enter '+o.target.name):o.kind==='villager'?'talk with '+o.target.name:(typeof o.target.label==='function'?o.target.label():o.target.label); }
+function offerButton(o){ return o.kind==='door'?(activeInterior===o.target?'LEAVE':o.target.kind==='cell'&&cellBarred(o.target)?'KNOCK':'ENTER'):o.kind==='villager'?'TALK':'LOOK'; }
 function actOn(o){
-  if(o.kind==='door'){ if(o.target.kind==='cell'){ if(activeInterior===o.target)leaveCell(o.target); else enterCell(o.target); return; }
+  if(o.kind==='door'){ if(o.target.kind==='cell'){ if(activeInterior===o.target)leaveCell(o.target); else tryCell(o.target); return; }
     if(activeInterior===o.target){player.x=o.target.outsideX;player.z=o.target.outsideZ;}else if(doorLocked(o.target)){visitShop(o.target.shop);}else{player.x=o.target.insideX;player.z=o.target.insideZ;} return; }
   if(o.kind==='world'){ if(o.target.act)o.target.act(o.target); else showGameToast(o.target.text,5000); return; }
   openDialogue(o.target);
 }
 function secondAction(){ if(anyOverlayOpen()||!secondOffer)return false; actOn(secondOffer); return true; }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor&&nearestDoor.kind==='cell'){if(activeInterior===nearestDoor)leaveCell(nearestDoor);else enterCell(nearestDoor);return;}if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else if(doorLocked(nearestDoor)){visitShop(nearestDoor.shop);}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor&&nearestDoor.kind==='cell'){if(activeInterior===nearestDoor)leaveCell(nearestDoor);else tryCell(nearestDoor);return;}if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else if(doorLocked(nearestDoor)){visitShop(nearestDoor.shop);}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
 
@@ -80466,7 +80534,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r187',world:{innerBuilt,carts:CARTS.length,clutter:WORK_CLUTTER,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r188',world:{innerBuilt,carts:CARTS.length,clutter:WORK_CLUTTER,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80700,7 +80768,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // (r154) What a probe standing at x, z would touch, within reach of it.
   // (r176) the places' moods and the look, live: a probe tunes them and a
   // shot reads the result (tools/match-score.py scores it)
-  moods:PLACE_MOODS, cinematic:CINEMATIC_LOOK, cells:{doors:CELL_DOORS,built:CELL_BUILT,opened:CELLS_OPENED,enter:enterCell,leave:leaveCell},
+  moods:PLACE_MOODS, cinematic:CINEMATIC_LOOK, cells:{doors:CELL_DOORS,built:CELL_BUILT,opened:CELLS_OPENED,enter:enterCell,leave:leaveCell,knock:tryCell,household:cellHousehold,benches:BENCH_SEATS},
   collidersAt:(x,z,reach=1)=>collidersNearPoint(x,z).filter(c=>Math.hypot(c.x-x,c.z-z)<c.r+reach).map(c=>({x:+c.x.toFixed(2),z:+c.z.toFixed(2),r:+c.r.toFixed(2),box:c.box?[+(c.hw*2).toFixed(2),+(c.hd*2).toFixed(2)]:null,wall:!!c.wall,blocks:colliderContains(c,x,z)})),
   forest:()=>({loaded:!!FOREST.mesh,trees:FOREST.spots?FOREST.spots.length:0,kinds:{...FOREST.kinds},visible:FOREST.visible,cut:Math.round(FOREST.cut),fireflies:{seated:FIREFLIES.fly.filter(f=>f.home).length,lit:FIREFLIES.lit,level:+FIREFLIES.level.toFixed(2)}}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
@@ -80835,7 +80903,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — Emberfall — variant layer over base r187 -->
+<!-- Emberwatch — Emberfall — variant layer over base r188 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — EMBERFALL                                      variant layer
