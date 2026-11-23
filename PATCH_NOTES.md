@@ -1,85 +1,90 @@
-**r188 — at home after dark** · 1.88.0 · 2026-11-23 · phase 5, world depth
+**r189 — the trades heard** · 1.89.0 · 2026-11-23 · phase 5, world depth
 
 ### Summary
 
-At home after dark. Households are in their cells through the still hours, posed at the room's spots and ready to talk; a house's door is knocked at then and opens only if someone is home; residents sit on the benches by their doors at the ember watch. Verified: audits, unit tests, behaviour run in the game, diagnostics against r187, boot time, variants 6/6, smoke.
+The trades heard. An anvil from the nearest forge through the working and market watches; the murmur and clink of the nearest tavern, through its walls or in the room, loudest at the ember watch; the Cinder Market's stallholders calling in the market watch. All synthesised. Verified: audits, unit tests, the sound report at each place and watch, diagnostics against r188, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r188 / 1.88.0, "At home after dark".** Built on r187, the third of
-the four the owner asked for (doors, clutter, people, sound).
+**State: r189 / 1.89.0, "The trades heard".** Built on r188, the last of the
+four the owner asked for (doors, clutter, people, sound). Interiors are to be
+followed up next, at the owner's word.
 
 ### What was wrong
 
-r186 opened the houses and r187 put things at their doors, but nobody used
-either. Through the still hours a resident whose door had no walk-in room
-went in at it and was simply not drawn, so the new cells were always empty.
-The benches were never sat on. A house's door opened the same at every
-hour.
+The world's sound (r151) was the bells, the wind, the rain, footsteps, the
+two nearest fires, crickets and the doves. Nothing said what the city did:
+no work, no company, no trade.
 
 ### What changed
 
-- **At home after dark.** Whoever went in at a cell's door is in that cell
-  (`cellHousehold`): the residents who are indoors with no walk-in home and
-  whose doorway is within 3 m of the cell's door. When you enter, they are
-  placed at the room's spots and posed (`seatHousehold`, `poseAtHome`): in
-  bed, at the table, tending the hearth or the forge. Every cell now keeps
-  its spots, lifted with it: a home's from `furnishHome`, and a trade's of
-  its own (the smithy's at the forge and the anvil, the grain store's by the
-  bin and the sacks, the yard's on the mending stool and at the casks, the
-  workroom's at the bench). They can be talked to as a walk-in home's people
-  can, and when the watch turns they are back on their doorstep as before.
-- **Doors that answer the hour.** In the working, market and ember watches a
-  house's door opens to a hand on the latch, and its people are out at
-  their day. In the still hours it is barred (`cellBarred`): the offer reads
-  "knock at" and its button KNOCK (`offerLabel`, `offerButton`). If someone
-  is home they let you in, with a word about the hour (`tryCell`); if
-  nobody is, nobody answers.
-- **The benches.** When the still hours end, the ember watch begins: the
-  one the city spends visiting. A resident who comes out of a door with one
-  of r187's benches within 4.5 m sits on it (`tryBench`), posed, for 40 to
-  100 seconds by their name, then stands and walks on (`standFromBench`).
-  They can be talked to while they sit. Each bench records its seat
-  (`BENCH_SEATS`, 214).
-- `EMBER.cells` gains `knock`, `household` and `benches` for probes.
+Three sources on r151's pattern (a few voices moved to the nearest source,
+and one-shot strikes built on the spot), all synthesised:
+
+- **The forges.** From the nearest forge within 40 m (32 forge chimneys),
+  through the working and market watches only: an anvil in bursts of three
+  to seven strikes and a rest. Each strike is a struck bar's inharmonic
+  partials (1 : 2.76 : 5.40 : 8.93 over about 880 Hz, the high ones dying
+  first) over a dull knock.
+- **The taverns.** The nearest of the five taverns within 32 m murmurs: a
+  four-second loop of overlapping syllables, each a short burst at a
+  speaker's own pitch through two vowel-like bands. Through the walls from
+  the street it is low and dull (lowpass at 700 Hz); in the room it is full.
+  It is loudest at the ember watch, then the market watch, the working
+  watch and the still hours. Now and then a tankard is set down or touched:
+  a short ring of three partials somewhere in the room. The loop is built
+  the first time a tavern is in earshot: built when the sound started, it
+  cost the first frame 0.7 s under the harness. It is made at half the rate
+  from a sine table.
+- **The market.** Through the market watch, from a stall within 45 m of the
+  Cinder Market's 34: a stallholder's call every few seconds, a buzz at a
+  speaking pitch through three formant filters, held, then falling a third.
+- The sound report gains `anvils`, `clinks`, `cries` and the murmur's level
+  and tavern; `EMBER.sound.trades()` lists the sources.
 
 ### Not done, and next
 
-- **Few households yet.** 33 residents have a door that opens on a cell,
-  across 30 houses; most residents' doors are walk-in homes or none. Giving
-  more of the city's houses a household is the way to fill the cells.
-- **Shops with stock and coin** need a purse and an inventory for the
-  player, which the game does not have; not started.
-- Sound is the fourth item (r189).
+- **Interiors**, at the owner's word: their follow-up comes next. The list
+  from r185 still holds for them: homes dark away from the hearth, the
+  furniture's own forms.
+- **Few households.** r188's householders reach 33 residents in 30 cells.
+- **Shops with stock and coin** need a purse and an inventory, which the game
+  does not have.
+- The sound is checked by its counters and levels; the harness cannot
+  listen.
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
-  markup and script agree. All 735 functions are reachable, none dead, and no
-  comment holds a call. Section A is 244, as in r187.
+  markup and script agree. All 743 functions are reachable, none dead, and no
+  comment holds a call. Section A is 243.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Behaviour, run in the game** (`p-people`): in the still hours a
-  resident sent to her own door (Nessa Greenlatch) went in; knocking at her
-  cottage let the player in and she was there, posed. A door with nobody
-  home stayed barred. By day the same door opened. A resident with a bench
-  by her door (Merrit Underhill), sent in at night, came out at the ember
-  watch and sat on it; shot from the street.
-- **Diagnostics against r187**, same profile: doors 1,515 (none blocked),
+- **Heard, by the report** (`p-sound`), with the context running throughout:
+  - by a forge in the working watch, 7 strikes in 14 s; in the still hours,
+    none;
+  - outside the Cinder and Keg at the ember watch, the murmur at 0.12 on
+    that tavern; inside, 0.5 with 2 clinks in 10 s; across the city, 0;
+  - in the Cinder Market in the market watch, 3 calls in 16 s; in the working
+    watch, none.
+- **Diagnostics against r188**, same profile: doors 1,515 (none blocked),
   anchors 98 (none blocked), colliders 14,431, render calls at the spawn
-  point 491, all as r187.
+  point 491, all as r188.
 - **Boot time**, three runs each, alternated, from the game's own load
-  report:
-  - r187: 6.8, 6.8 and 7.1 s
-  - r188: 6.5, 6.9 and 6.8 s
-- **Variants** 6/6 built, and 6/6 boot and report r188.
-- **Smoke check** clean: the game boots at r188, the Bluetooth chooser
+  report, after the murmur was made late:
+  - r188: 6.6, 6.8 and 7.0 s
+  - r189: 6.5, 6.9 and 7.2 s
+
+  With the murmur built at the start it was 7.2, 7.0 and 7.2 s against
+  6.5, 6.4 and 6.7, all of it in the first frame.
+- **Variants** 6/6 built, and 6/6 boot and report r189.
+- **Smoke check** clean: the game boots at r189, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.38 MB (+4,599 bytes on r187).
-- 7 functions added: `cellBarred`, `cellHousehold`, `seatHousehold`, `standFromBench`, `tryBench`, `tryCell`, `updateBenchSitters`.
+- 8.39 MB (+8,366 bytes on r188).
+- 8 functions added: `soundAnvilStrike`, `soundAt`, `soundClink`, `soundCry`, `soundMurmurBuffer`, `soundTradeSpots`, `soundTradesStart`, `updateTradeSound`.
 
 ### Play it
 
