@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r185 Violet round the moon</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r186 Every door opens</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -5399,7 +5399,10 @@ function mergeAll(){ for(const k in bins){ const source=bins[k]; delete bins[k];
 const colliders=[],colliderGrid=new Map(),COLLIDER_CELL=14,COLLIDER_PAD=1;
 const colliderKey=(x,z)=>x+'|'+z;
 const colliderCell=(value)=>Math.floor(value/COLLIDER_CELL);
-function addCollider(x,z,r){ const collider={x,z,r}; colliders.push(collider); const pad=r+COLLIDER_PAD,minX=colliderCell(x-pad),maxX=colliderCell(x+pad),minZ=colliderCell(z-pad),maxZ=colliderCell(z+pad);
+// (r186) While COLLIDER_CAPTURE holds an array, colliders go into it and not
+// into the city's grid: a house's cell keeps its own, in ensureCell.
+let COLLIDER_CAPTURE=null;
+function addCollider(x,z,r){ const collider={x,z,r}; if(COLLIDER_CAPTURE){ COLLIDER_CAPTURE.push(collider); return collider; } colliders.push(collider); const pad=r+COLLIDER_PAD,minX=colliderCell(x-pad),maxX=colliderCell(x+pad),minZ=colliderCell(z-pad),maxZ=colliderCell(z+pad);
   for(let gx=minX;gx<=maxX;gx++)for(let gz=minZ;gz<=maxZ;gz++){const key=colliderKey(gx,gz),bucket=colliderGrid.get(key)||[];bucket.push(collider);colliderGrid.set(key,bucket);} return collider; }
 function collidersNearPoint(x,z){ return colliderGrid.get(colliderKey(colliderCell(x),colliderCell(z)))||[]; }
 function collidersAlong(x1,z1,x2,z2){ const minX=colliderCell(Math.min(x1,x2)),maxX=colliderCell(Math.max(x1,x2)),minZ=colliderCell(Math.min(z1,z2)),maxZ=colliderCell(Math.max(z1,z2)),seen=new Set(),nearby=[];
@@ -5414,6 +5417,7 @@ function collidersAlong(x1,z1,x2,z2){ const minX=colliderCell(Math.min(x1,x2)),m
 // to (cos ry, -sin ry) and local +Z to (sin ry, cos ry).
 function addBoxCollider(x,z,w,d,ry=0){
   const collider={x,z,r:Math.hypot(w,d)*.5,hw:w*.5,hd:d*.5,co:Math.cos(ry),si:Math.sin(ry),box:true};
+  if(COLLIDER_CAPTURE){ COLLIDER_CAPTURE.push(collider); return collider; }
   colliders.push(collider);
   const pad=collider.r+COLLIDER_PAD,minX=colliderCell(x-pad),maxX=colliderCell(x+pad),minZ=colliderCell(z-pad),maxZ=colliderCell(z+pad);
   for(let gx=minX;gx<=maxX;gx++)for(let gz=minZ;gz<=maxZ;gz++){const key=colliderKey(gx,gz),bucket=colliderGrid.get(key)||[];bucket.push(collider);colliderGrid.set(key,bucket);}
@@ -6324,6 +6328,7 @@ function cullLights(t){
   for(const row of ranked){ const on=row.useful&&shown<tier; row.entry.light.visible=on; if(on)shown++; }
   padLights.forEach((pad,index)=>{ pad.visible=index<tier-shown; });
   for(const halo of HALL_HALOS)halo.visible=activeInterior===halo.userData.room;   // (r181, r182) the halls' window glows
+  for(const rec of CELL_BUILT)rec.cell.group.visible=activeInterior===rec;          // (r186) and the houses' cells
 }
 function interiorHearth(x,z,w=3.5){
   aBox(w,2.55,.34,x,1.28,z,'stone');aBox(w+.38,.22,.66,x,.2,z+.13,'dark');
@@ -7737,6 +7742,138 @@ function dressRoom(home,at){
     if(Math.abs(ox)<DW/2+.4)continue;
     put(ox,b-.016,.5,.66,.03,1.55,'nightpane'); put(ox,b-.06,.62,.06,.1,1.18,'wood'); }
 }
+// ---------- every door opens (r186) ----------
+// The city programme's stage 2 (§6 of PROJECT.md): a shut house front is a
+// door now. 202 doors opened before this, the halls and the walk-in homes and
+// shops; the other houses were solid blocks with a painted door. Building
+// that many rooms into the city would cost what the walk-in homes cost, a
+// hundredfold, so a house's room is a cell, as the old games did it: it is
+// built the first time you go in, somewhere you cannot walk to, and kept.
+//
+// The pocket. Each house has its own slot in a grid far beyond the map's edge
+// (the player is held inside ±705 m; the pocket starts at 900) and 400 m up.
+// Up there the street colliders are not consulted at all, as the movement code
+// treats anything over 3.2 m above the ground as aloft, so a cell keeps its
+// own colliders on its record (`cellColliders`, gathered by COLLIDER_CAPTURE)
+// and they never touch the city's grid. Its floor is a stacked deck the size
+// of the room. Its lamps carry the record as their `home`, so they light only
+// while you are inside, as a walk-in home's do. It is drawn only then too.
+//
+// What a room holds follows the house: the quarter's trade where the infill
+// gave the house one (a smithy in Westreach, a grain store in the New North,
+// a carter's yard in the Long Southing, a workroom in Eastreach), and a home
+// otherwise: r113's bed, hearth, table and shelf, in r183's stone.
+const CELL_LOTS=[], CELL_DOORS=[], CELL_BUILT=[];
+const CELL_POCKET={x:900,z:-600,y:400,step:24,cols:32};
+const CELL_TRADES={
+  forges:{noun:'smithy',purpose:'a back-room forge, an anvil, and the quench barrel'},
+  granary:{noun:'grain store',purpose:'sacks to the rafters and the bins kept dry'},
+  yards:{noun:'carter’s yard room',purpose:'casks, harness on the wall, and a bench for mending'},
+  shops:{noun:'workroom',purpose:'a workbench, shelves of stock, and the day’s accounts'}
+};
+// Open a door for every shut house whose doorstep is clear, once the city is
+// built. Nothing is built yet: a record each, for the offer loop.
+function openCells(){
+  let opened=0, shut=0;
+  for(const lot of CELL_LOTS){
+    const {x,z,w,d,ry}=lot, co=Math.cos(ry), si=Math.sin(ry);
+    const at=(lx,lz)=>[x+lx*co+lz*si, z-lx*si+lz*co];
+    const [ox,oz]=at(0,d/2+1.4), [dx,dz]=at(0,d/2+.05);
+    if(colliderBlocked(ox,oz)||interiorDoors.some(r=>Math.hypot(r.outsideX-ox,r.outsideZ-oz)<2.2)){ shut++; continue; }
+    const slot=CELL_DOORS.length, cx=CELL_POCKET.x+(slot%CELL_POCKET.cols)*CELL_POCKET.step, cz=CELL_POCKET.z+Math.floor(slot/CELL_POCKET.cols)*CELL_POCKET.step;
+    const W=Math.min(9,Math.max(4.6,w-.6)), D=Math.min(8,Math.max(4.4,d-.6));
+    const trade=lot.trade&&CELL_TRADES[lot.trade]?lot.trade:null;
+    const pick=terrainHash(Math.round(x*3)+911,Math.round(z*3)-277);
+    const word=HOME_WORDS[Math.floor(pick*HOME_WORDS.length)%HOME_WORDS.length];
+    const noun=trade?CELL_TRADES[trade].noun:HOME_KINDS[Math.floor(pick*997)%HOME_KINDS.length];
+    const purpose=trade?CELL_TRADES[trade].purpose:HOME_PURPOSES[Math.floor(terrainHash(Math.round(x*2)+41,Math.round(z*2)-19)*HOME_PURPOSES.length)];
+    const record={id:'cell-'+slot,name:'the '+word+' '+noun,x:ox,z:oz,outsideX:ox,outsideZ:oz,insideX:cx,insideZ:cz+D/2-1.25,
+      cx,cz,w:W,d:D,ry:0,kind:'cell',doorX:dx,doorZ:dz,purpose,spots:null,shop:null,parts:null,
+      cell:{lot,trade,slot,built:false,group:null},cellColliders:null};
+    interiorDoors.push(record); CELL_DOORS.push(record); opened++;
+  }
+  return {candidates:CELL_LOTS.length,opened,shut};
+}
+// Build a cell the first time it is entered. Everything is laid at the
+// ground's height in the pocket and lifted as one group; its lamps are lifted
+// to match.
+function ensureCell(rec){
+  if(rec.cell.built)return;
+  const {cx,cz,w:W,d:D}=rec, a=W/2, b=D/2, T=HOME_WALL;
+  const home={x:cx,z:cz,w:W+2*T,d:D+2*T,ry:0,stories:1,shop:null};
+  const at=(lx,lz)=>[cx+lx,cz+lz];
+  const bins={}, captured=[], lightsBefore=lights.length;
+  COLLIDER_CAPTURE=captured;
+  try{ withBins(bins,()=>{
+    const floorKey=rec.cell.trade?'flag':'wood';
+    aBox(W,.1,D,cx,.05,cz,floorKey); aBox(W,.14,D,cx,2.63,cz,'dark');
+    // the walls the stone liner stands on, as colliders: the room is closed
+    addBoxCollider(cx,cz-b-.15,W+.6,.3); addBoxCollider(cx,cz+b+.15,W+.6,.3); addBoxCollider(cx-a-.15,cz,.3,D+.6); addBoxCollider(cx+a+.15,cz,.3,D+.6);
+    dressRoom(home,at);
+    // the front door, shut: it leads back to the street when you ask it to
+    aBox(HOME_DOOR_W,HOME_DOOR_H,.06,cx,HOME_DOOR_H/2,cz+b-.03,'wood');
+    for(const s of[-1,1])aBox(.05,HOME_DOOR_H,.07,cx+s*.4,HOME_DOOR_H/2,cz+b-.05,'dark');
+    aBox(.12,.12,.08,cx+.55,1.05,cz+b-.09,'dark');
+    furnishCell(rec,cx,cz,a,b,home,at);
+  }); } finally { COLLIDER_CAPTURE=null; }
+  const group=new THREE.Group(); group.name='cell-'+rec.cell.slot;
+  for(const key in bins){ const list=bins[key]; if(!list.length)continue;
+    const geometry=list.length>1?THREE.BufferGeometryUtils.mergeGeometries(list,false):list[0]; if(!geometry)continue;
+    const mesh=new THREE.Mesh(geometry,MATS[key]||MATS.stone); mesh.receiveShadow=true; group.add(mesh); }
+  group.position.y=CELL_POCKET.y; group.visible=false; scene.add(group);
+  for(let i=lightsBefore;i<lights.length;i++){ const e=lights[i]; e.home=rec; e.light.position.y+=CELL_POCKET.y; }
+  addDeck(rec.id,cx,cz,0,a,b,CELL_POCKET.y); SURFACES[SURFACES.length-1].stacked=true;
+  rec.cellColliders=captured; rec.cell.group=group; rec.cell.built=true; CELL_BUILT.push(rec);
+}
+// What a cell holds. Local frame: the door at +z, the room's middle at cx, cz,
+// a and b its half sizes. The lane from the door is kept clear.
+function furnishCell(rec,cx,cz,a,b,home,at){
+  const trade=rec.cell.trade;
+  const lamp=(x,y,z,color,power,range)=>{ const l=lampLight(color,power,range); l.position.set(x,y,z); scene.add(l); lights.push({light:l,base:power,phase:x+z,fire:true,home:null}); };
+  if(!trade){ furnishHome(home,at); return; }
+  interiorFill(home,cx,cz);
+  if(trade==='forges'){
+    interiorSolid(1.7,.9,1.0,cx,.45,cz-b+.55,'stone');
+    aBox(1.25,.08,.62,cx,.93,cz-b+.55,'amber');
+    aBox(1.6,.6,.95,cx,2.25,cz-b+.5,'brick'); aBox(1.2,.35,.7,cx,1.8,cz-b+.48,'dark');
+    lamp(cx,1.0,cz-b+1.35,0xff7a30,.62,5.5);
+    aBox(.34,.55,.34,cx+.6,.28,cz-.3,'dark'); aBox(.78,.2,.32,cx+.6,.65,cz-.3,'dark'); addCollider(cx+.6,cz-.3,.42);
+    interiorBarrel(cx+a-.5,cz-b+.6,false);
+    interiorRack(cx-a+.3,cz-.4,Math.PI/2);
+    interiorTable(cx-a+.75,cz+b*.35,.9,1.6); addBoxCollider(cx-a+.75,cz+b*.35,.9,1.6);
+    for(let k=0;k<4;k++)aBox(.08,.5,.04,cx+a-.08,1.4,cz-.8+k*.35,'dark');
+  }else if(trade==='granary'){
+    for(let k=0;k<Math.floor((2*a-.6)/.62);k++){ const sx=cx-a+.45+k*.62; aBox(.55,.72,.42,sx,.36,cz-b+.3,'dirt'); if(k%2===0)aBox(.5,.6,.4,sx+.05,1.02,cz-b+.32,'dirt'); }
+    addBoxCollider(cx,cz-b+.32,2*a-.4,.5);
+    interiorSolid(1.5,1.05,.95,cx+a-.85,.52,cz+.1,'wood'); aBox(1.6,.08,1.05,cx+a-.85,1.08,cz+.1,'dark');
+    interiorChest(cx-a+.6,cz+.2,Math.PI/2); interiorChest(cx-a+.6,cz+1.1,Math.PI/2);
+    for(const s of[-1,1])aBox(.06,2.4,.06,cx+a-.12,1.2,cz-b+1.1+s*.22); for(let k=0;k<7;k++)aBox(.06,.04,.48,cx+a-.12,.3+k*.32,cz-b+1.1,'wood');
+    lamp(cx,2.0,cz,0xffb060,.45,6);
+  }else if(trade==='yards'){
+    for(let k=0;k<3;k++)interiorCask(cx-a+.65+k*1.15,cz-b+.65);
+    interiorRack(cx+a-.3,cz-.3,-Math.PI/2);
+    interiorTable(cx-a+.8,cz+.4,1.0,1.9); addBoxCollider(cx-a+.8,cz+.4,1.0,1.9);
+    interiorStool(cx-a+1.65,cz+.4);
+    aBox(1.8,.08,.3,cx+a-.25,1.6,cz+.9,'wood'); aBox(.5,.3,.25,cx+a-.25,1.35,cz+.6,'dark'); aBox(.5,.3,.25,cx+a-.25,1.35,cz+1.2,'dark');
+    lamp(cx,2.0,cz-.2,0xffb060,.45,6);
+  }else{
+    interiorTable(cx,cz-b+1.3,2.0,.9); addBoxCollider(cx,cz-b+1.3,2.0,.9);
+    interiorStool(cx-.6,cz-b+2.05); interiorStool(cx+.6,cz-b+2.05);
+    interiorShelf(cx-a+.25,cz,Math.min(2.6,2*b-1.6),'z');
+    interiorChest(cx+a-.55,cz-.2,-Math.PI/2);
+    lamp(cx,2.0,cz-b+1.6,0xffc070,.45,6);
+  }
+}
+function enterCell(rec){
+  ensureCell(rec); rec.cell.group.visible=true;
+  player.x=rec.insideX; player.z=rec.insideZ; player.y=CELL_POCKET.y; player.vy=0; player.onGround=true;
+}
+function leaveCell(rec){
+  player.x=rec.outsideX; player.z=rec.outsideZ; player.y=surfaceAt(rec.outsideX,rec.outsideZ); player.vy=0; player.onGround=true;
+  if(rec.cell.group)rec.cell.group.visible=false;
+}
+// Inside a cell, its own colliders; nothing else is up there.
+function cellBlocked(x,z){ const rec=activeInterior; if(!rec||rec.kind!=='cell'||!rec.cellColliders)return false; return rec.cellColliders.some(c=>colliderContains(c,x,z)); }
 function dressHall(room,h,doorW,doorH,dress){
   const {glassKey,stoneKey,tint:gt}=hallMats(dress);
   const {cx:x,cz:z,w,d}=room, ceil=h-.18, T=.012, hw=w/2-.21, hd=d/2-.21, front=z+d/2-.21, R=HALL_GLASS.R, wy=HALL_GLASS.y;
@@ -9488,6 +9625,7 @@ function wardHouse(x,z,w,d,stories,key,ry,accent){
       CITY_WINDOWS.push({x:wx,y:wy,z:wz,ry,accent});             // for the street kit's frames
       aBox(.5,.66,.06,wx,wy,wz,'window',ry); } }
   addBoxCollider(x,z,w,d,ry);
+  CELL_LOTS.push({x,z,w,d,ry,stories,key,accent,trade:null});   // (r186) its door opens on a cell
 }
 // The wards had ~1690 houses and about 78 props between them, which is why the
 // streets read as barren no matter how many buildings went up. Real streets are
@@ -73782,6 +73920,7 @@ function innerInfill(){
     const shop=shopLot?shopFront(x,z,w,depth,ry,accent,{room:true,stories}):null;
     if(shop){ shop.home=shell; shell.shop=shop; }
     if(!shop&&trade)quarterTrade(quarterAt(x,z).trade,x,z,w,depth,ry,accent,stories);
+    if(!shopLot&&trade&&CELL_LOTS.length){ const last=CELL_LOTS[CELL_LOTS.length-1]; if(last.x===x&&last.z===z)last.trade=quarterAt(x,z).trade; }   // (r186) its cell is its trade's
     built++;
   }
   for(const [x,z,w,depth,ry] of CITY_LOTS_VACANT)CITY_LOTS.push({x,z,w,d:depth,ry});
@@ -74069,6 +74208,7 @@ const STREET_POOLS=streetLightPools();          // last: every pool is known by 
 // once more against the complete world before publishing the authoritative
 // audit. Unresolvable facade-only anchors are removed rather than advertised.
 CITY_PLAN.finalAnchorRepair=repairCityPlanAnchors();
+const CELLS_OPENED=openCells();          // (r186) after everything that could take a doorstep
 CITY_PLAN.audit={...auditCityPlan(),...CITY_PLAN.finalAnchorRepair};
 auditVanethGeometry();
 // The map is drawn once, now that there is a city to draw it from.
@@ -76633,7 +76773,7 @@ function loadGameState(){
 }
 const savedGameState=loadGameState();
 const restoredInterior=false&&typeof savedGameState?.interior==='string'?(()=>{const door=interiorDoors.find(entry=>entry.name===savedGameState.interior);return door&&Math.hypot(player.x-door.insideX,player.z-door.insideZ)<=18?door:null;})():null;
-function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:player.x,z:player.z,yaw,pitch,lighting,renderScale:RS,bloom:BLOOM.on,interior:activeInterior?.name||null}));}catch{}}
+function saveGameState(){try{localStorage.setItem(GAME_SAVE_KEY,JSON.stringify({version:3,world:{version:WORLD_SEED_VERSION,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION},worldSeed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,x:activeInterior?.kind==='cell'?activeInterior.outsideX:player.x,z:activeInterior?.kind==='cell'?activeInterior.outsideZ:player.z,yaw,pitch,lighting,renderScale:RS,bloom:BLOOM.on,interior:activeInterior?.name||null}));}catch{}}
 let nextGameSaveAt=0;
 addEventListener('beforeunload',saveGameState);addEventListener('pagehide',saveGameState);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveGameState();});
 const keys={}; function typing(){ const a=document.activeElement; return !!(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT'||a.isContentEditable)); }
@@ -78454,12 +78594,13 @@ function syncActiveInterior(){
 function offerLabel(o){ return o.kind==='door'?(activeInterior===o.target?'leave '+o.target.name:doorLocked(o.target)?'try the shuttered door of '+o.target.name:'enter '+o.target.name):o.kind==='villager'?'talk with '+o.target.name:(typeof o.target.label==='function'?o.target.label():o.target.label); }
 function offerButton(o){ return o.kind==='door'?(activeInterior===o.target?'LEAVE':'ENTER'):o.kind==='villager'?'TALK':'LOOK'; }
 function actOn(o){
-  if(o.kind==='door'){ if(activeInterior===o.target){player.x=o.target.outsideX;player.z=o.target.outsideZ;}else if(doorLocked(o.target)){visitShop(o.target.shop);}else{player.x=o.target.insideX;player.z=o.target.insideZ;} return; }
+  if(o.kind==='door'){ if(o.target.kind==='cell'){ if(activeInterior===o.target)leaveCell(o.target); else enterCell(o.target); return; }
+    if(activeInterior===o.target){player.x=o.target.outsideX;player.z=o.target.outsideZ;}else if(doorLocked(o.target)){visitShop(o.target.shop);}else{player.x=o.target.insideX;player.z=o.target.insideZ;} return; }
   if(o.kind==='world'){ if(o.target.act)o.target.act(o.target); else showGameToast(o.target.text,5000); return; }
   openDialogue(o.target);
 }
 function secondAction(){ if(anyOverlayOpen()||!secondOffer)return false; actOn(secondOffer); return true; }
-function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else if(doorLocked(nearestDoor)){visitShop(nearestDoor.shop);}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
+function shareSmoke(){if(anyOverlayOpen())return;if(nearestDoor&&nearestDoor.kind==='cell'){if(activeInterior===nearestDoor)leaveCell(nearestDoor);else enterCell(nearestDoor);return;}if(nearestDoor){if(activeInterior===nearestDoor){player.x=nearestDoor.outsideX;player.z=nearestDoor.outsideZ;}else if(doorLocked(nearestDoor)){visitShop(nearestDoor.shop);}else{player.x=nearestDoor.insideX;player.z=nearestDoor.insideZ;}return;}if(nearestWorldInteraction){const entry=nearestWorldInteraction;if(entry.act)entry.act(entry);else showGameToast(entry.text,5000);return;}if(!nearestVillager){showGameToast('No one nearby—follow the lanterns to the south market.');return;}openDialogue(nearestVillager);}
 
 const settingsEl=document.getElementById('settings');
 
@@ -80252,7 +80393,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r185',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r186',world:{innerBuilt,carts:CARTS.length,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80486,7 +80627,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
   // (r154) What a probe standing at x, z would touch, within reach of it.
   // (r176) the places' moods and the look, live: a probe tunes them and a
   // shot reads the result (tools/match-score.py scores it)
-  moods:PLACE_MOODS, cinematic:CINEMATIC_LOOK,
+  moods:PLACE_MOODS, cinematic:CINEMATIC_LOOK, cells:{doors:CELL_DOORS,built:CELL_BUILT,opened:CELLS_OPENED,enter:enterCell,leave:leaveCell},
   collidersAt:(x,z,reach=1)=>collidersNearPoint(x,z).filter(c=>Math.hypot(c.x-x,c.z-z)<c.r+reach).map(c=>({x:+c.x.toFixed(2),z:+c.z.toFixed(2),r:+c.r.toFixed(2),box:c.box?[+(c.hw*2).toFixed(2),+(c.hd*2).toFixed(2)]:null,wall:!!c.wall,blocks:colliderContains(c,x,z)})),
   forest:()=>({loaded:!!FOREST.mesh,trees:FOREST.spots?FOREST.spots.length:0,kinds:{...FOREST.kinds},visible:FOREST.visible,cut:Math.round(FOREST.cut),fireflies:{seated:FIREFLIES.fly.filter(f=>f.home).length,lit:FIREFLIES.lit,level:+FIREFLIES.level.toFixed(2)}}),
   overlayOpen:()=>anyOverlayOpen(),lampLight,lampPower,LAMP_REACH,bloom:BLOOM,obstructions:auditRoadObstructions,flow:residentFlowReport};
@@ -80521,8 +80662,11 @@ function loop(){ requestAnimationFrame(loop);
     // The tolerance is what lets you walk down a flight without being stopped
     // by each tread.
     const footing=(tx,tz)=>!aloft||!player.onGround||surfaceAt(tx,tz,player.y)>under-1.7;
-    if((aloft||!colliderBlocked(nx,player.z))&&footing(nx,player.z)) player.x=Math.max(-lim,Math.min(lim,nx));
-    if((aloft||!colliderBlocked(player.x,nz))&&footing(player.x,nz)) player.z=Math.max(-lim,Math.min(lim,nz)); }
+    // (r186) In a house's cell, beyond the map's edge and above it, the cell's
+    // own colliders stand in for the street's, and the map's limit is not one.
+    const inCell=activeInterior&&activeInterior.kind==='cell', clampX=v=>inCell?v:Math.max(-lim,Math.min(lim,v));
+    if((aloft?!cellBlocked(nx,player.z):!colliderBlocked(nx,player.z))&&footing(nx,player.z)) player.x=clampX(nx);
+    if((aloft?!cellBlocked(player.x,nz):!colliderBlocked(player.x,nz))&&footing(player.x,nz)) player.z=clampX(nz); }
   partCrowd();
   if(!uiOpen&&keys['Space']&&player.onGround){ player.vy=CONFIG.jump; player.onGround=false; }
   player.vy-=CONFIG.gravity*dt; player.y+=player.vy*dt;
@@ -80618,7 +80762,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — The Long Night — variant layer over base r185 -->
+<!-- Emberwatch — The Long Night — variant layer over base r186 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — THE LONG NIGHT                                 variant layer

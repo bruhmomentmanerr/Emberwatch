@@ -2247,5 +2247,18 @@
   },
   "asset": "emberwatch-r185-violet-round-the-moon.html",
   "notes": "releases/notes/r185.md"
+ },
+ {
+  "tag": "r186",
+  "rev": 186,
+  "title": "every door opens",
+  "version": "1.86.0",
+  "date": "2026-11-23T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r186-every-door-opens.html"
+  },
+  "asset": "emberwatch-r186-every-door-opens.html",
+  "notes": "releases/notes/r186.md"
  }
 ]
