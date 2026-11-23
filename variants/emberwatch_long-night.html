@@ -216,7 +216,7 @@
   </div>
 </div>
 <div id="puffPanel" role="dialog" aria-modal="true" aria-label="Puffco controls" aria-hidden="true">
-<div id="puffHead"><span>◈ Puffco — r188 At home after dark</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
+<div id="puffHead"><span>◈ Puffco — r189 The trades heard</span><span class="sp"></span><button id="puffClose" aria-label="Close Puffco controls">✕</button></div>
   <div id="puffBody">
     <div id="puffStatus" class="pst">disconnected</div>
     <button class="pbtn primary" id="puffConnect">🔗 Connect device</button>
@@ -80270,8 +80270,9 @@ addEventListener('drop',e=>{ e.preventDefault(); drop.style.display='none'; cons
 //   fires          the two nearest hearths, forges or wall torches crackle
 //   crickets       out beyond the walls
 //   the doves      their wings clapping as they go up
+//   (r189) the forges, the taverns and the market: see updateTradeSound
 const SOUND={ctx:null,master:null,verb:null,noise:null,brown:null,on:true,volume:.7,failed:false,
-  strikes:0,steps:0,claps:0,bellK:new Map(),wind:null,rain:null,crickets:null,fire:[],fireAt:0,fires:null,gust:0,gustTo:0,gustAt:0,stepK:null,dovesFrom:-Infinity};
+  strikes:0,steps:0,claps:0,anvils:0,clinks:0,cries:0,trades:null,murmur:null,anvil:null,crier:null,bellK:new Map(),wind:null,rain:null,crickets:null,fire:[],fireAt:0,fires:null,gust:0,gustTo:0,gustAt:0,stepK:null,dovesFrom:-Infinity};
 const SOUND_KEY='emberwatch.sound.v1', SOUND_FWD=new THREE.Vector3();
 try{ const s=JSON.parse(localStorage.getItem(SOUND_KEY)||'{}');
   if(typeof s.on==='boolean')SOUND.on=s.on;
@@ -80404,6 +80405,115 @@ function soundAmbience(){
   for(let v=0;v<2;v++){ const src=soundNoise(crackle,ctx.currentTime,0,true), hp=ctx.createBiquadFilter(), g=ctx.createGain(), pan=soundPanner(0,-500,0,1.6,1.3,false);
     hp.type='highpass'; hp.frequency.value=220; g.gain.value=0; src.connect(hp); hp.connect(g); g.connect(pan); pan.connect(SOUND.master);
     SOUND.fire.push({g,pan,spot:null,moveAt:0}); }
+  soundTradesStart(ctx);
+}
+// (r189) The city's trades, heard. Three more sources on the same pattern as
+// the fires, a few voices moved to whichever sources are nearest, and the
+// bells (one-shot strikes built on the spot):
+//
+//   the forges     an anvil from the nearest forge within 40 m through the
+//                  working and market watches: bursts of three to seven
+//                  strikes, each an inharmonic ring (a struck bar's partials,
+//                  1 : 2.76 : 5.40 : 8.93) over a dull knock, then a rest
+//   the taverns    the murmur of a full room from the nearest tavern within
+//                  32 m, heard through its walls from the street and in full
+//                  inside, loudest at the ember watch; now and then a tankard
+//                  set down hard, or two touched
+//   the market     through the market watch, the Cinder Market's stallholders
+//                  calling their wares: a sung vowel or two, a falling third
+//                  from a stall within 45 m, every few seconds
+//
+// The murmur is a buffer made once: many overlapping syllables, each a short
+// burst of noise through two vowel-like bands at a speaker's own pitch. The
+// calls are voices made per call: a buzz at a speaking pitch through three
+// formant filters, sliding down. Nothing is sampled.
+// Built the first time a tavern is in earshot, not when the sound starts: made
+// at the start it cost the first frame 0.7 s under the harness. At half the
+// rate, from a sine table, four seconds to loop.
+function soundMurmurBuffer(ctx){
+  const sr=22050, n=sr*4, b=ctx.createBuffer(1,n,sr), d=b.getChannelData(0), TAB=4096, sin=new Float32Array(TAB);
+  for(let i=0;i<TAB;i++)sin[i]=Math.sin(2*Math.PI*i/TAB);
+  const F=[[730,1090],[270,2290],[530,1840],[570,840],[440,1020],[300,870],[660,1720]];
+  for(let s=0;s<340;s++){
+    const at=Math.floor(Math.random()*(n-sr*.3)), len=Math.floor(sr*(.07+Math.random()*.14)), [f1,f2]=F[Math.floor(Math.random()*F.length)];
+    const pitch=95+Math.random()*150, amp=.04+.12*Math.random(), dp=pitch/sr*TAB, d1=f1/sr*TAB, d2=f2/sr*TAB, de=TAB/2/len;
+    let p=0,p1=0,p2=0,pe=0;
+    for(let i=0;i<len;i++){ const env=sin[pe&4095], buzz=sin[p&4095]+.5*sin[(2*p)&4095]+.33*sin[(3*p)&4095];
+      d[at+i]+=amp*env*(buzz*.35*(sin[p1&4095]+.6*sin[p2&4095])+(Math.random()*2-1)*.25);
+      p+=dp; p1+=d1; p2+=d2; pe+=de; }
+  }
+  for(let i=0;i<n;i++)d[i]*=.6;
+  return b;
+}
+function soundTradeSpots(){
+  if(SOUND.trades)return SOUND.trades;
+  SOUND.trades={
+    forges:CHIMNEYS.filter(c=>c.forge).map(c=>({x:c.x,y:1.1,z:c.z})),
+    taverns:interiorDoors.filter(r=>r.kind==='tavern').map(r=>({x:r.cx,y:1.6,z:r.cz,room:r})),
+    stalls:CINDER_MARKET_STALLS.map(s=>({x:s.x,y:1.6,z:s.z,trade:s.trade}))
+  };
+  return SOUND.trades;
+}
+function soundTradesStart(ctx){
+  const lp=ctx.createBiquadFilter(), g=ctx.createGain(), pan=soundPanner(0,-500,0,4,1.1,false);
+  lp.type='lowpass'; lp.frequency.value=3200; g.gain.value=0; lp.connect(g); g.connect(pan); pan.connect(SOUND.master);
+  const send=ctx.createGain(); send.gain.value=.4; g.connect(send); send.connect(SOUND.verb);
+  SOUND.murmur={g,lp,pan,spot:null,clinkAt:0,src:null};
+  SOUND.anvil={spot:null,next:0,burst:0};
+  SOUND.crier={next:0};
+}
+function soundAt(p,x,y,z){ if(p.positionX){ p.positionX.value=x; p.positionY.value=y; p.positionZ.value=z; } else p.setPosition(x,y,z); }
+function soundAnvilStrike(spot,when,level){
+  const ctx=SOUND.ctx, out=soundPanner(spot.x,spot.y,spot.z,3,1.2,false), g=ctx.createGain(); g.gain.value=level; g.connect(out); out.connect(SOUND.master);
+  const send=ctx.createGain(); send.gain.value=.5; g.connect(send); send.connect(SOUND.verb);
+  const base=880+Math.random()*60;
+  for(const [r,a,dec] of[[1,.5,.9],[2.76,.3,.5],[5.4,.16,.28],[8.93,.08,.16]]){
+    const o=ctx.createOscillator(), og=ctx.createGain(); o.frequency.value=base*r; o.connect(og); og.connect(g);
+    og.gain.setValueAtTime(a,when); og.gain.exponentialRampToValueAtTime(.0005,when+dec); o.start(when); o.stop(when+dec+.05); }
+  const n=soundNoise(SOUND.noise,when,.05,false), fl=ctx.createBiquadFilter(), ng=ctx.createGain(); fl.type='lowpass'; fl.frequency.value=900;
+  ng.gain.setValueAtTime(.5,when); ng.gain.exponentialRampToValueAtTime(.001,when+.05); n.connect(fl); fl.connect(ng); ng.connect(g);
+  soundRelease(out,1.4); SOUND.anvils++;
+}
+function soundClink(spot,when,level){
+  const ctx=SOUND.ctx, out=soundPanner(spot.x+(Math.random()-.5)*6,spot.y-.6,spot.z+(Math.random()-.5)*5,2,1.4,false), g=ctx.createGain(); g.gain.value=level; g.connect(out); out.connect(SOUND.master);
+  const f=1900+Math.random()*1600;
+  for(const [r,a,dec] of[[1,.4,.25],[2.3,.2,.12],[3.9,.1,.07]]){ const o=ctx.createOscillator(), og=ctx.createGain(); o.frequency.value=f*r; o.connect(og); og.connect(g);
+    og.gain.setValueAtTime(a,when); og.gain.exponentialRampToValueAtTime(.0005,when+dec); o.start(when); o.stop(when+dec+.03); }
+  soundRelease(out,.6); SOUND.clinks++;
+}
+function soundCry(spot,when,level){
+  const ctx=SOUND.ctx, out=soundPanner(spot.x,spot.y,spot.z,4,1.1,false), g=ctx.createGain(); g.gain.value=0; g.connect(out); out.connect(SOUND.master);
+  const send=ctx.createGain(); send.gain.value=.45; g.connect(send); send.connect(SOUND.verb);
+  const pitch=150+Math.random()*120, dur=.9+Math.random()*.7, o=ctx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(pitch*1.26,when); o.frequency.setValueAtTime(pitch*1.26,when+dur*.45); o.frequency.exponentialRampToValueAtTime(pitch,when+dur);
+  const vowel=[[730,1090,2440],[570,840,2410],[660,1720,2410]][Math.floor(Math.random()*3)];
+  for(const [i,f] of vowel.entries()){ const bp=ctx.createBiquadFilter(), fg=ctx.createGain(); bp.type='bandpass'; bp.frequency.value=f; bp.Q.value=6+i*2; fg.gain.value=[1,.6,.25][i]; o.connect(bp); bp.connect(fg); fg.connect(g); }
+  g.gain.setValueAtTime(0,when); g.gain.linearRampToValueAtTime(level,when+.06); g.gain.setValueAtTime(level,when+dur*.42); g.gain.linearRampToValueAtTime(level*.15,when+dur*.5);
+  g.gain.linearRampToValueAtTime(level*.9,when+dur*.56); g.gain.linearRampToValueAtTime(0,when+dur);
+  o.start(when); o.stop(when+dur+.05); soundRelease(out,dur+3); SOUND.cries++;
+}
+function updateTradeSound(now,inside){
+  const T=soundTradeSpots(), watch=currentWatch(), id=watch?watch.id:'labour';
+  const nearest=(list,r)=>{ let best=null,bd=r*r; for(const s of list){ const d=(s.x-player.x)**2+(s.z-player.z)**2; if(d<bd){bd=d;best=s;} } return best; };
+  // the anvil, through the working and market watches
+  if(now>SOUND.anvil.next){
+    const spot=(id==='labour'||id==='market')&&!(inside&&activeInterior.kind==='cell')?nearest(T.forges,40):null;
+    if(spot){ if(SOUND.anvil.burst<=0)SOUND.anvil.burst=3+Math.floor(Math.random()*5);
+      soundAnvilStrike(spot,now+.02,.3*(inside?.35:1)); SOUND.anvil.burst--;
+      SOUND.anvil.next=now+(SOUND.anvil.burst>0?.42+Math.random()*.12:2.5+Math.random()*4); }
+    else SOUND.anvil.next=now+1;
+  }
+  // the murmur: the nearest tavern, through its walls or in the room
+  const m=SOUND.murmur, tav=nearest(T.taverns,32);
+  if(tav&&!m.src){ m.src=soundNoise(soundMurmurBuffer(SOUND.ctx),now,0,true); m.src.connect(m.lp); }
+  if(tav!==m.spot){ m.spot=tav; if(tav)soundAt(m.pan,tav.x,tav.y,tav.z); }
+  const inRoom=tav&&activeInterior===tav.room, busy=id==='ember'?1:id==='market'?.75:id==='labour'?.5:.3;
+  m.g.gain.setTargetAtTime(tav?(inRoom?.5:.12)*busy:0,now,.6); m.lp.frequency.setTargetAtTime(inRoom?3200:700,now,.4);
+  if(tav&&now>m.clinkAt){ m.clinkAt=now+1.5+Math.random()*5/busy; soundClink(tav,now+.02,(inRoom?.22:.05)*busy); }
+  // the market's cries
+  if(id==='market'&&!inside&&now>SOUND.crier.next){ const stall=nearest(T.stalls,45);
+    SOUND.crier.next=now+(stall?2.2+Math.random()*4.5:2);
+    if(stall){ const near=T.stalls.filter(s=>Math.hypot(s.x-stall.x,s.z-stall.z)<18); soundCry(near[Math.floor(Math.random()*near.length)],now+.05,.16); } }
 }
 function updateSound(t,dt){
   if(!SOUND.ctx&&!SOUND.failed)soundStart();
@@ -80433,6 +80543,7 @@ function updateSound(t,dt){
   for(const v of SOUND.fire)if(v.moveAt&&now>=v.moveAt){ v.moveAt=0; if(!v.spot)continue; const s=v.spot, p=v.pan;
     if(p.positionX){ p.positionX.value=s.x; p.positionY.value=s.y; p.positionZ.value=s.z; } else p.setPosition(s.x,s.y,s.z);
     v.g.gain.setTargetAtTime(.34*s.k,now,.2); }
+  if(SOUND.murmur)updateTradeSound(now,inside);          // (r189)
   // a footstep each half turn of the walk's bob
   const k=Math.floor(bob/Math.PI);
   if(SOUND.stepK!==null&&k!==SOUND.stepK&&player.onGround){
@@ -80466,7 +80577,8 @@ async function soundRenderBell(prime=174,seconds=6){
 // which fires the two crackle voices are on, and the ambience's levels.
 function soundReport(){
   const gain=n=>n?+n.g.gain.value.toFixed(3):null;
-  return {state:SOUND.ctx?SOUND.ctx.state:null,failed:SOUND.failed,on:SOUND.on,volume:SOUND.volume,strikes:SOUND.strikes,steps:SOUND.steps,claps:SOUND.claps,
+  return {state:SOUND.ctx?SOUND.ctx.state:null,failed:SOUND.failed,on:SOUND.on,volume:SOUND.volume,strikes:SOUND.strikes,steps:SOUND.steps,claps:SOUND.claps,anvils:SOUND.anvils,clinks:SOUND.clinks,cries:SOUND.cries,
+    murmur:SOUND.murmur?{gain:+SOUND.murmur.g.gain.value.toFixed(3),at:SOUND.murmur.spot?SOUND.murmur.spot.room.name:null}:null,
     fireSpots:SOUND.fires?SOUND.fires.length:0,fires:SOUND.fire.map(v=>v.spot?{x:+v.spot.x.toFixed(1),z:+v.spot.z.toFixed(1),k:v.spot.k,gain:+v.g.gain.value.toFixed(3)}:null),
     wind:SOUND.wind?[gain(SOUND.wind.low),gain(SOUND.wind.high)]:null,rain:gain(SOUND.rain),crickets:gain(SOUND.crickets)};
 }
@@ -80534,7 +80646,7 @@ setTimeout(()=>document.getElementById('gameTitle').classList.add('faded'),4600)
 setTimeout(()=>document.getElementById('hint').classList.add('faded'),10000);
 function emberDiagnostics(){
   const info=renderer.info,plan=CITY_PLAN.audit||auditCityPlan();
-return{revision:'r188',world:{innerBuilt,carts:CARTS.length,clutter:WORK_CLUTTER,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
+return{revision:'r189',world:{innerBuilt,carts:CARTS.length,clutter:WORK_CLUTTER,lotYards:LOT_YARDS,roadEnds:ROAD_ENDS,lanternPrune:LANTERN_PRUNE,seed:WORLD_SEED,layoutVersion:WORLD_LAYOUT_VERSION,lighting,three:THREE.REVISION,lights:THREE.EMBERWATCH_LIGHTS||null,bloom:BLOOM.on,shaderWarmMs:Math.round(shaderWarmMs),shaderWarmPasses,loadTimes:loadTimes(),homes:interiorDoors.filter(door=>door.kind==='home').length},visualCanon:{version:VISUAL_CANON.version,sites:VISUAL_CANON.sites.length,authored:VISUAL_CANON.authored.length,captures:VISUAL_CANON.captures.length,meteors:VISUAL_CANON.meteors.length,rain:!!VISUAL_CANON.rain,rainLevel:+(VISUAL_CANON.rain?.level||0).toFixed(2),skyEvent:VISUAL_CANON.events.phase||'quiet',omen:+(VISUAL_CANON.omen?.level||0).toFixed(2),moonDir:[+MOON_DIR.x.toFixed(3),+MOON_DIR.y.toFixed(3),+MOON_DIR.z.toFixed(3)],mapStyleVersion:MAP_VISUAL_CANON_STYLE_VERSION,npcStyleVersion:NPC_VISUAL_CANON_STYLE_VERSION,referenceBuildVersion:REFERENCE_BUILD_MODE_VERSION,referencePlaces:VISUAL_CANON.authored.filter(entry=>entry.type==='reference-place').length,referenceRoles:villagers.filter(npc=>npc.referenceBuild).length,referenceRoleCounts:villagers.reduce((counts,npc)=>{if(npc.referenceBuild)counts[npc.referenceRole]=(counts[npc.referenceRole]||0)+1;return counts;},{}),npcStyleCounts:{...NPC_STYLE_COUNTS},npcActivePoses:villagers.reduce((counts,npc)=>{if(npc.visualCanonPose)counts[npc.visualCanonPose]=(counts[npc.visualCanonPose]||0)+1;return counts;},{})},player:{x:+player.x.toFixed(2),y:+player.y.toFixed(2),z:+player.z.toFixed(2),interior:activeInterior?.name||null,ward:lastWardName},city:{districts:plan.districts,parcels:plan.parcels,buildings:plan.buildings,anchors:plan.anchors,blockedAnchors:plan.blockedAnchors,roadOverlaps:plan.roadOverlaps,repairedAnchors:plan.repaired,sealedFacades:plan.sealed,wilderness:{features:outerBuilt.features.length,colliders:outerBuilt.colliders},shops:SHOPS.length,gateApproaches:auditGateApproaches(),roadObstructions:auditRoadObstructions(0)},interactions:{total:WORLD_INTERACTIONS.length,unreachable:WORLD_INTERACTIONS.filter(entry=>!worldInteractionReachable(entry)).map(entry=>entry.id)},runtime:{sceneChildren:scene.children.length,colliders:colliders.length,villagers:villagers.length,doors:interiorDoors.length,spells:spells.length,residentBatch:residentBatchInfo(),atmosphereParticles:cityAtmosphere?cityAtmosphere.particles.length+SMOKE.slots*SMOKE.per:0,contextLost:webglContextLost},renderer:{calls:info.render.calls,triangles:info.render.triangles,geometries:info.memory.geometries,textures:info.memory.textures,quality:{name:pxNames[pxi],scale:RS,antiAlias:'FXAA'}}};
 }
 // Every resident exists by now — the authored ones, the ward generator, and the
 // outer quarters. Homes, work and ties are drawn once, here, over the finished
@@ -80763,7 +80875,7 @@ window.EMBER={kit:{fronts:CITY_FRONTS,lanterns:CITY_LANTERNS,lots:CITY_LOTS,shop
     // against a reference sees the same clouds in each; undefined lets go
     hold:v=>{SKY_HOLD.t=v;},
     bells:hold=>{ BELLS.held=!!hold; ringBells(clock.getElapsed()); return {rung:BELLS.rung,movers:LANDMARK_MOVERS.filter(m=>m.swing).length,doves:DOVES.birds.length}; }},
-  sound:{report:soundReport,renderBell:soundRenderBell},
+  sound:{report:soundReport,renderBell:soundRenderBell,trades:soundTradeSpots},
   batches:()=>({...MERGE_REPORT}),
   // (r154) What a probe standing at x, z would touch, within reach of it.
   // (r176) the places' moods and the look, live: a probe tunes them and a
@@ -80903,7 +81015,7 @@ setTimeout(()=>{ if(!started){ document.getElementById('startBtn').style.display
 })();
 </script>
 
-<!-- Emberwatch — The Long Night — variant layer over base r188 -->
+<!-- Emberwatch — The Long Night — variant layer over base r189 -->
 <script>
 /* ==========================================================================
    EMBERWATCH — THE LONG NIGHT                                 variant layer

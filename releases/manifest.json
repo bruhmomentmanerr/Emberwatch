@@ -2253,7 +2253,7 @@
   "rev": 186,
   "title": "every door opens",
   "version": "1.86.0",
-  "date": "2026-11-23T12:30:00Z",
+  "date": "2026-11-23T11:48:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r186-every-door-opens.html"
@@ -2266,7 +2266,7 @@
   "rev": 187,
   "title": "the business of the street",
   "version": "1.87.0",
-  "date": "2026-11-23T16:00:00Z",
+  "date": "2026-11-23T14:36:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r187-the-business-of-the-street.html"
@@ -2279,12 +2279,25 @@
   "rev": 188,
   "title": "at home after dark",
   "version": "1.88.0",
-  "date": "2026-11-23T19:30:00Z",
+  "date": "2026-11-23T17:24:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r188-at-home-after-dark.html"
   },
   "asset": "emberwatch-r188-at-home-after-dark.html",
   "notes": "releases/notes/r188.md"
+ },
+ {
+  "tag": "r189",
+  "rev": 189,
+  "title": "the trades heard",
+  "version": "1.89.0",
+  "date": "2026-11-23T20:12:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r189-the-trades-heard.html"
+  },
+  "asset": "emberwatch-r189-the-trades-heard.html",
+  "notes": "releases/notes/r189.md"
  }
 ]
