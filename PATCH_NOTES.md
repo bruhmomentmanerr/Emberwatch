@@ -1,101 +1,97 @@
-**r186 — every door opens** · 1.86.0 · 2026-11-23 · phase 5, world depth
+**r187 — the business of the street** · 1.87.0 · 2026-11-23 · phase 5, world depth
 
 ### Summary
 
-Every door opens. 1,313 shut house fronts become doors onto cells: rooms built on first entry in a pocket beyond the map's edge, with their own colliders and lamps, furnished as homes or for the quarter's trade (smithy, grain store, carter's yard, workroom). Doors 202 to 1,515. Verified: audits, unit tests, diagnostics against r185, cells walked and shot, frame time, boot time, variants 6/6, smoke.
+The business of the street. 1,241 pieces of working clutter against 928 house fronts, beside the doors, by trade (woodpiles and coal at the smithies, sacks at the grain stores, barrels, hay and troughs in the yards) or household (benches, water butts, herb tubs, washing lines). Merged into the city's batches: no draw call added. Verified: audits, unit tests, diagnostics against r186, streets and pieces shot, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r186 / 1.86.0, "Every door opens".** Built on r185. The owner asked
-for the first four items of the remaining list: every door opens, clutter
-where work happens, people using the place, and more sound, one revision
-each, interiors to follow up after. This is the first.
+**State: r187 / 1.87.0, "The business of the street".** Built on r186, the
+second of the four the owner asked for (doors, clutter, people, sound).
 
 ### What was wrong
 
-202 doors opened: the fifteen halls and the walk-in homes and shops (r113).
-Every other house was a solid block with a painted door. Building a room
-into each, as the walk-in homes are built, would cost what they cost a
-hundredfold in geometry, lights and colliders.
+Shot from house doorsteps in all four quarters, the streets were bare: the
+house fronts met the paving with nothing on them. The world's own counts
+said why: the lot-yard dressing found no lots to dress, the road-end
+dressing no free road end (16 of 18 had no room, 2 were at a door), and the
+whole city had eight carts.
 
 ### What changed
 
-- **Cells.** Every house `wardHouse` builds (the infill's and the avenues')
-  names its lot (`CELL_LOTS`). Once the city is final, `openCells` gives each
-  one whose doorstep is clear a door record (`kind:'cell'`) in
-  `interiorDoors`, so the offer, enter and leave paths are the ones every
-  door uses. Of 1,544 houses, 1,313 opened; 231 had their doorstep taken or
-  stood within 2.2 m of another door's.
-- **Built on first entry, then kept** (`ensureCell`). Each house has its own
-  slot in a grid beyond the map's edge (from x 900; the player is held
-  within ±705 m) and 400 m up. Up there the movement code treats you as
-  aloft and consults no street colliders at all, so a cell's colliders are
-  gathered into its record (`COLLIDER_CAPTURE` in `addCollider` and
-  `addBoxCollider`) and checked by `cellBlocked`; they never join the
-  city's grid. Its floor is a stacked deck the room's size. It is laid at
-  ground height and lifted as one group; its lamps carry the record as
-  their `home`, so they light only while you are inside. It is drawn only
-  then too. The map's clamp does not apply inside a cell.
-- **What a room holds.** A home: r113's `furnishHome` (bed, hearth and its
-  lamp, table and stools, shelf, rug) in r183's stone (`dressRoom`), boards
-  underfoot. A traded house takes its quarter's trade, on flagstone:
-  - Westreach, a smithy: the forge with its coals, hood and low orange lamp,
-    an anvil, the quench barrel, a tool rack and a bench;
-  - the New North, a grain store: sacks along the back wall, a grain bin,
-    chests and a ladder;
-  - the Long Southing, a carter's yard room: casks, harness on a rack, a
-    mending bench;
-  - Eastreach, a workroom: a workbench and stools, shelves, a chest.
+- **`workingClutter`**, run after the street lamps and pools and before the
+  anchors are settled and the cells take their doorsteps. For every house
+  (the infill's and the avenues' `wardHouse` lots, and the walk-in homes),
+  each side of the door gets a piece about three times in five, chosen by
+  what the house does:
 
-  Counts: 1,230 homes, 29 yards, 27 smithies, 20 grain stores, 7 workrooms.
-- Entering puts you just inside the cell's door at its floor; leaving puts
-  you on the house's doorstep at the ground's height. A save made in a cell
-  is saved on its doorstep. `EMBER.cells` exposes the doors, the built
-  cells and `enter`/`leave` for probes.
+  | House | Pieces |
+  |---|---|
+  | Westreach smithy | a woodpile under a roof board, a coal heap with a shovel, a trough, a barrel |
+  | New North grain store | sacks, crates, a barrel |
+  | Long Southing yard | barrels, hay bales, a trough, crates |
+  | Eastreach workroom | crates, a bench, a herb tub, a barrel |
+  | A home | a bench, a water butt, a herb tub, a washing line, crates |
+
+- **Placement.** Each piece stands against the front wall, on one side of
+  the door, never in front of it. Its footprint (middle and both ends) must
+  be off the road, clear of colliders, more than 2.1 m from every doorstep
+  and more than 2.2 m from every resident's anchor. Each has a small
+  collider. Every choice is a hash of the house's position: nothing draws
+  from the world's random stream.
+- **Cost.** The pieces are boxes, cylinders and cones under the city's own
+  material keys, so they merge into its batches: no draw call is added.
+- `EMBER.diagnostics().world.clutter` reports the counts, the skips and a
+  sample of spots for probes.
+
+Placed: 1,241 pieces at 928 houses. Water butts 434, crates 270, herb tubs
+229, benches 214, barrels 31, washing lines 23, sacks 14, troughs 10, hay 7,
+coal heaps 5, woodpiles 4. Skipped: 1,762 by the roll, 120 blocked, 7 on the
+road, 5 at an anchor. The trade pieces are few because only 83 houses carry
+a trade.
 
 ### Not done, and next
 
-- **Nobody is home.** The cells are empty of people; residents using rooms
-  and furniture is the third item of this run (r188).
-- A cell is bigger inside than a narrow house outside (at least 4.6 by 4.4
-  m), as the old games' were.
-- The 231 shut fronts, and the district buildings that are not `wardHouse`'s,
-  stay shut.
+- **People using it** is the third item (r188): benches to sit on, washing
+  to hang, sacks to haul.
+- The night keeps most of it dark away from the lamps and windows, as the
+  game's night does everything; it reads where the light falls.
+- The district buildings that are not `wardHouse`'s carry none yet.
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
-  markup and script agree. All 726 functions are reachable, none dead, and no
-  comment holds a call. Section A is 244, as in r185.
+  markup and script agree. All 728 functions are reachable, none dead, and no
+  comment holds a call. Section A is 244, as in r186.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Diagnostics against r185**, same profile: doors 1,515 against 202 (the
-  1,313 cells), none blocked; anchors 98, none blocked; gate approaches 4,
-  none broken; colliders 13,167 and render calls at the spawn point 491,
-  both as r185 (a cell adds neither until it is entered, and then only to
-  itself).
-- **Walked.** In a smithy and in a home: into each of the four walls for
-  14 s; the player stayed inside the room every time and at its floor. Its
-  lamps lit, and leaving put the player on the doorstep at ground height
-  with the room hidden.
-- **Looked at.** Six cells entered, one of each kind and a second home,
-  from the door and from the back wall.
-- **Frame time**, at a fixed standpoint in the Cinder Market, alternated,
-  median of 30 frames under software rendering: r185 2,444 and 2,488 ms,
-  r186 2,410 and 2,403 ms. Seven times the door records cost nothing that
-  shows.
+- **Diagnostics against r186**, same profile:
+
+  | | r187 | r186 |
+  |---|---|---|
+  | Doors (blocked) | 1,515 (0) | 1,515 (0) |
+  | Anchors (blocked) | 98 (0) | 98 (0) |
+  | Gate approaches | 4, none broken | 4, none broken |
+  | Colliders | 14,431 | 13,167 |
+  | Render calls at spawn | 491 | 491 |
+  | Triangles at spawn | 2,591,371 | 2,502,805 |
+
+  The 1,264 colliders are the pieces' own (a washing line has two). Every
+  cell kept its doorstep.
+- **Looked at.** The eight doorstep views of the four quarters before and
+  after, and one piece of each kind from four metres out.
 - **Boot time**, three runs each, alternated, from the game's own load
   report:
-  - r185: 6.6, 6.5 and 6.9 s
-  - r186: 6.8, 6.3 and 6.5 s
-- **Variants** 6/6 built, and 6/6 boot and report r186.
-- **Smoke check** clean: the game boots at r186, the Bluetooth chooser
+  - r186: 6.5, 6.6 and 6.4 s
+  - r187: 6.0, 6.7 and 6.8 s
+- **Variants** 6/6 built, and 6/6 boot and report r187.
+- **Smoke check** clean: the game boots at r187, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.37 MB (+10,172 bytes on r185).
-- 6 functions added: `cellBlocked`, `ensureCell`, `enterCell`, `furnishCell`, `leaveCell`, `openCells`.
+- 8.37 MB (+6,482 bytes on r186).
+- 2 functions added: `placeClutter`, `workingClutter`.
 
 ### Play it
 
