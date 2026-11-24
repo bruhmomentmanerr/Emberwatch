@@ -2305,12 +2305,25 @@
   "rev": 190,
   "title": "a lamp on the table",
   "version": "1.90.0",
-  "date": "2026-11-24T16:00:00Z",
+  "date": "2026-11-24T13:40:00Z",
   "phase": 5,
   "source": {
    "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r190-a-lamp-on-the-table.html"
   },
   "asset": "emberwatch-r190-a-lamp-on-the-table.html",
   "notes": "releases/notes/r190.md"
+ },
+ {
+  "tag": "r191",
+  "rev": 191,
+  "title": "heavy furniture",
+  "version": "1.91.0",
+  "date": "2026-11-24T18:20:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r191-heavy-furniture.html"
+  },
+  "asset": "emberwatch-r191-heavy-furniture.html",
+  "notes": "releases/notes/r191.md"
  }
 ]

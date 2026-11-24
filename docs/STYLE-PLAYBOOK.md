@@ -261,6 +261,7 @@ quality 72-80, 300-500 KB quantised.
 | A variant sweep shoots only its first variant | A `before` script declared a `const` at the page's top level, and the second copy threw | Wrap each `before` in a function: `(()=>{ ... return promise; })()` |
 | A room that must not touch the city (a house's cell) | Colliders have no height; any collider blocks the ground under it | Build it in the pocket beyond the map's edge and above it, capture its colliders (`COLLIDER_CAPTURE`) and check them only while inside (`cellBlocked`) |
 | Boot slower by most of a second with nothing new in the world | A sound buffer built when the sound starts lands in the first frame | Build it the first time it is in earshot, at half the rate, from a sine table |
+| Furniture still reads as a kit after bevelling | Its proportions are thin; edges are not what makes heavy furniture read heavy | Thicken tops, legs and pedestals in the helpers, keep footprints and heights; a bevel cost 0.8 MB for little to see |
 | A window lands on a buttress outside | Placed by eye from inside | Put windows in the bays between the buttresses (`HALL_DRESS` bays) |
 
 ---
