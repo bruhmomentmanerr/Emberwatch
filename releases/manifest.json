@@ -2299,5 +2299,18 @@
   },
   "asset": "emberwatch-r189-the-trades-heard.html",
   "notes": "releases/notes/r189.md"
+ },
+ {
+  "tag": "r190",
+  "rev": 190,
+  "title": "a lamp on the table",
+  "version": "1.90.0",
+  "date": "2026-11-24T16:00:00Z",
+  "phase": 5,
+  "source": {
+   "file": "revisions/phase 5 - world depth (r70-)/emberwatch_3_r190-a-lamp-on-the-table.html"
+  },
+  "asset": "emberwatch-r190-a-lamp-on-the-table.html",
+  "notes": "releases/notes/r190.md"
  }
 ]
