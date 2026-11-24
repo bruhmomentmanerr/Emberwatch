@@ -81,11 +81,12 @@ def ring(a, x, y, z, r, rad, color, n=12, axis='y'):
 
 def long_table(a, x, z0, z1, top=WOOD3, legs=WOOD, benches=True, bench_c=WOOD):
     zc, L = (z0 + z1) / 2, z1 - z0
-    a.box(1.0, .1, L, x, .82, zc, top)
+    # (r191) heavy, as taverns.py's tables are now: the top's surface unchanged
+    a.box(1.0, .13, L, x, .805, zc, top)
     for zz in (z0 + .4, zc, z1 - .4) if L > 4 else (z0 + .4, z1 - .4):
-        a.box(.9, .1, .12, x, .2, zz, legs)
+        a.box(.9, .12, .14, x, .2, zz, legs)
         for e in (-1, 1):
-            a.box(.1, .78, .1, x + e * .35, .39, zz, legs)
+            a.box(.16, .74, .16, x + e * .35, .37, zz, legs)
     if benches:
         for s in (-1, 1):
             bench(a, x + s * .85, zc, L - .2, along='z', c=bench_c)

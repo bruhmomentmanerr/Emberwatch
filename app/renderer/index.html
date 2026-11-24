@@ -72227,6 +72227,10 @@ function updateLandmarkMovers(dt,t){
 // below 1 (tools/assets/_kit.py) and placeLandmark hands the shader 1 - alpha
 // as `glow`: the Oathfield's blades carry a cobalt line down each fuller and
 // the lychgate its lantern that way, in the one draw call each already costs.
+// (r191) 46 degrees: an eight-sided barrel, cask or round table, at 45 degrees
+// a face, shades round, as do the two-segment bevels on the furniture; a box's
+// corner, at 90, stays sharp. It was 36, which left every barrel faceted.
+const LANDMARK_CREASE=Math.PI*46/180;
 let GRAIN_TEX=null;
 function grainTexture(){
   if(GRAIN_TEX)return GRAIN_TEX;
@@ -72300,7 +72304,7 @@ function placeLandmark(name,b64,points,opts={}){
     for(const p of points){ at.set(p.x,p.y||0,p.z); q.setFromEuler(e.set(p.rx||0,p.ry||0,p.rz||0,'YXZ')); sc.set(p.s||1,p.s||1,p.s||1); parts.push(base.clone().applyMatrix4(m.compose(at,q,sc))); }
     base.dispose();
     const crease=opts.grain&&THREE.BufferGeometryUtils&&THREE.BufferGeometryUtils.toCreasedNormals;
-    const mesh=cellMesh(parts,material,g=>{ if(crease)crease(g,Math.PI/5); else g.computeVertexNormals(); boxProjectUV(g,opts.tile||4); });     // (r153) culled by squares
+    const mesh=cellMesh(parts,material,g=>{ if(crease)crease(g,LANDMARK_CREASE); else g.computeVertexNormals(); boxProjectUV(g,opts.tile||4); });     // (r153) culled by squares
     if(!mesh)return; mesh.name='landmark-'+name;
     mesh.castShadow=opts.shadow!==false; mesh.receiveShadow=true; scene.add(mesh); LANDMARK_MESHES.push(mesh);
     restampShadows();

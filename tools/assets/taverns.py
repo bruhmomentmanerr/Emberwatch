@@ -172,27 +172,36 @@ def barrel(a, x, z, r=.36, h=.9, y=0.0):
     a.cyl(r * .8, r * .8, .02, x, y + h + .005, z, WOOD3, sides=10)
 
 
+# (r191) The furniture made heavy, after the reference's tavern: thick tops,
+# stout legs and pedestals, a stretcher where a bench would rack. Every
+# footprint and every top's height is as it was, so the colliders written from
+# these numbers and the things standing on the tables are unchanged. Rounder
+# too: more sides on what is round, which the game's 46 degree crease shades
+# smooth.
 def round_table(a, x, z, r=.6, h=.78, top=WOOD3):
-    a.cyl(r, r, .06, x, h, z, top, sides=12)
-    a.cyl(.07, .07, h - .06, x, (h - .06) / 2, z, WOOD, sides=6)
-    a.box(r * 1.3, .06, .1, x, .03, z, WOOD)
-    a.box(.1, .06, r * 1.3, x, .03, z, WOOD)
+    a.cyl(r, r, .1, x, h - .02, z, top, sides=16)
+    a.cyl(r * .86, r * .86, .06, x, h - .1, z, WOOD, sides=16)
+    a.cyl(.11, .15, h - .12, x, (h - .12) / 2, z, WOOD, sides=10)
+    a.box(r * 1.3, .1, .16, x, .05, z, WOOD)
+    a.box(.16, .1, r * 1.3, x, .05, z, WOOD)
 
 
 def stool(a, x, z, y=0.0, h=.62):
-    a.cyl(.19, .19, .06, x, y + h, z, WOOD3, sides=8)
+    a.cyl(.2, .2, .1, x, y + h - .02, z, WOOD3, sides=12)
     for k in range(3):
         ang = k / 3 * TAU + .4
-        a.span((x + math.cos(ang) * .1, y + h - .02, z + math.sin(ang) * .1),
-               (x + math.cos(ang) * .2, y, z + math.sin(ang) * .2), .04, .04, WOOD)
+        a.span((x + math.cos(ang) * .1, y + h - .06, z + math.sin(ang) * .1),
+               (x + math.cos(ang) * .2, y, z + math.sin(ang) * .2), .07, .07, WOOD)
 
 
 def bench(a, x, z, L, along='x', h=.46, c=WOOD):
     w, d = (L, .36) if along == 'x' else (.36, L)
-    a.box(w, .08, d, x, h, z, c)
+    a.box(w, .12, d, x, h - .02, z, c)
     for s in (-1, 1):
         lx, lz = ((s * (L / 2 - .2), 0) if along == 'x' else (0, s * (L / 2 - .2)))
-        a.box(.3 if along == 'z' else .08, h - .04, .08 if along == 'z' else .3, x + lx, (h - .04) / 2, z + lz, c)
+        a.box(.32 if along == 'z' else .13, h - .08, .13 if along == 'z' else .32, x + lx, (h - .08) / 2, z + lz, c)
+    sw, sd = (L - .5, .08) if along == 'x' else (.08, L - .5)
+    a.box(sw, .08, sd, x, .16, z, c)
 
 
 def armchair(a, x, z, ry, cushion, frame=WOOD2):
@@ -207,16 +216,16 @@ def armchair(a, x, z, ry, cushion, frame=WOOD2):
     for lx in (-.31, .31):
         for lz in (-.27, .27):
             qx, qz = P(lx, lz)
-            a.box(.07, .36, .07, qx, .18, qz, frame, ry=ry)
+            a.box(.11, .36, .11, qx, .18, qz, frame, ry=ry)
     qx, qz = P(0, -.32)
     a.box(.74, 1.05, .1, qx, .95, qz, frame, ry=ry, rx=-.12)
     qx, qz = P(0, -.26)
     a.box(.6, .72, .07, qx, .98, qz, cushion, ry=ry, rx=-.12)
     for lx in (-.37, .37):
         qx, qz = P(lx, .02)
-        a.box(.1, .1, .64, qx, .78, qz, frame, ry=ry)
+        a.box(.13, .12, .66, qx, .78, qz, frame, ry=ry)
         qx, qz = P(lx, .28)
-        a.box(.07, .26, .07, qx, .63, qz, frame, ry=ry)
+        a.box(.1, .26, .1, qx, .63, qz, frame, ry=ry)
 
 
 def lantern(a, x, y, z, top=CEIL):
@@ -463,10 +472,10 @@ def cinder():
     # a bench on the room side, a game left half-played
     lx, lz0, lz1 = -9.3, .3, 4.9
     lzc, lL = (lz0 + lz1) / 2, lz1 - lz0
-    a.box(1.0, .1, lL, lx, .82, lzc, WOOD3)
+    a.box(1.0, .13, lL, lx, .805, lzc, WOOD3)
     for s in (-1, 1):
-        a.box(.12, .78, .12, lx, .39, lzc + s * (lL / 2 - .3), WOOD)
-        a.box(.9, .1, .1, lx, .2, lzc + s * (lL / 2 - .3), WOOD)
+        a.box(.17, .74, .17, lx, .37, lzc + s * (lL / 2 - .3), WOOD)
+        a.box(.9, .12, .14, lx, .2, lzc + s * (lL / 2 - .3), WOOD)
     a.box(.5, .1, lL, -10.48, .46, lzc, WOOD)
     a.box(.08, 1.3, lL, -10.72, 1.05, lzc, WOOD2)
     a.box(.45, .42, lL, -10.48, .21, lzc, WOOD2)
@@ -626,11 +635,11 @@ def southgate():
     # the long table, benches either side; small tables on the right
     tx, tz0, tz1 = -4.0, .2, 4.6
     tzc, tL = (tz0 + tz1) / 2, tz1 - tz0
-    a.box(1.0, .1, tL, tx, .82, tzc, WOOD3)
+    a.box(1.0, .13, tL, tx, .805, tzc, WOOD3)
     for s in (-1, 1):
-        a.box(.9, .1, .12, tx, .2, tzc + s * (tL / 2 - .4), WOOD)
+        a.box(.9, .12, .14, tx, .2, tzc + s * (tL / 2 - .4), WOOD)
         for e in (-1, 1):
-            a.box(.1, .78, .1, tx + e * .35, .39, tzc + s * (tL / 2 - .4), WOOD)
+            a.box(.16, .74, .16, tx + e * .35, .37, tzc + s * (tL / 2 - .4), WOOD)
         bench(a, tx + s * .85, tzc, tL - .2, along='z')
     for k in range(5):
         z = tz0 + .5 + k * .85
@@ -890,11 +899,11 @@ def wayhouse():
     for tx in (-3.4, 3.4):
         tz0, tz1 = -4.0, 3.6
         tzc, tL = (tz0 + tz1) / 2, tz1 - tz0
-        a.box(1.0, .1, tL, tx, .82, tzc, WOOD3)
+        a.box(1.0, .13, tL, tx, .805, tzc, WOOD3)
         for zz in (tz0 + .4, tzc, tz1 - .4):
-            a.box(.9, .1, .12, tx, .2, zz, WOOD)
+            a.box(.9, .12, .14, tx, .2, zz, WOOD)
             for e in (-1, 1):
-                a.box(.1, .78, .1, tx + e * .35, .39, zz, WOOD)
+                a.box(.16, .74, .16, tx + e * .35, .37, zz, WOOD)
         for s in (-1, 1):
             bench(a, tx + s * .85, tzc, tL - .2, along='z')
         for k in range(7):
