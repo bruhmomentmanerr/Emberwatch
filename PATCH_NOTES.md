@@ -1,67 +1,83 @@
-**r190 — a lamp on the table** · 1.90.0 · 2026-11-24 · phase 5, world depth
+**r191 — heavy furniture** · 1.91.0 · 2026-11-24 · phase 5, world depth
 
 ### Summary
 
-A lamp on the table. A lantern and a warm lamp on every home's table, walk-in and cell, lit only while you are inside: mean brightness 11 to 23, near-black 81% to 65% over sixteen home shots. Verified: audits, unit tests, diagnostics against r189, homes shot and measured before and after, boot time, variants 6/6, smoke.
+Heavy furniture. The tavern and hall furniture remade heavy in its scripts (thick tops, stout legs and pedestals, stretchers), footprints and heights unchanged; eight models rebuilt, 24 KB; round pieces shaded round (crease 46 degrees). A bevel pass was tried and dropped: 0.8 MB for little to see. Verified: audits, unit tests, halls shot before and after, diagnostics against r190, boot time, variants 6/6, smoke.
 
 ### Patch notes
 
-**State: r190 / 1.90.0, "A lamp on the table".** Built on r189. The owner
-asked for the interiors follow-up: the homes dark away from the hearth, and
-the furniture's own forms (r191).
+**State: r191 / 1.91.0, "Heavy furniture".** Built on r190, the second half
+of the interiors follow-up the owner asked for: the furniture's own forms.
 
-### What was wrong
+### What was tried first, and dropped
 
-A home, walk-in or cell, was lit by its hearth's lamp and the cool fill.
-Away from the hearth it was nearly black: shot from the door and facing the
-front wall, four walk-in homes and two home cells averaged a mean
-brightness of 11 (of 255), and 81% of each frame was near black (under 15).
+A bevel on every furniture-sized box: the kit (`tools/assets/_kit.py`) now
+has a `chamfer` option (r190) that marks boxes at least 0.5 m long and 6 cm
+thick and bevels their edges in two segments on export. Built at 3.5 cm and
+at 5 cm on the Cinder and Keg, it took the model from 13,580 to 22,700
+triangles and from 180 to 284 KB, about 0.8 MB over all the halls, and in
+the game, shot beside r190 at the same standpoints, the difference could
+hardly be seen. The option stays in the kit, off; no model uses it.
 
 ### What changed
 
-- **A lantern on the table** (`furnishHome`): a small iron-framed lantern with
-  glowing panes on the table, which stands on the bed side of the room, and
-  a warm lamp inside its glass (`HOME_LANTERN`, power 0.42, range 5). It
-  lights the half of the room the hearth does not. Like the hearth's, it is
-  in the light budget only while you are inside (`home.lanternEntry`, set to
-  the record by `openHomes`; a cell's lamps all carry its record). Every
-  home has it, since the cells are furnished by the same function.
-- The kit (`tools/assets/_kit.py`) gains a chamfer option for r191's
-  furniture work; it is off unless a script sets it, and no model in this
-  revision was rebuilt with it.
+The reference's furniture reads as heavy because of its proportions, not its
+edges. The shared helpers in `tools/assets/taverns.py` (which `halls.py`
+imports) are remade heavy, with every footprint and every top's height as
+before, so the colliders written from them and the things on the tables are
+unchanged:
 
-Measured on the same twelve walk-in shots and four cell shots, r189 to r190:
-mean brightness 11.1 to 22.8; near-black share 80.8% to 64.5%. Every frame
-of a home seen from its far side brightened (one, shot facing the front
-wall, from 0.5 to 18.1). Inside a home cell all three lamps were confirmed
-lit: the hearth, the fill and the lantern.
+- **round tables**: a 10 cm top (was 6) on 16 sides (was 12), an apron
+  under it, a pedestal 11 to 15 cm across (was 7), feet 10 cm by 16 cm;
+- **stools**: a 10 cm seat on 12 sides, legs 7 cm square (were 4);
+- **benches**: a 12 cm seat (was 8), slab legs 13 cm thick (were 8) and a
+  stretcher between them;
+- **armchairs**: posts 11 cm (were 7), arms 13 cm;
+- **long tables** (`halls.py`'s `long_table` and the three written in
+  place in the Cinder and Keg, the Southgate Rest and the Wayhouse): a 13
+  cm top (was 10) and legs 16 cm square (were 10 to 12).
+
+The game creases the landmarks' normals at 46 degrees (`LANDMARK_CREASE`;
+was 36), so an eight-sided barrel or cask, 45 degrees a face, shades round
+like the sixteen-sided tops, and a box's corner stays sharp.
+
+Rebuilt from their scripts: the Cinder and Keg, the Southgate Rest, the
+Gilded Finch, the Wayhouse, the Drovers' Rest, the Lamplighters' Hall,
+Ferrier's Yard and the Pilgrim Shrine. The shrine's violet lamps and the New
+Chapel use none of the helpers and came out byte-identical, and the Cinder
+and Keg rebuilt before the change was byte-identical to the shipped model:
+the scripts reproduce exactly. The eight models grew 24 KB between them
+(1,379 KB to 1,403 KB packed).
 
 ### Not done, and next
 
-- **The furniture's forms**, r191.
-- **Few households**: 33 residents in 30 cells.
+- **Few households**: 33 residents live behind the 1,313 cell doors.
+- The furniture is still the kit's: boxes and cylinders, now heavier. A
+  model made piece by piece in Blender, as Orren was, is the step after.
 
 ### Validation
 
 - **Source audits.** Every script block parses. Sections B and C are 0, and
   markup and script agree. All 743 functions are reachable, none dead, and no
-  comment holds a call. Section A is 243, as in r189.
+  comment holds a call. Section A is 243, as in r190.
 - **Unit tests** pass: switch frames, b9, Bluetooth pairing, and Lorax.
-- **Diagnostics against r189**, same profile: doors 1,515 (none blocked),
-  anchors 98 (none blocked), colliders 14,431, render calls at the spawn
-  point 491, all as r189.
+- **Looked at.** The Cinder and Keg, the Wayhouse and the Gilded Finch from
+  the doorway and across to a side wall, r190 beside r191.
+- **Diagnostics against r190**, same profile: doors 1,515 (none blocked),
+  anchors 98 (none blocked), colliders 14,431 and render calls at the spawn
+  point 491, all as r190.
 - **Boot time**, three runs each, alternated, from the game's own load
   report:
-  - r189: 6.9, 6.5 and 6.6 s
-  - r190: 6.4, 6.8 and 6.5 s
-- **Variants** 6/6 built, and 6/6 boot and report r190.
-- **Smoke check** clean: the game boots at r190, the Bluetooth chooser
+  - r190: 6.2, 5.9 and 6.0 s
+  - r191: 5.9, 5.9 and 5.6 s
+- **Variants** 6/6 built, and 6/6 boot and report r191.
+- **Smoke check** clean: the game boots at r191, the Bluetooth chooser
   selects and cancels, pairing is confirmed and the WebGL context holds.
 - The live source and its archive are byte-identical.
 
 ### In the code
 
-- 8.39 MB (+1,036 bytes on r189).
+- 8.42 MB (+28,729 bytes on r190).
 - No functions added or removed.
 
 ### Play it
