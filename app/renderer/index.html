@@ -73727,6 +73727,7 @@ function interiorFill(home,x,z){
 // lamp in it, a table and two stools, a shelf, a rug. Mirrored by a hash so a
 // terrace of homes does not repeat, and laid out to keep the line from the door
 // to the room clear — the geometry audit checks that point.
+const HOME_LANTERN={power:.42,range:5};
 function furnishHome(home,at){
   const {w,d,ry}=home, T=HOME_WALL, a=w/2-T, b=d/2-T;
   // Which way round the room is laid out. This used terrainHash, so it moved
@@ -73761,6 +73762,16 @@ function furnishHome(home,at){
   { const [sx,sz]=at((tx-.95)*flip,tz); aCyl(.2,.23,.44,6,sx,.22,sz,'wood'); }
   { const [sx,sz]=at((tx+.95)*flip,tz); aCyl(.2,.23,.44,6,sx,.22,sz,'wood'); }
   { const [cx,cz]=at(tx*flip,tz); addCollider(cx,cz,.75); }
+  // (r190) A lantern on the table, and its light. One lamp in the hearth left
+  // the far half of every home in the dark: the bed, the door, the shelf. The
+  // table stands on the bed side of the room, so its lantern lights the half
+  // the hearth does not. Warm, low and short, inside the lantern's glass, and in
+  // the light budget only while you are inside, as the hearth's lamp is.
+  { const [lx,lz]=at((tx+.25)*flip,tz-.1);
+    aBox(.2,.03,.2,lx,.875,lz,'dark',ry); aBox(.15,.2,.15,lx,.99,lz,'amber',ry); aBox(.2,.03,.2,lx,1.105,lz,'dark',ry); aBox(.04,.08,.04,lx,1.16,lz,'dark',ry);
+    const lantern=lampLight(0xffb060,HOME_LANTERN.power,HOME_LANTERN.range); lantern.position.set(lx,1.0,lz); scene.add(lantern);
+    lights.push({light:lantern,base:HOME_LANTERN.power,phase:terrainHash(Math.round(home.x*2)+5,Math.round(home.z*2))*6,home:null});
+    home.lanternEntry=lights[lights.length-1]; }
   // shelf on the back wall, the hearth side
   put(a-1.35,-b+.2,1.3,1.7,.32,.85,'wood'); put(a-1.55,-b+.22,.22,.2,.2,1.3,'dark'); put(a-1.15,-b+.22,.18,.26,.18,1.33,'amber');
   solid(a-1.35,-b+.2,1.3,.32);
@@ -73902,7 +73913,7 @@ function openHomes(){
     const record={id:(home.shop?'shop-':'home-')+name.replace(/\W+/g,'-'),name,x:ox,z:oz,outsideX:ox,outsideZ:oz,insideX:ix,insideZ:iz,
       cx:x,cz:z,w:w-2*T,d:d-2*T,ry,kind:home.shop?'shop':'home',doorX:dx,doorZ:dz,purpose,spots:home.spots,shop:home.shop||null,parts:home.parts||null};
     if(home.shop){ home.shop.record=record; home.shop.frontX=home.customer[0]; home.shop.frontZ=home.customer[1]; }
-    home.lampEntry.home=record;
+    home.lampEntry.home=record; if(home.lanternEntry)home.lanternEntry.home=record;   // (r190) and the table lantern
     if(home.fillEntry)home.fillEntry.home=record;              // the room's cool fill, same budget rule
     // A shop has no swinging leaves: each door is two separate meshes, and
     // ninety-five shops of them were 190 draw calls at the north gate. The

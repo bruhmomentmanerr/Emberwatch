@@ -70,11 +70,23 @@ def pointed_arch_curve(half_w, spring, rise, segs=6):
 
 
 class Asset:
+    # (r191) Rounded furniture. With `chamfer` set (a width in metres), every
+    # box at least half a metre on its longest side and six centimetres on its
+    # shortest has its edges bevelled in two segments on export: a table top,
+    # a bench, a settle, a bar, a chest. Small things (tankards, candles,
+    # books, nails) stay as they were, which keeps the file in bounds. The
+    # game creases normals at 46 degrees, so a two-segment bevel (30 degree
+    # steps) shades round and an unbevelled corner stays sharp. The layout,
+    # and so every collider written from it, is unchanged. Off by default;
+    # the hall scripts turn it on.
+    chamfer = None
+
     def __init__(self, name, seed=1):
         self.name = name
         self.rng = random.Random(seed)
         self.verts = []   # game-space Vectors
         self.faces = []   # (index tuple, colour)
+        self.round = set()   # (r191) indices of faces whose edges are bevelled
 
     def mesh(self, verts, faces, color, at=(0, 0, 0), r=None):
         base = len(self.verts)
@@ -88,6 +100,8 @@ class Asset:
     # -- primitives ----------------------------------------------------------
     def box(self, w, h, d, x, y, z, color, rx=0.0, ry=0.0, rz=0.0, taper=1.0):
         self.mesh(box_verts(w, h, d, taper), BOX_FACES, color, at=(x, y, z), r=rot(rx, ry, rz))
+        if max(w, h, d) >= .5 and min(w, h, d) >= .06:
+            self.round.update(range(len(self.faces) - 6, len(self.faces)))
 
     def jbox(self, w, h, d, x, y, z, color, jit=.12, rx=0.0, ry=0.0, rz=0.0, taper=1.0, top_color=None):
         # A box whose eight corners each move on their own (by up to jit of
@@ -256,13 +270,17 @@ class Asset:
         bm = bmesh.new()
         bverts = [bm.verts.new(g2b(v)) for v in self.verts]
         col = bm.loops.layers.color.new('Col')
+        bw = bm.edges.layers.float.new('bevel_weight_edge') if self.chamfer else None
         skipped = 0
-        for idx, color in self.faces:
+        for k, (idx, color) in enumerate(self.faces):
             try:
                 face = bm.faces.new([bverts[i] for i in idx])
             except ValueError:
                 skipped += 1
                 continue
+            if bw is not None and k in self.round:
+                for e in face.edges:
+                    e[bw] = 1.0
             # A fourth component is a glow mask, carried as alpha: 1 is plain,
             # lower glows (placeLandmark reads 1 - alpha as emissive).
             c = (color[0], color[1], color[2], color[3] if len(color) > 3 else 1.0)
@@ -276,6 +294,10 @@ class Asset:
             poly.use_smooth = False
         obj = bpy.data.objects.new(self.name, mesh)
         bpy.context.collection.objects.link(obj)
+        if self.chamfer:
+            m = obj.modifiers.new('round', 'BEVEL')
+            m.width = self.chamfer; m.segments = 2; m.limit_method = 'WEIGHT'; m.affect = 'EDGES'; m.profile = .5
+            m.use_clamp_overlap = True
         return obj
 
     def finish(self, cam_at, cam_look, res=(900, 600), lens=35, sun=(40, 0, -55), extra_views=()):
@@ -327,6 +349,7 @@ class Asset:
             bpy.ops.export_scene.gltf(**kw, export_vertex_color='ACTIVE')
         except TypeError:
             bpy.ops.export_scene.gltf(**kw, export_colors=True)
-        tris = sum(len(p.vertices) - 2 for p in obj.data.polygons)
+        ev = obj.evaluated_get(bpy.context.evaluated_depsgraph_get()).data
+        tris = sum(len(p.vertices) - 2 for p in ev.polygons)
         print('ASSET_OK name=%s triangles=%d bytes=%d out=%s previews=%s' % (self.name, tris, os.path.getsize(out), out, ','.join(previews)))
         return out
